@@ -10,22 +10,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ==============================
 # Security
 # ==============================
-SECRET_KEY = "django-insecure-change-me-in-production!"
-BACKUP_KEY = "MY_SUPER_BACKUP_KEY_123"
-DEBUG = True
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-me-in-production!")
+BACKUP_KEY = os.getenv("BACKUP_KEY", "MY_SUPER_BACKUP_KEY_123")
+DEBUG = False
 
 ALLOWED_HOSTS = [
     'localhost',
-    '127.0.0.1',    
-    'alyaman.pythonanywhere.com',
-    '.pythonanywhere.com',
+    '127.0.0.1',
+    'alyaman-institute.com',
+    'www.alyaman-institute.com',
+    '187.124.151.249',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://alyaman.pythonanywhere.com',
-    'https://*.pythonanywhere.com',
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
+    'https://alyaman-institute.com',
+    'https://www.alyaman-institute.com',
+    'http://alyaman-institute.com',
+    'http://www.alyaman-institute.com',
 ]
 
 # ==============================
@@ -76,11 +77,8 @@ INSTALLED_APPS = [
 # CORS Settings
 # ==============================
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8082",
-    "http://127.0.0.1:8082",
-    "https://alyaman.pythonanywhere.com",
+    "https://alyaman-institute.com",
+    "https://www.alyaman-institute.com",
 ]
 
 CORS_ALLOW_HEADERS = [
@@ -266,7 +264,8 @@ SESSION_SAVE_EVERY_REQUEST = True
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_SSL_REDIRECT = True
+    # Set DJANGO_SSL_REDIRECT=1 after SSL is working.
+    SECURE_SSL_REDIRECT = os.getenv("DJANGO_SSL_REDIRECT", "0") == "1"
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000  # 1 year
