@@ -30,7 +30,7 @@ class Classroom(models.Model):
         blank=True,  # جعلها اختيارية
         null=True
     )
-    
+    is_active = models.BooleanField(default=True, verbose_name='نشطة')
     def clean(self):
         if self.class_type == 'study' and not self.branches:
             raise ValidationError('يجب تحديد الفرع للشعبة الدراسية')
@@ -39,9 +39,11 @@ class Classroom(models.Model):
     
     @property
     def students(self):
+        from accounts.models import Studentenrollment
+
         return Student.objects.filter(
             classroom_enrollments__classroom=self
-        )
+        ).distinct()
     
     def __str__(self):
         if self.class_type == 'study':
@@ -54,7 +56,13 @@ class Classroom(models.Model):
         
 class Classroomenrollment(models.Model):
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE, related_name='enrollments')
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="classroom_enrollments")
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name="classroom_enrollments",
+        null=True,
+        blank=True,
+    )
     enrolled_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

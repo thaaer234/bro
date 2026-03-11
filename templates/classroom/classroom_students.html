@@ -5,69 +5,388 @@
 {% block content %}
 
 <div class="module-header">
-    <h2>
-        طلاب 
-        {% if classroom.class_type == 'study' %}
-        شعبة: {{ classroom.name }} ({{ classroom.get_branches_display }})
-        {% else %}
-        دورة: {{ classroom.name }}
-        {% endif %}
-    </h2>
-    <div>
-        <a href="{% url 'classroom:assign_students' classroom.id %}" class="btn btn-primary">
-            <i class="fas fa-user-plus"></i> إضافة طلاب
-        </a>
-        <a href="{% url 'classroom:export_classroom_students' classroom.id %}" class="btn btn-success">
-            <i class="fas fa-file-excel"></i> تصدير إلى Excel
-        </a>
-        <a href="{% url 'classroom:classroom' %}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> العودة للشعب
-        </a>
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="mb-0">
+                {% if classroom.class_type == 'study' %}
+                طلاب شعبة: {{ classroom.name }} ({{ classroom.get_branches_display }})
+                {% else %}
+                طلاب دورة: {{ classroom.name }}
+                {% endif %}
+            </h2>
+            <p class="mb-0 mt-2 opacity-75">إدارة طلاب {{ classroom.get_class_type_display }}</p>
+        </div>
+        <div>
+            <a href="{% url 'classroom:assign_students' classroom.id %}" class="btn btn-gradient me-2">
+                <i class="fas fa-user-plus me-2"></i> إضافة طلاب
+            </a>
+            <a href="{% url 'classroom:export_classroom_students' classroom.id %}" class="btn btn-success me-2">
+                <i class="fas fa-file-excel me-2"></i> تصدير Excel
+            </a>
+            <a href="{% url 'classroom:classroom' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i> العودة
+            </a>
+        </div>
     </div>
 </div>
+
 {% include "partials/_alerts.html" %}
 
-<div class="table-responsive mt-4">
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>الاسم</th>
-                <th>رقم الطالب</th>
-                {% if classroom.class_type == 'study' %}
-                <th>الفرع</th>
-                {% endif %}
-                <th>الإجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for student in students %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ student.full_name }}</td>
-                <td>{{ student.student_number }}</td>
-                {% if classroom.class_type == 'study' %}
-                <td>{{ student.get_branch_display }}</td>
-                {% endif %}
-                <td>
-                    <a href="{% url 'students:student_profile' student.id %}" class="btn btn-sm btn-info">
-                        <i class="fas fa-eye"></i> عرض
-                    </a>
-                    <form action="{% url 'classroom:unassign_student' classroom.id student.id %}" method="post" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من إزالة هذا الطالب من الشعبة؟');">
-                            <i class="fas fa-times"></i> إزالة
-                        </button>
-                    </form>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="{% if classroom.class_type == 'study' %}5{% else %}4{% endif %}" class="text-center">لا يوجد طلاب في هذه {% if classroom.class_type == 'study' %}شعبة{% else %}دورة{% endif %}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title">{{ students|length }}</h3>
+                        <p class="card-text">إجمالي الطلاب</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title">{{ male_students_count }}</h3>
+                        <p class="card-text">طلاب ذكور</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-male fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title">{{ female_students_count }}</h3>
+                        <p class="card-text">طالبات إناث</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-female fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title">{{ average_age|default:"0" }}</h3>
+                        <p class="card-text">متوسط العمر</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-birthday-cake fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>قائمة الطلاب</h5>
+            <div class="d-flex gap-2">
+                <input type="text" id="studentSearch" class="form-control form-control-sm" placeholder="ابحث عن طالب..." style="width: 250px;">
+                <select id="genderFilter" class="form-control form-control-sm" style="width: 150px;">
+                    <option value="">جميع الجنسيات</option>
+                    <option value="male">ذكور</option>
+                    <option value="female">إناث</option>
+                </select>
+                <button id="resetFilters" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-undo"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="50">
+                            <input type="checkbox" id="selectAll">
+                        </th>
+                        <th width="60">#</th>
+                        <th>الطالب</th>
+                        <th>رقم الطالب</th>
+                        <th>الجنس</th>
+                        <th>العمر</th>
+                        {% if classroom.class_type == 'study' %}
+                        <th>الفرع</th>
+                        {% endif %}
+                        <th>الحالة</th>
+                        <th width="200">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="studentsTable">
+                    {% for student in students %}
+                    <tr data-gender="{{ student.gender|default:'unknown' }}" data-name="{{ student.full_name|lower }}">
+                        <td>
+                            <input type="checkbox" class="student-checkbox" value="{{ student.id }}">
+                        </td>
+                        <td class="fw-bold text-primary">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="student-avatar me-3 
+                                    {% if student.gender == 'male' %}avatar-male
+                                    {% elif student.gender == 'female' %}avatar-female
+                                    {% else %}avatar-default{% endif %}">
+                                    {% if student.profile_picture %}
+                                        <img src="{{ student.profile_picture.url }}" alt="{{ student.full_name }}" class="rounded-circle">
+                                    {% else %}
+                                        {{ student.full_name|slice:":1" }}
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="fw-bold">{{ student.full_name }}</div>
+                                    <small class="text-muted">رقم الهوية: {{ student.national_id|default:"غير محدد" }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="fw-bold">{{ student.student_number }}</td>
+                        <td>
+                            {% if student.gender == 'male' %}
+                                <span class="badge bg-primary"><i class="fas fa-male me-1"></i>ذكر</span>
+                            {% elif student.gender == 'female' %}
+                                <span class="badge bg-info"><i class="fas fa-female me-1"></i>أنثى</span>
+                            {% else %}
+                                <span class="badge bg-secondary">غير محدد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if student.birth_date %}
+                                <span class="text-muted">{{ student.birth_date|timesince }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        {% if classroom.class_type == 'study' %}
+                        <td>
+                            <span class="badge bg-secondary">{{ student.get_branch_display|default:"غير محدد" }}</span>
+                        </td>
+                        {% endif %}
+                        <td>
+                            {% if student.is_active %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>نشط</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>غير نشط</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons d-flex gap-1">
+                                <a href="{% url 'students:student_profile' student.id %}" class="btn btn-sm btn-info" data-bs-toggle="tooltip" title="عرض الملف الشخصي">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'students:update_student' student.id %}" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="تعديل البيانات">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{% url 'classroom:unassign_student' classroom.id student.id %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger" data-bs-toggle="tooltip" title="إزالة من الشعبة" onclick="return confirm('هل أنت متأكد من إزالة الطالب {{ student.full_name }} من الشعبة؟');">
+                                        <i class="fas fa-user-minus"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if classroom.class_type == 'study' %}9{% else %}8{% endif %}" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-user-slash fa-3x mb-3"></i>
+                                <h5>لا يوجد طلاب في هذه {% if classroom.class_type == 'study' %}شعبة{% else %}دورة{% endif %}</h5>
+                                <p class="mb-3">يمكنك إضافة طلاب من خلال زر "إضافة طلاب"</p>
+                                <a href="{% url 'classroom:assign_students' classroom.id %}" class="btn btn-primary">
+                                    <i class="fas fa-user-plus me-2"></i>إضافة طلاب
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span id="selectedCount" class="text-muted">0 طالب محدد</span>
+            </div>
+            <div class="bulk-actions">
+                <button id="bulkRemoveBtn" class="btn btn-sm btn-danger" disabled>
+                    <i class="fas fa-user-minus me-1"></i> إزالة المحددين
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    border: none;
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 14px;
+}
+
+.student-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-male {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.avatar-female {
+    background: linear-gradient(135deg, #e84393, #fd79a8);
+}
+
+.avatar-default {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+}
+
+.action-buttons .btn {
+    border-radius: 5px;
+    padding: 4px 8px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.badge {
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: 10px;
+}
+
+.card-footer {
+    border-top: 1px solid #e9ecef;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    const studentSearch = document.getElementById('studentSearch');
+    const genderFilter = document.getElementById('genderFilter');
+    const resetFilters = document.getElementById('resetFilters');
+    const selectAll = document.getElementById('selectAll');
+    const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+    const selectedCount = document.getElementById('selectedCount');
+    const bulkRemoveBtn = document.getElementById('bulkRemoveBtn');
+    const studentsTable = document.getElementById('studentsTable');
+    const tableRows = studentsTable.querySelectorAll('tr');
+
+    // البحث والتصفية
+    function filterStudents() {
+        const searchText = studentSearch.value.toLowerCase();
+        const selectedGender = genderFilter.value;
+
+        tableRows.forEach(row => {
+            if (row.querySelector('.text-muted h5')) return; // تخطى صف الرسالة الفارغة
+
+            const studentName = row.dataset.name;
+            const studentGender = row.dataset.gender;
+
+            const nameMatch = studentName.includes(searchText);
+            const genderMatch = selectedGender === '' || studentGender === selectedGender;
+
+            row.style.display = nameMatch && genderMatch ? '' : 'none';
+        });
+    }
+
+    // إدارة التحديد
+    function updateSelection() {
+        const selectedStudents = document.querySelectorAll('.student-checkbox:checked');
+        const count = selectedStudents.length;
+        
+        selectedCount.textContent = `${count} طالب محدد`;
+        bulkRemoveBtn.disabled = count === 0;
+
+        // تحديد زر "تحديد الكل"
+        selectAll.checked = count > 0 && count === studentCheckboxes.length;
+        selectAll.indeterminate = count > 0 && count < studentCheckboxes.length;
+    }
+
+    // تحديد/إلغاء تحديد الكل
+    selectAll.addEventListener('change', function() {
+        studentCheckboxes.forEach(checkbox => {
+            if (checkbox.closest('tr').style.display !== 'none') {
+                checkbox.checked = this.checked;
+            }
+        });
+        updateSelection();
+    });
+
+    // تحديث العداد عند التحديد الفردي
+    studentCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+
+    // إزالة الطلاب المحددين
+    bulkRemoveBtn.addEventListener('click', function() {
+        const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked'))
+            .map(checkbox => checkbox.value);
+
+        if (selectedStudents.length === 0) return;
+
+        if (confirm(`هل أنت متأكد من إزالة ${selectedStudents.length} طالب من الشعبة؟`)) {
+            // هنا يمكن إضافة كود AJAX لإزالة الطلاب المحددين
+            alert('سيتم تطوير خاصية الإزالة الجماعية في النسخ القادمة');
+        }
+    });
+
+    // إعادة تعيين الفلاتر
+    resetFilters.addEventListener('click', function() {
+        studentSearch.value = '';
+        genderFilter.value = '';
+        tableRows.forEach(row => row.style.display = '');
+    });
+
+    // Event Listeners للبحث والتصفية
+    studentSearch.addEventListener('input', filterStudents);
+    genderFilter.addEventListener('change', filterStudents);
+
+    // تهيئة العداد
+    updateSelection();
+});
+</script>
 {% endblock %}

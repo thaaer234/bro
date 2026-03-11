@@ -1,9 +1,10 @@
 from django import forms
-from .models import Teacher , Employee , Vacation
+from .models import TeacherAttendance  # إذا كنت تحتاج نموذج حضور المدرسين فقط
+from employ.models import Teacher, Employee, Vacation  # لأن هذه النماذج موجودة في تطبيق employ
+  # استيرادهما من التطبيق الصحيح
 from django.forms import DateInput
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import Group ,User
-
+from django.contrib.auth.models import Group, User
 
 
 class TeacherForm(forms.ModelForm):
@@ -139,3 +140,37 @@ class AdminVacationForm(forms.ModelForm):
             'general_manager_opinion': 'رأي المدير العام',
             'status': 'حالة الإجازة',
         }
+
+
+from django import forms
+from .models import TeacherAttendance
+
+class TeacherAttendanceForm(forms.ModelForm):
+    class Meta:
+        model = TeacherAttendance
+        fields = ['teacher', 'branch', 'date', 'status', 'session_count', 'half_session_count', 'notes']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+        labels = {
+            'teacher': 'المدرس',
+            'date': 'التاريخ',
+            'status': 'الحالة',
+            'session_count': 'عدد الجلسات الكاملة',
+            'half_session_count': 'أنصاف الجلسات',
+            'notes': 'ملاحظات',
+        }
+from django import forms
+
+class JSONUploadForm(forms.Form):
+    json_file = forms.FileField(
+        label='رفع ملف JSON',
+        help_text='اختر ملف JSON يحتوي على بيانات حضور الأساتذة'
+    )
+    create_daily_entries = forms.BooleanField(
+        initial=True,
+        required=False,
+        label='إنشاء قيود يومية منفصلة',
+        help_text='سيتم إنشاء قيد محاسبي منفصل لكل يوم حضور لكل أستاذ'
+    )

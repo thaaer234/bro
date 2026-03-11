@@ -1,0 +1,1013 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="Content-Language" content="ar">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بطاقات المدرسين</title>
+    {% if not pdf %}
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    {% endif %}
+    <style>
+        /* تأكيد الاتجاه RTL في جميع العناصر */
+        .front-title,
+        .front-title .name,
+        .front-title .label,
+        .front-rows,
+        .front-row,
+        .row-label,
+        .row-value {
+            direction: rtl !important;
+            text-align: right !important;
+            unicode-bidi: bidi-override !important;
+        }
+
+        /* CSS إصلاح مشكلة النص العربي */
+        .front-title .label,
+        .front-title .name,
+        .front-rows,
+        .front-row,
+        .row-label,
+        .row-value,
+        .back-header,
+        .back-qr span,
+        .back-footer {
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            direction: rtl !important;
+            text-align: center !important;
+            unicode-bidi: plaintext !important;
+        }
+
+        /* إصلاح خاص للأسماء */
+        .front-title .name {
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            direction: rtl !important;
+            text-align: center !important;
+            unicode-bidi: bidi-override !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            line-height: 1.4 !important;
+            letter-spacing: 0 !important;
+            white-space: normal !important;
+            height: auto !important;
+            min-height: 29px !important;
+            max-height: 29px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            width: 100% !important;
+            max-width: 138px !important;
+            margin: 0 auto !important;
+            padding: 2px 5px !important;
+            word-wrap: break-word !important;
+            word-break: normal !important;
+            overflow: visible !important;
+            -webkit-hyphens: none !important;
+            -ms-hyphens: none !important;
+            hyphens: none !important;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .name-row {
+            min-height: 29px !important;
+            max-height: 29px !important;
+            height: 29px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            position: relative;
+        }
+
+        .front-title {
+            min-height: 54px !important;
+            max-height: 54px !important;
+            height: 54px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            gap: 2px !important;
+        }
+
+        @font-face {
+            font-family: "Amiri";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("{% static 'font/Amiri-Regular.ttf' %}") format("truetype");
+        }
+        {% if not pdf %}
+        @font-face {
+            font-family: "Cairo";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("{% static 'font/Cairo-400.ttf' %}") format("truetype");
+        }
+        @font-face {
+            font-family: "Cairo";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("{% static 'font/Cairo-600.ttf' %}") format("truetype");
+        }
+        @font-face {
+            font-family: "Cairo";
+            font-style: normal;
+            font-weight: 800;
+            font-display: swap;
+            src: url("{% static 'font/Cairo-800.ttf' %}") format("truetype");
+        }
+        {% endif %}
+
+        :root {
+            --ink: #0e1424;
+            --muted: #9fa6b6;
+            --paper: #ffffff;
+            --line: #d8e0ef;
+            --purple: #513996;
+            --purple-dark: #4f2f86;
+            --purple-light: #6b4aa7;
+            --gold: #f0a22b;
+            --teal: #0b6c8e;
+            --grid: rgba(255, 255, 255, 0.08);
+            --card-width: 100mm;
+            --card-height: 60mm;
+            --arabic-font: "Amiri", "Traditional Arabic", "Arial", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: var(--arabic-font) !important;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--arabic-font) !important;
+            color: var(--ink);
+            background: #f3f1f7;
+        }
+        body.cards-only {
+            background: #fff;
+        }
+
+        .screen-toolbar {
+            max-width: 1200px;
+            margin: 18px auto 8px auto;
+            padding: 14px;
+            border: 1px solid #c8e6de;
+            border-radius: 14px;
+            background: linear-gradient(120deg, #f7f3ff 0%, #f7f7ff 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        body.cards-only .screen-toolbar {
+            display: none;
+        }
+
+        .screen-toolbar h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .screen-toolbar p {
+            margin: 4px 0 0 0;
+            color: var(--muted);
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 16px;
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-main {
+            background: linear-gradient(120deg, var(--purple) 0%, #7a5ec2 100%);
+            color: #fff;
+        }
+
+        .btn-alt {
+            background: #edf2fb;
+            color: #0c2045;
+        }
+
+        .start-area {
+            min-height: 70vh;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+        }
+
+        .start-card {
+            width: min(650px, 100%);
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 28px;
+            text-align: center;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+        }
+
+        .start-card img {
+            width: 92px;
+            height: 92px;
+            object-fit: contain;
+            margin-bottom: 12px;
+        }
+
+        .start-card h2 {
+            margin: 0 0 8px 0;
+        }
+
+        .start-card p {
+            margin: 0 0 18px 0;
+            color: var(--muted);
+        }
+
+        .a4-page {
+            width: 100%;
+            max-width: 210mm;
+            margin: 0 auto 10mm auto;
+            padding: 5mm;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 0;
+            display: block;
+            page-break-after: always;
+        }
+        body.cards-only .a4-page {
+            margin: 0 auto;
+            border: 0;
+        }
+
+        .a4-page:last-of-type { page-break-after: auto; }
+
+        .page-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            grid-auto-rows: auto;
+            grid-auto-flow: row;
+            justify-content: center;
+            align-content: start;
+            gap: 0;
+            width: 100%;
+            height: auto;
+        }
+
+        .student-card {
+            position: relative;
+            border-radius: 0;
+            padding: 0;
+            overflow: hidden;
+            background: var(--purple);
+            box-shadow: none;
+            display: block;
+            break-inside: avoid;
+            width: var(--card-width);
+            height: var(--card-height);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            margin: 0;
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            border: none;
+        }
+
+        .student-card.auto-size {
+            height: auto;
+        }
+
+        .front-card {
+            display: flex;
+            flex-direction: row;
+            color: #fff;
+            direction: ltr;
+            width: var(--card-width);
+            height: var(--card-height);
+            box-sizing: border-box;
+            overflow: hidden;
+            background:
+                repeating-linear-gradient(0deg, transparent 0 22px, var(--grid) 22px 23px),
+                repeating-linear-gradient(90deg, transparent 0 22px, var(--grid) 22px 23px),
+                linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+            align-items: stretch;
+        }
+
+        .front-left {
+            padding: 21px 17px 15px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: right;
+            order: 1;
+            position: relative;
+            height: 100%;
+            max-height: 100%;
+            min-height: 0;
+            overflow: hidden;
+            transform: translateY(-2px);
+            flex: 0 0 63%;
+        }
+
+        .front-title {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+            text-align: center;
+        }
+
+        .front-title .label {
+            font-size: 25px;
+            font-weight: 800;
+            letter-spacing: 0.2px;
+            line-height: 32px;
+            width: 195px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            transform: translateY(-2px);
+        }
+
+        .name-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+            position: relative;
+            transform: translateY(-1px);
+        }
+
+        .front-title .name {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 22px;
+            order: 1;
+            width: 138px;
+            height: 29px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .front-title .line {
+            width: 41px;
+            height: 3px;
+            background: #fff;
+            opacity: 0.9;
+            order: 2;
+            margin-inline-start: 4px;
+            align-self: center;
+        }
+
+        .front-rows {
+            display: grid;
+            gap: 3px;
+            font-size: 10px;
+        }
+
+        .front-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: normal;
+            direction: rtl;
+            justify-content: flex-start;
+        }
+
+        .key-badge {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background-color: var(--teal);
+            border: 1px solid #fff;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M7.5 14a4.5 4.5 0 1 1 3.9-6.8l6.3 6.3V16h-2v2h-2v2h-2v-3.2l-3.1-3.1A4.5 4.5 0 0 1 7.5 14Z'/><circle cx='7.5' cy='9.5' r='2'/></svg>");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 6px 6px;
+            order: 1;
+        }
+
+        .front-rows .row-label {
+            opacity: 0.9;
+            order: 2;
+            position: relative;
+            padding-right: 0;
+        }
+
+        .front-rows .row-label::before {
+            content: "";
+            display: none;
+        }
+
+        .front-rows .row-value {
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            order: 3;
+        }
+
+        .front-qr {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            justify-content: flex-start;
+            direction: ltr;
+        }
+
+        .qr-main {
+            width: 18mm;
+            height: 18mm;
+            background: #fff;
+            padding: 3px;
+            border-radius: 6px;
+        }
+
+        .front-qr .qr-text {
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.25;
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            direction: rtl;
+            text-align: right;
+            color: #fff;
+            margin-left: auto;
+        }
+
+        .front-right {
+            background: #fbfaff;
+            display: grid;
+            place-items: center;
+            border-radius: 12px 0 0 12px;
+            position: relative;
+            overflow: hidden;
+            order: 2;
+            height: 100%;
+            max-height: 100%;
+            min-height: 0;
+            flex: 0 0 37%;
+        }
+
+        .logo-shell img {
+            width: 138px;
+            height: auto;
+        }
+
+        .logo-shell {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px 0 0 12px;
+            background: #fff;
+            background-image: url({% static 'img/back.png' %});
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 9px;
+            position: relative;
+            z-index: 1;
+            transform: translateY(-2px);
+        }
+
+        .logo-big {
+            width: 109px;
+            height: 109px;
+            object-fit: contain;
+            z-index: 1;
+        }
+
+        .logo-caption {
+            font-size: 11px;
+            color: #5a4a82;
+            margin-top: 12px;
+            z-index: 1;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .back-card {
+            color: #fff;
+            padding: 16px 20px 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: var(--card-width);
+            height: var(--card-height);
+            box-sizing: border-box;
+            overflow: hidden;
+            direction: rtl;
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            background:
+                repeating-linear-gradient(0deg, transparent 0 22px, var(--grid) 22px 23px),
+                repeating-linear-gradient(90deg, transparent 0 22px, var(--grid) 22px 23px),
+                linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+        }
+        .back-card * {
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+        }
+
+        .back-header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            font-size: 22px;
+            font-weight: 800;
+            width: calc(100% + 20px);
+            line-height: 1.1;
+            min-height: 30px;
+            text-align: right;
+            white-space: nowrap;
+            justify-content: space-between;
+            margin-left: -20px;
+            padding: 0 20px 0 0;
+        }
+
+        .qr-chip {
+            background: var(--gold);
+            color: #fff;
+            padding: 0 10px;
+            border-radius: 0;
+            font-weight: 800;
+            letter-spacing: 1px;
+            line-height: 1;
+            position: static;
+            height: auto;
+            min-width: 62px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 0;
+        }
+
+        .back-qr-grid {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1px 1fr 1px 1fr;
+            align-items: center;
+            column-gap: 8px;
+            row-gap: 0;
+            justify-items: center;
+        }
+
+        body.teacher-cards .back-qr-grid {
+            grid-template-columns: 1fr;
+            row-gap: 8px;
+        }
+
+        .back-qr {
+            display: grid;
+            place-items: center;
+            gap: 5px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .qr-square {
+            width: 22mm;
+            height: 22mm;
+            background: #fff;
+            padding: 4px;
+            border-radius: 7px;
+        }
+
+        .qr-wrap {
+            position: relative;
+            width: 22mm;
+            height: 22mm;
+            display: grid;
+            place-items: center;
+            grid-template: 1fr / 1fr;
+        }
+
+        .qr-wrap .qr-square {
+            width: 100%;
+            height: 100%;
+            grid-area: 1 / 1;
+        }
+
+        .qr-icon {
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.85);
+            box-shadow: 0 6px 16px rgba(11, 16, 24, 0.25);
+            display: grid;
+            place-items: center;
+            grid-area: 1 / 1;
+        }
+
+        .qr-icon svg {
+            width: 10px;
+            height: 10px;
+            stroke: var(--purple);
+            stroke-width: 1.8;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .v-divider {
+            height: 87px;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.55);
+            align-self: center;
+        }
+
+        .back-footer {
+            margin-top: auto;
+            font-size: 9px;
+            text-align: center;
+            color: #f3eaff;
+            line-height: 1.5;
+        }
+
+        .back-footer .en {
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif;
+            font-size: 7px;
+            opacity: 0.85;
+        }
+
+        .back-page .page-content {
+            display: grid;
+            grid-template-columns: repeat(2, var(--card-width));
+            grid-template-rows: repeat(4, var(--card-height));
+            grid-auto-flow: row;
+            gap: 0;
+            justify-content: center;
+            align-content: center;
+            direction: rtl;
+        }
+
+        .back-page .card-slot {
+            width: var(--card-width);
+            height: var(--card-height);
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        body.pdf {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+        }
+
+        body.pdf .a4-page {
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 0;
+            page-break-after: always;
+        }
+
+        body.pdf .page-content {
+            width: 210mm;
+            height: 297mm;
+            display: grid;
+            grid-template-columns: repeat(2, 100mm);
+            grid-template-rows: repeat(4, 60mm);
+            gap: 0;
+            justify-content: center;
+            align-content: center;
+        }
+
+        body.pdf .back-page .page-content {
+            display: grid;
+            grid-template-columns: repeat(2, var(--card-width));
+            grid-template-rows: repeat(4, var(--card-height));
+            grid-auto-flow: row;
+            gap: 0;
+            justify-content: center;
+            align-content: center;
+            direction: rtl;
+        }
+
+        body.pdf .back-page .card-slot {
+            width: var(--card-width);
+            height: var(--card-height);
+        }
+
+        body.pdf .student-card {
+            width: 100mm;
+            height: 60mm;
+            overflow: hidden;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            border: none;
+        }
+
+        @media print {
+            @font-face {
+                font-family: "Cairo";
+                font-style: normal;
+                font-weight: 400;
+                font-display: swap;
+                src: local("Cairo"), local("Cairo-Regular"),
+                    url("{% static 'font/Cairo-400.ttf' %}") format("truetype");
+            }
+            @font-face {
+                font-family: "Cairo";
+                font-style: normal;
+                font-weight: 600;
+                font-display: swap;
+                src: local("Cairo"), local("Cairo-SemiBold"),
+                    url("{% static 'font/Cairo-600.ttf' %}") format("truetype");
+            }
+            @font-face {
+                font-family: "Cairo";
+                font-style: normal;
+                font-weight: 800;
+                font-display: swap;
+                src: local("Cairo"), local("Cairo-ExtraBold"),
+                    url("{% static 'font/Cairo-800.ttf' %}") format("truetype");
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            html, body {
+                width: 210mm !important;
+                height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+
+            body {
+                display: block !important;
+            }
+
+            .no-print, .screen-toolbar, .actions {
+                display: none !important;
+            }
+
+            .a4-page {
+                width: 210mm !important;
+                height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: 0 !important;
+                display: block !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                box-sizing: border-box !important;
+            }
+
+            .page-content {
+                width: 210mm !important;
+                height: 297mm !important;
+                display: grid !important;
+                grid-template-columns: repeat(2, 100mm) !important;
+                grid-template-rows: repeat(4, 60mm) !important;
+                gap: 0 !important;
+                justify-content: center !important;
+                align-content: center !important;
+            }
+
+            .back-page .page-content {
+                display: grid !important;
+                grid-template-columns: repeat(2, var(--card-width)) !important;
+                grid-template-rows: repeat(4, var(--card-height)) !important;
+                grid-auto-flow: row !important;
+                gap: 0 !important;
+                justify-content: center !important;
+                align-content: center !important;
+                direction: rtl !important;
+            }
+
+            .back-page .card-slot {
+                width: var(--card-width) !important;
+                height: var(--card-height) !important;
+            }
+
+            .student-card {
+                width: 100mm !important;
+                height: 60mm !important;
+                overflow: hidden !important;
+                box-sizing: border-box !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                border: none !important;
+            }
+        }
+
+        .card-slot {
+            width: 100%;
+            height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .qr-square img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+    </style>
+</head>
+<body class="teacher-cards {% if pdf %}pdf{% endif %}{% if should_generate %} cards-only{% endif %}">
+{% if should_generate %}
+    <div class="screen-toolbar no-print">
+        <div>
+            <h1>بطاقات المدرسين</h1>
+            <p>تم إنشاء {{ teachers_total }} بطاقة - تصميم طباعة A4 بدون سايدبار</p>
+        </div>
+        <div class="actions">
+            <a href="{% url 'employ:teachers' %}" class="btn btn-alt">رجوع للمدرسين</a>
+            <a href="{% url 'employ:teacher_cards_print_pdf' %}?generate=1" class="btn btn-alt">تنزيل PDF</a>
+            <a href="{% url 'employ:teacher_cards_print_pdf' %}?generate=1" class="btn btn-main">طباعة</a>
+        </div>
+    </div>
+
+    {% if teachers_total %}
+        {% for page_teachers in pages %}
+        <section class="a4-page print-page">
+            <div class="page-content">
+            {% for teacher in page_teachers %}
+            <div class="card-slot print-slot">
+                <article class="student-card print-card">
+                    <div class="front-card">
+                        <div class="front-left">
+                        <div class="front-title">
+                            <span class="label" style="font-family: 'Cairo', 'Tajawal', 'Segoe UI', sans-serif !important; font-weight: 800;">بطاقة المدرس</span>
+                            <div class="name-row">
+                                <span class="name">{{ teacher.full_name }}</span>
+                                <span class="line"></span>
+                            </div>
+                        </div>
+                        <div class="front-rows">
+                            <div class="front-row">
+                                <span class="key-badge"></span>
+                                <span class="row-label">رقم الهاتف:</span>
+                                <span class="row-value">{{ teacher.phone_number|default:"-" }}</span>
+                            </div>
+                            <div class="front-row">
+                                <span class="key-badge"></span>
+                                <span class="row-label">التخصص:</span>
+                                <span class="row-value">{{ teacher.branch_display|default:"-" }}</span>
+                            </div>
+                            <div class="front-row">
+                                <span class="key-badge"></span>
+                                <span class="row-label">تاريخ التعيين:</span>
+                                <span class="row-value">{{ teacher.hire_date|date:"Y-m-d"|default:"-" }}</span>
+                            </div>
+                        </div>
+                        <div class="front-qr">
+                            <img src="{{ app_qr_url }}" alt="QR" class="qr-main">
+                            <div class="qr-text">امسح ال QR<br>لتحميل التطبيق</div>
+                        </div>
+                        </div>
+                        <div class="front-right">
+                        <div class="logo-shell">
+                            <img src="{% static 'img/logo.png' %}" alt="&#1575;&#1604;&#1588;&#1593;&#1575;&#1585;" class="logo-big">
+                            {% comment %} <div class="logo-caption"> <br> </div> {% endcomment %}
+                        </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            {% endfor %}
+            </div>
+        </section>
+        <section class="a4-page print-page back-page">
+            <div class="page-content">
+            {% for teacher in page_teachers %}
+            {% with t=teacher.full_name p=teacher.phone_number|default:"" %}
+            <div class="card-slot print-slot">
+                <article class="student-card print-card">
+                    <div class="back-card">
+                        <div class="back-header">
+                        <span>&#1578;&#1587;&#1580;&#1610;&#1604; &#1575;&#1604;&#1583;&#1582;&#1608;&#1604; &#1593;&#1576;&#1585;</span>
+                        <span class="qr-chip">QR</span>
+                    </div>
+                    {% with qr_teacher="u="|add:t|add:"&p="|add:p|add:"&r=teacher" %}
+                        <div class="back-qr-grid">
+                        <div class="back-qr">
+                            <div class="qr-wrap">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data={{ qr_teacher|urlencode }}" alt="QR " class="qr-square">
+                                <span class="qr-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M2 9l10-4 10 4-10 4-10-4z"></path>
+                                        <path d="M6 11v4c0 2 12 2 12 0v-4"></path>
+                                        <path d="M22 9v6"></path>
+                                    </svg>
+                                </span>
+                            </div>
+                            <span>المدرس</span>
+                        </div>
+                    </div>
+                    {% endwith %}
+                        <div class="back-footer">
+                        <div>للاستفسار والمساعدة يرجى الاتصال بخدمة العملاء على الرقم التالي 0998760194</div>
+                        <div class="en">For inquiries and assistance, please contact customer service at the following number 0998760194</div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            {% endwith %}
+            {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    {% else %}
+        <div class="start-area no-print">
+            <div class="start-card">
+                <img src="{% static 'img/logo.png' %}" alt="">
+                <h2>لا يوجد مدرسين حالياً</h2>
+                <a href="{% url 'employ:teachers' %}" class="btn btn-main">رجوع</a>
+            </div>
+        </div>
+    {% endif %}
+{% else %}
+    <div class="start-area">
+        <div class="start-card">
+            <img src="{% static 'img/logo.png' %}" alt="">
+            <h2>استوديو بطاقات المدرسين</h2>
+            <p>صفحة مستقلة بالكامل بدون سايدبار. اضغط إنشاء لتجهيز البطاقات بتصميم احترافي للطباعة.</p>
+            <div style="display: grid; gap: 8px; justify-items: center;">
+                <a href="{% url 'employ:teacher_cards_print' %}?generate=1" class="btn btn-alt">إنشاء كل المدرسين</a>
+            </div>
+        </div>
+    </div>
+{% endif %}
+</body>
+<script>
+    (function () {
+        function fixArabicText() {
+            document.querySelectorAll('.front-title .name').forEach((el) => {
+                const originalText = el.textContent || '';
+                const cleanedText = originalText
+                    .replace(/\n/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                let text = cleanedText;
+                if (text.includes('َ') || text.includes('ُ') || text.includes('ِ')) {
+                    const fixedText = text.split('').reverse().join('');
+                    if (text !== fixedText && text.length > 2) {
+                        text = fixedText;
+                    }
+                }
+
+                el.textContent = text;
+                el.style.direction = 'rtl';
+                el.style.textAlign = 'center';
+                el.style.unicodeBidi = 'bidi-override';
+            });
+
+            document.querySelectorAll('.row-value, .row-label').forEach((el) => {
+                el.style.direction = 'rtl';
+                el.style.textAlign = 'right';
+            });
+        }
+
+        window.addEventListener('load', fixArabicText);
+        window.addEventListener('beforeprint', fixArabicText);
+        setTimeout(fixArabicText, 500);
+    })();
+</script>
+</html>
+

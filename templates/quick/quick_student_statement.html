@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="student-profile" dir="rtl">
+    <!-- Header Section -->
+    <div class="profile-header">
+        <div class="header-content">
+            <div class="student-avatar">
+                <div class="avatar-placeholder">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+            </div>
+            <div class="student-info">
+                <h1>{{ student.full_name }}</h1>
+                <p class="student-number">كشف حساب الطالب السريع</p>
+                <div class="student-status">
+                    <span class="status-badge active">نشط</span>
+                    <span class="status-badge badge-warning ml-2">سريع</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-right"></i>
+                    العودة للبروفايل
+                </a>
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="fas fa-print"></i>
+                    طباعة الكشف
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-section">
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="card-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="card-content">
+                    <span class="card-label">الرصيد الحالي</span>
+                    <strong class="card-value">{{ balance|floatformat:2 }} ل.س</strong>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <div class="card-content">
+                    <span class="card-label">عدد الإيصالات</span>
+                    <strong class="card-value">{{ receipts|length }}</strong>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="card-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="card-content">
+                    <span class="card-label">الدورات المسجلة</span>
+                    <strong class="card-value">{{ per_course|length }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Transactions -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-exchange-alt"></i> الحركات المالية</h3>
+        </div>
+        <div class="card-body">
+            {% if rows %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>الرقم المرجعي</th>
+                            <th>الوصف</th>
+                            <th>مدين</th>
+                            <th>دائن</th>
+                            <th>الرصيد</th>
+                            <th>تم بواسطة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td>{{ row.date|date:"Y-m-d" }}</td>
+                            <td>{{ row.ref|default:"-" }}</td>
+                            <td>{{ row.desc }}</td>
+                            <td class="text-danger">{{ row.debit|floatformat:2 }}</td>
+                            <td class="text-success">{{ row.credit|floatformat:2 }}</td>
+                            <td class="{% if row.balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ row.balance|floatformat:2 }}
+                            </td>
+                            <td>{{ row.created_by }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <h4>لا توجد حركات مالية</h4>
+                <p>لم يتم تسجيل أي حركات مالية لهذا الطالب</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Receipts History -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3><i class="fas fa-receipt"></i> كشف الإيصالات</h3>
+        </div>
+        <div class="card-body">
+            {% if receipts %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>رقم الإيصال</th>
+                            <th>الدورة</th>
+                            <th>التاريخ</th>
+                            <th>المبلغ</th>
+                            <th>الخصم</th>
+                            <th>الصافي</th>
+                            <th>طباعة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for receipt in receipts %}
+                        <tr>
+                            <td>{{ receipt.receipt_number|default:"-" }}</td>
+                            <td>{{ receipt.course.name|default:"-" }}</td>
+                            <td>{{ receipt.date|date:"Y-m-d" }}</td>
+                            <td>{{ receipt.amount|floatformat:2 }} ل.س</td>
+                            <td>
+                                {% if receipt.discount_percent > 0 %}
+                                {{ receipt.discount_percent }}%
+                                {% elif receipt.discount_amount > 0 %}
+                                {{ receipt.discount_amount|floatformat:2 }} ل.س
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>{{ receipt.paid_amount|floatformat:2 }} ل.س</td>
+                            <td>
+                                {% if receipt.receipt_number %}
+                                <a href="{% url 'accounts:student_receipt_print' receipt.id %}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-print"></i>
+                                </a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <h4>لا توجد إيصالات مسجلة</h4>
+                <p>لم يتم قطع أي إيصالات لهذا الطالب حتى الآن</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Courses Summary -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-list-alt"></i> ملخص الدورات</h3>
+        </div>
+        <div class="card-body">
+            {% if per_course %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>الدورة</th>
+                            <th>المبلغ المستحق</th>
+                            <th>المبلغ المدفوع</th>
+                            <th>المتبقي</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in per_course %}
+                        <tr>
+                            <td>{{ course.course.name }}</td>
+                            <td>{{ course.price|floatformat:2 }} ل.س</td>
+                            <td>{{ course.paid|floatformat:2 }} ل.س</td>
+                            <td class="{% if course.outstanding > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ course.outstanding|floatformat:2 }} ل.س
+                            </td>
+                            <td>
+                                {% if course.outstanding <= 0 %}
+                                <span class="badge badge-success">مكتمل الدفع</span>
+                                {% else %}
+                                <span class="badge badge-warning">غير مكتمل</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <h4>لا توجد دورات مسجلة</h4>
+                <p>لا توجد دورات مسجلة للطالب لعرض بياناتها المالية</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .header-actions, .summary-section {
+        display: none !important;
+    }
+}
+</style>
+{% endblock %}

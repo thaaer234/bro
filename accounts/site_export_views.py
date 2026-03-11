@@ -173,7 +173,7 @@ def comprehensive_site_export(request):
     
     for enrollment in enrollments:
         exporter.formatter.format_data_cell(students_sheet, current_row, 1, enrollment.student.student_id)
-        exporter.formatter.format_data_cell(students_sheet, current_row, 2, enrollment.student.name)
+        exporter.formatter.format_data_cell(students_sheet, current_row, 2, getattr(enrollment.student, 'full_name', 'غير محدد'))
         exporter.formatter.format_data_cell(students_sheet, current_row, 3, enrollment.course.name_ar or enrollment.course.name)
         exporter.formatter.format_data_cell(students_sheet, current_row, 4, enrollment.enrollment_date.strftime('%Y-%m-%d'))
         exporter.formatter.format_currency_cell(students_sheet, current_row, 5, enrollment.total_amount)

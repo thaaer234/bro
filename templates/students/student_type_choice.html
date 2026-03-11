@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="text-center mb-5">
+                <h1 class="display-4 text-primary mb-3">
+                    <i class="fas fa-user-graduate"></i>
+                </h1>
+                <h2 class="mb-3">اختر نوع الطالب</h2>
+                <p class="lead text-muted">اختر نوع الطالب الذي تريد إضافته إلى النظام</p>
+            </div>
+
+            <div class="row">
+                <!-- طالب نظامي -->
+                <div class="col-md-6 mb-4">
+                    <div class="card choice-card system h-100">
+                        <div class="card-body text-center p-5">
+                            <div class="choice-icon mb-4">
+                                <i class="fas fa-user-graduate fa-4x text-primary"></i>
+                            </div>
+                            <h3 class="card-title mb-3">طالب نظامي</h3>
+                            <p class="card-text text-muted mb-4">
+                                تسجيل طالب نظامي كامل البيانات مع جميع التفاصيل الأكاديمية والشخصية
+                            </p>
+                            <ul class="list-unstyled text-start mb-4">
+                                <li><i class="fas fa-check text-success me-2"></i>بيانات شخصية كاملة</li>
+                                <li><i class="fas fa-check text-success me-2"></i>معلومات الأهل</li>
+                                <li><i class="fas fa-check text-success me-2"></i>بيانات أكاديمية مفصلة</li>
+                                <li><i class="fas fa-check text-success me-2"></i>جميع الدورات النظامية</li>
+                            </ul>
+                            <a href="{% url 'students:create_student' %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-plus me-2"></i>إضافة طالب نظامي
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- طالب سريع -->
+                <div class="col-md-6 mb-4">
+                    <div class="card choice-card quick h-100">
+                        <div class="card-body text-center p-5">
+                            <div class="choice-icon mb-4">
+                                <i class="fas fa-bolt fa-4x text-warning"></i>
+                            </div>
+                            <h3 class="card-title mb-3">طالب سريع</h3>
+                            <p class="card-text text-muted mb-4">
+                                تسجيل طالب سريع بالبيانات الأساسية فقط للدورات المكثفة والسريعة
+                            </p>
+                            <ul class="list-unstyled text-start mb-4">
+                                <li><i class="fas fa-check text-success me-2"></i>بيانات أساسية فقط</li>
+                                <li><i class="fas fa-check text-success me-2"></i>تسجيل سريع</li>
+                                <li><i class="fas fa-check text-success me-2"></i>دورات مكثفة وسريعة</li>
+                                <li><i class="fas fa-check text-success me-2"></i>نظام محاسبي متكامل</li>
+                            </ul>
+                            <a href="{% url 'quick:student_create' %}" class="btn btn-warning btn-lg">
+                                <i class="fas fa-bolt me-2"></i>إضافة طالب سريع
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'students:student' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right me-2"></i>العودة لقائمة الطلاب
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.choice-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.choice-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.choice-card.system {
+    border-top: 4px solid #007bff;
+}
+
+.choice-card.quick {
+    border-top: 4px solid #ffc107;
+}
+
+.choice-icon {
+    opacity: 0.8;
+}
+
+.card-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.btn-lg {
+    padding: 12px 30px;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

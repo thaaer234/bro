@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحليلات الأخطاء</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: right;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>تحليلات الأخطاء</h1>
+        
+        <div class="card">
+            <h2>إحصائيات الأخطاء</h2>
+            <p>هذه صفحة تحليلات الأخطاء - تحت التطوير</p>
+        </div>
+
+        <!-- يمكنك إضافة المزيد من المحتوى هنا -->
+        {% if error_stats %}
+            <div class="card">
+                <h3>إحصائيات:</h3>
+                <pre>{{ error_stats|pprint }}</pre>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

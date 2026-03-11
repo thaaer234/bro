@@ -42,16 +42,25 @@
                             {% endif %}
                         </div>
                         <div class="col-md-4 text-end">
-                            {% if account %}
+                            {% if accounts %}
                             <div class="card bg-light">
                                 <div class="card-body p-3">
-                                    <h6 class="card-title mb-1">الحساب المالي / Financial Account</h6>
-                                    <p class="mb-1"><strong>{{ account.code }}</strong></p>
-                                    <p class="mb-1">{{ account.name }}</p>
+                                    <h6 class="card-title mb-1">الحسابات المالية / Financial Accounts</h6>
+                                    {% for acc in accounts %}
+                                    <div class="mb-2">
+                                        <p class="mb-1 small">
+                                            <strong>{{ acc.code }}</strong><br>
+                                            {{ acc.name }}
+                                            {% if acc.course_name %}
+                                            <br><span class="text-info">دورة: {{ acc.course_name }}</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    {% endfor %}
                                     <p class="mb-0">
-                                        <strong>الرصيد: </strong>
+                                        <strong>الرصيد الإجمالي: </strong>
                                         <span class="{% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                            {{ balance|floatformat:2 }}
+                                            {{ balance|floatformat:2 }} ل.س
                                         </span>
                                     </p>
                                 </div>
@@ -59,7 +68,7 @@
                             {% else %}
                             <div class="alert alert-warning">
                                 <i class="fas fa-exclamation-triangle"></i>
-                                لا يوجد حساب مالي
+                                لا يوجد حسابات مالية للطالب
                             </div>
                             {% endif %}
                         </div>
@@ -81,6 +90,7 @@
                                             <th>المطلوب / Net Due</th>
                                             <th>المدفوع / Paid</th>
                                             <th>المتبقي / Outstanding</th>
+                                            <th>الحساب / Account</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -92,6 +102,13 @@
                                             <td class="text-success">{{ course_data.paid|floatformat:2 }}</td>
                                             <td class="{% if course_data.outstanding > 0 %}text-danger{% else %}text-success{% endif %}">
                                                 {{ course_data.outstanding|floatformat:2 }}
+                                            </td>
+                                            <td>
+                                                {% if course_data.account %}
+                                                <small class="text-primary">{{ course_data.account.code }}</small>
+                                                {% else %}
+                                                <small class="text-warning">لم ينشأ</small>
+                                                {% endif %}
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -105,15 +122,24 @@
                     <!-- Financial Transactions -->
                     <div class="card mb-4">
                         <div class="card-header">
-                            <h6 class="mb-0">المعاملات المالية - حساب الطالب / Financial Transactions - Student Account</h6>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">المعاملات المالية - حساب الطالب / Financial Transactions - Student Account</h6>
+                                {% if not has_accounts and receipts %}
+                                <button class="btn btn-primary btn-sm" onclick="createAllStudentAccounts()">
+                                    <i class="fas fa-calculator me-1"></i>
+                                    إنشاء جميع الحسابات
+                                </button>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="card-body">
-                            {% if account and rows %}
+                            {% if rows %}
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead class="table-light">
                                         <tr>
                                             <th>التاريخ / Date</th>
+                                            <th>الحساب / Account</th>
                                             <th>المرجع / Reference</th>
                                             <th>الوصف / Description</th>
                                             <th>مدين / Debit</th>
@@ -126,6 +152,9 @@
                                         {% for row in rows %}
                                         <tr>
                                             <td>{{ row.date }}</td>
+                                            <td>
+                                                <small class="text-primary">{{ row.account_code }}</small>
+                                            </td>
                                             <td>
                                                 <small class="text-primary">{{ row.ref }}</small>
                                             </td>
@@ -147,7 +176,7 @@
                                     </tbody>
                                     <tfoot class="table-light">
                                         <tr>
-                                            <th colspan="5">الرصيد النهائي / Final Balance:</th>
+                                            <th colspan="6">الرصيد النهائي / Final Balance:</th>
                                             <th class="{% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">
                                                 {{ balance|floatformat:2 }}
                                             </th>
@@ -156,28 +185,96 @@
                                     </tfoot>
                                 </table>
                             </div>
-                            {% elif account %}
+                            {% elif has_accounts %}
                             <div class="text-center py-4">
                                 <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
                                 <h6 class="text-muted">لا توجد معاملات مالية</h6>
                                 <p class="text-muted">الحساب موجود ولكن لا توجد معاملات مسجلة بعد</p>
                                 <p class="small text-info">
-                                    حساب الطالب: {{ account.code }} - {{ account.name }}
+                                    {% for account in accounts %}
+                                    حساب: {{ account.code }} - {{ account.name }}<br>
+                                    {% endfor %}
                                 </p>
                             </div>
                             {% else %}
                             <div class="text-center py-4">
                                 <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
                                 <h6 class="text-warning">لا يوجد حساب مالي للطالب</h6>
-                                <p class="text-muted">لم يتم إنشاء حساب مالي للطالب بعد</p>
-                                <button class="btn btn-primary btn-sm" onclick="createStudentAccount()">
-                                    <i class="fas fa-plus me-1"></i>
-                                    إنشاء حساب مالي / Create Financial Account
+                                <p class="text-muted">لم يتم إنشاء حسابات مالية للطالب بعد</p>
+                                {% if receipts %}
+                                <p class="text-muted small mb-2">يوجد {{ receipts|length }} إيصالات مدفوعة ولكن بدون حسابات</p>
+                                <button class="btn btn-primary btn-sm" onclick="createAllStudentAccounts()">
+                                    <i class="fas fa-calculator me-1"></i>
+                                    إنشاء حسابات من الإيصالات
                                 </button>
+                                {% else %}
+                                <p class="text-muted small">سيتم إنشاء الحسابات تلقائياً عند قطع أول إيصال</p>
+                                {% endif %}
                             </div>
                             {% endif %}
                         </div>
                     </div>
+
+                    <!-- Account Statement by Course -->
+                    {% if accounts %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">كشف الحساب حسب الدورة / Account Statement by Course</h6>
+                        </div>
+                        <div class="card-body">
+                            {% for account in accounts %}
+                            <div class="mb-4">
+                                <h6 class="text-primary">
+                                    <i class="fas fa-book me-1"></i>
+                                    {{ account.course_name|default:"غير محدد" }} - {{ account.code }}
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead>
+                                            <tr class="table-light">
+                                                <th>التاريخ</th>
+                                                <th>الوصف</th>
+                                                <th>مدين</th>
+                                                <th>دائن</th>
+                                                <th>الرصيد</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for transaction in account.transaction_set.all %}
+                                            <tr>
+                                                <td>{{ transaction.journal_entry.date }}</td>
+                                                <td>{{ transaction.description }}</td>
+                                                <td class="text-success">
+                                                    {% if transaction.is_debit %}
+                                                    {{ transaction.amount|floatformat:2 }}
+                                                    {% else %}
+                                                    -
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-danger">
+                                                    {% if not transaction.is_debit %}
+                                                    {{ transaction.amount|floatformat:2 }}
+                                                    {% else %}
+                                                    -
+                                                    {% endif %}
+                                                </td>
+                                                <td class="{% if transaction.running_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {{ transaction.running_balance|floatformat:2 }}
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">لا توجد معاملات في هذا الحساب</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
 
                     <!-- Receipts History -->
                     {% if receipts %}
@@ -236,56 +333,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- في قسم كشف الحساب -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h6 class="mb-0">كشف حساب الطالب / Student Account Statement</h6>
-    </div>
-    <div class="card-body">
-        {% if account %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>التاريخ</th>
-                        <th>الوصف</th>
-                        <th>مدين</th>
-                        <th>دائن</th>
-                        <th>الرصيد</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for transaction in account.transaction_set.all %}
-                    <tr>
-                        <td>{{ transaction.journal_entry.date }}</td>
-                        <td>{{ transaction.description }}</td>
-                        <td class="text-success">
-                            {% if transaction.is_debit %}
-                            {{ transaction.amount|floatformat:2 }}
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td class="text-danger">
-                            {% if not transaction.is_debit %}
-                            {{ transaction.amount|floatformat:2 }}
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td class="{% if transaction.running_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
-                            {{ transaction.running_balance|floatformat:2 }}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <p class="text-center">لا يوجد حساب مالي للطالب</p>
-        {% endif %}
-    </div>
-</div>
                     {% endif %}
                 </div>
             </div>
@@ -294,10 +341,48 @@
 </div>
 
 <script>
+function createAllStudentAccounts() {
+    if (confirm('هل تريد إنشاء جميع الحسابات المالية للطالب؟\nسيتم إنشاء حساب لكل دورة مسجلة.')) {
+        fetch(`/students/{{ student.id }}/create-accounts/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('خطأ: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('حدث خطأ في الاتصال: ' + error);
+        });
+    }
+}
+
 function createStudentAccount() {
     if (confirm('هل تريد إنشاء حساب مالي للطالب؟\nDo you want to create a financial account for this student?')) {
-        // Reload the page to trigger account creation
-        location.reload();
+        fetch(`/students/{{ student.id }}/create-accounts/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('خطأ: ' + data.error);
+            }
+        });
     }
 }
 </script>

@@ -1,0 +1,156 @@
+{% extends "mobile/teacher_base.html" %}
+{% load student_filters %}
+
+{% block content %}
+<div class="card reveal">
+  <div class="section-title">
+    <i class="fas fa-user-graduate"></i>
+    ملف الطالب
+  </div>
+  <h3 style="margin-top:10px;">{{ student.full_name }}</h3>
+  <div class="pill-row" style="margin-top:10px;">
+    <div class="pill"><strong>{{ student.student_number|default:"-" }}</strong><span>رقم الطالب</span></div>
+    <div class="pill"><strong>{{ student.father_name|default:"-" }}</strong><span>اسم الأب</span></div>
+    <div class="pill"><strong>{{ student.mother_name|default:"-" }}</strong><span>اسم الأم</span></div>
+    <div class="pill"><strong>{{ student.phone|default:"-" }}</strong><span>هاتف الطالب</span></div>
+    <div class="pill"><strong>{{ student.father_phone|default:"-" }}</strong><span>هاتف الأب</span></div>
+    <div class="pill"><strong>{{ student.mother_phone|default:"-" }}</strong><span>هاتف الأم</span></div>
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay:.02s;">
+  <div class="section-title">
+    <i class="fas fa-layer-group"></i>
+    الشعبة
+  </div>
+  <form method="get" class="form-grid">
+    <label for="classroom_id">اختر الشعبة</label>
+    <select id="classroom_id" name="classroom_id" onchange="this.form.submit()">
+      {% for classroom in student_classrooms %}
+      <option value="{{ classroom.id }}" {% if selected_classroom and selected_classroom.id == classroom.id %}selected{% endif %}>
+        {{ classroom.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<div class="card reveal" style="animation-delay:.04s;">
+  <div class="section-title">
+    <i class="fas fa-list-check"></i>
+    اختبارات المادة المرتبطة بالمدرس
+  </div>
+  <div class="list">
+    {% for row in exam_rows %}
+    <div class="list-item">
+      <h4>{{ row.exam.subject.name }} - {{ row.exam.name }}</h4>
+      <p class="muted">{{ row.exam.exam_date|date:"Y-m-d" }} | {{ row.exam.classroom.name }}</p>
+      <p>العلامة: {% if row.grade and row.grade.grade is not None %}{{ row.grade.grade|clean_decimal }}{% else %}-{% endif %} / {{ row.exam.max_grade|default:"-"|clean_decimal }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item"><p class="muted">لا توجد اختبارات مرتبطة بمادة هذا المدرس لهذا الطالب.</p></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay:.06s;">
+  <div class="section-title">
+    <i class="fas fa-headphones"></i>
+    التسميعات (من هذا المدرس)
+  </div>
+  <div class="list">
+    {% for item in listening_assignments %}
+    <div class="list-item">
+      <h4>{{ item.test.title }}</h4>
+      <p class="muted">{{ item.created_at|date:"Y-m-d H:i" }} | {{ item.test.classroom.name|default:"-" }}</p>
+      <p>العلامة: {% if item.grade is not None %}{{ item.grade|clean_decimal }} / {{ item.test.max_grade|clean_decimal }}{% else %}- / {{ item.test.max_grade|clean_decimal }}{% endif %}</p>
+      {% if item.note %}<p class="muted">{{ item.note }}</p>{% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item"><p class="muted">لا توجد تسميعات مسجلة من هذا المدرس.</p></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay:.08s;">
+  <div class="section-title">
+    <i class="fas fa-triangle-exclamation"></i>
+    الإنذارات الأكاديمية
+  </div>
+  <div class="list">
+    {% for warning in active_warnings %}
+    <div class="list-item">
+      <h4>{{ warning.get_severity_display }} - {{ warning.title }}</h4>
+      <p class="muted">{{ warning.created_at|date:"Y-m-d H:i" }}</p>
+      {% if warning.details %}<p class="muted">{{ warning.details }}</p>{% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item"><p class="muted">لا توجد إنذارات نشطة لهذا الطالب.</p></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay:.1s;">
+  <div class="section-title">
+    <i class="fas fa-headphones"></i>
+    تسجيل تسميع جديد
+  </div>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="record_listening">
+
+    <label for="listening_classroom_id">الشعبة</label>
+    <select id="listening_classroom_id" name="listening_classroom_id">
+      {% for classroom in student_classrooms %}
+      <option value="{{ classroom.id }}" {% if selected_classroom and selected_classroom.id == classroom.id %}selected{% endif %}>
+        {{ classroom.name }}
+      </option>
+      {% endfor %}
+    </select>
+
+    <label for="listening_title">عنوان التسميع</label>
+    <input id="listening_title" name="listening_title" type="text" placeholder="مثال: تسميع الوحدة الثالثة">
+
+    <label for="listening_max_grade">العلامة القصوى</label>
+    <input id="listening_max_grade" name="listening_max_grade" type="number" step="0.01" min="0.01" value="10">
+
+    <label for="listening_grade">علامة الطالب (اختياري)</label>
+    <input id="listening_grade" name="listening_grade" type="number" step="0.01" min="0">
+
+    <label for="listening_note">الملاحظات</label>
+    <textarea id="listening_note" name="listening_note" rows="2"></textarea>
+
+    <button class="btn" type="submit">حفظ التسميع</button>
+  </form>
+</div>
+
+<div class="card reveal" style="animation-delay:.12s;">
+  <div class="section-title">
+    <i class="fas fa-bell"></i>
+    تسجيل إنذار جديد
+  </div>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create_warning">
+
+    <label for="warning_title">عنوان الإنذار</label>
+    <input id="warning_title" name="warning_title" type="text" required placeholder="مثال: غياب متكرر">
+
+    <label for="warning_severity">درجة الإنذار</label>
+    <select id="warning_severity" name="warning_severity">
+      {% for code, label in warning_choices %}
+      <option value="{{ code }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="warning_details">التفاصيل</label>
+    <textarea id="warning_details" name="warning_details" rows="2"></textarea>
+
+    <button class="btn" type="submit">حفظ الإنذار</button>
+  </form>
+</div>
+
+<div class="card reveal" style="animation-delay:.14s;">
+  <a class="btn btn-secondary" href="{% url 'mobile:teacher_dashboard' %}">رجوع للوحة المدرس</a>
+</div>
+{% endblock %}

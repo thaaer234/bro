@@ -1,0 +1,197 @@
+{% extends 'accounts/base.html' %}
+{% load humanize %}
+
+{% block title %}تقرير مالي - {{ cost_center.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-chart-bar"></i>
+        التقرير المالي - {{ cost_center.name_ar|default:cost_center.name }}
+    </h2>
+    <a href="{% url 'accounts:cost_center_detail' cost_center.pk %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-right"></i> العودة للتفاصيل
+    </a>
+</div>
+
+<!-- فلترة الفترة الزمنية -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="start_date" class="form-label">من تاريخ</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" 
+                       value="{{ start_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-4">
+                <label for="end_date" class="form-label">إلى تاريخ</label>
+                <input type="date" class="form-control" id="end_date" name="end_date" 
+                       value="{{ end_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    <button type="submit" class="btn btn-primary">تطبيق الفلترة</button>
+                    <a href="?" class="btn btn-outline-secondary">إعادة تعيين</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- الملخص المالي -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h3>{{ financial_data.total_revenue|intcomma }} ل.س</h3>
+                <p>إجمالي الإيرادات</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h3>{{ financial_data.total_expenses|intcomma }} ل.س</h3>
+                <p>إجمالي المصروفات</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card {% if financial_data.net_income >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+            <div class="card-body text-center">
+                <h3>{{ financial_data.net_income|intcomma }} ل.س</h3>
+                <p>صافي الدخل</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h3>{{ financial_data.budget_utilization|floatformat:1 }}%</h3>
+                <p>استخدام الميزانية</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- الإيرادات حسب الدورة -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">الإيرادات حسب الدورة</h5>
+            </div>
+            <div class="card-body">
+                {% if financial_data.revenue_by_course %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>الدورة</th>
+                                <th>عدد التسجيلات</th>
+                                <th>الإيرادات</th>
+                                <th>نسبة المساهمة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in financial_data.revenue_by_course %}
+                            <tr>
+                                <td>{{ item.course.name_ar|default:item.course.name }}</td>
+                                <td>{{ item.enrollments }}</td>
+                                <td>{{ item.revenue|intcomma }} ل.س</td>
+                                <td>
+                                    {% widthratio item.revenue financial_data.total_revenue 100 %}%
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">لا توجد إيرادات في الفترة المحددة</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- المصروفات حسب النوع -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">المصروفات حسب النوع</h5>
+            </div>
+            <div class="card-body">
+                {% if financial_data.expenses_by_category %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>نوع المصروف</th>
+                                <th>المبلغ</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category, amount in financial_data.expenses_by_category.items %}
+                            <tr>
+                                <td>{{ category }}</td>
+                                <td>{{ amount|intcomma }} ل.س</td>
+                                <td>
+                                    {% widthratio amount financial_data.total_expenses 100 %}%
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="table-primary">
+                                <td><strong>رواتب المدرسين</strong></td>
+                                <td><strong>{{ financial_data.teacher_salaries|intcomma }} ل.س</strong></td>
+                                <td>
+                                    <strong>{% widthratio financial_data.teacher_salaries financial_data.total_expenses 100 %}%</strong>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">لا توجد مصروفات في الفترة المحددة</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- التدفق النقدي -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">التدفق النقدي</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 bg-success text-white">
+                            <h4>{{ financial_data.cash_flow.inflow|intcomma }} ل.س</h4>
+                            <small>التدفق الداخل</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 bg-danger text-white">
+                            <h4>{{ financial_data.cash_flow.outflow|intcomma }} ل.س</h4>
+                            <small>التدفق الخارج</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3 {% if financial_data.cash_flow.net >= 0 %}bg-primary text-white{% else %}bg-warning{% endif %}">
+                            <h4>{{ financial_data.cash_flow.net|intcomma }} ل.س</h4>
+                            <small>صافي التدفق</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,114 +1,880 @@
 {% extends "base.html" %}
 
-{% load emp_perms %}
 {% load static %}
+{% load custom_filters %}
+{% load attendance_filters %} 
 {% block content %}
 {% now "Y-m-d" as today %}
 <div class="module-header">
-    <h2>تسجيل حضور المدرسين</h2>
-</div>
-{% include "partials/_alerts.html" %}
-
-<form method="post">
-    {% csrf_token %}
-    <div class="form-row">  
-        <div class="form-col">
-            <label for="date">التاريخ</label>
-            <input type="date" name="date" id="date" class="form-control" required value="{{ today }}">
+    <h2>{% if is_edit_mode %}تعديل{% else %}تسجيل{% endif %} حضور المدرسين</h2>
+    <div class="header-actions">
+        <div class="btn-group btn-group-sm" role="group" aria-label="تحديد سريع">
+            <button type="button" id="selectAllPresent" class="btn btn-outline-success btn-sm">
+                <i class="fas fa-check-circle"></i> تحديد الكل حاضر
+            </button>
+            <button type="button" id="selectAllNoDuty" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-times-circle"></i> تحديد الكل ليس لديه دوام
+            </button>
+            <button type="button" id="clearAll" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-eraser"></i> مسح الكل
+            </button>
         </div>
     </div>
-    
-    <div class="table-container mt-4">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>المدرس</th>
-                    <th>حالة الحضور</th>
-                    <th>عدد الجلسات</th>
-                    <th>ملاحظات</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for teacher in teachers %}
-                <tr>
-                    <td>{{ teacher.full_name }}</td>
-                    <td>
-                        <div class="attendance-container">
-                            <label class="attendance-option present-option">
-                                <input type="radio" name="status_{{ teacher.id }}" value="present" checked>
-                                حاضر
-                            </label>
-                            <label class="attendance-option absent-option">
-                                <input type="radio" name="status_{{ teacher.id }}" value="absent">
-                                غائب
-                            </label>
-                            <label class="attendance-option late-option">
-                                <input type="radio" name="status_{{ teacher.id }}" value="late">
-                                متأخر
-                            </label>
-                            <label class="attendance-option permission-option">
-                                <input type="radio" name="status_{{ teacher.id }}" value="permission">
-                                إذن
-                            </label>
-                        </div>
-                    </td>
-                    <td>
-                        <input type="number" name="sessions_{{ teacher.id }}" 
-                               class="form-control" value="1" min="1" 
-                               style="width: 80px;">
-                    </td>
-                    <td>
-                        <input type="text" name="notes_{{ teacher.id }}" 
-                               class="form-control" placeholder="ملاحظات">
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <button type="submit" class="btn btn-primary mt-3">حفظ الحضور</button>
-    <a href="{% url 'attendance:teacher_attendance' %}" class="btn btn-secondary mt-3 ml-2">العودة للسجل</a>
-</form>
+</div>
 
+{% include "partials/_alerts.html" %}
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" id="attendanceForm">
+            {% csrf_token %}
+            
+            <!-- معلومات الجلسة -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="date" class="form-label">
+                            <i class="fas fa-calendar-alt"></i> التاريخ
+                        </label>
+                        <input type="date" name="date" id="date" class="form-control" required 
+                               value="{{ default_date|date:'Y-m-d' }}" 
+                               max="{{ today }}">
+                        <small class="form-text text-muted">
+                            {% if is_edit_mode %}
+                            <i class="fas fa-info-circle"></i> يمكنك تغيير التاريخ وسيتم نقل السجلات للتاريخ الجديد
+                            {% else %}
+                            <i class="fas fa-exclamation-triangle"></i> لا يمكن تسجيل حضور لتاريخ مستقبلي
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="quickActions" class="form-label">
+                            <i class="fas fa-bolt"></i> الإجراءات السريعة
+                        </label>
+                        <select id="quickActions" class="form-control">
+                            <option value="">اختر إجراء سريع...</option>
+                            <option value="allPresent1">تعيين الكل حاضر (1 جلسة)</option>
+                            <option value="allPresent2">تعيين الكل حاضر (2 جلسة)</option>
+                            <option value="allPresent3">تعيين الكل حاضر (3 جلسات)</option>
+                            <option value="allPresent4">تعيين الكل حاضر (4 جلسات)</option>
+                            <option value="allPresent5">تعيين الكل حاضر (5 جلسات)</option>
+                            <option value="allPresentHalf">تعيين الكل حاضر (0.5 جلسة)</option>
+                            <option value="allPresent1Half">تعيين الكل حاضر (1.5 جلسة)</option>
+                            <option value="allNoDuty">تعيين الكل ليس لديه دوام</option>
+                            <option value="resetSessions">إعادة تعيين الجلسات فقط</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- إحصائيات سريعة -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="stats-bar">
+                        <div class="stats-item">
+                            <div class="stats-label"><i class="fas fa-user-check text-success"></i> الحضور</div>
+                            <div class="stats-value" id="statsPresent">0</div>
+                        </div>
+                        <div class="stats-item">
+                            <div class="stats-label"><i class="fas fa-user-slash text-secondary"></i> بدون دوام</div>
+                            <div class="stats-value" id="statsNoDuty">0</div>
+                        </div>
+                        <div class="stats-item">
+                            <div class="stats-label"><i class="fas fa-clock text-info"></i> إجمالي الجلسات</div>
+                            <div class="stats-value" id="statsTotalSessions">0</div>
+                        </div>
+                        <div class="stats-item">
+                            <div class="stats-label"><i class="fas fa-money-bill-wave text-success"></i> إجمالي الأجر (ل.س)</div>
+                            <div class="stats-value" id="statsTotalSalary">0</div>
+                        </div>
+                        <div class="stats-actions">
+                            <button type="button" id="refreshStats" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-sync-alt"></i> تحديث
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- جدول الحضور -->
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered table-striped" id="attendanceTable">
+                    <thead class="table-primary">
+                        <tr>
+                            <th width="3%">#</th>
+                            <th width="25%">المدرس</th>
+                            <th width="10%">الفرع</th>
+                            <th width="15%">حالة الحضور</th>
+                            <th width="12%">الجلسات الكاملة</th>
+                            <th width="12%">أنصاف الجلسات</th>
+                            <th width="10%">الإجمالي</th>
+                            <th width="8%">الراتب</th>
+                            <th width="15%">ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in teacher_data %}
+                        {% with teacher=item.teacher attendance=item.attendance %}
+                        <tr class="attendance-row{% if attendance %} has-attendance{% endif %}" data-teacher-id="{{ teacher.id }}" data-row-key="{{ teacher.id }}_{{ item.branch_code }}" data-branch="{{ item.branch }}" data-branch-label="{{ item.branch_label }}" data-hourly-rate="{{ item.hourly_rate|default:0 }}">
+                            <td class="text-center">{{ forloop.counter }}</td>
+                            <td>
+                                <div class="teacher-info">
+                                    <strong class="teacher-name">{{ teacher.full_name }}</strong>
+                                    <div class="teacher-details">
+                                        <small class="text-muted">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                            {% if item.hourly_rate %}
+                                            {{ item.hourly_rate|floatformat:0 }} ل.س/جلسة
+                                            {% else %}
+                                            <span class="text-danger">لم يحدد الأجر</span>
+                                            {% endif %}
+                                        </small>
+                                        {% if attendance %}
+                                        <small class="existing-attendance">
+                                            <i class="fas fa-history"></i> يوجد حضور سابق: {{ attendance.total_sessions|floatformat:1 }} جلسة
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary">{{ item.branch_label }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                    <label class="btn btn-sm btn-outline-success attendance-status present-option">
+                                        <input type="radio" name="status_{{ teacher.id }}_{{ item.branch_code }}" 
+                                               value="present" autocomplete="off"
+                                               {% if attendance and attendance.status == 'present' %}checked{% endif %}>
+                                        <i class="fas fa-user-check"></i> حاضر
+                                    </label>
+                                    <label class="btn btn-sm btn-outline-secondary attendance-status no-duty-option">
+                                        <input type="radio" name="status_{{ teacher.id }}_{{ item.branch_code }}" 
+                                               value="no_duty" autocomplete="off"
+                                               {% if not attendance or attendance.status == 'no_duty' %}checked{% endif %}>
+                                        <i class="fas fa-user-slash"></i> ليس لديه دوام
+                                    </label>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="sessions_{{ teacher.id }}_{{ item.branch_code }}" 
+                                           class="form-control session-input text-center" 
+                                           value="{% if attendance %}{{ attendance.session_count }}{% else %}0{% endif %}" 
+                                           min="0" max="12" step="1">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="half_sessions_{{ teacher.id }}_{{ item.branch_code }}" 
+                                           class="form-control half-session-input text-center" 
+                                           value="{% if attendance %}{{ attendance.half_session_count }}{% else %}0{% endif %}" 
+                                           min="0" max="2" step="1">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-hourglass-half"></i>
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info total-sessions-badge" 
+                                      id="total_{{ teacher.id }}_{{ item.branch_code }}">0.0</span>
+                                <small class="text-muted d-block">جلسة</small>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-success salary-badge" 
+                                      id="salary_{{ teacher.id }}_{{ item.branch_code }}">0</span>
+                                <small class="text-muted d-block">ل.س</small>
+                            </td>
+                            <td>
+                                <input type="text" name="notes_{{ teacher.id }}_{{ item.branch_code }}" 
+                                       class="form-control form-control-sm notes-input" 
+                                       value="{% if attendance %}{{ attendance.notes|default:'' }}{% endif %}" 
+                                       placeholder="ملاحظات...">
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <div class="empty-state">
+                                    <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                                    <h5>لا يوجد مدرسين</h5>
+                                    <p class="text-muted">لم يتم إضافة أي مدرسين إلى النظام بعد</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <td colspan="4" class="text-end"><strong>المجموع:</strong></td>
+                            <td class="text-center" id="footerTotalSessions">0</td>
+                            <td class="text-center" id="footerTotalHalfSessions">0</td>
+                            <td class="text-center" id="footerTotalCombined">0.0</td>
+                            <td class="text-center" id="footerTotalSalary">0</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- أزرار التحكم -->
+            <div class="form-actions mt-4 pt-3 border-top">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> 
+                            {% if is_edit_mode %}تحديث الحضور{% else %}حفظ الحضور{% endif %}
+                        </button>
+                        <button type="button" id="previewBtn" class="btn btn-info btn-lg">
+                            <i class="fas fa-eye"></i> معاينة البيانات
+                        </button>
+                    </div>
+                    <div>
+                        <a href="{% url 'attendance:attendance' %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-arrow-left"></i> العودة للسجل
+                        </a>
+                        {% if is_edit_mode %}
+                        <a href="{% url 'attendance:delete_daily_attendance' default_date|date:'Y-m-d' %}" 
+                           class="btn btn-danger btn-lg"
+                           onclick="return confirm('هل أنت متأكد من حذف حضور جميع المدرسين في هذا اليوم؟')">
+                            <i class="fas fa-trash-alt"></i> حذف اليوم كاملاً
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- مودال المعاينة -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt"></i> معاينة بيانات الحضور
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewContent">
+                <!-- سيتم ملؤها بالجافاسكريبت -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> إغلاق
+                </button>
+                <button type="button" class="btn btn-success" onclick="document.getElementById('attendanceForm').submit()">
+                    <i class="fas fa-check"></i> تأكيد الحفظ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSS إضافي -->
 <style>
-.attendance-container {
+.attendance-row {
+    transition: all 0.3s ease;
+}
+
+.has-attendance {
+    border-left: 4px solid #ffc107;
+}
+
+.attendance-row:hover {
+    background-color: rgba(0, 123, 255, 0.05) !important;
+    transform: translateY(-1px);
+}
+
+.attendance-status {
+    width: 100px;
+}
+
+.attendance-status input[type="radio"] {
+    display: none;
+}
+
+.attendance-status.active {
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5) !important;
+}
+
+.present-option.active {
+    background-color: #28a745 !important;
+    color: white !important;
+    border-color: #28a745 !important;
+}
+
+.no-duty-option.active {
+    background-color: #6c757d !important;
+    color: white !important;
+    border-color: #6c757d !important;
+}
+
+.session-input:disabled, 
+.half-session-input:disabled,
+.notes-input:disabled {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.total-sessions-badge {
+    font-size: 1.1em;
+    padding: 8px 12px;
+    min-width: 50px;
+}
+
+.salary-badge {
+    font-size: 1em;
+    padding: 6px 10px;
+    min-width: 70px;
+}
+
+.teacher-info {
+    line-height: 1.4;
+}
+
+.teacher-name {
+    display: block;
+    font-weight: 600;
+}
+
+.teacher-details {
+    font-size: 0.85em;
+}
+
+.existing-attendance {
+    display: block;
+    margin-top: 4px;
+    color: #856404;
+}
+
+.module-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.stats-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
 }
-.attendance-option {
+
+.stats-item {
+    flex: 1 1 160px;
+    min-width: 160px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+}
+
+.stats-label {
+    font-size: 0.85em;
+    color: #6c757d;
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
+    gap: 6px;
 }
-.attendance-option input[type="radio"] {
-    transform: scale(1.1);
-    cursor: pointer;
+
+.stats-value {
+    font-size: 1.2em;
+    font-weight: 700;
 }
-.present-option {
-    background-color: rgba(40, 167, 69, 0.1);
-    border: 1px solid #28a745;
-    color: #28a745;
+
+.stats-actions {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
 }
-.absent-option {
-    background-color: rgba(220, 53, 69, 0.1);
-    border: 1px solid #dc3545;
-    color: #dc3545;
+
+.header-actions {
+    display: flex;
+    gap: 10px;
 }
-.late-option {
-    background-color: rgba(255, 193, 7, 0.1);
-    border: 1px solid #ffc107;
-    color: #ffc107;
+
+.form-actions {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
 }
-.permission-option {
-    background-color: rgba(108, 117, 125, 0.1);
-    border: 1px solid #6c757d;
-    color: #6c757d;
+
+.empty-state {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.empty-state i {
+    opacity: 0.5;
+}
+
+#attendanceTable thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+/* تصميم متجاوب */
+@media (max-width: 768px) {
+    .attendance-status {
+        width: 80px;
+        font-size: 0.8em;
+    }
+    
+    .session-input, 
+    .half-session-input {
+        font-size: 0.9em;
+        padding: 4px;
+    }
+    
+    .teacher-name {
+        font-size: 0.9em;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .header-actions {
+        flex-wrap: wrap;
+    }
+
+    .stats-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
 }
 </style>
+
+<!-- JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // منع التواريخ المستقبلية
+    const dateInput = document.getElementById('date');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('max', today);
+    
+    // إحصائيات التحديث
+    function updateStats() {
+        let presentCount = 0;
+        let noDutyCount = 0;
+        let totalSessions = 0;
+        let totalHalfSessions = 0;
+        let totalCombined = 0;
+        let totalSalary = 0;
+        
+        document.querySelectorAll('.attendance-row').forEach(row => {
+            const teacherId = row.dataset.rowKey;
+            const status = document.querySelector(`input[name="status_${teacherId}"]:checked`).value;
+            
+            if (status === 'present') {
+                presentCount++;
+            } else {
+                noDutyCount++;
+            }
+            
+            const sessions = parseInt(document.querySelector(`input[name="sessions_${teacherId}"]`).value) || 0;
+            const halfSessions = parseInt(document.querySelector(`input[name="half_sessions_${teacherId}"]`).value) || 0;
+            const total = sessions + (halfSessions * 0.5);
+            
+            totalSessions += sessions;
+            totalHalfSessions += halfSessions;
+            totalCombined += total;
+            
+            // حساب الراتب إذا كان حاضراً
+            if (status === 'present' && total > 0) {
+                const hourlyRate = parseFloat(row.dataset.hourlyRate) || 0;
+                const salary = hourlyRate * total;
+                totalSalary += salary;
+            }
+        });
+        
+        // تحديث الإحصائيات
+        document.getElementById('statsPresent').textContent = presentCount;
+        document.getElementById('statsNoDuty').textContent = noDutyCount;
+        document.getElementById('statsTotalSessions').textContent = totalCombined.toFixed(1);
+        document.getElementById('statsTotalSalary').textContent = Math.round(totalSalary).toLocaleString();
+        
+        // تحديث التذييل
+        document.getElementById('footerTotalSessions').textContent = totalSessions;
+        document.getElementById('footerTotalHalfSessions').textContent = totalHalfSessions;
+        document.getElementById('footerTotalCombined').textContent = totalCombined.toFixed(1);
+        document.getElementById('footerTotalSalary').textContent = Math.round(totalSalary).toLocaleString();
+    }
+    
+    // حساب الإجمالي والراتب لكل مدرس
+    function calculateTeacherTotal(teacherId) {
+        const sessionInput = document.querySelector(`input[name="sessions_${teacherId}"]`);
+        const halfSessionInput = document.querySelector(`input[name="half_sessions_${teacherId}"]`);
+        const totalDisplay = document.getElementById(`total_${teacherId}`);
+        const salaryDisplay = document.getElementById(`salary_${teacherId}`);
+        const row = document.querySelector(`[data-row-key="${teacherId}"]`);
+        
+        const sessions = parseInt(sessionInput.value) || 0;
+        const halfSessions = parseInt(halfSessionInput.value) || 0;
+        const total = sessions + (halfSessions * 0.5);
+        
+        totalDisplay.textContent = total.toFixed(1);
+        
+        // حساب الراتب
+        const hourlyRate = parseFloat(row.dataset.hourlyRate) || 0;
+        const salary = Math.round(hourlyRate * total);
+        
+        salaryDisplay.textContent = salary.toLocaleString();
+        salaryDisplay.className = salary > 0 ? 'badge bg-success salary-badge' : 'badge bg-secondary salary-badge';
+    }
+    
+    // التحكم في حقول الجلسات حسب الحالة
+    function updateSessionInputs(teacherId) {
+        const status = document.querySelector(`input[name="status_${teacherId}"]:checked`).value;
+        const sessionInput = document.querySelector(`input[name="sessions_${teacherId}"]`);
+        const halfSessionInput = document.querySelector(`input[name="half_sessions_${teacherId}"]`);
+        const notesInput = document.querySelector(`input[name="notes_${teacherId}"]`);
+        const presentBtn = document.querySelector(`input[name="status_${teacherId}"][value="present"]`).parentElement;
+        const noDutyBtn = document.querySelector(`input[name="status_${teacherId}"][value="no_duty"]`).parentElement;
+        
+        // تحديث أزرار الحالة
+        presentBtn.classList.toggle('active', status === 'present');
+        noDutyBtn.classList.toggle('active', status === 'no_duty');
+        
+        if (status === 'present') {
+            sessionInput.disabled = false;
+            halfSessionInput.disabled = false;
+            notesInput.disabled = false;
+            if (sessionInput.value === '0' && halfSessionInput.value === '0') {
+                sessionInput.value = '1';
+            }
+        } else {
+            sessionInput.disabled = true;
+            halfSessionInput.disabled = true;
+            sessionInput.value = '0';
+            halfSessionInput.value = '0';
+            notesInput.disabled = false;
+        }
+        
+        calculateTeacherTotal(teacherId);
+        updateStats();
+    }
+    
+    // تهيئة جميع الصفوف
+    document.querySelectorAll('.attendance-row').forEach(row => {
+        const teacherId = row.dataset.rowKey;
+        
+        // إضافة مستمعات للأزرار
+        document.querySelectorAll(`input[name="status_${teacherId}"]`).forEach(radio => {
+            radio.addEventListener('change', function() {
+                updateSessionInputs(teacherId);
+            });
+        });
+        
+        // إضافة مستمعات لحقول الجلسات
+        document.querySelector(`input[name="sessions_${teacherId}"]`).addEventListener('input', function() {
+            calculateTeacherTotal(teacherId);
+            updateStats();
+        });
+        
+        document.querySelector(`input[name="half_sessions_${teacherId}"]`).addEventListener('input', function() {
+            calculateTeacherTotal(teacherId);
+            updateStats();
+        });
+        
+        // التهيئة الأولية
+        updateSessionInputs(teacherId);
+    });
+    
+    // الإجراءات السريعة
+    document.getElementById('quickActions').addEventListener('change', function() {
+        const action = this.value;
+        
+        document.querySelectorAll('.attendance-row').forEach(row => {
+            const teacherId = row.dataset.rowKey;
+            const presentRadio = document.querySelector(`input[name="status_${teacherId}"][value="present"]`);
+            const sessionInput = document.querySelector(`input[name="sessions_${teacherId}"]`);
+            const halfSessionInput = document.querySelector(`input[name="half_sessions_${teacherId}"]`);
+            
+            switch(action) {
+                case 'allPresent1':
+                    presentRadio.checked = true;
+                    sessionInput.value = '1';
+                    halfSessionInput.value = '0';
+                    break;
+                case 'allPresent2':
+                    presentRadio.checked = true;
+                    sessionInput.value = '2';
+                    halfSessionInput.value = '0';
+                    break;
+                case 'allPresent3':
+                    presentRadio.checked = true;
+                    sessionInput.value = '3';
+                    halfSessionInput.value = '0';
+                    break;
+                case 'allPresent4':
+                    presentRadio.checked = true;
+                    sessionInput.value = '4';
+                    halfSessionInput.value = '0';
+                    break;
+                case 'allPresent5':
+                    presentRadio.checked = true;
+                    sessionInput.value = '5';
+                    halfSessionInput.value = '0';
+                    break;
+                case 'allPresentHalf':
+                    presentRadio.checked = true;
+                    sessionInput.value = '0';
+                    halfSessionInput.value = '1';
+                    break;
+                case 'allPresent1Half':
+                    presentRadio.checked = true;
+                    sessionInput.value = '1';
+                    halfSessionInput.value = '1';
+                    break;
+                case 'allNoDuty':
+                    document.querySelector(`input[name="status_${teacherId}"][value="no_duty"]`).checked = true;
+                    sessionInput.value = '0';
+                    halfSessionInput.value = '0';
+                    break;
+                case 'resetSessions':
+                    sessionInput.value = '0';
+                    halfSessionInput.value = '0';
+                    break;
+            }
+            
+            updateSessionInputs(teacherId);
+        });
+        
+        this.value = '';
+    });
+    
+    // أزرار التحديد السريع
+    document.getElementById('selectAllPresent').addEventListener('click', function() {
+        document.querySelectorAll('.attendance-row').forEach(row => {
+            const teacherId = row.dataset.rowKey;
+            document.querySelector(`input[name="status_${teacherId}"][value="present"]`).checked = true;
+            document.querySelector(`input[name="sessions_${teacherId}"]`).value = '1';
+            document.querySelector(`input[name="half_sessions_${teacherId}"]`).value = '0';
+            updateSessionInputs(teacherId);
+        });
+    });
+    
+    document.getElementById('selectAllNoDuty').addEventListener('click', function() {
+        document.querySelectorAll('.attendance-row').forEach(row => {
+            const teacherId = row.dataset.rowKey;
+            document.querySelector(`input[name="status_${teacherId}"][value="no_duty"]`).checked = true;
+            document.querySelector(`input[name="sessions_${teacherId}"]`).value = '0';
+            document.querySelector(`input[name="half_sessions_${teacherId}"]`).value = '0';
+            updateSessionInputs(teacherId);
+        });
+    });
+    
+    document.getElementById('clearAll').addEventListener('click', function() {
+        if (confirm('هل تريد مسح جميع البيانات؟ سيتم إعادة تعيين جميع الحقول.')) {
+            document.querySelectorAll('.attendance-row').forEach(row => {
+                const teacherId = row.dataset.rowKey;
+                document.querySelector(`input[name="status_${teacherId}"][value="no_duty"]`).checked = true;
+                document.querySelector(`input[name="sessions_${teacherId}"]`).value = '0';
+                document.querySelector(`input[name="half_sessions_${teacherId}"]`).value = '0';
+                document.querySelector(`input[name="notes_${teacherId}"]`).value = '';
+                updateSessionInputs(teacherId);
+            });
+        }
+    });
+    
+    // تحديث الإحصائيات
+    document.getElementById('refreshStats').addEventListener('click', updateStats);
+    
+    // معاينة البيانات
+    document.getElementById('previewBtn').addEventListener('click', function() {
+        const date = document.getElementById('date').value;
+        const oldDate = '{{ default_date|date:"Y-m-d" }}';
+        let previewHTML = `
+            <div class="preview-header">
+                <h4><i class="fas fa-file-alt"></i> معاينة بيانات الحضور</h4>
+                <div class="alert alert-info">
+                    <p><strong><i class="fas fa-calendar-day"></i> التاريخ:</strong> ${formatDate(date)}</p>
+                    {% if is_edit_mode and default_date != date %}
+                    <p class="mb-0"><i class="fas fa-exclamation-triangle text-warning"></i> 
+                    <strong>تنبيه:</strong> سيتم نقل الحضور من ${formatDate(oldDate)} إلى ${formatDate(date)}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>المدرس</th>
+                            <th>الحالة</th>
+                            <th>الجلسات</th>
+                            <th>أنصاف</th>
+                            <th>الإجمالي</th>
+                            <th>الراتب</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        let totalPresent = 0;
+        let totalSessions = 0;
+        let totalHalfSessions = 0;
+        let totalSalary = 0;
+        
+        document.querySelectorAll('.attendance-row').forEach((row, index) => {
+            const teacherName = row.querySelector('.teacher-name').textContent;
+            const branchLabel = row.dataset.branchLabel;
+            const teacherDisplay = branchLabel ? `${teacherName} (${branchLabel})` : teacherName;
+            const teacherId = row.dataset.rowKey;
+            const status = document.querySelector(`input[name="status_${teacherId}"]:checked`).value;
+            const sessions = document.querySelector(`input[name="sessions_${teacherId}"]`).value;
+            const halfSessions = document.querySelector(`input[name="half_sessions_${teacherId}"]`).value;
+            const notes = document.querySelector(`input[name="notes_${teacherId}"]`).value;
+            const total = parseFloat(document.getElementById(`total_${teacherId}`).textContent);
+            const salary = parseInt(document.getElementById(`salary_${teacherId}`).textContent.replace(/,/g, '')) || 0;
+            
+            if (status === 'present') {
+                totalPresent++;
+                totalSessions += parseInt(sessions);
+                totalHalfSessions += parseInt(halfSessions);
+                totalSalary += salary;
+            }
+            
+            const statusBadge = status === 'present' ? 
+                '<span class="badge bg-success">حاضر</span>' : 
+                '<span class="badge bg-secondary">ليس لديه دوام</span>';
+            
+            previewHTML += `
+                <tr>
+                    <td class="text-center">${index + 1}</td>
+                    <td>${teacherDisplay}</td>
+                    <td class="text-center">${statusBadge}</td>
+                    <td class="text-center">${sessions}</td>
+                    <td class="text-center">${halfSessions}</td>
+                    <td class="text-center"><strong>${total.toFixed(1)}</strong></td>
+                    <td class="text-center">${salary.toLocaleString()} ل.س</td>
+                    <td>${notes || '-'}</td>
+                </tr>
+            `;
+        });
+        
+        const totalTeachers = document.querySelectorAll('.attendance-row').length;
+        const totalNoDuty = totalTeachers - totalPresent;
+        const totalCombined = totalSessions + (totalHalfSessions * 0.5);
+        
+        previewHTML += `
+                    </tbody>
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <td colspan="2" class="text-end"><strong>المجموع:</strong></td>
+                            <td>${totalPresent} حاضر | ${totalNoDuty} ليس لديه دوام</td>
+                            <td class="text-center"><strong>${totalSessions}</strong></td>
+                            <td class="text-center"><strong>${totalHalfSessions}</strong></td>
+                            <td class="text-center"><strong>${totalCombined.toFixed(1)}</strong></td>
+                            <td class="text-center"><strong>${totalSalary.toLocaleString()} ل.س</strong></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="alert alert-success mt-3">
+                <h5><i class="fas fa-chart-pie"></i> ملخص الإحصائيات</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><i class="fas fa-users"></i> <strong>عدد المدرسين:</strong> ${totalTeachers}</p>
+                        <p><i class="fas fa-user-check text-success"></i> <strong>الحاضرون:</strong> ${totalPresent}</p>
+                        <p><i class="fas fa-user-slash text-secondary"></i> <strong>غير المناوبين:</strong> ${totalNoDuty}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><i class="fas fa-clock"></i> <strong>إجمالي الجلسات:</strong> ${totalCombined.toFixed(1)}</p>
+                        <p><i class="fas fa-money-bill-wave"></i> <strong>إجمالي الرواتب:</strong> ${totalSalary.toLocaleString()} ل.س</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('previewContent').innerHTML = previewHTML;
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+        previewModal.show();
+    });
+    
+    // تحذير عند تغيير التاريخ في وضع التعديل
+    {% if is_edit_mode %}
+    const oldDate = '{{ default_date|date:"Y-m-d" }}';
+    dateInput.addEventListener('change', function() {
+        if (this.value !== oldDate) {
+            if (confirm('⚠️  تنبيه: سيتم نقل جميع سجلات الحضور من التاريخ ' + formatDate(oldDate) + ' إلى التاريخ ' + formatDate(this.value) + '.\n\nهل تريد المتابعة؟')) {
+                return true;
+            } else {
+                this.value = oldDate;
+                return false;
+            }
+        }
+    });
+    {% endif %}
+    
+    // تأكيد الإرسال
+    document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+        const dateValue = dateInput.value;
+        const today = new Date().toISOString().split('T')[0];
+        
+        if (dateValue > today) {
+            e.preventDefault();
+            alert('❌ خطأ: لا يمكن تسجيل حضور لتاريخ مستقبلي!');
+            dateInput.focus();
+            return false;
+        }
+        
+        const presentTeachers = document.querySelectorAll('input[type="radio"][value="present"]:checked').length;
+        if (presentTeachers === 0) {
+            if (!confirm('⚠️  تحذير: لم يتم تحديد أي مدرس كحاضر.\nهل تريد المتابعة؟')) {
+                e.preventDefault();
+                return false;
+            }
+        }
+        
+        // عرض رسالة التحميل
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
+        submitBtn.disabled = true;
+        
+        setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }, 3000);
+    });
+    
+    // دوال مساعدة
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('ar-SA', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+    
+    // تحديث الإحصائيات أول مرة
+    updateStats();
+});
+</script>
 {% endblock %}

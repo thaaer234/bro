@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل الاختبار - {{ exam.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- عنوان الصفحة -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>تفاصيل الاختبار</h1>
+                <a href="{% url 'exams:exam_list' exam.classroom.id %}" class="btn btn-secondary">
+                    ← رجوع إلى قائمة الاختبارات
+                </a>
+            </div>
+
+            <!-- بطاقة معلومات الاختبار -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">معلومات الاختبار</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>اسم الاختبار:</strong> {{ exam.name }}</p>
+                            <p><strong>الشعبة:</strong> {{ exam.classroom.name }}</p>
+                            <p><strong>المادة:</strong> {{ exam.subject.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>تاريخ الاختبار:</strong> {{ exam.exam_date }}</p>
+                            <p><strong>العلامة القصوى:</strong> {{ exam.max_grade|floatformat:"-2" }}</p>
+                            <p><strong>تاريخ الإنشاء:</strong> {{ exam.created_at|date:"Y-m-d" }}</p>
+                        </div>
+                    </div>
+                    {% if exam.notes %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <p><strong>ملاحظات:</strong> {{ exam.notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- أزرار الإجراءات -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{% url 'exams:edit_exam' exam.id %}" class="btn btn-outline-primary">
+                            ✏️ تعديل بيانات الاختبار
+                        </a>
+                        <a href="{% url 'exams:view_exam_grades' exam.id %}" class="btn btn-info">
+                            📊 عرض العلامات
+                        </a>
+                        <a href="{% url 'exams:edit_exam_grades' exam.id %}" class="btn btn-warning">
+                            ✏️ تعديل العلامات
+                        </a>
+                        <a href="{% url 'exams:exam_stats' exam.id %}" class="btn btn-success">
+                            📈 الإحصائيات
+                        </a>
+                        <a href="{% url 'exams:export_exam_grades' exam.id %}" class="btn btn-secondary">
+                            📥 تصدير لإكسل
+                        </a>
+                        <a href="{% url 'exams:print_exam_grades' exam.id %}" class="btn btn-dark">
+                            🖨️ طباعة
+                        </a>
+                        <a href="{% url 'exams:delete_exam' exam.id %}" class="btn btn-danger">
+                            🗑️ حذف الاختبار
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ملخص سريع -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3>{{ total_students }}</h3>
+                            <p class="text-muted">إجمالي الطلاب</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success">{{ entered_grades }}</h3>
+                            <p class="text-muted">العلامات المدخلة</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning">{{ missing_grades }}</h3>
+                            <p class="text-muted">العلامات الناقصة</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-info">{{ percentage_entered }}%</h3>
+                            <p class="text-muted">نسبة الإدخال</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

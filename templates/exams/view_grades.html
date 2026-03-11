@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}عرض علامات اختبار - {{ exam.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-list"></i>
+                        عرض علامات اختبار - {{ exam.name }}
+                    </h4>
+                    <p class="mb-0">
+                        الشعبة: {{ exam.classroom.name }} | 
+                        المادة: {{ exam.subject.name }} | 
+                        العلامة القصوى: {{ exam.max_grade|floatformat:"-2" }}
+                    </p>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th width="5%">#</th>
+                                    <th width="30%">اسم الطالب</th>
+                                    <th width="15%">العلامة</th>
+                                    <th width="15%">النسبة المئوية</th>
+                                    <th width="25%">ملاحظات</th>
+                                    <th width="10%">الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exam_grade in exam_grades %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ exam_grade.student.full_name }}</td>
+                                    <td>
+                                        {% if exam_grade.grade %}
+                                            <span class="fw-bold">{{ exam_grade.grade }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if exam_grade.grade %}
+                                            {% widthratio exam_grade.grade exam.max_grade 100 as percentage %}
+                                            <span class="badge 
+                                                {% if percentage >= 90 %}bg-success
+                                                {% elif percentage >= 70 %}bg-primary
+                                                {% elif percentage >= 50 %}bg-warning
+                                                {% else %}bg-danger
+                                                {% endif %}">
+                                                {{ percentage|floatformat:1 }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if exam_grade.notes %}
+                                            <small>{{ exam_grade.notes }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if exam_grade.grade %}
+                                            <span class="badge bg-success">مدخلة</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">ناقصة</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3>{{ exam_grades.count }}</h3>
+                                        <p class="text-muted">إجمالي الطلاب</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-success">
+                                            {{ exam_grades|length|add:"-1" }}
+                                        </h3>
+                                        <p class="text-muted">العلامات المدخلة</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <h3 class="text-warning">1</h3>
+                                        <p class="text-muted">العلامات الناقصة</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right"></i> رجوع إلى تفاصيل الاختبار
+                        </a>
+                        <a href="{% url 'exams:edit_exam_grades' exam.id %}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> تعديل العلامات
+                        </a>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

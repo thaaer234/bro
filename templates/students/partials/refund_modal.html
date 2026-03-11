@@ -1,0 +1,68 @@
+<!-- Refund Modal -->
+<div id="refundModal" class="modal">
+  <div class="modal-overlay"></div>
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3><i class="fas fa-money-bill-wave"></i> استرداد مبلغ</h3>
+      <button type="button" class="close-btn" data-close>
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        استرداد مبلغ للطالب بدون سحبه من الدورة
+      </div>
+      
+      <div class="form-group">
+        <label for="refund-course">اختر الدورة</label>
+        <select id="refund-course" class="form-control">
+          <option value="">-- اختر الدورة --</option>
+          {% for item in active_enrollments %}
+            {% if item.enrollment.is_completed == False %}
+              <option value="{{ item.enrollment.id }}" 
+                      data-paid="{{ item.total_paid|floatformat:2 }}" 
+                      data-course-name="{{ item.enrollment.course.name }}">
+                {{ item.enrollment.course.name }} - المدفوع: {{ item.total_paid|floatformat:2 }} ل.س
+              </option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        {% if not active_enrollments %}
+          <div class="alert alert-warning mt-2">
+            <i class="fas fa-exclamation-triangle"></i>
+            لا توجد دورات نشطة مسجلة للطالب
+          </div>
+        {% endif %}
+      </div>
+      
+      <div class="form-group">
+        <label for="refund-reason">سبب الاسترداد (اختياري)</label>
+        <textarea id="refund-reason" class="form-control" rows="3" placeholder="أدخل سبب الاسترداد إذا رغبت..."></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="refund-paid">المبلغ المدفوع (للمراجعة فقط)</label>
+        <input id="refund-paid" type="text" class="form-control formatted-input" readonly>
+      </div>
+      
+      <div class="form-group">
+        <label for="refund-amount">مبلغ الاسترداد</label>
+        <input id="refund-amount" type="text" class="form-control formatted-input" value="0">
+        <small class="form-text text-muted">أدخل المبلغ المراد استرداده</small>
+      </div>
+      
+      <div id="refund-warning" class="alert alert-warning" style="display: none;">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span id="refund-warning-text"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="refund-cancel" type="button" class="btn btn-outline" data-close>إلغاء</button>
+      <button id="refund-confirm" type="button" class="btn btn-warning" {% if not active_enrollments %}disabled{% endif %}>
+        <i class="fas fa-money-bill-wave"></i>
+        تأكيد الاسترداد
+      </button>
+    </div>
+  </div>
+</div>

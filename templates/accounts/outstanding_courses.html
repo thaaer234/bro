@@ -1,68 +1,525 @@
 {% extends 'accounts/base.html' %}
 
-
 {% load emp_perms %}
 {% block title %}الدورات غير المسددة / Outstanding Courses{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>تقرير الدورات غير المسددة / Outstanding Courses</h2>
-    <a href="{% url 'accounts:reports' %}" class="btn btn-secondary">رجوع للتقارير / Back to Reports</a>
+<style>
+/* ===== أنماط موحدة لتقارير المتبقي ===== */
+.report-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.report-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.reports-table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.reports-table .table {
+    margin-bottom: 0;
+}
+
+.reports-table .table > :not(caption) > * > * {
+    padding: 12px 15px;
+}
+
+.table-header-custom {
+    background: linear-gradient(135deg, #2c3e50, #34495e) !important;
+    border-bottom: 3px solid #3498db;
+}
+
+.stats-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .card-body {
+    padding: 20px;
+}
+
+.stats-card .card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    opacity: 0.9;
+}
+
+.stats-card .card-text {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.breadcrumb-custom {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px 20px;
+}
+
+.breadcrumb-custom .breadcrumb-item a {
+    color: #6c757d;
+    text-decoration: none;
+}
+
+.breadcrumb-custom .breadcrumb-item.active {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.btn-report {
+    border-radius: 6px;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+}
+
+.btn-report.action-btn {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-export {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    color: #fff;
+}
+
+.btn-export:hover {
+    filter: brightness(0.95);
+    color: #fff;
+}
+
+.alert-report {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.alert-report-info {
+    background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+    color: #0c5460;
+    border-left: 4px solid #17a2b8;
+}
+
+.course-table-row:hover {
+    background-color: rgba(52, 152, 219, 0.03) !important;
+}
+
+.amount-cell {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.status-badge {
+    font-size: 0.8em;
+    padding: 6px 10px;
+    border-radius: 20px;
+}
+
+.bg-primary { background: linear-gradient(135deg, #3498db, #2980b9) !important; }
+.bg-success { background: linear-gradient(135deg, #28a745, #20c997) !important; }
+.bg-warning { background: linear-gradient(135deg, #ffc107, #fd7e14) !important; }
+.bg-info { background: linear-gradient(135deg, #17a2b8, #6f42c1) !important; }
+
+/* أنماط التحميل والإشعارات */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.loading-overlay.show {
+    display: flex !important;
+}
+
+.loading-content {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10001;
+    min-width: 300px;
+    animation: slideIn 0.3s ease;
+    display: none;
+}
+
+.notification.show {
+    display: block !important;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* أنماط القائمة المنسدلة للتصدير */
+.export-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 10500;
+    padding: 1.5rem;
+}
+
+.export-modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.export-modal .modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 420px;
+}
+
+.export-modal .modal-header {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    color: #fff;
+    border-bottom: none;
+}
+
+.export-modal .btn-close {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    text-align: center;
+    cursor: pointer;
+}
+
+.export-modal .btn-close::after {
+    content: "x";
+}
+
+.export-modal .export-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    background: #fff;
+    text-decoration: none;
+    color: #2c3e50;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.export-modal .export-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+
+.export-modal .export-option .badge {
+    background: #f1f3f5;
+    color: #495057;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .stats-card .card-text {
+        font-size: 1.4rem;
+    }
     
+    .reports-table .table > :not(caption) > * > * {
+        padding: 8px 10px;
+        font-size: 0.9rem;
+    }
+    
+    .btn-report {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .notification {
+        min-width: 250px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .export-modal {
+        padding: 1rem;
+    }
+}
+</style>
+
+<div class="container-fluid">
+    <!-- الرأس مع الأزرار -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>تقرير الدورات غير المسددة / Outstanding Courses</h2>
+        <div class="d-flex flex-wrap gap-2">
+            <!-- زر التصدير مع القائمة المنسدلة -->
+            <button class="btn btn-report btn-export action-btn" type="button" id="exportModalBtn">
+                <i class="fas fa-file-excel"></i> تصدير Excel
+            </button>
+
+            <a href="{% url 'accounts:outstanding_students_by_classroom' %}" class="btn btn-info btn-report action-btn" style="background-color: #3d873f;">
+                <i class="fas fa-users"></i> عرض حسب الشعب
+            </a>
+            <a href="{% url 'accounts:withdrawn_students' %}" class="btn btn-warning btn-report action-btn" style="background-color: #e27114;">
+                <i class="fas fa-user-slash"></i> الطلاب المنسحبين
+            </a>
+            <a href="{% url 'accounts:reports' %}" class="btn btn-secondary btn-report action-btn">
+                <i class="fas fa-arrow-left me-1"></i> العودة للتقارير
+            </a>
+        </div>
+    </div>
+
+    <!-- مسار التنقل -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb breadcrumb-custom">
+            <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'accounts:reports' %}">التقارير / Reports</a></li>
+            <li class="breadcrumb-item active">الدورات غير المسددة / Outstanding Courses</li>
+        </ol>
+    </nav>
+
+    <!-- بطاقة توضيحية -->
+    <div class="alert alert-info alert-report alert-report-info mb-4">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="fas fa-info-circle fa-2x"></i>
+            </div>
+            <div>
+                <h5 class="alert-heading mb-2">طريقتان للعرض:</h5>
+                <p class="mb-1">• <strong>عرض حسب الدورات:</strong> (هذه الصفحة) - ترتيب الطلاب حسب الدورات المسجلين فيها</p>
+                <p class="mb-0">• <strong>عرض حسب الشعب:</strong> - ترتيب الطلاب حسب الشعب الدراسية مع فصل الطلاب غير المنضمين</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول البيانات -->
+    <div class="table-container">
+        {% if course_data %}
+            <div class="table-responsive">
+                <table class="table table-bordered reports-table">
+                    <thead class="table-dark table-header-custom">
+                        <tr>
+                            <th>الدورة / Course</th>
+                            <th class="text-center">عدد الطلاب / Students</th>
+                            <th class="text-center">مكتمل الدفع / Fully Paid</th>
+                            <th class="text-center">غير مكتمل / Not Fully Paid</th>
+                            <th class="text-end">إجمالي المبالغ غير المسددة / Outstanding Total</th>
+                            <th class="text-center">تفاصيل / Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in course_data %}
+                        <tr class="course-table-row">
+                            <td>
+                                <strong>{{ row.course.name }}</strong>
+                                {% if row.course.name_ar %}
+                                <br><small class="text-muted">{{ row.course.name_ar }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ row.students_count }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-success status-badge">
+                                    <i class="fas fa-check-circle me-1"></i>{{ row.fully_paid }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-warning text-dark status-badge">
+                                    <i class="fas fa-clock me-1"></i>{{ row.not_fully_paid }}
+                                </span>
+                            </td>
+                            <td class="text-end amount-cell">
+                                {{ row.outstanding_total|floatformat:2 }} ل.س
+                            </td>
+                            <td class="text-center">
+                                {% if row.not_fully_paid > 0 %}
+                                <a href="{% url 'accounts:outstanding_course_students' row.course.id %}" class="btn btn-sm btn-outline-primary btn-report">
+                                    <i class="fas fa-eye me-1"></i>عرض الطلاب
+                                </a>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <!-- تذييل الجدول - إجماليات محسوبة من السيرفر -->
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <th class="text-start">الإجمالي</th>
+                            <th class="text-center">{{ totals.total_courses }}</th>
+                            <th class="text-center">{{ totals.total_fully_paid }}</th>
+                            <th class="text-center">{{ totals.total_not_fully_paid }}</th>
+                            <th class="text-end amount-cell">{{ totals.total_outstanding|floatformat:2 }} ل.س</th>
+                            <th class="text-center">—</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-list fa-3x mb-3 opacity-50"></i>
+                <h4 class="fw-light">لا توجد بيانات / No data</h4>
+                <p class="text-muted">لم يتم العثور على دورات نشطة أو بيانات للعرض</p>
+            </div>
+        {% endif %}
+    </div>
 </div>
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'accounts:reports' %}">التقارير / Reports</a></li>
-        <li class="breadcrumb-item active">الدورات غير المسددة / Outstanding Courses</li>
-    </ol>
-    
-</nav>
+<!-- رسالة تحميل بسيطة -->
 
-<div class="table-container">
-    {% if course_data %}
-        <div class="table-responsive">
-            <table class="table table-bordered">
-                <thead class="table-dark">
-                    <tr>
-                        <th>الدورة / Course</th>
-                        <th class="text-center">عدد الطلاب / Students</th>
-                        <th class="text-center">مكتمل الدفع / Fully Paid</th>
-                        <th class="text-center">غير مكتمل / Not Fully Paid</th>
-                        <th class="text-end">إجمالي المبالغ غير المسددة / Outstanding Total</th>
-                        <th class="text-center">تفاصيل / Details</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in course_data %}
-                    <tr>
-                        <td>{{ row.course.name }}{% if row.course.name_ar %} - {{ row.course.name_ar }}{% endif %}</td>
-                        <td class="text-center">{{ row.students_count }}</td>
-                        <td class="text-center"><span class="badge bg-success">{{ row.fully_paid }}</span></td>
-                        <td class="text-center"><span class="badge bg-warning text-dark">{{ row.not_fully_paid }}</span></td>
-                        <td class="text-end">{{ row.outstanding_total|floatformat:2 }}</td>
-                        <td class="text-center">
-                            {% if row.not_fully_paid > 0 %}
-                            <a href="{% url 'accounts:outstanding_course_students' row.course.id %}" class="btn btn-sm btn-outline-primary">
-                                عرض الطلاب / View Students
-                            </a>
-                            {% else %}
-                            <span class="text-muted">—</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<!-- Export Modal -->
+<div class="export-modal" id="exportModal" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="exportModalLabel">
+                <i class="fas fa-file-excel me-2"></i>تصدير Excel
+            </h5>
+            <button type="button" class="btn-close btn-close-white" aria-label="Close" id="exportModalClose"></button>
         </div>
-    {% else %}
-        <div class="text-center text-muted py-5">
-            <i class="fas fa-list fa-3x mb-3"></i>
-            <h4>لا توجد بيانات / No data</h4>
+        <div class="modal-body d-grid gap-3">
+            <a class="export-option" href="{% url 'accounts:export_outstanding_reports' %}?type=courses">
+                <div><i class="fas fa-book me-2 text-primary"></i>تقرير الدورات</div>
+                <span class="badge">Excel</span>
+            </a>
+            <a class="export-option" href="{% url 'accounts:export_outstanding_reports' %}?type=classrooms">
+                <div><i class="fas fa-users me-2 text-info"></i>تقرير الشعب</div>
+                <span class="badge">Excel</span>
+            </a>
+            <a class="export-option" href="{% url 'accounts:export_outstanding_reports' %}?type=withdrawn">
+                <div><i class="fas fa-user-slash me-2 text-warning"></i>الطلاب المنسحبين</div>
+                <span class="badge">Excel</span>
+            </a>
+            <a class="export-option" href="{% url 'accounts:export_outstanding_reports' %}?type=comprehensive">
+                <div><i class="fas fa-chart-bar me-2 text-success"></i>تقرير شامل</div>
+                <span class="badge">Excel</span>
+            </a>
         </div>
-    {% endif %}
+    </div>
 </div>
+
+<div id="loadingMessage" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); z-index: 10000; text-align: center; min-width: 200px;">
+    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">جاري التحميل...</span>
+    </div>
+    <p class="mb-0 text-dark fw-bold">جاري تحضير الملف للتحميل...</p>
+    <small class="text-muted">يرجى الانتظار</small>
+</div>
+
+<script>
+// إظهار رسالة التحميل عند النقر على أي رابط تصدير
+document.addEventListener('DOMContentLoaded', function() {
+    const exportLinks = document.querySelectorAll('a[href*=\"export_outstanding_reports\"]');
+    const modal = document.getElementById('exportModal');
+    const modalBtn = document.getElementById('exportModalBtn');
+    const modalClose = document.getElementById('exportModalClose');
+
+    const openModal = () => {
+        if (modal) {
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+    };
+
+    const closeModal = () => {
+        if (modal) {
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    };
+
+    if (modalBtn) {
+        modalBtn.addEventListener('click', openModal);
+    }
+
+    if (modalClose) {
+        modalClose.addEventListener('click', closeModal);
+    }
+
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+
+    exportLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            if (loadingMessage) {
+                loadingMessage.style.display = 'block';
+            }
+
+            closeModal();
+
+            setTimeout(() => {
+                if (loadingMessage) {
+                    loadingMessage.style.display = 'none';
+                }
+            }, 3000);
+        });
+    });
+});
+
+// إخفاء رسالة التحميل عند العودة للصفحة
+window.addEventListener('pageshow', function() {
+    const loadingMessage = document.getElementById('loadingMessage');
+    if (loadingMessage) {
+        loadingMessage.style.display = 'none';
+    }
+});
+
+// إخفاء رسالة التحميل إذا حدث خطأ في التحميل
+window.addEventListener('error', function() {
+    const loadingMessage = document.getElementById('loadingMessage');
+    if (loadingMessage) {
+        loadingMessage.style.display = 'none';
+    }
+});
+
+// التأكد من تحميل الصفحة
+</script>
 
 {% endblock %}
-

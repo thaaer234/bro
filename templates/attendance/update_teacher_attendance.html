@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% block content %}
+<div class="module-header">
+    <h2>تعديل حضور مدرس</h2>
+</div>
+{% include "partials/_alerts.html" %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group mb-3">
+                <label for="branch" class="form-label">?????</label>
+                <select name="branch" id="branch" class="form-control" required>
+                    {% for value, label in branches %}
+                    <option value="{{ value }}" {% if attendance.branch == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group mb-3">
+                <label for="teacher" class="form-label">المدرس</label>
+                <select name="teacher" id="teacher" class="form-control" required>
+                    <option value="">اختر المدرس</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}" {% if attendance.teacher.id == teacher.id %}selected{% endif %}>
+                        {{ teacher.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group mb-3">
+                <label for="date" class="form-label">التاريخ</label>
+                <input type="date" name="date" id="date" class="form-control" 
+                       value="{{ attendance.date|date:'Y-m-d' }}" required>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group mb-3">
+                <label class="form-label">حالة الحضور</label>
+                <div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="status" id="present" 
+                               value="present" {% if attendance.status == 'present' %}checked{% endif %}>
+                        <label class="form-check-label" for="present">حاضر</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="status" id="no_duty" 
+                               value="no_duty" {% if attendance.status == 'no_duty' %}checked{% endif %}>
+                        <label class="form-check-label" for="no_duty">ليس لديه دوام</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group mb-3">
+                <label for="session_count" class="form-label">عدد الجلسات</label>
+                <input type="number" name="session_count" id="session_count" class="form-control" 
+                       value="{{ attendance.session_count }}" min="0" max="10">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group mb-3">
+        <label for="notes" class="form-label">ملاحظات</label>
+        <textarea name="notes" id="notes" class="form-control" rows="3">{{ attendance.notes|default:'' }}</textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> حفظ التعديلات
+        </button>
+        <a href="{% url 'attendance:teacher_attendance' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> إلغاء
+        </a>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // التحكم في حقل الجلسات حسب الحالة
+    function updateSessionInput() {
+        const status = document.querySelector('input[name="status"]:checked').value;
+        const sessionInput = document.getElementById('session_count');
+        
+        if (status === 'no_duty') {
+            sessionInput.value = '0';
+            sessionInput.disabled = true;
+        } else {
+            sessionInput.disabled = false;
+            if (sessionInput.value === '0') {
+                sessionInput.value = '1';
+            }
+        }
+    }
+    
+    // إضافة مستمعات الأحداث
+    document.querySelectorAll('input[name="status"]').forEach(radio => {
+        radio.addEventListener('change', updateSessionInput);
+    });
+    
+    // تشغيل مرة أولية
+    updateSessionInput();
+});
+</script>
+{% endblock %}

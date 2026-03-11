@@ -1,0 +1,472 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>بوابة الطالب</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700&display=swap');
+
+  /* Custom font: Cocon Next Arabic */
+  @font-face {
+    font-family: 'Cocon Next Arabic';
+    src: url("{% static 'font/Cocon_ Next Arabic-Bold.otf' %}") format('opentype');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --bg: #f5f7fb;
+    --bg-strong: #eef2f7;
+    --card: #ffffff;
+    --surface: #f1f5f9;
+    --surface-strong: #e2e8f0;
+    --surface-soft: rgba(15, 23, 42, 0.04);
+    --border: rgba(15, 23, 42, 0.08);
+    --text: #0f172a;
+    --muted: #64748b;
+    --primary: #0ea5c6;
+    --primary-strong: #0891b2;
+    --primary-soft: rgba(14, 165, 198, 0.14);
+    --accent: #7c5ce4;
+    --accent-strong: #6d4fd3;
+    --accent-soft: rgba(124, 92, 228, 0.18);
+    --shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+    --safe-top: max(env(safe-area-inset-top), 16px);
+    color-scheme: light;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    font-size: 16px;
+    height: 100%;
+  }
+
+  body {
+    font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-top: var(--safe-top);
+  }
+
+  .app-shell {
+    min-height: 100vh;
+    position: relative;
+    padding-bottom: 96px;
+    overflow: hidden;
+  }
+
+  .app-shell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(14, 165, 198, 0.12), transparent 45%),
+      radial-gradient(circle at 10% 70%, rgba(124, 92, 228, 0.12), transparent 50%),
+      url("{% static 'img/back.png' %}");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 0;
+  }
+
+  .top-bar {
+    position: relative;
+    z-index: 1;
+    padding: calc(20px + var(--safe-top)) 20px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: var(--surface-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .avatar img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+  }
+
+  .student-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .student-subtitle {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .logout-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface-soft);
+    color: var(--accent-strong);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    box-shadow: var(--shadow);
+  }
+
+  .page-content {
+    position: relative;
+    z-index: 1;
+    padding: 0 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .section-title i {
+    color: var(--primary-strong);
+  }
+
+  .pill-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .pill {
+    border-radius: 18px;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .pill strong {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+  }
+
+  .pill span {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .action-card {
+    border-radius: 20px;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid rgba(124, 92, 228, 0.2);
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 110px;
+    transition: transform 0.2s ease;
+  }
+
+  .action-card i {
+    font-size: 1.3rem;
+    color: var(--primary);
+  }
+
+  .action-card span {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .list-item {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .list-item h4 {
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+  }
+
+  .list-item p {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 0 6px;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.94);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 12px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    z-index: 10;
+    backdrop-filter: blur(12px);
+  }
+
+  .bottom-nav a {
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+
+  .bottom-nav .badge {
+    position: absolute;
+    top: 2px;
+    right: 18px;
+  }
+
+  .bottom-nav a.active {
+    color: var(--primary-strong);
+    font-weight: 700;
+  }
+
+  .bottom-nav i {
+    font-size: 1.2rem;
+  }
+
+  .muted {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .reveal {
+    animation: fadeUp 0.6s ease both;
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .top-bar {
+      padding: 16px 16px 8px;
+    }
+
+    .page-content {
+      padding: 0 16px 16px;
+    }
+
+    .action-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="identity">
+        <div class="avatar">
+          <img src="{% static 'img/logo.png' %}" alt="معهد اليمن للعلوم واللغات">
+        </div>
+        <div>
+          <div class="student-name">{{ student.full_name|default:"الطالب" }}</div>
+          <div class="student-subtitle">رقم الطالب: {{ student.student_number|default:"غير متوفر" }}</div>
+        </div>
+      </div>
+      <a class="logout-btn" id="logout-btn" href="{% url 'mobile:logout' %}" aria-label="تسجيل خروج">
+        <i class="fas fa-right-from-bracket"></i>
+      </a>
+    </header>
+
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <nav class="bottom-nav">
+      <a href="{% url 'mobile:parent_dashboard' %}" class="{% if active_tab == 'home' %}active{% endif %}">
+        <i class="fas fa-home"></i>
+        الرئيسية
+      </a>
+      <a href="{% url 'mobile:parent_profile' %}" class="{% if active_tab == 'profile' %}active{% endif %}">
+        <i class="fas fa-user"></i>
+        الملف
+      </a>
+      <a href="{% url 'mobile:parent_finance' %}" class="{% if active_tab == 'finance' %}active{% endif %}">
+        <i class="fas fa-wallet"></i>
+        المالية
+      </a>
+      <a href="{% url 'mobile:parent_attendance' %}" class="{% if active_tab == 'attendance' %}active{% endif %}">
+        <i class="fas fa-calendar-check"></i>
+        الحضور
+      </a>
+      <a href="{% url 'mobile:parent_grades' %}" class="{% if active_tab == 'grades' %}active{% endif %}">
+        <i class="fas fa-star"></i>
+        العلامات
+      </a>
+      <a href="{% url 'mobile:parent_notifications' %}" class="{% if active_tab == 'notifications' %}active{% endif %}">
+        <i class="fas fa-bell"></i>
+        الإشعارات
+        {% if notifications_count %}
+        <span class="badge">{{ notifications_count }}</span>
+        {% endif %}
+      </a>
+
+    </nav>
+  </div>
+  {% block extra_js %}{% endblock %}
+  <script>
+    (function () {
+      try {
+        var token = localStorage.getItem('expoPushToken');
+        if (!token) {
+          return;
+        }
+        var deviceId =
+          localStorage.getItem('expoDeviceId') ||
+          localStorage.getItem('deviceId') ||
+          localStorage.getItem('device_id');
+        if (!deviceId) {
+          if (window.crypto && window.crypto.randomUUID) {
+            deviceId = window.crypto.randomUUID();
+          } else {
+            deviceId =
+              'web-' +
+              Date.now().toString(36) +
+              '-' +
+              Math.random().toString(36).slice(2, 10);
+          }
+          localStorage.setItem('expoDeviceId', deviceId);
+        }
+        var platform = (localStorage.getItem('expoPlatform') || 'android').toLowerCase();
+        var deviceName = localStorage.getItem('deviceName') || navigator.userAgent || '';
+        var lastKey = token + '|' + deviceId + '|' + platform;
+        var lastSynced = localStorage.getItem('expoPushTokenSynced');
+        if (lastSynced === lastKey) {
+          return;
+        }
+        fetch('/mobile/register-push-token/', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            expo_push_token: token,
+            device_id: deviceId,
+            platform: platform,
+            device_name: deviceName,
+            login_role: '{{ request.session.mobile_login_role|default:"parent" }}'
+          })
+        }).then(function (res) {
+          if (res.ok) {
+            localStorage.setItem('expoPushTokenSynced', lastKey);
+          }
+        }).catch(function () {});
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    (function () {
+      try {
+        var logoutBtn = document.getElementById('logout-btn');
+        if (!logoutBtn) return;
+        logoutBtn.addEventListener('click', function (e) {
+          var token = localStorage.getItem('expoPushToken') || '';
+          var deviceId =
+            localStorage.getItem('expoDeviceId') ||
+            localStorage.getItem('deviceId') ||
+            localStorage.getItem('device_id') ||
+            '';
+          if (token || deviceId) {
+            logoutBtn.href = "{% url 'mobile:logout' %}" + "?token=" + encodeURIComponent(token) + "&device_id=" + encodeURIComponent(deviceId);
+          }
+        });
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    (function () {
+      try {
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'USER_LOGGED_IN',
+            userType: 'parent',
+            userId: {{ student.id|default:'null' }}
+          }));
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

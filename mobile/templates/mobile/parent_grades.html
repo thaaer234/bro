@@ -1,0 +1,156 @@
+﻿{% extends "mobile/parent_base.html" %}
+
+{% block extra_css %}
+<style>
+  .grades-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .grade-card {
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .grade-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .grade-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+  }
+
+  .grade-subject {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .grade-score {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .grade-date {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--surface-strong);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.6s ease;
+    animation: progressGrow 0.9s ease;
+  }
+
+  .progress-good {
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+  }
+
+  .progress-mid {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  }
+
+  .progress-low {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+  }
+
+  .progress-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  .progress-meta strong {
+    color: var(--text);
+  }
+
+  @keyframes progressGrow {
+    from {
+      width: 0;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card reveal">
+  <div class="section-title">
+    <i class="fas fa-star"></i>
+    العلامات
+  </div>
+  <div class="grades-grid">
+    {% for grade in grades %}
+    {% if grade.grade != None and grade.exam.max_grade %}
+      {% widthratio grade.grade grade.exam.max_grade 100 as percent %}
+    {% else %}
+      {% widthratio 0 1 100 as percent %}
+    {% endif %}
+    <div class="grade-card">
+      <div class="grade-header">
+        <div>
+          <div class="grade-title">{{ grade.exam.name }}</div>
+          <div class="grade-subject">{{ grade.exam.subject.name }}</div>
+        </div>
+        <div class="grade-score">
+          {% if grade.grade != None %}
+            {{ grade.grade|floatformat:0 }} / {{ grade.exam.max_grade|floatformat:0 }}
+          {% else %}
+            غير متوفر
+          {% endif %}
+        </div>
+      </div>
+      <div class="progress-meta">
+        <span>النسبة</span>
+        <strong>{{ percent }}%</strong>
+      </div>
+      <div class="progress-track" aria-hidden="true">
+        {% if percent >= 85 %}
+        <div class="progress-fill progress-good" style="width: {{ percent }}%"></div>
+        {% elif percent >= 60 %}
+        <div class="progress-fill progress-mid" style="width: {{ percent }}%"></div>
+        {% else %}
+        <div class="progress-fill progress-low" style="width: {{ percent }}%"></div>
+        {% endif %}
+      </div>
+      <div class="progress-meta">
+        <span>تاريخ الاختبار</span>
+        <span class="grade-date">{{ grade.exam.exam_date|date:"d/m/Y" }}</span>
+      </div>
+      {% if grade.notes %}
+      <div class="muted">ملاحظات: {{ grade.notes }}</div>
+      {% else %}
+      <div class="muted">ملاحظات: لا يوجد</div>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد علامات حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

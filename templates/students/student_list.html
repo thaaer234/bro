@@ -1,0 +1,1018 @@
+{% extends "students/base_student.html" %}
+{% load emp_perms %}
+{% load student_filters %}
+{% load static %}
+
+{% block student_content %}
+<div class="module-header">
+    <h2>إدارة الطلاب</h2>
+    {% if user.is_authenticated %}
+    {% if user.is_superuser %}
+    <a href="{% url 'students:student_cards_print' %}" class="btn btn-success" style="margin-left: 8px;">
+        <i class="fas fa-id-card"></i> بطاقات الطلاب
+    </a>
+    {% endif %}
+    <button class="btn btn-primary" id="addStudentBtn">
+        <a href="{% url 'students:student_type_choice' %}" style="color:white;">
+            <i class="fas fa-plus"></i> إضافة طالب جديد
+        </a>
+    </button>
+    {% endif %}
+</div>
+
+{% include "partials/_alerts.html" %}
+<hr>
+
+<!-- فلاتر الجدول - تعمل على جميع الطلاب -->
+<div class="filters-container">
+    <div class="filter-row">
+        <div class="filter-group">
+            <label for="id-filter">فلتر حسب الرقم:</label>
+            <input type="text" id="id-filter" placeholder="ابحث برقم الطالب...">
+        </div>
+        <div class="filter-group">
+            <label for="name-filter">فلتر حسب الاسم:</label>
+            <input type="text" id="name-filter" placeholder="ابحث باسم الطالب...">
+        </div>
+        <div class="filter-group">
+            <label for="phone-filter">فلتر حسب رقم الهاتف:</label>
+            <input type="text" id="phone-filter" placeholder="ابحث برقم الهاتف...">
+        </div>
+    </div>
+    <div class="filter-row">
+        <div class="filter-group">
+            <label for="type-filter">فلتر حسب النوع:</label>
+            <select id="type-filter">
+                <option value="">جميع الأنواع</option>
+                <option value="regular">نظامي</option>
+                <option value="quick">سريع</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="branch-filter">فلتر حسب الفرع:</label>
+            <select id="branch-filter">
+                <option value="">جميع الفروع</option>
+                <option value="العلمي">العلمي</option>
+                <option value="الأدبي">الأدبي</option>
+                <option value="الصف التاسع">الصف التاسع</option>
+                <option value="التمهيدي">التمهيدي</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="year-filter">فلتر حسب الفصل:</label>
+            <select id="year-filter">
+                <option value="">جميع الفصول</option>
+                {% for academic_year in academic_years %}
+                <option value="{{ academic_year.id }}">{{ academic_year.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="filter-actions">
+        <button class="btn btn-info" id="show-all-btn">
+            <i class="fas fa-list me-2"></i> عرض جميع الطلاب
+        </button>
+        <button class="btn btn-secondary" id="reset-filters">
+            <i class="fas fa-redo"></i> إعادة تعيين الفلاتر
+        </button>
+    </div>
+</div>
+
+<!-- إحصائيات سريعة - مصغرة -->
+<div class="stats-section">
+    <div class="stats-grid">
+        <div class="stat-card stat-primary animate-slide-in-up" style="animation-delay: 0s;">
+            <div class="stat-icon">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ students_count|default:0 }}</div>
+                <div class="stat-label">إجمالي الطلاب النظاميين</div>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-warning animate-slide-in-up" style="animation-delay: 0.1s;">
+            <div class="stat-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">
+                    {% with total_quick=academic_year_quick_stats.values|list_sum %}
+                        {{ total_quick|default:0 }}
+                    {% endwith %}
+                </div>
+                <div class="stat-label">إجمالي الطلاب السريعين</div>
+            </div>
+        </div>
+        
+        <div class="stat-card stat-success animate-slide-in-up" style="animation-delay: 0.2s;">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">
+                    {% with total_quick=academic_year_quick_stats.values|list_sum %}
+                        {{ students_count|add:total_quick|default:0 }}
+                    {% endwith %}
+                </div>
+                <div class="stat-label">إجمالي جميع الطلاب</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔍 نتائج البحث -->
+{% if has_search_results %}
+<div class="card mt-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-search me-2"></i>نتائج البحث
+            <span class="badge bg-light text-dark ms-2">{{ search_results|length }} نتيجة</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table id="studentsTable" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th data-sort="index">#</th>
+                        <th data-sort="type">النوع</th>
+                        <th data-sort="name">الاسم</th>
+                        <th data-sort="phone">رقم الاب</th>
+                        <th data-sort="branch">الفرع</th>
+                        <th data-sort="academic_year">الفصل الدراسي</th>
+                        <th data-sort="status">الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in search_results %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            {% if student.is_quick %}
+                                <span class="badge badge-warning student-badge">سريع</span>
+                            {% else %}
+                                <span class="badge badge-primary student-badge">نظامي</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>
+                                {% if student.is_quick %}
+                                    <a href="#">
+                                        {{ student.full_name }}
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'students:student_profile' student.id %}">
+                                        {{ student.full_name }}
+                                    </a>
+                                {% endif %}
+                            </strong>
+                            {% if student.student_number %}
+                            <br><small class="text-muted">رقم: {{ student.student_number }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if student.display_phone != "-" %}
+                                {{ student.display_phone }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if student.branch %}
+                                <span class="badge bg-info">{{ student.branch }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">غير محدد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if student.academic_year_display and student.academic_year_display != "-" %}
+                                <span class="badge bg-success">{{ student.academic_year_display }}</span>
+                            {% else %}
+                                <span class="badge bg-warning">غير مرتبط</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {{ student.status_badge_class }}">{{ student.display_status }}</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                {% if student.is_quick %}
+                                    <a href="#" class="btn btn-sm btn-info" title="عرض الملف">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'students:student_profile' student.id %}" class="btn btn-sm btn-info" title="عرض الملف">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'students:update_student' student.id %}" class="btn btn-sm btn-warning" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-danger delete-student-btn" 
+                                            data-student-id="{{ student.id }}"
+                                            data-student-name="{{ student.full_name }}"
+                                            title="حذف الطالب">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% elif search_query %}
+<!-- 🔍 إذا كان هناك بحث ولكن لا توجد نتائج -->
+<div class="card mt-4">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">لا توجد نتائج</h4>
+        <p class="text-muted">لم نعثر على أي طلاب تطابق معايير البحث الخاصة بك</p>
+        <button class="btn btn-primary" onclick="document.getElementById('reset-filters').click()">
+            <i class="fas fa-redo me-2"></i>إعادة تعيين الفلاتر
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- عرض الفصول الدراسية -->
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>الفصول الدراسية</h5>
+    </div>
+    <div class="card-body">
+        {% for academic_year in academic_years %}
+        <div class="academic-year-card" onclick="toggleBranches('branches-{{ academic_year.id }}')">
+            <div class="academic-year-header">
+                <h4>{{ academic_year.name }} - {{ academic_year.year }}</h4>
+                <div class="year-info">
+                    <span class="badge bg-light text-dark me-2">
+                        {{ academic_year_stats|get_dict_value:academic_year.id }} طالب
+                    </span>
+                    <small class="text-muted">
+                        ({{ academic_year.start_date|date:"Y-m-d" }} إلى {{ academic_year.end_date|date:"Y-m-d" }})
+                    </small>
+                </div>
+            </div>
+            <div class="year-stats">
+                <span class="stat-badge">
+                    <i class="fas fa-user-graduate me-1"></i> نظاميون: 
+                    {{ academic_year_regular_stats|get_dict_value:academic_year.id }}
+                </span>
+                <span class="stat-badge">
+                    <i class="fas fa-bolt me-1"></i> سريعون: 
+                    {{ academic_year_quick_stats|get_dict_value:academic_year.id }}
+                </span>
+            </div>
+            
+            <!-- المحتويات داخل الفصل الدراسي -->
+            <div id="branches-{{ academic_year.id }}" class="branches-container">
+                
+                <!-- جميع الطلاب النظاميين لهذا الفصل -->
+                <a href="{% url 'students:all_regular_students' academic_year.id %}" class="branch-card mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="fas fa-user-graduate me-2"></i>جميع الطلاب النظاميين
+                        </span>
+                        <div>
+                            <span class="badge badge-primary student-badge">
+                                {{ academic_year_regular_stats|get_dict_value:academic_year.id }}
+                            </span>
+                            <i class="fas fa-chevron-left"></i>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- جميع الطلاب السريعين لهذا الفصل -->
+                <a href="{% url 'students:quick_students' academic_year.id %}" class="branch-card mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="fas fa-bolt me-2"></i>جميع الطلاب السريعين
+                        </span>
+                        <div>
+                            <span class="badge badge-warning student-badge">
+                                {{ academic_year_quick_stats|get_dict_value:academic_year.id }}
+                            </span>
+                            <i class="fas fa-chevron-left"></i>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- فروع هذا الفصل الدراسي -->
+                <h6 class="text-white mb-3">فروع هذا الفصل:</h6>
+                
+                {% for branch in branch_stats %}
+                {% if branch.academic_year_id == academic_year.id %}
+                <a href="{% url 'students:branch_students' academic_year.id branch.name %}" class="branch-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>فرع {{ branch.name }}</span>
+                        <div>
+                            <span class="badge badge-regular student-badge">{{ branch.regular_count }}</span>
+                            <i class="fas fa-chevron-left"></i>
+                        </div>
+                    </div>
+                </a>
+                {% endif %}
+                {% endfor %}
+
+                <!-- إذا لم توجد فروع -->
+                {% with branch_found=False %}
+                {% for branch in branch_stats %}
+                    {% if branch.academic_year_id == academic_year.id %}
+                        {% with branch_found=True %}
+                        {% endwith %}
+                    {% endif %}
+                {% endfor %}
+                {% if not branch_found %}
+                <div class="text-center text-muted py-3">
+                    <p>لا توجد فروع لهذا الفصل</p>
+                </div>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-4">
+            <i class="fas fa-calendar-times fa-2x mb-3"></i>
+            <p>لا توجد فصول دراسية</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal لحذف الطالب -->
+<div id="deleteStudentModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3><i class="fas fa-trash"></i> تأكيد الحذف</h3>
+            <button type="button" class="close-btn" data-close>
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>تحذير:</strong> هذا الإجراء لا يمكن التراجع عنه!
+            </div>
+            <p>هل أنت متأكد من أنك تريد حذف الطالب <strong id="delete-student-name"></strong>؟</p>
+            <p>سيتم حذف جميع البيانات المرتبطة بالطالب بما في ذلك التسجيلات والإيصالات.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-close>إلغاء</button>
+            <button type="button" id="confirmDeleteStudent" class="btn btn-danger">
+                <i class="fas fa-trash"></i> نعم، احذف الطالب
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* تنسيقات الإحصائيات المصغرة */
+.stats-section {
+    margin-bottom: 25px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-primary {
+    border-left-color: #007bff;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+}
+
+.stat-warning {
+    border-left-color: #ffc107;
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+    color: #000;
+}
+
+.stat-success {
+    border-left-color: #28a745;
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    color: white;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    opacity: 0.9;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+/* تحسين الفلاتر */
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 180px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c5282;
+    font-size: 0.9rem;
+}
+
+.filter-group select,
+.filter-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.2);
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* تنسيقات الجدول */
+.table-container {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+#studentsTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#studentsTable th {
+    background: #f8f9fa;
+    padding: 12px 15px;
+    text-align: right;
+    font-weight: 600;
+    color: #2c5282;
+    border-bottom: 2px solid #dee2e6;
+}
+
+#studentsTable td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+#studentsTable tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* أزرار الإجراءات */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.action-buttons .btn {
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    font-size: 12px;
+}
+
+.action-buttons .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* باقي التنسيقات */
+.badge-auto {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.branch-auto-link {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border: 1px dashed #ffc107;
+}
+
+.year-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.stat-badge {
+    background: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    margin: 2px;
+}
+
+.branch-card {
+    display: block;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.branch-card:hover {
+    background: #e9ecef;
+    text-decoration: none;
+    color: #333;
+    transform: translateY(-2px);
+}
+
+.student-badge {
+    font-size: 0.8em;
+    padding: 4px 8px;
+}
+
+.badge-regular {
+    background-color: #007bff;
+}
+
+.branches-container {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(0,0,0,0.03);
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.academic-year-card {
+    cursor: pointer;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.academic-year-card:hover {
+    background: #f8f9fa;
+}
+
+/* تحسينات للرسوم المتحركة */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-in-up {
+    animation: slideIn 0.6s ease forwards;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-container {
+    position: relative;
+    background: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #6c757d;
+}
+
+.close-btn:hover {
+    color: #495057;
+}
+
+/* تحسينات للاستجابة */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+    
+    .filter-row {
+        flex-direction: column;
+    }
+    
+    .filter-group {
+        min-width: 100%;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    #studentsTable {
+        font-size: 0.85rem;
+    }
+    
+    #studentsTable th,
+    #studentsTable td {
+        padding: 8px 10px;
+    }
+}
+</style>
+
+<script>
+function toggleBranches(branchesId) {
+    const branches = document.getElementById(branchesId);
+    if (branches) {
+        branches.style.display = branches.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// إخفاء الفروع افتراضياً
+document.addEventListener('DOMContentLoaded', function() {
+    const branchesContainers = document.querySelectorAll('.branches-container');
+    branchesContainers.forEach(container => {
+        container.style.display = 'none';
+    });
+    
+    // تهيئة نظام الفلاتر
+    initializeFilters();
+    
+    // تعبئة الفلاتر الحالية من URL
+    populateCurrentFiltersFromURL();
+    
+    // إدارة حذف الطلاب
+    initializeDeleteModal();
+});
+
+// نظام الفلاتر المتقدم مع البحث الفعلي
+function initializeFilters() {
+    console.log('جاري تهيئة نظام الفلاتر...');
+    
+    // عناصر الفلاتر
+    const filterElements = {
+        id: document.getElementById('id-filter'),
+        name: document.getElementById('name-filter'),
+        phone: document.getElementById('phone-filter'),
+        type: document.getElementById('type-filter'),
+        branch: document.getElementById('branch-filter'),
+        year: document.getElementById('year-filter')
+    };
+    
+    // تطبيق الفلاتر وإعادة تحميل الصفحة
+    function applyFilters() {
+        console.log('جاري تطبيق الفلاتر...');
+        
+        // بناء رابط البحث
+        const params = new URLSearchParams();
+        
+        // تحديد حقل البحث الرئيسي (الأولوية للاسم ثم الرقم ثم الهاتف)
+        let searchQuery = '';
+        if (filterElements.name.value.trim()) {
+            searchQuery = filterElements.name.value.trim();
+        } else if (filterElements.id.value.trim()) {
+            searchQuery = filterElements.id.value.trim();
+        } else if (filterElements.phone.value.trim()) {
+            searchQuery = filterElements.phone.value.trim();
+        }
+        
+        if (searchQuery) params.append('q', searchQuery);
+        if (filterElements.type.value) params.append('type', filterElements.type.value);
+        if (filterElements.branch.value) params.append('branch', filterElements.branch.value);
+        if (filterElements.year.value) params.append('academic_year', filterElements.year.value);
+        
+        // إعادة تحميل الصفحة مع معايير البحث
+        const currentUrl = window.location.pathname;
+        if (params.toString()) {
+            window.location.href = currentUrl + '?' + params.toString();
+        } else {
+            window.location.href = currentUrl;
+        }
+    }
+    
+    // إضافة مستمعي الأحداث للفلاتر
+    Object.keys(filterElements).forEach(key => {
+        const element = filterElements[key];
+        if (element) {
+            if (element.tagName === 'SELECT') {
+                element.addEventListener('change', function() {
+                    console.log(`تم تغيير ${key} إلى:`, this.value);
+                    applyFilters();
+                });
+            } else {
+                // البحث أثناء الكتابة مع تأخير للحقول النصية
+                let timeoutId;
+                element.addEventListener('input', function() {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => {
+                        console.log(`تم إدخال نص في ${key}:`, this.value);
+                        applyFilters();
+                    }, 800); // تأخير 800 مللي ثانية
+                });
+                
+                // السماح بالبحث بالضغط على Enter
+                element.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        clearTimeout(timeoutId);
+                        applyFilters();
+                    }
+                });
+            }
+        }
+    });
+    
+    // إعادة تعيين الفلاتر
+    const resetBtn = document.getElementById('reset-filters');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            console.log('إعادة تعيين جميع الفلاتر');
+            // مسح جميع حقول الفلترة
+            Object.keys(filterElements).forEach(key => {
+                if (filterElements[key]) {
+                    filterElements[key].value = '';
+                }
+            });
+            // إعادة تحميل الصفحة بدون معايير
+            window.location.href = window.location.pathname;
+        });
+    }
+    
+    // زر عرض جميع الطلاب
+    const showAllBtn = document.getElementById('show-all-btn');
+    if (showAllBtn) {
+        showAllBtn.addEventListener('click', function() {
+            console.log('عرض جميع الطلاب');
+            window.location.href = window.location.pathname + '?q=all';
+        });
+    }
+    
+    console.log('تم تهيئة نظام الفلاتر بنجاح');
+}
+
+// تعبئة الفلاتر الحالية من URL
+function populateCurrentFiltersFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterElements = {
+        id: document.getElementById('id-filter'),
+        name: document.getElementById('name-filter'),
+        phone: document.getElementById('phone-filter'),
+        type: document.getElementById('type-filter'),
+        branch: document.getElementById('branch-filter'),
+        year: document.getElementById('year-filter')
+    };
+    
+    if (urlParams.has('q')) {
+        const searchQuery = urlParams.get('q');
+        // نضع قيمة البحث في حقل الاسم كافتراضي
+        if (filterElements.name) {
+            filterElements.name.value = searchQuery;
+        }
+    }
+    
+    if (urlParams.has('type')) {
+        const type = urlParams.get('type');
+        if (filterElements.type) {
+            filterElements.type.value = type;
+        }
+    }
+    
+    if (urlParams.has('branch')) {
+        const branch = urlParams.get('branch');
+        if (filterElements.branch) {
+            filterElements.branch.value = branch;
+        }
+    }
+    
+    if (urlParams.has('academic_year')) {
+        const year = urlParams.get('academic_year');
+        if (filterElements.year) {
+            filterElements.year.value = year;
+        }
+    }
+    
+    console.log('تم تعبئة الفلاتر من URL');
+}
+
+// إدارة حذف الطلاب
+function initializeDeleteModal() {
+    let currentStudentToDelete = null;
+    
+    // فتح مودال الحذف
+    document.querySelectorAll('.delete-student-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const studentId = this.getAttribute('data-student-id');
+            const studentName = this.getAttribute('data-student-name');
+            
+            currentStudentToDelete = studentId;
+            document.getElementById('delete-student-name').textContent = studentName;
+            document.getElementById('deleteStudentModal').style.display = 'block';
+        });
+    });
+    
+    // تأكيد الحذف
+    document.getElementById('confirmDeleteStudent').addEventListener('click', function() {
+        if (!currentStudentToDelete) return;
+        
+        const deleteUrl = `/students/delete/${currentStudentToDelete}/`;
+        
+        fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // إعادة تحميل الصفحة بعد الحذف
+            } else {
+                alert('حدث خطأ أثناء الحذف: ' + (data.error || 'غير معروف'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في الشبكة');
+        })
+        .finally(() => {
+            document.getElementById('deleteStudentModal').style.display = 'none';
+        });
+    });
+    
+    // إغلاق المودال
+    document.querySelectorAll('[data-close]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('deleteStudentModal').style.display = 'none';
+        });
+    });
+    
+    // إغلاق المودال بالنقر خارج المحتوى
+    document.querySelector('.modal-overlay').addEventListener('click', function() {
+        document.getElementById('deleteStudentModal').style.display = 'none';
+    });
+}
+
+// دالة للحصول على CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// تحسينات بصرية للجدول
+document.addEventListener('DOMContentLoaded', function() {
+    const tableRows = document.querySelectorAll('#studentsTable tbody tr');
+    tableRows.forEach((row, index) => {
+        row.style.animationDelay = `${index * 0.05}s`;
+        
+        // تأثير hover
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+            this.style.transition = 'all 0.3s ease';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+        
+        // جعل الصف قابلاً للنقر (للفتح السريع)
+        row.addEventListener('click', function(e) {
+            // منع التنفيذ إذا تم النقر على زر
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'A') {
+                return;
+            }
+            
+            const profileLink = this.querySelector('a[href*="student_profile"]');
+            if (profileLink) {
+                window.location.href = profileLink.href;
+            }
+        });
+        
+        // تغيير المؤشر عند التواجد فوق صف قابل للنقر
+        const profileLink = row.querySelector('a[href*="student_profile"]');
+        if (profileLink) {
+            row.style.cursor = 'pointer';
+        }
+    });
+});
+
+console.log('تم تحميل نظام البحث المتقدم للطلاب');
+</script>
+{% endblock %}

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% load emp_perms %}
 {% load static %}
+{% load attendance_filters %}
 {% block content %}
 <div class="module-header">
     <h2>تفاصيل حضور المدرسين - {{ date }}</h2>
@@ -9,44 +9,159 @@
         <a href="{% url 'attendance:teacher_attendance' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> العودة للسجل
         </a>
+        <a href="{% url 'attendance:take_teacher_attendance' %}?date={{ date }}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> تعديل الحضور
+        </a>
     </div>
 </div>
 {% include "partials/_alerts.html" %}
 
 <div class="table-container">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>المدرس</th>
-                <th>الحالة</th>
-                <th>عدد الجلسات</th>
-                <th>ملاحظات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for attendance in attendances %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ attendance.teacher.full_name }}</td>
-                <td>
-                    <span class="badge 
-                        {% if attendance.status == 'present' %}bg-success
-                        {% elif attendance.status == 'absent' %}bg-danger
-                        {% elif attendance.status == 'late' %}bg-warning
-                        {% else %}bg-secondary{% endif %}">
-                        {{ attendance.get_status_display }}
-                    </span>
-                </td>
-                <td>{{ attendance.session_count }}</td>
-                <td>{{ attendance.notes|default:"-" }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5" class="text-center">لا توجد سجلات حضور لهذا التاريخ</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>المدرس</th>
+                    <th>?????</th>
+                    <th>الحالة</th>
+                    <th>الجلسات الكاملة</th>
+                    <th>أنصاف الجلسات</th>
+                    <th>الإجمالي</th>
+                    <th>ملاحظات</th>
+                    <th>قيد الراتب</th>
+                    <th>تعديل</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attendance in attendances %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ attendance.teacher.full_name }}</td>
+                    <td>{{ attendance.get_branch_display }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if attendance.status == 'present' %}bg-success
+                            {% else %}bg-secondary{% endif %}">
+                            {% if attendance.status == 'present' %}حاضر
+                            {% else %}ليس لديه دوام اليوم{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ attendance.session_count }}</td>
+                    <td>{{ attendance.half_session_count }}</td>
+                    <td>
+                        <strong>{{ attendance.total_sessions|floatformat:1 }}</strong>
+                    </td>
+                    <td>{{ attendance.notes|default:"-" }}</td>
+                    <td>
+                        {% if attendance.salary_accrual_entry %}
+                            <span class="badge bg-success">تم إنشاء القيد</span>
+                        {% else %}
+                            <span class="badge bg-secondary">لا يوجد</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'attendance:update_teacher_attendance' attendance.id %}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i> تعديل
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center py-4">
+                        <i class="fas fa-inbox fa-2x text-muted mb-2"></i><br>
+                        لا توجد سجلات حضور لهذا التاريخ
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<!-- إحصاءات -->
+{% if attendances %}
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h5 class="card-title">
+                    {{ attendances|length }}
+                </h5>
+                <p class="card-text">إجمالي المدرسين</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <h5 class="card-title">
+                    {{ attendances|present_count }}
+                </h5>
+                <p class="card-text">المدرسين الحاضرين</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h5 class="card-title">
+                    {{ attendances|total_sessions }}
+                </h5>
+                <p class="card-text">إجمالي الجلسات الكاملة</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h5 class="card-title">
+                    {{ attendances|total_combined_sessions|floatformat:1 }}
+                </h5>
+                <p class="card-text">إجمالي الجلسات</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card text-white bg-secondary">
+            <div class="card-body text-center">
+                <h5 class="card-title">
+                    {{ attendances|total_half_sessions }}
+                </h5>
+                <p class="card-text">إجمالي أنصاف الجلسات</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card text-white bg-dark">
+            <div class="card-body text-center">
+                <h5 class="card-title">
+                    {% with accruals=0 %}
+                        {% for attendance in attendances %}
+                            {% if attendance.salary_accrual_entry %}
+                                {{ accruals|add:1 }}
+                            {% endif %}
+                        {% endfor %}
+                        {{ accruals }}
+                    {% endwith %}
+                </h5>
+                <p class="card-text">قيود رواتب منشأة</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.card {
+    margin-bottom: 1rem;
+}
+.card-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+</style>
 {% endblock %}

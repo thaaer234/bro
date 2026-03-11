@@ -43,10 +43,10 @@
                                 <th>الوصف / Description:</th>
                                 <td><strong>{{ expense.description }}</strong></td>
                             </tr>
-                            <tr>
+                            {% comment %} <tr>
                                 <th>الفئة / Category:</th>
                                 <td>{{ expense.get_category_display }}</td>
-                            </tr>
+                            </tr> {% endcomment %}
                         </table>
                     </div>
                     
@@ -59,6 +59,16 @@
                             <tr>
                                 <th>طريقة الدفع / Payment Method:</th>
                                 <td>{{ expense.get_payment_method_display }}</td>
+                            </tr>
+                              <tr>
+                                <th>مركز التكلفة / Cost Center:</th>
+                                <td>
+                                    {% if expense.cost_center %}
+                                        {{ expense.cost_center.name_ar|default:expense.cost_center.name }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                             <tr>
                                 <th>المورد / Vendor:</th>

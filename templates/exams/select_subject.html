@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% load emp_perms %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>إدارة العلامات - {{ classroom.name }}</h2>
+        <div>
+            <a href="{% url 'exams:exam_list' classroom.id %}" class="btn btn-info">
+                <i class="fas fa-clipboard-list"></i> إدارة الاختبارات
+            </a>
+            <a href="{% url 'exams:dashboard' %}" class="btn btn-secondary">
+                العودة إلى قائمة الشعب
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">اختر المادة:</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>اسم المادة</th>
+                            <th>نوع المادة</th>
+                            <th>المعلمون</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in subjects_with_teachers %}
+                        <tr>
+                            <td>{{ item.subject.subject.name }}</td>
+                            <td>{{ item.subject.subject.get_subject_type_display }}</td>
+                            <td>
+                                {% with teachers=item.subject.subject.teachers.all %}
+                                    {% if teachers %}
+                                        {% for teacher in teachers %}
+                                            {{ teacher.full_name }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">لا يوجد معلمون</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'exams:view_examss' classroom.id item.subject.subject.id %}" 
+                                    class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye"></i> عرض العلامات
+                                    </a>
+                                    <a href="{% url 'exams:edit_examss' classroom.id item.subject.subject.id %}" 
+                                    class="btn btn-warning btn-sm">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                لا توجد مواد مسجلة لهذه الشعبة
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

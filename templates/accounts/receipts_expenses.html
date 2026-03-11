@@ -80,7 +80,7 @@
             </div>
         </div>
     </div> {% endcomment %}
-    
+
     <!-- Expense Entry Form -->
     <div class="col-md-6">
         <div class="card">
@@ -92,9 +92,10 @@
             </div>
             <div class="card-body">
                 <form method="post" action="{% url 'accounts:expense_create' %}">
-                    {% csrf_token %}
-                    {% crispy expense_form %}
-                </form>
+    {% csrf_token %}
+    {{ expense_form.as_p }}  <!-- أو as_table أو as_ul -->
+    <button type="submit" class="btn btn-danger">إنشاء مصروف</button>
+</form>
             </div>
         </div>
     </div>
@@ -106,11 +107,11 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">آخر الإيصالات / Recent Receipts</h5>
+                <!--<h5 class="mb-0">آخر الإيصالات / Recent Receipts</h5>-->
             </div>
             {% comment %} <div class="card-body">
                 {% if recent_receipts %}
-                    <div class="table-responsive">
+                    <!--<div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
                                 <tr>
@@ -134,13 +135,13 @@
                             </tbody>
                         </table>
                     </div>
-                {% else %}
+                {% else %}-->
                     <p class="text-muted text-center">لا توجد إيصالات / No receipts yet</p>
                 {% endif %}
             </div> {% endcomment %}
         </div>
     </div>
-    
+
     <!-- Recent Expenses -->
     <div class="col-md-6">
         <div class="card">

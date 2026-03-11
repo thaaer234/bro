@@ -1,0 +1,823 @@
+{% extends "mobile/teacher_base.html" %}
+
+{% block extra_css %}
+<style>
+.collapsible-section { display: none; }
+.collapsible-section.active { display: block; }
+.section-link { cursor: pointer; }
+
+.student-center-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.student-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: right;
+  cursor: pointer;
+}
+.student-chip.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary-soft) inset;
+}
+.student-center-card {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.student-center-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.student-center-meta .pill {
+  margin: 0;
+}
+@media (max-width: 480px) {
+  .student-center-grid,
+  .student-center-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card reveal" id="overview">
+  <div class="section-title">
+    <i class="fas fa-bolt"></i>
+    لوحة المدرس
+  </div>
+
+  <div class="pill-row">
+    <div class="pill">
+      <strong>{{ classrooms|length }}</strong>
+      <span>الشعب المرتبطة</span>
+    </div>
+    <div class="pill">
+      <strong>{{ subjects|length }}</strong>
+      <span>مواد التدريس</span>
+    </div>
+    <div class="pill">
+      <strong>{{ students_count|default:0 }}</strong>
+      <span>طلاب مرتبطون</span>
+    </div>
+    <div class="pill">
+      <strong>{{ attendance_summary.present|default:0 }}</strong>
+      <span>أيام حضور مسجلة</span>
+    </div>
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.03s;">
+  <div class="section-title">
+    <i class="fas fa-id-badge"></i>
+    بطاقة المعلم
+  </div>
+  <div class="pill-row">
+    <div class="pill">
+      <strong>{{ salary_summary.monthly_present_days|default:0 }}</strong>
+      <span>أيام حضور هذا الشهر</span>
+    </div>
+    <div class="pill">
+      <strong>{{ salary_summary.monthly_total_sessions|floatformat:1|default:"0" }}</strong>
+      <span>حصص هذا الشهر</span>
+    </div>
+    <div class="pill">
+      <strong>{{ salary_summary.monthly_salary_estimate|floatformat:1|default:"0" }}</strong>
+      <span>تقدير راتب الشهر</span>
+    </div>
+    <div class="pill">
+      <strong>{{ salary_summary.total_advances|floatformat:1|default:"0" }}</strong>
+      <span>إجمالي السلف</span>
+    </div>
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.04s;">
+  <div class="section-title">
+    <i class="fas fa-table-cells"></i>
+    الوصول السريع للأقسام
+  </div>
+  <div class="action-grid">
+    <a class="action-card section-link" data-target="student-center" href="#student-center">
+      <i class="fas fa-users-viewfinder"></i>
+      <strong>مركز الطلاب</strong>
+      <span>اختر شعبة ثم طالب، ونفذ تسميع أو إنذار مباشرة</span>
+    </a>
+    <a class="action-card section-link" data-target="teacher-info">
+      <i class="fas fa-id-card"></i>
+      <strong>بيانات المعلم</strong>
+      <span>معلومات الراتب والفروع والسلفة والحضور</span>
+    </a>
+    <a class="action-card section-link" data-target="classes">
+      <i class="fas fa-layer-group"></i>
+      <strong>الشعب والمواد</strong>
+      <span>عرض الشعب المرتبطة والمواد والاختبارات</span>
+    </a>
+    <a class="action-card section-link" data-target="subject-tree">
+      <i class="fas fa-sitemap"></i>
+      <strong>مواد → شعب → طلاب</strong>
+      <span>المادة مع شعبها وطلابها وامتحاناتها</span>
+    </a>
+    <a class="action-card section-link" data-target="tests">
+      <i class="fas fa-star"></i>
+      <strong>الاختبارات والعلامات</strong>
+      <span>أحدث العلامات واختبارات المواد</span>
+    </a>
+    <a class="action-card section-link" data-target="listening">
+      <i class="fas fa-headphones"></i>
+      <strong>اختبارات الاستماع</strong>
+      <span>اختبارات الاستماع والطلاب المستمع لهم</span>
+    </a>
+    <a class="action-card section-link" data-target="attendance">
+      <i class="fas fa-calendar-check"></i>
+      <strong>الحضور</strong>
+      <span>حضور الشهر والتفاصيل الأخيرة</span>
+    </a>
+    <a class="action-card section-link" data-target="finance">
+      <i class="fas fa-wallet"></i>
+      <strong>الراتب والسلف</strong>
+      <span>رواتبك والسلف المتبقية</span>
+    </a>
+    <a class="action-card section-link" data-target="actions">
+      <i class="fas fa-pen"></i>
+      <strong>إجراءات سريعة</strong>
+      <span>إضافة اختبار استماع أو إرسال تحذير</span>
+    </a>
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="teacher-info" style="animation-delay: 0.045s;">
+  <div class="section-title">
+    <i class="fas fa-id-card"></i>
+    بيانات المعلم
+  </div>
+  <div class="list">
+    <div class="list-item">
+      <h4>معلومات أساسية</h4>
+      <p class="muted">الهاتف: {{ teacher.phone_number|default:"-" }}</p>
+      <p class="muted">تاريخ التعيين: {{ teacher.hire_date|date:"d/m/Y" }}</p>
+      <p class="muted">نوع الأجر: {{ teacher.get_salary_type_display }}</p>
+      <p class="muted">الأجر العام للساعة: {{ teacher.hourly_rate|floatformat:1|default:"-" }}</p>
+      <p class="muted">الفروع: {% for b in teacher.get_branches_list %}{{ b }}{% if not forloop.last %} • {% endif %}{% empty %}{{ teacher.get_branch_display|default:"-" }}{% endfor %}</p>
+      {% if teacher.notes %}<p class="muted">ملاحظات: {{ teacher.notes }}</p>{% endif %}
+    </div>
+    <div class="list-item">
+      <h4>أجور الفروع</h4>
+      {% if branch_rates %}
+        {% for br in branch_rates %}
+        <p class="muted">{{ br.label }}: {{ br.rate|floatformat:1 }}</p>
+        {% endfor %}
+      {% else %}
+      <p class="muted">لا توجد أجور فروع مخصصة.</p>
+      {% endif %}
+    </div>
+    <div class="list-item">
+      <h4>حساب السلفة</h4>
+      {% if advance_account %}
+      <p class="muted">الحساب: {{ advance_account.code }} - {{ advance_account.name }}</p>
+      <p class="muted">الرصيد: {{ salary_summary.advance_account_balance|floatformat:1 }}</p>
+      <p class="muted">سلف متبقية: {{ salary_summary.outstanding_advances|floatformat:1 }}</p>
+      <p class="muted">إجمالي السلف: {{ salary_summary.total_advances|floatformat:1 }}</p>
+      {% else %}
+      <p class="muted">لا يوجد حساب سلفة لهذا المعلم.</p>
+      {% endif %}
+    </div>
+    <div class="list-item">
+      <h4>إحصاءات الحضور</h4>
+      <p class="muted">إجمالي السجلات: {{ attendance_stats.total }}</p>
+      <p class="muted">حضور: {{ attendance_stats.present }} | غياب: {{ attendance_stats.absent }} | تأخير: {{ attendance_stats.late }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="subject-tree" style="animation-delay: 0.06s;">
+  <div class="section-title">
+    <i class="fas fa-sitemap"></i>
+    المواد والشعب والطلاب
+  </div>
+  <div class="list">
+    {% for item in subjects_overview %}
+    <div class="list-item">
+      <h4>{{ item.subject.name }}</h4>
+      {% if item.classes %}
+        {% for cls in item.classes %}
+        <p><strong>{{ cls.classroom.name }}</strong> — طلاب: {{ cls.students|length }} | امتحانات: {{ cls.exams|length }}</p>
+        {% if cls.students %}
+        <p class="muted">الطلاب:
+          {% for student in cls.students|slice:":5" %}
+            {{ student.full_name }}{% if not forloop.last %} • {% endif %}
+          {% endfor %}
+          {% if cls.students|length > 5 %} ... {% endif %}
+        </p>
+        {% endif %}
+        {% if cls.exams %}
+          {% for exam_block in cls.exams %}
+          <p class="muted"><strong>{{ exam_block.exam.name }}</strong> — {{ exam_block.exam.exam_date|date:"d/m/Y" }} | متوسط: {{ exam_block.avg_grade|floatformat:1|default:"-" }}</p>
+          {% if exam_block.grades %}
+          <p class="muted">
+            {% for grade in exam_block.grades %}
+              {{ grade.student.full_name }}: {{ grade.grade|floatformat:1|default:"-" }} / {{ exam_block.exam.max_grade|floatformat:0 }}{% if not forloop.last %} • {% endif %}
+            {% endfor %}
+          </p>
+          {% endif %}
+          {% endfor %}
+        {% endif %}
+        {% endfor %}
+      {% else %}
+      <p class="muted">لا توجد شعب مرتبطة لهذه المادة.</p>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item"><p class="muted">لا توجد مواد مرتبطة.</p></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="classes" style="animation-delay: 0.05s;">
+  <div class="section-title">
+    <i class="fas fa-layer-group"></i>
+    الشعب والمواد
+  </div>
+
+  <div class="list">
+    {% for item in classrooms %}
+    <div class="list-item">
+      <h4>{{ item.classroom.name }}</h4>
+      <p class="muted">مواد: {{ item.subjects|length }} | طلاب: {{ item.students|length }}</p>
+      <p class="muted">المواد: {% for subj in item.subjects %}{{ subj.name }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</p>
+
+      {% if item.recent_grades %}
+      <div class="muted" style="margin-top: 6px;">آخر العلامات:</div>
+      {% for grade in item.recent_grades %}
+      <p>{{ grade.student.full_name }} - {{ grade.exam.name }} ({{ grade.exam.subject.name }}) : {{ grade.grade|floatformat:1|default:"-" }} / {{ grade.exam.max_grade|floatformat:0 }}</p>
+      {% endfor %}
+      {% else %}
+      <p class="muted">لا توجد علامات لهذه الشعبة بعد.</p>
+      {% endif %}
+
+      {% if item.tests %}
+      <div class="muted" style="margin-top: 8px;">اختبارات الاستماع في الشعبة:</div>
+      {% for t in item.tests %}
+      <p>{{ t.test.title }} — {{ t.test.created_at|date:"d/m/Y" }} (طلاب: {{ t.total_assignments }} | تم الاستماع: {{ t.listened_count }})</p>
+      {% endfor %}
+      {% endif %}
+
+      {% if item.exam_results %}
+      <div class="muted" style="margin-top: 8px;">اختبارات المادة/الشعبة:</div>
+      {% for bucket in item.exam_results %}
+      <p><strong>{{ bucket.exam.name }}</strong> — {{ bucket.exam.subject.name }} | {{ bucket.exam.exam_date|date:"d/m/Y" }}</p>
+      <p class="muted">
+        {% for grade in bucket.grades %}
+          {{ grade.student.full_name }}: {{ grade.grade|floatformat:1|default:"-" }} / {{ bucket.exam.max_grade|floatformat:0 }}{% if not forloop.last %} • {% endif %}
+        {% endfor %}
+      </p>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد شعب مرتبطة بالمعلم.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="subjects" style="animation-delay: 0.1s;">
+  <div class="section-title">
+    <i class="fas fa-book"></i>
+    المواد المرتبطة
+  </div>
+  <div class="list">
+    {% for subject in subjects %}
+    <div class="list-item">
+      <h4>{{ subject.name }}</h4>
+      <p class="muted">نوع: {{ subject.get_subject_type_display|default:"-" }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد مواد مرتبطة.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="tests" style="animation-delay: 0.15s;">
+  <div class="section-title">
+    <i class="fas fa-star"></i>
+    أحدث علامات الطلاب
+  </div>
+
+  <div class="list">
+    {% for grade in recent_grades %}
+    <div class="list-item">
+      <h4>{{ grade.student.full_name }}</h4>
+      <p>{{ grade.exam.classroom.name }} | {{ grade.exam.subject.name }} | {{ grade.exam.name }}</p>
+      <p class="muted">علامة: {{ grade.grade|floatformat:1|default:"-" }} / {{ grade.exam.max_grade|floatformat:0 }} — تاريخ: {{ grade.exam.exam_date|date:"d/m/Y" }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد اختبارات أو علامات مسجلة بعد.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="listening" style="animation-delay: 0.2s;">
+  <div class="section-title">
+    <i class="fas fa-headphones"></i>
+    اختبارات الاستماع
+  </div>
+  <div class="list">
+    {% for test in listening_tests %}
+    <div class="list-item">
+      <h4>{{ test.title }}</h4>
+      <p>{% if test.classroom %}{{ test.classroom.name }}{% else %}-{% endif %} — {{ test.created_at|date:"d/m/Y" }}</p>
+      <p class="muted">طلاب: {{ test.total_assignments|default:0 }} | تم الاستماع: {{ test.listened_count|default:0 }}</p>
+      {% if test.description %}<p class="muted">{{ test.description }}</p>{% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد اختبارات استماع حتى الآن.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="attendance" style="animation-delay: 0.25s;">
+  <div class="section-title">
+    <i class="fas fa-calendar-check"></i>
+    حضور المعلم
+  </div>
+  <div class="muted">حضور هذا الشهر:</div>
+  <div class="list">
+    {% for record in monthly_attendance %}
+    <div class="list-item">
+      <h4>{{ record.date|date:"d/m/Y" }} — {{ record.get_status_display }}</h4>
+      <p class="muted">فرع: {{ record.get_branch_display }} | حصص: {{ record.total_sessions|floatformat:1 }}</p>
+      {% if record.notes %}<p class="muted">{{ record.notes }}</p>{% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا يوجد حضور مسجل لهذا الشهر.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="muted" style="margin-top: 10px;">حضور آخر يوم:</div>
+  <div class="list">
+    {% for record in latest_attendance_entries %}
+    <div class="list-item">
+      <h4>{{ record.date|date:"d/m/Y" }} — {{ record.get_status_display }}</h4>
+      <p class="muted">فرع: {{ record.get_branch_display }} | حصص: {{ record.total_sessions|floatformat:1 }}</p>
+      {% if record.notes %}<p class="muted">{{ record.notes }}</p>{% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا يوجد حضور لآخر يوم.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="muted" style="margin-top: 10px;">الحضور الشهري حسب الفرع:</div>
+  <div class="list">
+    {% for table in branch_monthly_tables %}
+    <div class="list-item">
+      <h4>{{ table.branch_title|default:table.branch }}</h4>
+      <p class="muted">سعر الساعة: {{ table.hourly_rate|floatformat:1 }}</p>
+      {% for row in table.rows %}
+      <p>{{ row.month_label }} — جلسات: {{ row.total_sessions|floatformat:1 }} | أجر مستحق: {{ row.total_salary|floatformat:1 }}</p>
+      {% endfor %}
+    </div>
+    {% empty %}
+    <div class="list-item"><p class="muted">لا يوجد حضور شهري حسب الفروع.</p></div>
+    {% endfor %}
+  </div>
+
+  <div class="muted" style="margin-top: 10px;">آخر حضور مسجل:</div>
+  <div class="list">
+    {% for record in attendance_records %}
+    <div class="list-item">
+      <h4>{{ record.date|date:"d/m/Y" }} — {{ record.get_status_display }}</h4>
+      <p class="muted">فرع: {{ record.get_branch_display }} | حصص: {{ record.total_sessions|floatformat:1 }}</p>
+      {% if record.notes %}<p class="muted">{{ record.notes }}</p>{% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا يوجد حضور مسجل.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="finance" style="animation-delay: 0.3s;">
+  <div class="section-title">
+    <i class="fas fa-wallet"></i>
+    الراتب والسلف
+  </div>
+
+  <div class="pill-row">
+    <div class="pill">
+      {% with salary_summary.latest as latest_salary %}
+      <strong>{% if latest_salary %}{{ latest_salary.net_salary|floatformat:1 }}{% else %}-{% endif %}</strong>
+      {% endwith %}
+      <span>آخر راتب صافٍ</span>
+    </div>
+    <div class="pill">
+      <strong>{{ salary_summary.unpaid_count|default:0 }}</strong>
+      <span>رواتب غير مدفوعة</span>
+    </div>
+    <div class="pill">
+      <strong>{{ salary_summary.outstanding_advances|default:"0"|floatformat:1 }}</strong>
+      <span>سلف متبقية</span>
+    </div>
+    <div class="pill">
+      <strong>{{ salary_summary.advance_account_balance|default:"0"|floatformat:1 }}</strong>
+      <span>رصيد حساب السلفة</span>
+    </div>
+  </div>
+
+  <div class="list" style="margin-top: 12px;">
+    <div class="muted">آخر الرواتب</div>
+    {% for salary in salaries %}
+    <div class="list-item">
+      <h4>{{ salary.get_month_display }} {{ salary.year }}</h4>
+      <p>{{ salary.net_salary }} — {% if salary.is_paid %}مدفوع{% else %}غير مدفوع{% endif %}</p>
+      {% if salary.notes %}<p class="muted">{{ salary.notes }}</p>{% endif %}
+    </div>
+    {% empty %}
+    <div class="list-item"><p class="muted">لا توجد رواتب مسجلة.</p></div>
+    {% endfor %}
+  </div>
+
+  <div class="list" style="margin-top: 10px;">
+    <div class="muted">آخر السلف</div>
+    {% for advance in advances %}
+    <div class="list-item">
+      <h4>{{ advance.date|date:"d/m/Y" }} — {{ advance.amount }}</h4>
+      <p class="muted">{{ advance.purpose }}</p>
+      <p class="muted">متبقي: {{ advance.outstanding_amount }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item"><p class="muted">لا توجد سلف مسجلة.</p></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="actions" style="animation-delay: 0.35s;">
+  <div class="section-title">
+    <i class="fas fa-pen"></i>
+    إجراءات سريعة
+  </div>
+  <div class="action-grid">
+    <a class="action-card" href="#test-form">
+      <i class="fas fa-headphones"></i>
+      <strong>إضافة اختبار استماع</strong>
+      <span>إنشاء اختبار وتحديد الشعبة والطلاب</span>
+    </a>
+    <a class="action-card" href="#warning-form">
+      <i class="fas fa-triangle-exclamation"></i>
+      <strong>إرسال تحذير</strong>
+      <span>إشعار الطالب بسبب أو ملاحظة</span>
+    </a>
+  </div>
+</div>
+
+
+<div class="card reveal collapsible-section" id="student-center" style="animation-delay: 0.37s;">
+  <div class="section-title">
+    <i class="fas fa-users-viewfinder"></i>
+    مركز الطلاب
+  </div>
+  <p class="muted">اختر الشعبة ثم الطالب، وستظهر بياناته هنا مباشرة.</p>
+
+  <label for="student-center-classroom">الشعبة</label>
+  <select id="student-center-classroom" class="form-control">
+    <option value="">اختر الشعبة</option>
+    {% for classroom in classrooms %}
+    <option value="{{ classroom.classroom.id }}">{{ classroom.classroom.name }}</option>
+    {% endfor %}
+  </select>
+
+  <div id="student-center-students" class="student-center-grid">
+    {% for classroom in classrooms %}
+      {% for student in classroom.students %}
+      <button
+        type="button"
+        class="student-chip"
+        data-student-center-student
+        data-url="{% url 'mobile:teacher_student_detail' student.id %}?classroom_id={{ classroom.classroom.id }}"
+        data-classroom-id="{{ classroom.classroom.id }}"
+        data-classroom-name="{{ classroom.classroom.name|escapejs }}"
+        data-student-id="{{ student.id }}"
+        data-student-name="{{ student.full_name|escapejs }}"
+        data-student-number="{{ student.student_number|default:'-'|escapejs }}"
+        data-student-branch="{{ student.get_branch_display|default:'-'|escapejs }}"
+        data-student-phone="{{ student.phone|default:'-'|escapejs }}"
+      >
+        {{ student.full_name }}
+      </button>
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <div id="student-center-empty" class="muted" style="margin-top:10px;">اختر شعبة لعرض الطلاب</div>
+
+  <div id="student-center-card" class="student-center-card" style="display:none;">
+    <h4 id="student-center-name">-</h4>
+    <div class="student-center-meta">
+      <div class="pill"><strong id="student-center-number">-</strong><span>رقم الطالب</span></div>
+      <div class="pill"><strong id="student-center-class">-</strong><span>الشعبة</span></div>
+      <div class="pill"><strong id="student-center-branch">-</strong><span>الفرع</span></div>
+      <div class="pill"><strong id="student-center-phone">-</strong><span>الهاتف</span></div>
+    </div>
+
+    <div class="form-grid" style="margin-top:12px;">
+      <div class="section-title"><i class="fas fa-headphones"></i> تسجيل تسميع</div>
+      <form method="post" class="form-grid">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="record_listening">
+        <input type="hidden" id="sc-listening-classroom-id" name="listening_classroom_id">
+        <input type="hidden" id="sc-listening-student-id" name="listening_student_id">
+
+        <label for="sc-listening-title">????? ???????</label>
+        <input id="sc-listening-title" type="text" name="listening_title" placeholder="????: ????? ?????? ???????">
+
+        <label for="sc-listening-max-grade">Max Grade</label>
+        <input id="sc-listening-max-grade" type="number" step="0.01" min="0.01" name="listening_max_grade" value="10">
+
+        <label for="sc-listening-grade">Student Grade (optional)</label>
+        <input id="sc-listening-grade" type="number" step="0.01" min="0" name="listening_grade">
+
+        <label for="sc-listening-note">ملاحظات</label>
+        <textarea id="sc-listening-note" name="listening_note" rows="2"></textarea>
+
+        <button class="btn" type="submit">حفظ التسميع</button>
+      </form>
+    </div>
+
+    <div class="form-grid" style="margin-top:12px;">
+      <div class="section-title"><i class="fas fa-triangle-exclamation"></i> تسجيل إنذار</div>
+      <form method="post" class="form-grid">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_warning">
+        <input type="hidden" id="sc-warning-classroom-id" name="warning_classroom_id">
+        <input type="hidden" id="sc-warning-student-id" name="warning_student_id">
+
+        <label for="sc-warning-title">عنوان الإنذار</label>
+        <input id="sc-warning-title" type="text" name="warning_title" required placeholder="مثال: غياب متكرر">
+
+        <label for="sc-warning-severity">درجة الإنذار</label>
+        <select id="sc-warning-severity" name="warning_severity">
+          {% for code, label in warning_choices %}
+          <option value="{{ code }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="sc-warning-note">التفاصيل</label>
+        <textarea id="sc-warning-note" name="warning_details" rows="2"></textarea>
+
+        <button class="btn" type="submit">حفظ الإنذار</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card reveal collapsible-section" id="test-form" style="animation-delay: 0.4s;">
+  <div class="section-title">
+    <i class="fas fa-headphones"></i>
+    تسجيل تسميع لطالب
+  </div>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="record_listening">
+
+    <label for="listening_classroom_id">الشعبة</label>
+    <select id="listening_classroom_id" name="listening_classroom_id" required>
+      <option value="">اختر الشعبة</option>
+      {% for classroom in classrooms %}
+      <option value="{{ classroom.classroom.id }}">{{ classroom.classroom.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="listening_student_id">الطالب</label>
+    <select id="listening_student_id" name="listening_student_id" required>
+      <option value="">اختر الطالب</option>
+      {% for classroom in classrooms %}
+        {% for student in classroom.students %}
+        <option value="{{ student.id }}" data-classroom-id="{{ classroom.classroom.id }}">
+          {{ student.full_name }} ({{ classroom.classroom.name }})
+        </option>
+        {% endfor %}
+      {% endfor %}
+    </select>
+
+    <label for="listening_title">عنوان التسميع</label>
+    <input type="text" id="listening_title" name="listening_title" placeholder="مثال: تسميع الوحدة الثالثة">
+
+    <label for="listening_max_grade">Max Grade</label>
+    <input type="number" id="listening_max_grade" name="listening_max_grade" step="0.01" min="0.01" value="10">
+
+
+    <label for="listening_grade">العلامة (اختياري)</label>
+    <input type="number" id="listening_grade" name="listening_grade" step="0.01" min="0" placeholder="مثال: 8.5">
+
+    <label for="listening_note">ملاحظات</label>
+    <textarea id="listening_note" name="listening_note" rows="2" placeholder="ملاحظات على الأداء"></textarea>
+
+    <button class="btn" type="submit">حفظ التسميع</button>
+  </form>
+</div>
+
+<div class="card reveal collapsible-section" id="warning-form" style="animation-delay: 0.45s;">
+  <div class="section-title">
+    <i class="fas fa-bell"></i>
+    إرسال إنذار لطالب
+  </div>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create_warning">
+
+    <label for="warning_classroom_id">الشعبة</label>
+    <select id="warning_classroom_id" name="warning_classroom_id" required>
+      <option value="">اختر الشعبة</option>
+      {% for classroom in classrooms %}
+      <option value="{{ classroom.classroom.id }}">{{ classroom.classroom.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="warning_student_id">الطالب</label>
+    <select id="warning_student_id" name="warning_student_id" required>
+      <option value="">اختر الطالب</option>
+      {% for classroom in classrooms %}
+        {% for student in classroom.students %}
+        <option value="{{ student.id }}" data-classroom-id="{{ classroom.classroom.id }}">
+          {{ student.full_name }} ({{ classroom.classroom.name }})
+        </option>
+        {% endfor %}
+      {% endfor %}
+    </select>
+
+    <label for="warning_title">عنوان الإنذار</label>
+    <input type="text" id="warning_title" name="warning_title" required placeholder="مثال: ضعف واجبات أو غياب متكرر">
+
+    <label for="warning_severity">درجة الإنذار</label>
+    <select id="warning_severity" name="warning_severity">
+      {% for code, label in warning_choices %}
+      <option value="{{ code }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="warning_note">التفاصيل</label>
+    <textarea id="warning_note" name="warning_details" rows="2" placeholder="سبب الإنذار أو ملاحظات إضافية"></textarea>
+
+    <button class="btn" type="submit">إرسال الإنذار</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  const sections = document.querySelectorAll('.collapsible-section');
+  const openSection = (id, scroll = true) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    sections.forEach(sec => sec.classList.remove('active'));
+    el.classList.add('active');
+    if (scroll) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  document.querySelectorAll('.section-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = link.dataset.target || link.getAttribute('href').replace('#', '');
+      openSection(target);
+    });
+  });
+
+  document.querySelectorAll('.bottom-nav a[href^="#"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      const hash = link.getAttribute('href').replace('#', '');
+      if (hash) {
+        e.preventDefault();
+        openSection(hash);
+      }
+    });
+  });
+
+  const hashTarget = (window.location.hash || '').replace('#', '');
+  if (hashTarget) {
+    openSection(hashTarget, false);
+  } else if (sections.length) {
+    sections[0].classList.add('active');
+  }
+
+
+  const bindClassroomFilter = (classroomSelector, studentSelector) => {
+    const classroomEl = document.getElementById(classroomSelector);
+    const studentEl = document.getElementById(studentSelector);
+    if (!classroomEl || !studentEl) return;
+
+    const studentOptions = Array.from(studentEl.options).slice(1);
+    const resetStudents = () => {
+      const selectedClassroom = classroomEl.value;
+      studentOptions.forEach(option => {
+        const visible = !selectedClassroom || option.dataset.classroomId === selectedClassroom;
+        option.hidden = !visible;
+      });
+
+      if (studentEl.selectedOptions.length && studentEl.selectedOptions[0].hidden) {
+        studentEl.value = "";
+      }
+    };
+
+    classroomEl.addEventListener('change', resetStudents);
+    resetStudents();
+  };
+
+  bindClassroomFilter('listening_classroom_id', 'listening_student_id');
+  bindClassroomFilter('warning_classroom_id', 'warning_student_id');
+
+  const centerClassroom = document.getElementById('student-center-classroom');
+  const centerStudents = Array.from(document.querySelectorAll('[data-student-center-student]'));
+  const centerEmpty = document.getElementById('student-center-empty');
+  const centerCard = document.getElementById('student-center-card');
+  const centerName = document.getElementById('student-center-name');
+  const centerNumber = document.getElementById('student-center-number');
+  const centerClass = document.getElementById('student-center-class');
+  const centerBranch = document.getElementById('student-center-branch');
+  const centerPhone = document.getElementById('student-center-phone');
+  const scWarningClassroom = document.getElementById('sc-warning-classroom-id');
+  const scWarningStudent = document.getElementById('sc-warning-student-id');
+  const scListeningClassroom = document.getElementById('sc-listening-classroom-id');
+  const scListeningStudent = document.getElementById('sc-listening-student-id');
+  const scListeningTitle = document.getElementById('sc-listening-title');
+
+  const paintCenterStudents = () => {
+    if (!centerClassroom) return;
+    const classId = centerClassroom.value;
+    let visibleCount = 0;
+
+    centerStudents.forEach((btn) => {
+      const visible = classId && btn.dataset.classroomId === classId;
+      btn.style.display = visible ? 'block' : 'none';
+      btn.classList.remove('active');
+      if (visible) visibleCount += 1;
+    });
+
+    if (centerCard) centerCard.style.display = 'none';
+    if (centerEmpty) {
+      centerEmpty.style.display = 'block';
+      centerEmpty.textContent = classId
+        ? (visibleCount ? 'اختر طالبًا من القائمة' : 'لا يوجد طلاب في هذه الشعبة')
+        : 'اختر شعبة لعرض الطلاب';
+    }
+  };
+
+  if (centerClassroom) {
+    centerClassroom.addEventListener('change', paintCenterStudents);
+    paintCenterStudents();
+  }
+
+  centerStudents.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.url) {
+        window.location.href = btn.dataset.url;
+        return;
+      }
+      centerStudents.forEach((el) => el.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (centerName) centerName.textContent = btn.dataset.studentName || '-';
+      if (centerNumber) centerNumber.textContent = btn.dataset.studentNumber || '-';
+      if (centerClass) centerClass.textContent = btn.dataset.classroomName || '-';
+      if (centerBranch) centerBranch.textContent = btn.dataset.studentBranch || '-';
+      if (centerPhone) centerPhone.textContent = btn.dataset.studentPhone || '-';
+
+      if (scWarningClassroom) scWarningClassroom.value = btn.dataset.classroomId || '';
+      if (scWarningStudent) scWarningStudent.value = btn.dataset.studentId || '';
+      if (scListeningClassroom) scListeningClassroom.value = btn.dataset.classroomId || '';
+      if (scListeningStudent) scListeningStudent.value = btn.dataset.studentId || '';
+      if (scListeningTitle && !scListeningTitle.value.trim()) {
+        scListeningTitle.value = `تسميع ${btn.dataset.studentName || ''}`.trim();
+      }
+
+      if (centerCard) centerCard.style.display = 'block';
+      if (centerEmpty) centerEmpty.style.display = 'none';
+    });
+  });
+})();
+</script>
+{% endblock %}

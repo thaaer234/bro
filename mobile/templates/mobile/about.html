@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+
+:root {
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --bg-page: #f4f6fb;
+  --accent-start: #667eea;
+  --accent-end: #764ba2;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: rgba(15, 23, 42, 0.08);
+  --safe-top: max(env(safe-area-inset-top), 16px);
+  color-scheme: light;
+}
+
+body {
+  font-family: 'Cairo', 'Segoe UI', sans-serif;
+  padding-top: var(--safe-top);
+}
+
+.about-shell {
+  min-height: 100vh;
+  background: linear-gradient(160deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05)), var(--bg-page),
+    url("{% static 'img/back.png' %}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: calc(20px + var(--safe-top)) 20px 20px;
+}
+
+.glass-card {
+  background: var(--card-bg);
+  border-radius: 30px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.section-header i {
+  font-size: 1.2rem;
+  color: #8b5cf6;
+}
+
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.section-subtitle {
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.info-badge {
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  backdrop-filter: blur(8px);
+}
+
+.info-badge h3 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.info-badge p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.timeline {
+  margin-top: 1.5rem;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 30px;
+  margin-bottom: 1.1rem;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.timeline-item span {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.timeline-item h4 {
+  margin: 0.2rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cta-line {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cta-line button {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(118, 75, 162, 0.35);
+}
+
+.topic-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.topic-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #4338ca;
+  font-size: 0.85rem;
+  border: 1px solid rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 600px) {
+  .cta-line {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .glass-card {
+    padding: 18px;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="about-shell">
+  <div class="glass-card">
+    <div class="section-header">
+      <i class="fas fa-layer-group"></i>
+      <div>
+        <div class="section-title">عن المنصة</div>
+        <div class="section-subtitle">نقدم تجربة مثبتة لإدارة الحملات التعليمية، تتيح للوالد، المعلم والإدارة المرونة المتناهية.</div>
+      </div>
+    </div>
+    <p>
+      منصة ذكية مصممة لخدمة العائلة التعليمية. ندعم تقارير الحضور، متابعة الأداء المالي والرسائل الهامة في واجهة واحدة تتناغم مع تقنيات الهواتف الحديثة.
+    </p>
+
+    <div class="about-grid">
+      <div class="info-badge">
+        <h3>مشاريع حية</h3>
+        <p>كمية المحتوى والتقييمات يتم تحديثها كل ساعة داخل الواجهة.</p>
+      </div>
+      <div class="info-badge">
+        <h3>تواصل فوري</h3>
+        <p>إشعارات الدفع، التنبيهات والردود الفورية ترسل مباشرة لأولياء الأمور.</p>
+      </div>
+      <div class="info-badge">
+        <h3>تحكم كامل</h3>
+        <p>لوحات تقارير للمعلم والولي الأمر تخبرك بمنتهى الشفافية.</p>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <span>إصدار 2.4</span>
+        <h4>واجهة حديثة مبنية بالكامل لأجهزة الجوال</h4>
+        <p>تبسيط الأزرار والبطاقات بألوان متدرجة و soft UI.</p>
+      </div>
+      <div class="timeline-item">
+        <span>إصدار 2.1</span>
+        <h4>إشعارات ذكية</h4>
+        <p>تكوين رسالة قابلة للتفاعل مع ربط مباشر للتفاصيل.</p>
+      </div>
+      <div class="timeline-item">
+        <span>بداية المسار</span>
+        <h4>منصة عربية متكاملة</h4>
+        <p>بنية مرنة تسمح بتخصيص الألوان والخطوط وفق هوية المدرسة.</p>
+      </div>
+    </div>
+
+    <div class="topic-stack">
+      <span class="topic-pill">Dark Mode</span>
+      <span class="topic-pill">Responsive Grid</span>
+      <span class="topic-pill">Soft UI</span>
+      <span class="topic-pill">Animations</span>
+      <span class="topic-pill">Gradient Buttons</span>
+    </div>
+
+    <div class="cta-line">
+      <div>أَبقَ على اطلاع بكافة التحديثات وأخبر فريق الدعم بالأفكار الجديدة.</div>
+      <button onclick="location.href='{% url 'mobile:notifications' %}'">
+        عرض الإشعارات <i class="fas fa-angle-left"></i>
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

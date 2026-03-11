@@ -9,12 +9,14 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>دليل الحسابات / Chart of Accounts</h2>
     <div>
+        <!-- أضف زر التصدير هنا -->
+        <a href="?export=excel" class="btn btn-success me-2" style="background-color: #28a745;">
+            <i class="fas fa-file-excel"></i> تصدير Excel / Export Excel
+        </a>
         <a href="{% url 'accounts:account_create' %}" class="btn btn-primary" style="background-color: #3498db;">
             <i class="fas fa-plus"></i> إنشاء حساب / New Account
         </a>
     </div>
-    
-    
 </div>
 
 <nav aria-label="breadcrumb">
@@ -22,63 +24,338 @@
         <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
         <li class="breadcrumb-item active">دليل الحسابات / Chart of Accounts</li>
     </ol>
-    
 </nav>
 
-<div class="table-container">
-    {% if accounts %}
-        <div class="table-responsive">
-            <table class="table table-bordered">
-                <thead class="table-dark">
-                    <tr>
-                        <th class="text-center">رمز الحساب<br>Code</th>
-                        <th>اسم الحساب<br>Name</th>
-                        <th class="text-center">النوع<br>Type</th>
-                        <th class="text-end">الرصيد<br>Balance</th>
-                        <th class="text-center">الإجراءات<br>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for account in accounts %}
-                    <tr>
-                        <td class="text-center">{{ account.code }}</td>
-                        <td>
-                            <a href="{% url 'accounts:account_detail' account.pk %}" class="text-decoration-none">
-                                {{ account.name }}{% if account.name_ar %} - {{ account.name_ar }}{% endif %}
-                            </a>
-                        </td>
-                        <td class="text-center">
-                            <span class="badge 
-                                {% if account.account_type == 'ASSET' %}bg-success
-                                {% elif account.account_type == 'LIABILITY' %}bg-warning
-                                {% elif account.account_type == 'EQUITY' %}bg-info
-                                {% elif account.account_type == 'REVENUE' %}bg-primary
-                                {% else %}bg-danger
-                                {% endif %}">
-                                {{ account.get_account_type_display }}
-                            </span>
-                        </td>
-                        <td class="text-end">{{ account.rollup_balance|money }}</td>
-                        <td class="text-center">
-                            <a href="{% url 'accounts:ledger' account.id %}" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-book"></i> دفتر الأستاذ / Ledger
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <div class="text-center text-muted py-5">
-            <i class="fas fa-list fa-3x mb-3"></i>
-            <h4>لا توجد حسابات / No accounts</h4>
-            <p>ابدأ بإنشاء حساب جديد لاستخدام النظام</p>
-            <a href="{% url 'accounts:account_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> إنشاء حساب / New Account
-            </a>
-        </div>
-    {% endif %}
+<!-- فلترات البحث -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-filter me-2"></i>فلاتر البحث / Search Filters
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="get" id="filterForm">
+            <div class="row g-3">
+                <!-- شريط البحث -->
+                <div class="col-md-4">
+                    <label for="search" class="form-label">بحث / Search</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="search" name="search" 
+                               placeholder="ابحث بالاسم أو الرمز..." 
+                               value="{{ request.GET.search|default:'' }}">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- فلتر مركز الكلفة -->
+                <div class="col-md-3">
+                    <label for="cost_center" class="form-label">مركز الكلفة / Cost Center</label>
+                    <select class="form-select" id="cost_center" name="cost_center">
+                        <option value="">الكل / All</option>
+                        {% for center in cost_centers %}
+                        <option value="{{ center.id }}" 
+                                {% if request.GET.cost_center == center.id|stringformat:"i" %}selected{% endif %}>
+                            {{ center.code }} - {{ center.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- فلتر نوع الحساب -->
+                <div class="col-md-3">
+                    <label for="account_type" class="form-label">نوع الحساب / Account Type</label>
+                    <select class="form-select" id="account_type" name="account_type">
+                        <option value="">الكل / All</option>
+                        {% for type_key, type_name in account_types %}
+                        <option value="{{ type_key }}" 
+                                {% if request.GET.account_type == type_key %}selected{% endif %}>
+                            {{ type_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- فلتر الحالة -->
+                <div class="col-md-2">
+                    <label for="status" class="form-label">الحالة / Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">الكل / All</option>
+                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>نشط / Active</option>
+                        <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>غير نشط / Inactive</option>
+                    </select>
+                </div>
+                
+                <!-- أزرار التطبيق والمسح -->
+                <div class="col-12">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i> تطبيق الفلاتر / Apply Filters
+                        </button>
+                        <a href="{% url 'accounts:chart_of_accounts' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-undo me-1"></i> مسح الكل / Clear All
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 
+<!-- عرض النتائج -->
+<div class="card">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>الحسابات / Accounts
+            {% if request.GET %}
+            <small class="text-muted">(تم تصفية النتائج)</small>
+            {% endif %}
+        </h5>
+        <div>
+            <span class="badge bg-primary">{{ accounts|length }} حساب</span>
+        </div>
+    </div>
+    
+    <div class="card-body p-0">
+        {% if accounts %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="text-center">رمز الحساب<br>Code</th>
+                            <th>اسم الحساب<br>Name</th>
+                            <th class="text-center">النوع<br>Type</th>
+                            <th class="text-center">مركز الكلفة<br>Cost Center</th>
+                            <th class="text-end">الرصيد<br>Balance</th>
+                            <th class="text-center">الإجراءات<br>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in accounts %}
+                        <tr>
+                            <td class="text-center fw-bold">{{ account.code }}</td>
+                            <td>
+                                <a href="{% url 'accounts:account_detail' account.pk %}" class="text-decoration-none fw-medium">
+                                    {{ account.name }}{% if account.name_ar %} - {{ account.name_ar }}{% endif %}
+                                </a>
+                                {% if not account.is_active %}
+                                <span class="badge bg-secondary ms-1">غير نشط</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge 
+                                    {% if account.account_type == 'ASSET' %}bg-success
+                                    {% elif account.account_type == 'LIABILITY' %}bg-warning
+                                    {% elif account.account_type == 'EQUITY' %}bg-info
+                                    {% elif account.account_type == 'REVENUE' %}bg-primary
+                                    {% else %}bg-danger
+                                    {% endif %}">
+                                    {{ account.get_account_type_display }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {% if account.cost_center %}
+                                <span class="badge bg-light text-dark">{{ account.cost_center.code }} - {{ account.cost_center.name }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-bold {% if account.rollup_balance < 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ account.rollup_balance|money }}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'accounts:ledger' account.id %}" class="btn btn-outline-primary" title="دفتر الأستاذ / Ledger">
+                                        <i class="fas fa-book"></i>
+                                    </a>
+                                    <a href="{% url 'accounts:account_update' account.id %}" class="btn btn-outline-secondary" title="تعديل / Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if account.transactions.count == 0 %}
+                                    <a href="{% url 'accounts:account_delete' account.id %}" class="btn btn-outline-danger" title="حذف / Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- الترقيم الصفحات -->
+            {% if is_paginated %}
+            <div class="card-footer">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <li class="page-item active">
+                            <span class="page-link">
+                                صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-search fa-3x mb-3"></i>
+                <h4>لا توجد حسابات / No accounts</h4>
+                <p class="mb-3">
+                    {% if request.GET %}
+                    لم يتم العثور على حسابات تطابق معايير البحث
+                    {% else %}
+                    ابدأ بإنشاء حساب جديد لاستخدام النظام
+                    {% endif %}
+                </p>
+                <a href="{% url 'accounts:account_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> إنشاء حساب / New Account
+                </a>
+                {% if request.GET %}
+                <a href="{% url 'accounts:chart_of_accounts' %}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-undo"></i> عرض جميع الحسابات
+                </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- إضافة بعض الـ JavaScript للتفاعلية -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // مسح البحث
+    document.getElementById('clearSearch').addEventListener('click', function() {
+        document.getElementById('search').value = '';
+        document.getElementById('filterForm').submit();
+    });
+    
+    // إرسال النموذج عند تغيير بعض الفلاتر
+    const autoSubmitFilters = ['cost_center', 'account_type', 'status'];
+    autoSubmitFilters.forEach(filterId => {
+        const element = document.getElementById(filterId);
+        if (element) {
+            element.addEventListener('change', function() {
+                document.getElementById('filterForm').submit();
+            });
+        }
+    });
+
+    // إضافة تأثيرات للجدول
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = 'rgba(52, 152, 219, 0.05)';
+            this.style.transition = 'background-color 0.3s ease';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+
+    // عرض رسالة تأكيد للحذف
+    const deleteButtons = document.querySelectorAll('.btn-outline-danger');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            if (!confirm('هل أنت متأكد من حذف هذا الحساب؟ سيتم حذف الحساب بشكل دائم.')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.table-dark {
+    background-color: #343a40;
+}
+
+.table-dark th {
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.text-decoration-none:hover {
+    text-decoration: underline !important;
+}
+
+/* تخصيص الألوان لأنواع الحسابات */
+.badge.bg-success { background-color: #28a745 !important; }
+.badge.bg-warning { background-color: #ffc107 !important; color: #000; }
+.badge.bg-info { background-color: #17a2b8 !important; }
+.badge.bg-primary { background-color: #007bff !important; }
+.badge.bg-danger { background-color: #dc3545 !important; }
+
+/* تحسين التصميم للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+    }
+    
+    .display-4 {
+        font-size: 2rem;
+    }
+}
+</style>
 {% endblock %}

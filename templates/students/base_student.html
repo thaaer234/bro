@@ -1,0 +1,740 @@
+{% extends "base.html" %}
+{% load static %}
+{% load emp_perms %}
+{% load student_filters %}
+
+{% block content %}
+<style>
+/* جميع تنسيقات CSS من التصميم المطلوب */
+.table-container {
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    margin: 20px;
+    overflow: hidden;
+}
+
+#teachersTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    animation: fadeIn 0.8s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#teachersTable thead {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+#teachersTable th {
+    padding: 18px 15px;
+    text-align: right;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+
+#teachersTable th:hover {
+    background: linear-gradient(135deg, #3a9dec 0%, #00d9e6 100%);
+}
+
+#teachersTable th.sort-asc::after {
+    content: ' ▲';
+    font-size: 12px;
+}
+
+#teachersTable th.sort-desc::after {
+    content: ' ▼';
+    font-size: 12px;
+}
+
+#teachersTable th::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: white;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+#teachersTable th:hover::after {
+    width: 80%;
+}
+
+#teachersTable td {
+    padding: 16px 15px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    text-align: right;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    color: #333;
+}
+
+#teachersTable tbody tr {
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+#teachersTable tbody tr:hover {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+    transform: translateX(-5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+#teachersTable tbody tr:hover td {
+    color: #2c5282;
+}
+
+#teachersTable a {
+    color: #2c5282;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+#teachersTable a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    transition: all 0.3s ease;
+}
+
+#teachersTable a:hover {
+    color: #4facfe;
+}
+
+#teachersTable a:hover::after {
+    width: 100%;
+}
+
+.btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    margin: 0 3px;
+    display: inline-block;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+    color: white;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.btn:active {
+    transform: translateY(-1px);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 20px;
+    width: 400px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    position: relative;
+    animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-content h3 {
+    color: white;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 24px;
+}
+
+.modal-content p {
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 16px;
+}
+
+.close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close:hover {
+    color: #ff758c;
+    transform: rotate(90deg);
+}
+
+#deleteForm {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#deleteForm button {
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+#deleteForm button[type="submit"] {
+    background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+    color: white;
+}
+
+#deleteForm button[type="button"] {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+#deleteForm button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+#teachersTable tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+#teachersTable tbody tr:nth-child(even):hover {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.15) 0%, rgba(0, 242, 254, 0.15) 100%);
+}
+
+.filters-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 180px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c5282;
+}
+
+.filter-group select,
+.filter-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.2);
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.current-filters {
+    border-right: 4px solid #4facfe;
+    background: rgba(255, 255, 255, 0.9) !important;
+    margin-top: 20px;
+    border-radius: 10px;
+}
+
+.current-filters h6 {
+    color: #2c5282;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.badge {
+    font-size: 14px;
+    padding: 8px 12px;
+    margin: 2px;
+}
+
+@media (max-width: 768px) {
+    .table-container {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    .modal-content {
+        width: 90%;
+        margin: 20% auto;
+    }
+    
+    #teachersTable {
+        font-size: 14px;
+    }
+    
+    .btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    
+    .filter-row {
+        flex-direction: column;
+    }
+}
+
+* {
+    transition: all 0.3s ease;
+}
+
+#teachersTable {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+.modal {
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+}
+
+.module-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    color: white;
+}
+
+.module-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.tab {
+    padding: 12px 24px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 16px;
+    font-weight: 500;
+    color: #6c757d;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab.active {
+    color: #4facfe;
+    border-bottom-color: #4facfe;
+}
+
+.tab:hover {
+    color: #4facfe;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* تنسيقات الفصول الدراسية */
+.academic-year-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.academic-year-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.academic-year-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.year-stats {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.stat-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+.branches-container {
+    display: none;
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.branch-card {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: block;
+}
+
+.branch-card:hover {
+    background: white;
+    transform: translateX(5px);
+    text-decoration: none;
+    color: #333;
+}
+
+.student-badge {
+    font-size: 12px;
+    padding: 3px 8px;
+    margin-right: 5px;
+}
+
+.badge-regular {
+    background: #17a2b8;
+    color: white;
+}
+
+.badge-warning {
+    background: #ffc107;
+    color: #000;
+}
+</style>
+
+<!-- محتوى الصفحة سيتم إضافته في القوالب الفرعية -->
+{% block student_content %}
+{% endblock %}
+
+<!-- JavaScript العام لجميع الصفحات -->
+<script>
+// دالة لتهيئة الفلاتر والترتيب
+function initializeTableFeatures() {
+    console.log('جاري تهيئة الفلاتر والترتيب...');
+    
+    // متغيرات الترتيب
+    let currentSort = {
+        column: 'id',
+        direction: 'asc'
+    };
+    
+    // الحصول على جميع صفوف الجدول
+    const tableRows = Array.from(document.querySelectorAll('#teachersTable tbody tr'));
+    console.log('عدد الصفوف:', tableRows.length);
+    
+    // دالة لترتيب الجدول
+    function sortTable(column, direction) {
+        const tbody = document.querySelector('#teachersTable tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr:not([style*="display: none"])'));
+        
+        // إزالة علامات الترتيب من جميع الرؤوس
+        document.querySelectorAll('#teachersTable th').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+        });
+        
+        // إضافة علامة الترتيب للرأس الحالي
+        const currentHeader = document.querySelector(`#teachersTable th[data-sort="${column}"]`);
+        if (currentHeader) {
+            currentHeader.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+        }
+        
+        // ترتيب الصفوف حسب العمود المحدد
+        rows.sort((a, b) => {
+            let aValue, bValue;
+            
+            switch(column) {
+                case 'index':
+                    aValue = parseInt(a.cells[0].textContent);
+                    bValue = parseInt(b.cells[0].textContent);
+                    break;
+                case 'id':
+                    aValue = parseInt(a.cells[1].textContent);
+                    bValue = parseInt(b.cells[1].textContent);
+                    break;
+                case 'name':
+                    aValue = a.cells[2].textContent.toLowerCase();
+                    bValue = b.cells[2].textContent.toLowerCase();
+                    break;
+                case 'phone':
+                    aValue = a.cells[3].textContent;
+                    bValue = b.cells[3].textContent;
+                    break;
+                case 'branch':
+                    aValue = a.cells[4].textContent;
+                    bValue = b.cells[4].textContent;
+                    break;
+                case 'type':
+                    aValue = a.cells[1].textContent.toLowerCase();
+                    bValue = b.cells[1].textContent.toLowerCase();
+                    break;
+                default:
+                    return 0;
+            }
+            
+            // المقارنة حسب نوع القيمة
+            if (typeof aValue === 'number') {
+                return direction === 'asc' ? aValue - bValue : bValue - aValue;
+            } else {
+                if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+                return 0;
+            }
+        });
+        
+        // إعادة إضافة الصفوف المرتبة إلى الجدول
+        rows.forEach(row => tbody.appendChild(row));
+    }
+    
+    // دالة لفلترة الجدول
+    function filterTable() {
+        console.log('جاري تطبيق الفلاتر...');
+        
+        const idFilter = document.getElementById('id-filter')?.value.toLowerCase() || '';
+        const nameFilter = document.getElementById('name-filter')?.value.toLowerCase() || '';
+        const phoneFilter = document.getElementById('phone-filter')?.value.toLowerCase() || '';
+        const branchFilter = document.getElementById('branch-filter')?.value || '';
+        const typeFilter = document.getElementById('type-filter')?.value || '';
+        
+        console.log('فلاتر:', { idFilter, nameFilter, phoneFilter, branchFilter, typeFilter });
+        
+        let visibleRows = 0;
+        
+        tableRows.forEach(row => {
+            const id = row.cells[0].textContent.toLowerCase();
+            const name = row.cells[2].textContent.toLowerCase();
+            const phone = row.cells[3].textContent.toLowerCase();
+            const branch = row.cells[4].textContent;
+            const type = row.cells[1].textContent.toLowerCase();
+            
+            const showRow = 
+                id.includes(idFilter) &&
+                name.includes(nameFilter) &&
+                phone.includes(phoneFilter) &&
+                (branchFilter === '' || branch === branchFilter) &&
+                (typeFilter === '' || (typeFilter === 'regular' && type.includes('نظامي')) || (typeFilter === 'quick' && type.includes('سريع')));
+            
+            row.style.display = showRow ? '' : 'none';
+            
+            if (showRow) visibleRows++;
+        });
+        
+        console.log('عدد الصفوف الظاهرة:', visibleRows);
+        
+        // إعادة ترتيب الصفوف الظاهرة فقط
+        sortTable(currentSort.column, currentSort.direction);
+    }
+    
+    // إضافة مستمعي الأحداث للترتيب
+    document.querySelectorAll('#teachersTable th[data-sort]').forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.getAttribute('data-sort');
+            
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+            
+            sortTable(currentSort.column, currentSort.direction);
+        });
+    });
+    
+    // إضافة مستمعي الأحداث للفلاتر
+    const filters = [
+        'id-filter', 'name-filter', 'phone-filter', 'branch-filter', 'type-filter'
+    ];
+    
+    filters.forEach(filterId => {
+        const element = document.getElementById(filterId);
+        if (element) {
+            if (element.tagName === 'SELECT') {
+                element.addEventListener('change', filterTable);
+            } else {
+                element.addEventListener('input', filterTable);
+            }
+        }
+    });
+    
+    // إعادة تعيين الفلاتر
+    const resetBtn = document.getElementById('reset-filters');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            filters.forEach(filterId => {
+                const element = document.getElementById(filterId);
+                if (element) element.value = '';
+            });
+            filterTable();
+        });
+    }
+    
+    // نافذة تأكيد الحذف
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const studentId = this.getAttribute('data-id');
+            const isQuick = this.closest('tr').querySelector('.student-badge')?.textContent.includes('سريع');
+            
+            document.getElementById('deleteStudentId').value = studentId;
+            
+            // تحديد رابط الحذف الصحيح
+            let deleteUrl = '';
+            if (isQuick) {
+                deleteUrl = `/quick/students/delete/${studentId}/`;
+            } else {
+                deleteUrl = `/students/delete/${studentId}/`;
+            }
+            
+            document.getElementById('deleteForm').action = deleteUrl;
+            document.getElementById('deleteModal').style.display = 'block';
+        });
+    });
+
+    document.querySelector('#deleteModal .close')?.addEventListener('click', function() {
+        document.getElementById('deleteModal').style.display = 'none';
+    });
+
+    document.getElementById('cancelDelete')?.addEventListener('click', function() {
+        document.getElementById('deleteModal').style.display = 'none';
+    });
+
+    window.addEventListener('click', function(event) {
+        if (event.target === document.getElementById('deleteModal')) {
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+    });
+    
+    // الترتيب الابتدائي
+    sortTable('id', 'asc');
+    console.log('تم تهيئة الفلاتر والترتيب بنجاح');
+}
+
+// تهيئة عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', initializeTableFeatures);
+
+// دالة لإظهار/إخفاء الفروع
+function toggleBranches(branchesId) {
+    const branches = document.getElementById(branchesId);
+    const allBranches = document.querySelectorAll('.branches-container');
+    
+    // إخفاء جميع الفروع الأخرى
+    allBranches.forEach(branch => {
+        if (branch.id !== branchesId) {
+            branch.style.display = 'none';
+        }
+    });
+    
+    // إظهار/إخفاء الفروع المحددة
+    if (branches.style.display === 'block') {
+        branches.style.display = 'none';
+    } else {
+        branches.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}

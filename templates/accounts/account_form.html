@@ -1,42 +1,75 @@
 {% extends 'accounts/base.html' %}
-
-{% load emp_perms %}
 {% load crispy_forms_tags %}
 
-{% block title %}
-    {% if object %}تعديل حساب / Edit Account{% else %}إنشاء حساب / New Account{% endif %}
-{% endblock %}
+{% block title %}إنشاء حساب جديد / Create New Account{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>
-        {% if object %}تعديل حساب / Edit Account{% else %}إنشاء حساب / New Account{% endif %}
-    </h2>
+    <h2>إنشاء حساب جديد / Create New Account</h2>
 </div>
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'accounts:chart_of_accounts' %}">دليل الحسابات / Chart</a></li>
-        <li class="breadcrumb-item active">{% if object %}تعديل / Edit{% else %}جديد / New{% endif %}</li>
-    </ol>
-</nav>
-
-<form method="post">
-    {% csrf_token %}
-    <div class="card">
-        <div class="card-body">
-            {% crispy form %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- الحقول الأساسية -->
+                    <div class="row">
+                        <div class="col-md-4">
+                            {{ form.code|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.account_type|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.parent|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.name_ar|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <!-- حقل مركز التكلفة -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.cost_center|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            <!-- يمكن إضافة حقل آخر هنا إذا لزم -->
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.is_course_account|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.course_name|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    {{ form.description|as_crispy_field }}
+                    {{ form.is_active|as_crispy_field }}
+                    
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> حفظ / Save
+                        </button>
+                        <a href="{% url 'accounts:chart_of_accounts' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء / Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-    <div class="mt-3 d-flex gap-2">
-        <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save"></i> حفظ / Save
-        </button>
-        <a href="{% url 'accounts:chart_of_accounts' %}" class="btn btn-secondary">رجوع / Back</a>
-    </div>
-    
-</form>
-
+</div>
 {% endblock %}
-

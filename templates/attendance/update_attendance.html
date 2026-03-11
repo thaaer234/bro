@@ -13,7 +13,10 @@
 <form method="post">
     {% csrf_token %}
     <input type="hidden" name="classroom" value="{{ classroom.id }}">
-    <input type="hidden" name="date" value="{{ date }}">
+    <div class="form-group mb-3">
+        <label for="attendance-date">Date</label>
+        <input type="date" id="attendance-date" name="date" class="form-control" value="{{ date|date:'Y-m-d' }}" required>
+    </div>
     
     <div class="table-container mt-4">
         <table class="table">

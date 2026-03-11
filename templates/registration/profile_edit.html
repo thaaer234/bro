@@ -1,0 +1,755 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="profile-edit-container">
+    <div class="edit-profile-card">
+        <div class="edit-header">
+            <div class="header-content">
+                <i class="fas fa-user-cog header-icon"></i>
+                <h1 class="header-title">تعديل الملف الشخصي</h1>
+                <p class="header-subtitle">قم بتحديث معلوماتك الشخصية</p>
+            </div>
+            <div class="header-actions">
+                <a href="{% url 'registration:profile' %}" class="back-btn">
+                    <i class="fas fa-arrow-right"></i>
+                    العودة للبروفايل
+                </a>
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="edit-profile-form">
+            {% csrf_token %}
+            
+            <div class="form-grid">
+                <!-- الصورة الجانبية -->
+                <div class="profile-image-section">
+                    <div class="image-upload-card">
+                        <div class="image-preview-wrapper">
+                            {% if form.instance.profile_picture %}
+                                <img src="{{ form.instance.profile_picture.url }}" alt="صورة البروفايل" class="profile-preview-image" id="imagePreview">
+                            {% else %}
+                                <div class="default-profile-image" id="imagePreview">
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                            {% endif %}
+                            <div class="image-overlay">
+                                <i class="fas fa-camera"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="upload-controls">
+                            <label for="{{ form.profile_picture.id_for_label }}" class="upload-btn">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                اختر صورة
+                            </label>
+                            {{ form.profile_picture }}
+                            <button type="button" class="remove-btn" id="removeImage">
+                                <i class="fas fa-trash"></i>
+                                إزالة
+                            </button>
+                        </div>
+                        
+                        {% if form.profile_picture.errors %}
+                        <div class="field-errors">
+                            {% for error in form.profile_picture.errors %}
+                            <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="image-info">
+                            <p><i class="fas fa-info-circle"></i> الصور المسموح بها: JPG, PNG, GIF</p>
+                            <p><i class="fas fa-weight"></i> الحجم الأقصى: 5MB</p>
+                        </div>
+                    </div>
+
+                    <div class="user-quick-info">
+                        <h3 class="quick-info-title">معلومات سريعة</h3>
+                        <div class="info-item">
+                            <i class="fas fa-user"></i>
+                            <div class="info-content">
+                                <span class="info-label">اسم المستخدم</span>
+                                <span class="info-value">{{ user.username }}</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-envelope"></i>
+                            <div class="info-content">
+                                <span class="info-label">البريد الإلكتروني</span>
+                                <span class="info-value">{{ user.email|default:'غير محدد' }}</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-calendar"></i>
+                            <div class="info-content">
+                                <span class="info-label">تاريخ الانضمام</span>
+                                <span class="info-value">{{ user.date_joined|date:"Y/m/d" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- معلومات المستخدم -->
+                <div class="profile-form-section">
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-id-card"></i>
+                            المعلومات الشخصية
+                        </h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    رقم الهاتف
+                                </label>
+                                <div class="input-with-icon">
+                                    {{ form.phone }}
+                                    <i class="input-icon fas fa-phone"></i>
+                                </div>
+                                {% if form.phone.errors %}
+                                <div class="field-errors">
+                                    {% for error in form.phone.errors %}
+                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="{{ form.address.id_for_label }}" class="form-label">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    العنوان
+                                </label>
+                                <div class="input-with-icon">
+                                    {{ form.address }}
+                                    <i class="input-icon fas fa-home"></i>
+                                </div>
+                                {% if form.address.errors %}
+                                <div class="field-errors">
+                                    {% for error in form.address.errors %}
+                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- معلومات الحساب -->
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-user-shield"></i>
+                            معلومات الحساب
+                        </h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-user"></i>
+                                    اسم المستخدم
+                                </label>
+                                <div class="readonly-field">
+                                    <span class="field-value">{{ user.username }}</span>
+                                    <i class="fas fa-lock readonly-icon"></i>
+                                </div>
+                                <span class="field-hint">لا يمكن تعديل اسم المستخدم</span>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-envelope"></i>
+                                    البريد الإلكتروني
+                                </label>
+                                <div class="readonly-field">
+                                    <span class="field-value">{{ user.email|default:'غير محدد' }}</span>
+                                    <i class="fas fa-lock readonly-icon"></i>
+                                </div>
+                                <span class="field-hint">لا يمكن تعديل البريد الإلكتروني</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- الأزرار -->
+                    <div class="form-actions">
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i>
+                            إعادة تعيين
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            حفظ التغييرات
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+:root {
+    --primary: #4361ee;
+    --primary-dark: #3a56d4;
+    --secondary: #7209b7;
+    --success: #4cc9f0;
+    --danger: #f72585;
+    --warning: #f8961e;
+    --info: #4895ef;
+    --dark: #2b2d42;
+    --light: #f8f9fa;
+    --gray: #6c757d;
+    --border: #e9ecef;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.profile-edit-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem 1rem;
+    direction: rtl;
+}
+
+.edit-profile-card {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.edit-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-content {
+    flex: 1;
+}
+
+.header-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+}
+
+.header-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.header-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateX(-5px);
+    color: white;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 0;
+}
+
+.profile-image-section {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-left: 1px solid var(--border);
+}
+
+.profile-form-section {
+    padding: 2rem;
+}
+
+.image-upload-card {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.image-preview-wrapper {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    border: 4px solid white;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+}
+
+.image-preview-wrapper:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+}
+
+.profile-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.default-profile-image {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 4rem;
+}
+
+.image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.image-preview-wrapper:hover .image-overlay {
+    opacity: 1;
+}
+
+.upload-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.upload-btn {
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: none;
+    font-weight: 500;
+}
+
+.upload-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.remove-btn {
+    background: var(--danger);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: none;
+    font-weight: 500;
+}
+
+.remove-btn:hover {
+    background: #e01e5a;
+    transform: translateY(-2px);
+}
+
+.image-upload-card input[type="file"] {
+    display: none;
+}
+
+.image-info {
+    background: #e9ecef;
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--gray);
+}
+
+.image-info p {
+    margin: 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-quick-info {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.quick-info-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--dark);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-item i {
+    width: 20px;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.info-content {
+    flex: 1;
+}
+
+.info-label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--gray);
+    margin-bottom: 0.25rem;
+}
+
+.info-value {
+    display: block;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.form-section {
+    margin-bottom: 2.5rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon input,
+.input-with-icon textarea {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 3rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.input-with-icon input:focus,
+.input-with-icon textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.input-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray);
+}
+
+.input-with-icon textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.readonly-field {
+    position: relative;
+    background: #f8f9fa;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.field-value {
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.readonly-icon {
+    color: var(--gray);
+}
+
+.field-hint {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--gray);
+}
+
+.field-errors {
+    margin-top: 0.5rem;
+}
+
+.error-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--danger);
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding-top: 2rem;
+    border-top: 2px solid var(--border);
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-image-section {
+        border-left: none;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .edit-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .header-actions {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .image-preview-wrapper {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .default-profile-image {
+        font-size: 3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-edit-container {
+        padding: 1rem 0.5rem;
+    }
+    
+    .edit-header {
+        padding: 1.5rem;
+    }
+    
+    .profile-image-section,
+    .profile-form-section {
+        padding: 1.5rem;
+    }
+    
+    .header-title {
+        font-size: 1.5rem;
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('{{ form.profile_picture.id_for_label }}');
+    const imagePreview = document.getElementById('imagePreview');
+    const removeBtn = document.getElementById('removeImage');
+    const uploadWrapper = document.querySelector('.image-preview-wrapper');
+
+    // معاينة الصورة
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (imagePreview.classList.contains('default-profile-image')) {
+                    // استبدال العنصر الافتراضي بصورة
+                    const newImg = document.createElement('img');
+                    newImg.src = e.target.result;
+                    newImg.alt = 'معاينة الصورة';
+                    newImg.className = 'profile-preview-image';
+                    newImg.id = 'imagePreview';
+                    imagePreview.parentNode.replaceChild(newImg, imagePreview);
+                } else {
+                    // تحديث الصورة الحالية
+                    imagePreview.src = e.target.result;
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // إزالة الصورة
+    removeBtn.addEventListener('click', function() {
+        fileInput.value = '';
+        if (imagePreview.tagName === 'IMG') {
+            // استبدال الصورة بالعنصر الافتراضي
+            const defaultDiv = document.createElement('div');
+            defaultDiv.className = 'default-profile-image';
+            defaultDiv.id = 'imagePreview';
+            defaultDiv.innerHTML = '<i class="fas fa-user-circle"></i>';
+            imagePreview.parentNode.replaceChild(defaultDiv, imagePreview);
+        }
+    });
+
+    // فتح محدد الملفات عند النقر على المعاينة
+    uploadWrapper.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    // إعادة تعيين النموذج
+    document.querySelector('button[type="reset"]').addEventListener('click', function() {
+        setTimeout(() => {
+            // إعادة تحميل الصورة الأصلية بعد الإعادة
+            location.reload();
+        }, 100);
+    });
+});
+</script>
+{% endblock %}

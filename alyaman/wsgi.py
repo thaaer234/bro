@@ -18,4 +18,5 @@ if path not in sys.path:
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'yaman.settings')
 
+WSGIPassAuthorization = True
 application = get_wsgi_application()

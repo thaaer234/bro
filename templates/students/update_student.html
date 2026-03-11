@@ -1,67 +1,712 @@
-{% extends "base.html" %}
 
+{% extends "base.html" %}
+{% load widget_tweaks %}
 {% load emp_perms %}
 {% load static %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-warning text-white">
-                    <h3 class="mb-0 text-center">تعديل بيانات الطالب</h3>
-                    <p class="text-center mb-0">جميع الحقول مطلوبة ما لم يذكر غير ذلك</p>
-                </div>
-                <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {% for error in form.non_field_errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
+<div class="page">
+  <div class="page-header">
+    <div class="page-header__left">
+      <div class="page-header__icon"><i class="fas fa-user-edit"></i></div>
+      <div>
+        <h1 class="page-title">تعديل بيانات الطالب</h1>
+        <p class="page-subtitle">تعديل بيانات الطالب: {{ student.full_name }}</p>
+      </div>
+    </div>
+    <a href="{% url 'students:student_profile' student.id %}" class="btn btn--ghost">
+      <i class="fas fa-arrow-right"></i>
+      <span>العودة للبروفايل</span>
+    </a>
+  </div>
 
-                        <h4 class="section-title">المعلومات الأساسية</h4>
-                        <div class="row">
-                            {% for field in form %}
-                            <div class="col-md-6 mb-3">
-                                <div class="form-group">
-                                    <label for="{{ field.id_for_label }}">
-                                        {{ field.label }}
-                                        {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
-                                    </label>
-                                    {{ field }}
-                                    {% if field.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ field.errors }}
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
+  <div class="card">
+    <form method="POST" enctype="multipart/form-data" id="student-update-form">
+      {% csrf_token %}
 
-                        <div class="form-group text-center mt-4">
-                            <button type="submit" class="btn btn-warning px-4">
-                                <i class="fas fa-edit mr-2"></i> حفظ التعديلات
-                            </button>
-                            <a href="{% url 'students:student' %}" class="btn btn-secondary px-4">
-                                <i class="fas fa-times mr-2"></i> إلغاء
-                            </a>
-                        </div>
-                    </form>
-                </div>
+      
+      {% if form.non_field_errors %}
+      <div class="alert alert--danger">
+        {% for error in form.non_field_errors %}
+          <div><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+<!-- قسم الحساب المالي -->
+<section class="section">
+    <header class="section__header">
+        <div class="badge">8</div>
+        <div>
+            <h2 class="section__title"><i class="fas fa-wallet"></i> الحساب المالي</h2>
+            <p class="section__hint">إدارة الحساب المالي للطالب</p>
+        </div>
+    </header>
+
+    <div class="grid">
+        <div class="field field--full">
+            <label class="label" for="account">الحساب المالي المرتبط</label>
+            <div class="control control--with-icon">
+                <i class="fas fa-piggy-bank"></i>
+                <select name="account" id="account" class="input">
+                    <option value="">-- اختر الحساب المالي --</option>
+                    {% for account in available_accounts %}
+                        <option value="{{ account.id }}" 
+                                {% if student.account.id == account.id %}selected{% endif %}>
+                            {{ account.code }} - {{ account.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <small class="form-text text-muted">
+                يمكنك تغيير الحساب المالي المرتبط بالطالب. سيتم استخدام هذا الحساب لجميع المعاملات المالية.
+            </small>
+        </div>
+        
+        {% if student.account %}
+        <div class="field field--full">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>الحساب الحالي:</strong> {{ student.account.code }} - {{ student.account.name }}
+                <br>
+                <strong>الرصيد الحالي:</strong> 
+                <span class="{% if student.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ student.balance|floatformat:2 }} ل.س
+                </span>
             </div>
         </div>
+        {% endif %}
     </div>
-</div>
+</section>
+      <!-- نظام الحسم -->
+      <section class="section is-active">
+        <header class="section__header">
+          <div class="badge">1</div>
+          <div>
+            <h2 class="section__title"><i class="fas fa-tag"></i> نظام الحسم</h2>
+            <p class="section__hint">حدد نظام الحسم للطالب إن وجد</p>
+          </div>
+        </header>
 
+        <div class="alert alert--info">
+          <i class="fas fa-info-circle"></i>
+          إن وجد للطالب حسم ثابت، أدخله هنا وسيُطبق تلقائياً عند قطع الإيصال.
+        </div>
+
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="discount-reason-select">سبب الحسم</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-comment-alt"></i>
+              <select id="discount-reason-select" class="input">
+                <option value="">اختر سبب الحسم</option>
+                <option value="أخوة|جوار |التسجيل خلال شهر 7" {% if student.discount_reason == "أخوة|جوار |التسجيل خلال شهر 7" %}selected{% endif %}>أخوة|جوار |التسجيل خلال شهر 7</option>
+                <option value="آيتام | معلمين من خارج المعهد " {% if student.discount_reason == "آيتام | معلمين من خارج المعهد " %}selected{% endif %}>آيتام | معلمين من خارج المعهد </option>
+                <option value="من قبل معلمين أو إداريين المعهد " {% if student.discount_reason == "من قبل معلمين أو إداريين المعهد " %}selected{% endif %}>من قبل معلمين أو إداريين المعهد </option>
+                <option value="طالب متفوق (حصوله 95% من المجموع)" {% if student.discount_reason == "طالب متفوق (حصوله 95% من المجموع)" %}selected{% endif %}>طالب متفوق (حصوله 95% من المجموع)</option>
+                <option value="حسم الشلة" {% if student.discount_reason == "حسم الشلة" %}selected{% endif %}>حسم الشلة</option>
+                <option value="حسم ساعة الغفلة" {% if student.discount_reason == "حسم ساعة الغفلة" %}selected{% endif %}>حسم ساعة الغفلة</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.discount_percent.id_for_label }}">نسبة الحسم %</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-percentage"></i>
+              {{ form.discount_percent|add_class:"input" }}
+            </div>
+            {% if form.discount_percent.errors %}
+              <div class="field__error">{{ form.discount_percent.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.discount_amount.id_for_label }}">قيمة الحسم (ل.س)</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-money-bill-wave"></i>
+              {{ form.discount_amount|add_class:"input" }}
+            </div>
+            {% if form.discount_amount.errors %}
+              <div class="field__error">{{ form.discount_amount.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="field field--full">
+            <label class="label" for="{{ form.discount_reason.id_for_label }}">سبب الحسم (تفصيلي)</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-file-alt"></i>
+              {{ form.discount_reason|add_class:"input" }}
+            </div>
+            {% if form.discount_reason.errors %}
+              <div class="field__error">{{ form.discount_reason.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+      <!-- التصنيف الأكاديمي -->
+      <section class="section">
+        <header class="section__header">
+          <div class="badge">2</div>
+          <div>
+            <h2 class="section__title"><i class="fas fa-graduation-cap"></i> التصنيف الأكاديمي</h2>
+            <p class="section__hint">حدد التصنيف الأكاديمي للطالب حسب الجدول</p>
+          </div>
+        </header>
+
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="{{ form.academic_level.id_for_label }}">الصف الدراسي <span class="req">*</span></label>
+            <select id="academic_level" name="academic_level" class="input" required>
+                <option value="">اختر المستوى الأكاديمي</option>
+                <option value="ثالث ثانوي علمي مستمع" {% if student.academic_level == "ثالث ثانوي علمي مستمع" %}selected{% endif %}>ثالث ثانوي علمي "مستمع"</option>
+                <option value="ثالث ثانوي علمي مستجد" {% if student.academic_level == "ثالث ثانوي علمي مستجد" %}selected{% endif %}>ثالث ثانوي علمي "مستجد"</option>
+                <option value="ثالث ثانوي علمي راسب ويعيد" {% if student.academic_level == "ثالث ثانوي علمي راسب ويعيد" %}selected{% endif %}>ثالث ثانوي علمي "راسب ويعيد"</option>
+                <option value="ثالث ثانوي علمي ناجح ويعيد" {% if student.academic_level == "ثالث ثانوي علمي ناجح ويعيد" %}selected{% endif %}>ثالث ثانوي علمي "ناجح ويعيد"</option>
+                <option value="ثالث ثانوي أدبي مستمع" {% if student.academic_level == "ثالث ثانوي أدبي مستمع" %}selected{% endif %}>ثالث ثانوي أدبي "مستمع"</option>
+                <option value="ثالث ثانوي أدبي مستجد" {% if student.academic_level == "ثالث ثانوي أدبي مستجد" %}selected{% endif %}>ثالث ثانوي أدبي "مستجد"</option>
+                <option value="ثالث ثانوي أدبي راسب ويعيد" {% if student.academic_level == "ثالث ثانوي أدبي راسب ويعيد" %}selected{% endif %}>ثالث ثانوي أدبي "راسب ويعيد"</option>
+                <option value="ثالث ثانوي أدبي ناجح ويعيد" {% if student.academic_level == "ثالث ثانوي أدبي ناجح ويعيد" %}selected{% endif %}>ثالث ثانوي أدبي "ناجح ويعيد"</option>               
+                <option value="ثالث إعدادي  مدرسة" {% if student.academic_level == "ثالث إعدادي  مدرسة" %}selected{% endif %}>ثالث إعدادي تاسع "مدرسة"</option>
+                <option value="ثالث إعدادي  حرة" {% if student.academic_level == "ثالث إعدادي  حرة" %}selected{% endif %}>ثالث إعدادي تاسع "حرة"</option>
+            </select>
+            {% if form.academic_level.errors %}
+              <div class="field__error">{{ form.academic_level.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.registration_status.id_for_label }}">الحالة التسجيلية <span class="req">*</span></label>
+            <div class="control control--with-icon">
+              <i class="fas fa-clipboard-check"></i>
+              <select id="{{ form.registration_status.id_for_label }}" name="{{ form.registration_status.name }}" class="input" required>
+                <option value="">اختر الحالة التسجيلية</option>
+                <option value="يحتاج ترشيحي" {% if student.registration_status == "يحتاج ترشيحي" %}selected{% endif %}>يحتاج ترشيحي</option>
+                <option value="لا يحتاج ترشيحي" {% if student.registration_status == "لا يحتاج ترشيحي" %}selected{% endif %}>لا يحتاج ترشيحي</option>
+                <option value="مسجل في مدرسة" {% if student.registration_status == "مسجل في مدرسة" %}selected{% endif %}>مسجل في مدرسة</option>
+                <option value="غير مسجل في مدرسة" {% if student.registration_status == "غير مسجل في مدرسة" %}selected{% endif %}>غير مسجل في مدرسة</option>
+              </select>
+            </div>
+            {% if form.registration_status.errors %}
+              <div class="field__error">{{ form.registration_status.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+      <!-- المعلومات الأساسية -->
+      <section class="section">
+        <header class="section__header">
+          <div class="badge">3</div>
+          <div>
+            <h2 class="section__title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</h2>
+            <p class="section__hint">أدخل المعلومات الأساسية للطالب</p>
+          </div>
+        </header>
+
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="{{ form.full_name.id_for_label }}">الاسم الكامل <span class="req">*</span></label>
+            <div class="control control--with-icon">
+              <i class="fas fa-signature"></i>
+              {{ form.full_name|add_class:"input" }}
+            </div>
+            {% if form.full_name.errors %}<div class="field__error">{{ form.full_name.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.gender.id_for_label }}">الجنس <span class="req">*</span></label>
+            <div class="control control--with-icon">
+              <i class="fas fa-venus-mars"></i>
+              {{ form.gender|add_class:"input" }}
+            </div>
+            {% if form.gender.errors %}<div class="field__error">{{ form.gender.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.branch.id_for_label }}">الفرع <span class="req">*</span></label>
+            <div class="control control--with-icon">
+              <i class="fas fa-code-branch"></i>
+              {{ form.branch|add_class:"input" }}
+            </div>
+            {% if form.branch.errors %}<div class="field__error">{{ form.branch.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.birth_date.id_for_label }}">تاريخ الميلاد <span class="req">*</span></label>
+            <div class="control control--with-icon control--date">
+              <i class="fas fa-birthday-cake"></i>
+              {{ form.birth_date|add_class:"input input--date"|attr:"type:date" }}
+            </div>
+            {% if form.birth_date.errors %}<div class="field__error">{{ form.birth_date.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.student_number.id_for_label }}">رقم الطالب <span class="req">*</span></label>
+            <div class="control control--with-icon">
+              <i class="fas fa-id-card"></i>
+              {{ form.student_number|add_class:"input" }}
+            </div>
+            {% if form.student_number.errors %}<div class="field__error">{{ form.student_number.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.nationality.id_for_label }}">الجنسية <span class="req">*</span></label>
+            <div class="control control--with-icon">
+              <i class="fas fa-flag"></i>
+              {{ form.nationality|add_class:"input" }}
+            </div>
+            {% if form.nationality.errors %}<div class="field__error">{{ form.nationality.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.registration_date.id_for_label }}">تاريخ التسجيل <span class="req">*</span></label>
+            <div class="control control--with-icon control--date">
+              <i class="fas fa-calendar-alt"></i>
+              {{ form.registration_date|add_class:"input input--date"|attr:"type:date" }}
+            </div>
+            {% if form.registration_date.errors %}<div class="field__error">{{ form.registration_date.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.tase3.id_for_label }}">التاسع</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-layer-group"></i>
+              {{ form.tase3|add_class:"input" }}
+            </div>
+            {% if form.tase3.errors %}<div class="field__error">{{ form.tase3.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field field--full">
+            <label class="label"><i class="fas fa-heartbeat"></i> هل يعاني الطالب من أمراض مزمنة؟</label>
+            <div class="radio-row">
+              <label><input class="disease-radio" type="radio" name="has_disease" id="has_disease_yes" value="yes" {% if student.disease and student.disease != "none" %}checked{% endif %}> نعم</label>
+              <label><input class="disease-radio" type="radio" name="has_disease" id="has_disease_no" value="no" {% if not student.disease or student.disease == "none" %}checked{% endif %}> لا</label>
+            </div>
+            <div id="disease-details" class="mt-8 {% if not student.disease or student.disease == 'none' %}hide{% endif %}">
+              <div class="control control--with-icon">
+                <i class="fas fa-stethoscope"></i>
+                {{ form.disease|add_class:"input" }}
+              </div>
+              {% if form.disease.errors %}<div class="field__error">{{ form.disease.errors }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- معلومات الأب -->
+      <section class="section">
+        <header class="section__header">
+          <div class="badge">4</div>
+          <div>
+            <h2 class="section__title"><i class="fas fa-male"></i> معلومات ولي الأمر (الأب)</h2>
+            <p class="section__hint">أدخل معلومات ولي أمر الطالب (الأب)</p>
+          </div>
+        </header>
+
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="{{ form.father_name.id_for_label }}">اسم الأب <span class="req">*</span></label>
+            <div class="control control--with-icon">
+              <i class="fas fa-user-tie"></i>
+              {{ form.father_name|add_class:"input" }}
+            </div>
+            {% if form.father_name.errors %}<div class="field__error">{{ form.father_name.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.father_job.id_for_label }}">مهنة الأب</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-briefcase"></i>
+              {{ form.father_job|add_class:"input" }}
+            </div>
+            {% if form.father_job.errors %}<div class="field__error">{{ form.father_job.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.father_phone.id_for_label }}">هاتف الأب <span class="req">*</span></label>
+            <div class="control control--with-icon">
+              <i class="fas fa-phone"></i>
+              {{ form.father_phone|add_class:"input" }}
+            </div>
+            {% if form.father_phone.errors %}<div class="field__error">{{ form.father_phone.errors }}</div>{% endif %}
+          </div>
+        </div>
+      </section>
+
+      <!-- معلومات الأم -->
+      <section class="section">
+        <header class="section__header">
+          <div class="badge">5</div>
+          <div>
+            <h2 class="section__title"><i class="fas fa-female"></i> معلومات ولي الأمر (الأم)</h2>
+            <p class="section__hint">أدخل معلومات ولي أمر الطالب (الأم)</p>
+          </div>
+        </header>
+
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="{{ form.mother_name.id_for_label }}">اسم الأم</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-user-tie"></i>
+              {{ form.mother_name|add_class:"input" }}
+            </div>
+            {% if form.mother_name.errors %}<div class="field__error">{{ form.mother_name.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.mother_job.id_for_label }}">مهنة الأم</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-briefcase"></i>
+              {{ form.mother_job|add_class:"input" }}
+            </div>
+            {% if form.mother_job.errors %}<div class="field__error">{{ form.mother_job.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.mother_phone.id_for_label }}">هاتف الأم</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-phone"></i>
+              {{ form.mother_phone|add_class:"input" }}
+            </div>
+            {% if form.mother_phone.errors %}<div class="field__error">{{ form.mother_phone.errors }}</div>{% endif %}
+          </div>
+        </div>
+      </section>
+
+      <!-- معلومات السكن -->
+      <section class="section">
+        <header class="section__header">
+          <div class="badge">6</div>
+          <div>
+            <h2 class="section__title"><i class="fas fa-home"></i> معلومات السكن</h2>
+            <p class="section__hint">أدخل معلومات سكن الطالب</p>
+          </div>
+        </header>
+
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="{{ form.address.id_for_label }}">العنوان</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-map-marker-alt"></i>
+              {{ form.address|add_class:"input" }}
+            </div>
+            {% if form.address.errors %}<div class="field__error">{{ form.address.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.home_phone.id_for_label }}">هاتف المنزل</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-phone-alt"></i>
+              {{ form.home_phone|add_class:"input" }}
+            </div>
+            {% if form.home_phone.errors %}<div class="field__error">{{ form.home_phone.errors }}</div>{% endif %}
+          </div>
+        </div>
+      </section>
+
+      <!-- الدراسة السابقة -->
+      <section class="section">
+        <header class="section__header">
+          <div class="badge">7</div>
+          <div>
+            <h2 class="section__title"><i class="fas fa-school"></i> معلومات الدراسة السابقة</h2>
+            <p class="section__hint">أدخل معلومات الدراسة السابقة للطالب</p>
+          </div>
+        </header>
+
+        <div class="grid">
+          <div class="field">
+            <label class="label" for="{{ form.previous_school.id_for_label }}">المدرسة السابقة</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-university"></i>
+              {{ form.previous_school|add_class:"input" }}
+            </div>
+            {% if form.previous_school.errors %}<div class="field__error">{{ form.previous_school.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label class="label" for="{{ form.how_knew_us.id_for_label }}">كيف عرفت المعهد؟</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-question-circle"></i>
+              {{ form.how_knew_us|add_class:"input" }}
+            </div>
+            {% if form.how_knew_us.errors %}<div class="field__error">{{ form.how_knew_us.errors }}</div>{% endif %}
+          </div>
+
+          <div class="field field--full">
+            <label class="label" for="{{ form.notes.id_for_label }}">ملاحظات</label>
+            <div class="control control--with-icon">
+              <i class="fas fa-sticky-note"></i>
+              {{ form.notes|add_class:"input" }}
+            </div>
+            {% if form.notes.errors %}<div class="field__error">{{ form.notes.errors }}</div>{% endif %}
+          </div>
+        </div>
+      </section>
+
+      <!-- أزرار الحفظ -->
+      <div class="form-actions">
+        <a href="{% url 'students:student_profile' student.id %}" class="btn btn--ghost">
+          <i class="fas fa-times"></i> إلغاء
+        </a>
+        <button type="submit" class="btn btn--success">
+          <i class="fas fa-save"></i> حفظ التعديلات
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
 <style>
-.text-danger {
-    color: red;
+:root{
+  --c-bg:#f7f7fb;
+  --c-card:#ffffff;
+  --c-text:#1f2937;
+  --c-muted:#6b7280;
+  --c-primary:#2563eb;
+  --c-primary-600:#1d4ed8;
+  --c-success:#16a34a;
+  --c-danger:#dc2626;
+  --c-border:#e5e7eb;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow:0 6px 18px rgba(0,0,0,.06);
+}
+
+.page{max-width:1100px;margin:32px auto;padding:0 16px}
+.page-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px
+}
+.page-header__left{display:flex;align-items:center;gap:12px}
+.page-header__icon{
+  width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--c-primary);color:#fff
+}
+.page-title{margin:0;font-size:22px}
+.page-subtitle{margin:0;color:var(--c-muted);font-size:14px}
+
+.card{
+  background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px
+}
+
+.btn{
+  display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;border-radius:999px;
+  padding:10px 16px;font-weight:600;font-size:14px;cursor:pointer;background:#fff;color:var(--c-text);
+  transition:.2s ease;border-color:var(--c-border)
+}
+.btn i{font-size:14px}
+.btn--primary{background:var(--c-primary);color:#fff;border-color:var(--c-primary)}
+.btn--primary:hover{background:var(--c-primary-600);border-color:var(--c-primary-600)}
+.btn--success{background:var(--c-success);color:#fff;border-color:var(--c-success)}
+.btn--success:hover{filter:brightness(.95)}
+.btn--ghost{background:#fff;color:var(--c-text)}
+.btn--ghost:hover{background:#f3f4f6}
+
+.section{margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--c-border)}
+.section:last-child{border-bottom:none}
+.section__header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.badge{
+  width:32px;height:32px;border-radius:50%;background:var(--c-primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700
+}
+.section__title{margin:0;font-size:18px}
+.section__hint{margin:2px 0 0;color:var(--c-muted);font-size:13px}
+
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field--full{grid-column:1/-1}
+.label{font-weight:700;font-size:13px}
+.req{color:var(--c-danger)}
+.control{position:relative}
+.control--with-icon i{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none
+}
+.input{
+  width:100%;padding:10px 12px 10px 12px;border:1px solid var(--c-border);border-radius:8px;background:#fff;
+  font-size:14px;outline:none
+}
+.control--with-icon .input{padding-right:36px}
+.input:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.field__error{color:var(--c-danger);font-size:12px}
+.radio-row{display:flex;gap:18px}
+
+.alert{
+  display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;margin:10px 0;border:1px solid
+}
+.alert--info{background:#f0f9ff;border-color:#bae6fd;color:#075985}
+.alert--danger{background:#fff1f2;border-color:#fecdd3;color:#881337}
+.mt-8{margin-top:8px}
+.hide{display:none}
+
+.form-actions{
+  display:flex;justify-content:flex-end;gap:12px;margin-top:32px;padding-top:24px;border-top:1px solid var(--c-border)
+}
+
+@media (max-width: 768px){
+  .page{padding:0 12px}
+  .grid{grid-template-columns:1fr}
+  .page-header{flex-direction:column;align-items:stretch}
+  .form-actions{flex-direction:column}
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // منطق نظام الحسم
+  const discountReasonSelect = document.getElementById('discount-reason-select');
+  const discountPercentInput = document.getElementById('{{ form.discount_percent.id_for_label }}');
+  const discountAmountInput  = document.getElementById('{{ form.discount_amount.id_for_label }}');
+  const discountReasonInput  = document.getElementById('{{ form.discount_reason.id_for_label }}');
+
+  const rules = {
+    'أخوة|جوار |التسجيل خلال شهر 7': { percent: 10, amount: 0 },
+    'آيتام | معلمين من خارج المعهد ': { percent: 15, amount: 0 },
+    'من قبل معلمين أو إداريين المعهد ': { percent: 20, amount: 0 },
+    'طالب متفوق (حصوله 95% من المجموع)': { percent: 20, amount: 0 },
+    'حسم الشلة': { percent: 15, amount: 0 },
+    'حسم ساعة الغفلة': { percent: 0, amount: 1000000 }
+  };
+
+  function clearDiscount(){
+    if(discountPercentInput){ discountPercentInput.value='0'; discountPercentInput.readOnly=false; }
+    if(discountAmountInput){  discountAmountInput.value='0';  discountAmountInput.readOnly=false;  }
+    if(discountReasonInput){  discountReasonInput.value=''; }
+  }
+
+  if(discountReasonSelect){
+    discountReasonSelect.addEventListener('change', ()=>{
+      const v = discountReasonSelect.value;
+      if(!v){ clearDiscount(); return; }
+      const r = rules[v];
+      if(r){
+        if(discountPercentInput){ discountPercentInput.value=r.percent; discountPercentInput.readOnly=true; }
+        if(discountAmountInput){  discountAmountInput.value=r.amount;  discountAmountInput.readOnly=true; }
+        if(discountReasonInput){  discountReasonInput.value=v; }
+      }
+    });
+  }
+
+  // أمراض مزمنة
+  const diseaseRadios = document.querySelectorAll('.disease-radio');
+  const diseaseDetails = document.getElementById('disease-details');
+  const diseaseInput   = document.getElementById('{{ form.disease.id_for_label }}');
+  
+  diseaseRadios.forEach(r=>{
+    r.addEventListener('change', ()=>{
+      const yes = document.getElementById('has_disease_yes').checked;
+      if(yes){
+        diseaseDetails.classList.remove('hide');
+        if(diseaseInput) diseaseInput.required = true;
+      }else{
+        diseaseDetails.classList.add('hide');
+        if(diseaseInput){ diseaseInput.required = false; diseaseInput.value = ''; }
+      }
+    });
+  });
+
+  // التحقق من التكرار
+  const fullNameInput = document.getElementById('{{ form.full_name.id_for_label }}');
+  const studentNumberInput = document.getElementById('{{ form.student_number.id_for_label }}');
+  const submitButton = document.querySelector('button[type="submit"]');
+
+  async function checkStudentExists(field, value){
+    if(!value || value.length<2) return {exists:false};
+    try{
+      const res = await fetch(`/students/check-student-exists/?${field}=${encodeURIComponent(value)}&student_id={{ student.id }}`);
+      if(!res.ok) throw new Error('network');
+      return await res.json();
+    }catch(e){ return {exists:false}; }
+  }
+
+  function showInlineError(input, msg){
+    if(!input) return;
+    removeInlineError(input);
+    const d = document.createElement('div');
+    d.className = 'field__error';
+    d.textContent = msg;
+    input.closest('.field')?.appendChild(d);
+    input.classList.add('input--invalid');
+  }
+
+  function removeInlineError(input){
+    if(!input) return;
+    input.classList.remove('input--invalid');
+    const err = input.closest('.field')?.querySelector('.field__error');
+    if(err) err.remove();
+  }
+
+  function setSubmitState(){
+    const hasErr = !!document.querySelector('.input--invalid');
+    if(submitButton){
+      submitButton.disabled = hasErr;
+    }
+  }
+
+  if(fullNameInput){
+    fullNameInput.addEventListener('blur', async ()=>{
+      const v = fullNameInput.value.trim();
+      if(!v){ removeInlineError(fullNameInput); setSubmitState(); return; }
+      const r = await checkStudentExists('full_name', v);
+      if(r.exists){
+        showInlineError(fullNameInput, `الاسم مسجل مسبقاً للطالب برقم: ${r.student_number}`);
+      }else{
+        removeInlineError(fullNameInput);
+      }
+      setSubmitState();
+    });
+  }
+
+  if(studentNumberInput){
+    studentNumberInput.addEventListener('blur', async ()=>{
+      const v = studentNumberInput.value.trim();
+      if(!v){ removeInlineError(studentNumberInput); setSubmitState(); return; }
+      const r = await checkStudentExists('student_number', v);
+      if(r.exists){
+        showInlineError(studentNumberInput, `رقم الطالب مسجل مسبقاً للطالب: ${r.full_name}`);
+      }else{
+        removeInlineError(studentNumberInput);
+      }
+      setSubmitState();
+    });
+  }
+
+  // فحص أخير قبل الإرسال
+  const form = document.getElementById('student-update-form');
+  if(form){
+    form.addEventListener('submit', async (e)=>{
+      // تحقق سريع من حالات الأمراض
+      const yes = document.getElementById('has_disease_yes')?.checked;
+      const dInp = document.getElementById('{{ form.disease.id_for_label }}');
+      if(yes && dInp && !dInp.value.trim()){
+        e.preventDefault();
+        showInlineError(dInp, 'يرجى تحديد الأمراض التي يعاني منها الطالب');
+        dInp.scrollIntoView({behavior:'smooth', block:'center'});
+        dInp.focus();
+        return;
+      }
+
+      // إعادة التأكد من عدم التكرار
+      let hasErr = false;
+      if(fullNameInput && fullNameInput.value.trim()){
+        const r1 = await checkStudentExists('full_name', fullNameInput.value.trim());
+        if(r1.exists){ showInlineError(fullNameInput, `الاسم مسجل مسبقاً للطالب برقم: ${r1.student_number}`); hasErr = true; }
+      }
+      if(studentNumberInput && studentNumberInput.value.trim()){
+        const r2 = await checkStudentExists('student_number', studentNumberInput.value.trim());
+        if(r2.exists){ showInlineError(studentNumberInput, `رقم الطالب مسجل مسبقاً للطالب: ${r2.full_name}`); hasErr = true; }
+      }
+      if(hasErr){
+        e.preventDefault();
+        const first = document.querySelector('.input--invalid');
+        if(first){ first.scrollIntoView({behavior:'smooth', block:'center'}); first.focus(); }
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

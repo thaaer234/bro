@@ -1,175 +1,330 @@
 {% extends "base.html" %}
 
 {% load emp_perms %}
+{% load static %}
 {% block content %}
-<h2>قائمة المواد</h2>
 
-<!-- إضافة عناصر البحث والتصفية -->
-<div class="filters mb-3">
-    <div class="row">
-        <div class="col-md-4">
-            <input type="text" id="searchInput" class="form-control" placeholder="ابحث باسم المادة...">
+<div class="module-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">
+            <i class="fas fa-book me-2"></i>قائمة المواد
+        </h2>
+        <a href="{% url 'courses:subject_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i> إضافة مادة جديدة
+        </a>
+    </div>
+</div>
+
+{% include "partials/_alerts.html" %}
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title">{{ object_list.count }}</h3>
+                        <p class="card-text">إجمالي المواد</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-book fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-md-4">
-            <select id="teacherFilter" class="form-control">
-                <option value="">جميع المدرسين</option>
-                {% for teacher in teachers %}
-                <option value="{{ teacher.id }}">{{ teacher.full_name }}</option>
-                {% endfor %}
-            </select>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title">{{ compulsory_count }}</h3>
+                        <p class="card-text">مواد إجبارية</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-star fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-md-4">
-            <button id="sortBtn" class="btn btn-outline-secondary">
-                <i class="fas fa-sort-alpha-down"></i> ترتيب أبجدي
-            </button>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title">{{ elective_count }}</h3>
+                        <p class="card-text">مواد اختيارية</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-list-alt fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title">{{ teachers_count }}</h3>
+                        <p class="card-text">مدرس معين</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chalkboard-teacher fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<a href="{% url 'courses:subject_create' %}" class="btn btn-primary mb-3">
-    <i class="fas fa-plus"></i> إضافة مادة جديدة
-</a>
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>جميع المواد
+            </h5>
+            <div class="d-flex gap-2">
+                <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="ابحث باسم المادة..." style="width: 250px;">
+                <select id="teacherFilter" class="form-control form-control-sm" style="width: 180px;">
+                    <option value="">جميع المدرسين</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}">{{ teacher.full_name }}</option>
+                    {% endfor %}
+                </select>
+                <select id="typeFilter" class="form-control form-control-sm" style="width: 150px;">
+                    <option value="">جميع الأنواع</option>
+                    <option value="compulsory">إجباري</option>
+                    <option value="elective">اختياري</option>
+                </select>
+                <button id="resetFilters" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-undo"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="subjectsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th width="60">#</th>
+                        <th>المادة</th>
+                        <th>النوع</th>
+                        <th>المدرسون</th>
+                        <th>الكود</th>
+                        <th width="150">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject in object_list %}
+                    <tr data-type="{{ subject.subject_type }}" data-teachers="{{ subject.teachers.all|join:',' }}" data-name="{{ subject.name|lower }}">
+                        <td class="fw-bold text-primary">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="subject-icon me-3">
+                                    <i class="fas fa-book text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold">{{ subject.name }}</div>
+                                    {% if subject.description %}
+                                    <small class="text-muted">{{ subject.description|truncatewords:5 }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge {% if subject.subject_type == 'compulsory' %}bg-success{% else %}bg-warning{% endif %}">
+                                <i class="fas {% if subject.subject_type == 'compulsory' %}fa-star{% else %}fa-list-alt{% endif %} me-1"></i>
+                                {{ subject.get_subject_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if subject.teachers.all %}
+                                <div class="teacher-list">
+                                    {% for teacher in subject.teachers.all %}
+                                    <span class="teacher-tag badge bg-info me-1 mb-1" data-teacher-id="{{ teacher.id }}">
+                                        {{ teacher.full_name }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="text-muted">لا يوجد مدرسون</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if subject.code %}
+                            <span class="badge bg-secondary">{{ subject.code }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons d-flex gap-1">
+                                <a href="{% url 'courses:subject_update' subject.id %}" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="تعديل المادة">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="#" class="btn btn-sm btn-info" data-bs-toggle="tooltip" title="عرض التفاصيل">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <form action="{% url 'courses:subject_delete' subject.id %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger" data-bs-toggle="tooltip" title="حذف المادة" 
+                                            onclick="return confirm('هل أنت متأكد من حذف المادة {{ subject.name }}؟');">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-book-open fa-3x mb-3"></i>
+                                <h5>لا توجد مواد مضافة</h5>
+                                <p class="mb-3">يمكنك البدء بإضافة مواد جديدة للنظام</p>
+                                <a href="{% url 'courses:subject_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>إضافة مادة جديدة
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span class="text-muted">عرض <span id="visibleCount">{{ object_list.count }}</span> من {{ object_list.count }} مادة</span>
+            </div>
+            <div class="export-actions">
+                <button class="btn btn-sm btn-success">
+                    <i class="fas fa-file-excel me-1"></i> تصدير القائمة
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-<table class="table" id="subjectsTable">
-    <thead class="thead-dark">
-        <tr>
-            <th>اسم المادة</th>
-            <th>النوع</th>
-            <th>المدرسون</th>
-            <th>الإجراءات</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for subject in object_list %}
-        <tr>
-            <td>{{ subject.name }}</td>
-            <td>{{ subject.get_subject_type_display }}</td>
-            <td>
-                {% for teacher in subject.teachers.all %}
-                <span class="teacher-tag" data-teacher-id="{{ teacher.id }}">{{ teacher.full_name }}</span>{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            </td>
-            <td>
-                <div class="btn-group" role="group">
-                    <a href="{% url 'courses:subject_update' subject.id %}" class="btn btn-sm btn-warning">
-                        <i class="fas fa-edit"></i> تعديل
-                    </a>
-                </div>
-                <div class="btn-group" role="group">
-                    <form method="post" action="{% url 'courses:subject_delete' subject.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-danger" 
-                                onclick="return confirm('هل أنت متأكد من حذف هذه المادة؟')">
-                            <i class="fas fa-trash"></i> حذف
-                        </button>
-                    </form>
-                </div>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<style>
+.stat-card {
+    border: none;
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
 
-<!-- إضافة سكريبت للبحث والتصفية -->
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.subject-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e3f2fd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.teacher-tag {
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+.teacher-list {
+    max-width: 200px;
+}
+
+.badge {
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 10px;
+}
+
+.action-buttons .btn {
+    border-radius: 5px;
+    padding: 4px 8px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.card-footer {
+    border-top: 1px solid #e9ecef;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
     const searchInput = document.getElementById('searchInput');
     const teacherFilter = document.getElementById('teacherFilter');
-    const sortBtn = document.getElementById('sortBtn');
+    const typeFilter = document.getElementById('typeFilter');
+    const resetFilters = document.getElementById('resetFilters');
     const table = document.getElementById('subjectsTable');
-    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-    
+    const tableRows = table.querySelectorAll('tbody tr');
+    const visibleCount = document.getElementById('visibleCount');
+
     let isSorted = false;
     
-    // وظيفة البحث
-    searchInput.addEventListener('keyup', function() {
-        filterSubjects();
-    });
-    
-    // وظيفة التصفية حسب الأستاذ
-    teacherFilter.addEventListener('change', function() {
-        filterSubjects();
-    });
-    
-    // وظيفة الترتيب الأبجدي
-    sortBtn.addEventListener('click', function() {
-        sortSubjects();
-    });
-    
+    // وظيفة البحث والتصفية
     function filterSubjects() {
         const searchText = searchInput.value.toLowerCase();
-        const teacherId = teacherFilter.value;
-        
-        for (let i = 0; i < rows.length; i++) {
-            const subjectName = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
-            const teacherTags = rows[i].querySelectorAll('.teacher-tag');
-            let hasTeacher = false;
+        const selectedTeacher = teacherFilter.value;
+        const selectedType = typeFilter.value;
+
+        let visibleRows = 0;
+
+        tableRows.forEach(row => {
+            if (row.querySelector('.text-muted h5')) return;
+
+            const subjectName = row.dataset.name;
+            const subjectType = row.dataset.type;
+            const subjectTeachers = row.dataset.teachers;
+
+            const nameMatch = subjectName.includes(searchText);
+            const typeMatch = selectedType === '' || subjectType === selectedType;
+            const teacherMatch = selectedTeacher === '' || subjectTeachers.includes(selectedTeacher);
+
+            const isVisible = nameMatch && typeMatch && teacherMatch;
+            row.style.display = isVisible ? '' : 'none';
             
-            // التحقق من وجود الأستاذ المحدد
-            if (teacherId) {
-                for (let j = 0; j < teacherTags.length; j++) {
-                    if (teacherTags[j].getAttribute('data-teacher-id') === teacherId) {
-                        hasTeacher = true;
-                        break;
-                    }
-                }
-            } else {
-                hasTeacher = true; // إذا لم يتم اختيار أستاذ معين، اعرض جميع المواد
-            }
-            
-            // التحقق من نص البحث ووجود الأستاذ
-            if (subjectName.includes(searchText) && hasTeacher) {
-                rows[i].style.display = '';
-            } else {
-                rows[i].style.display = 'none';
-            }
-        }
+            if (isVisible) visibleRows++;
+        });
+
+        visibleCount.textContent = visibleRows;
     }
     
-    function sortSubjects() {
-        const tbody = table.getElementsByTagName('tbody')[0];
-        const rowsArray = Array.from(rows);
-        
-        rowsArray.sort(function(a, b) {
-            const nameA = a.getElementsByTagName('td')[0].textContent.toUpperCase();
-            const nameB = b.getElementsByTagName('td')[0].textContent.toUpperCase();
-            
-            if (isSorted) {
-                return nameB.localeCompare(nameA);
-            } else {
-                return nameA.localeCompare(nameB);
-            }
-        });
-        
-        // إفراغ الجدول وإعادة إضافة الصفوف بالترتيب الجديد
-        while (tbody.firstChild) {
-            tbody.removeChild(tbody.firstChild);
-        }
-        
-        rowsArray.forEach(function(row) {
-            tbody.appendChild(row);
-        });
-        
-        // تبديل حالة الترتيب
-        isSorted = !isSorted;
-        
-        // تحديث نص الزر
-        if (isSorted) {
-            sortBtn.innerHTML = '<i class="fas fa-sort-alpha-up"></i> ترتيب عكسي';
-        } else {
-            sortBtn.innerHTML = '<i class="fas fa-sort-alpha-down"></i> ترتيب أبجدي';
-        }
+    // إعادة تعيين الفلاتر
+    function resetFiltersHandler() {
+        searchInput.value = '';
+        teacherFilter.value = '';
+        typeFilter.value = '';
+        tableRows.forEach(row => row.style.display = '');
+        visibleCount.textContent = tableRows.length;
     }
+
+    // Event Listeners
+    searchInput.addEventListener('input', filterSubjects);
+    teacherFilter.addEventListener('change', filterSubjects);
+    typeFilter.addEventListener('change', filterSubjects);
+    resetFilters.addEventListener('click', resetFiltersHandler);
+
+    // تهيئة العدد المرئي
+    visibleCount.textContent = tableRows.length;
 });
 </script>
 
-<style>
-.teacher-tag {
-    background-color: #f0f0f0;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin: 2px;
-    display: inline-block;
-}
-</style>
 {% endblock %}

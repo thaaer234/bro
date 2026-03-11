@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-user-plus"></i></div>
+            <div>
+                <h1 class="page-title">إضافة طالب سريع جديد</h1>
+                <p class="page-subtitle">املأ البيانات أدناه لإضافة طالب سريع جديد</p>
+            </div>
+        </div>
+        <a href="{% url 'quick:student_list' %}" class="btn btn--ghost">
+            <i class="fas fa-arrow-right"></i>
+            <span>العودة للقائمة</span>
+        </a>
+    </div>
+
+    <div class="card">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="grid">
+                <div class="field">
+                    <label class="label" for="{{ form.full_name.id_for_label }}">الاسم الكامل</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-user"></i>
+                        {{ form.full_name|add_class:"input" }}
+                    </div>
+                    {% if form.full_name.errors %}
+                    <div class="field__error">{{ form.full_name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.phone.id_for_label }}">رقم الهاتف</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-phone"></i>
+                        {{ form.phone|add_class:"input" }}
+                    </div>
+                    {% if form.phone.errors %}
+                    <div class="field__error">{{ form.phone.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.gender.id_for_label }}">الجنس</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-venus-mars"></i>
+                        {{ form.gender|add_class:"input" }}
+                    </div>
+                    {% if form.gender.errors %}
+                    <div class="field__error">{{ form.gender.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.student_type.id_for_label }}">نوع الطالب</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-user-tag"></i>
+                        {{ form.student_type|add_class:"input" }}
+                    </div>
+                    {% if form.student_type.errors %}
+                    <div class="field__error">{{ form.student_type.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.course_track.id_for_label }}">نوع الدورة</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-filter"></i>
+                        {{ form.course_track|add_class:"input" }}
+                    </div>
+                    {% if form.course_track.errors %}
+                    <div class="field__error">{{ form.course_track.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.academic_year.id_for_label }}">الفصل الدراسي</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-calendar"></i>
+                        {{ form.academic_year|add_class:"input" }}
+                    </div>
+                    {% if form.academic_year.errors %}
+                    <div class="field__error">{{ form.academic_year.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field field--full">
+                    <label class="label" for="{{ form.notes.id_for_label }}">ملاحظات</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-sticky-note"></i>
+                        {{ form.notes|add_class:"input" }}
+                    </div>
+                    {% if form.notes.errors %}
+                    <div class="field__error">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn--primary">
+                    <i class="fas fa-save"></i> حفظ الطالب
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

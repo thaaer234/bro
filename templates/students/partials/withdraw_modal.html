@@ -1,0 +1,73 @@
+<!-- Withdraw Modal -->
+<div id="withdrawModal" class="modal">
+  <div class="modal-overlay"></div>
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-minus"></i> سحب الطالب من الدورة</h3>
+      <button type="button" class="close-btn" data-close>
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        يمكنك سحب الطالب من أي دورة في أي وقت، حتى لو تم سداد المبلغ بالكامل
+      </div>
+      
+      <div class="form-group">
+        <label for="withdraw-course">اختر الدورة</label>
+        <select id="withdraw-course" class="form-control">
+          <option value="">-- اختر الدورة --</option>
+          {% for item in active_enrollments %}
+            {% if item.enrollment.is_completed == False %}
+              <option value="{{ item.enrollment.id }}" 
+                      data-paid="{{ item.total_paid|floatformat:2 }}" 
+                      data-course-name="{{ item.enrollment.course.name }}"
+                      data-enrollment-id="{{ item.enrollment.id }}"
+                      data-net-amount="{{ item.net_amount|floatformat:2 }}">
+                {{ item.enrollment.course.name }} - المسدّد: {{ item.total_paid|floatformat:2 }} ل.س
+                {% if item.balance_due <= 0 %}
+                  (مكتمل الدفع)
+                {% endif %}
+              </option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        {% if not active_enrollments %}
+          <div class="alert alert-warning mt-2">
+            <i class="fas fa-exclamation-triangle"></i>
+            لا توجد دورات نشطة مسجلة للطالب
+          </div>
+        {% endif %}
+      </div>
+      
+      <div class="form-group">
+        <label for="withdraw-reason">سبب السحب (اختياري)</label>
+        <textarea id="withdraw-reason" class="form-control" rows="3" placeholder="أدخل سبب السحب إذا رغبت..."></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="withdraw-paid">المبلغ المدفوع (للمراجعة فقط)</label>
+        <input id="withdraw-paid" type="text" class="form-control formatted-input" readonly>
+      </div>
+      
+      <div class="form-group">
+        <label for="withdraw-refund">مبلغ الإرجاع (اختياري - اترك 0 إذا لم يكن هناك استرداد)</label>
+        <input id="withdraw-refund" type="text" class="form-control formatted-input" value="0">
+        <small class="form-text text-muted">اترك القيمة 0 إذا كنت لا تريد استرداد أي مبلغ</small>
+      </div>
+      
+      <div id="withdraw-warning" class="alert alert-warning" style="display: none;">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span id="warning-text"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="withdraw-cancel" type="button" class="btn btn-outline" data-close>إلغاء</button>
+      <button id="withdraw-confirm" type="button" class="btn btn-danger" {% if not active_enrollments %}disabled{% endif %}>
+        <i class="fas fa-user-minus"></i>
+        تأكيد السحب
+      </button>
+    </div>
+  </div>
+</div>

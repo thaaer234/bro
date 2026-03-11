@@ -24,6 +24,10 @@ class TeacherForm(forms.ModelForm):
             'hire_date',
             'salary_type',
             'hourly_rate',
+            'hourly_rate_scientific',
+            'hourly_rate_literary',
+            'hourly_rate_ninth',
+            'hourly_rate_preparatory',
             'monthly_salary',
             'notes',
         ]
@@ -33,6 +37,10 @@ class TeacherForm(forms.ModelForm):
             'hire_date': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'salary_type': forms.Select(attrs={'class': 'form-control'}),
             'hourly_rate': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
+            'hourly_rate_scientific': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
+            'hourly_rate_literary': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
+            'hourly_rate_ninth': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
+            'hourly_rate_preparatory': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
             'monthly_salary': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
             'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'ملاحظات إضافية'}),
         }
@@ -55,27 +63,47 @@ class TeacherForm(forms.ModelForm):
 
         # الحقول اختيارية افتراضيًا ونقيّدها بالتحقق في clean()
         self.fields['hourly_rate'].required = False
+        self.fields['hourly_rate_scientific'].required = False
+        self.fields['hourly_rate_literary'].required = False
+        self.fields['hourly_rate_ninth'].required = False
+        self.fields['hourly_rate_preparatory'].required = False
         self.fields['monthly_salary'].required = False
         self.fields['notes'].required = False
+        self.fields['salary_type'].required = False
 
     def clean(self):
         cleaned_data = super().clean()
         branches = cleaned_data.get('branches') or []
-        salary_type = cleaned_data.get('salary_type')
+        salary_type = cleaned_data.get('salary_type') or getattr(self.instance, 'salary_type', None) or 'hourly'
         hourly_rate = cleaned_data.get('hourly_rate')
         monthly_salary = cleaned_data.get('monthly_salary')
+        branch_rates = [
+            cleaned_data.get('hourly_rate_scientific'),
+            cleaned_data.get('hourly_rate_literary'),
+            cleaned_data.get('hourly_rate_ninth'),
+            cleaned_data.get('hourly_rate_preparatory'),
+        ]
+        has_branch_rate = any(rate and rate > 0 for rate in branch_rates)
+
+        cleaned_data['salary_type'] = salary_type
+        if hourly_rate in (None, ''):
+            hourly_rate = getattr(self.instance, 'hourly_rate', None)
+            cleaned_data['hourly_rate'] = hourly_rate
+        if monthly_salary in (None, ''):
+            monthly_salary = getattr(self.instance, 'monthly_salary', None)
+            cleaned_data['monthly_salary'] = monthly_salary
 
         if not branches:
             raise forms.ValidationError('يجب اختيار فرع واحد على الأقل.')
 
-        if salary_type == 'hourly' and not hourly_rate:
+        if salary_type == 'hourly' and not hourly_rate and not has_branch_rate:
             self.add_error('hourly_rate', 'يجب إدخال أجر الساعة للراتب بالساعة.')
 
         if salary_type == 'monthly' and not monthly_salary:
             self.add_error('monthly_salary', 'يجب إدخال الراتب الشهري للراتب الثابت.')
 
         if salary_type == 'mixed':
-            if not hourly_rate:
+            if not hourly_rate and not has_branch_rate:
                 self.add_error('hourly_rate', 'يجب إدخال أجر الساعة للراتب المختلط.')
             if not monthly_salary:
                 self.add_error('monthly_salary', 'يجب إدخال الراتب الشهري للراتب المختلط.')

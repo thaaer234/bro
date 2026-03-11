@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>إدارة أنواع الاختبارات - {{ subject.name }}</h2>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>إضافة نوع اختبار جديد</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-success">إضافة</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>أنواع الاختبارات الحالية</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for exam_type in exam_types %}
+                        <li class="list-group-item">
+                            {{ exam_type.name }} - العلامة القصوى: {{ exam_type.max_exams }}
+                            <span class="badge bg-secondary">{{ exam_type.order }}</span>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted">لا توجد أنواع اختبارات</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{% url 'exams:select_subject' classroom.id %}" class="btn btn-primary">العودة إلى المواد</a>
+    </div>
+</div>
+{% endblock %}

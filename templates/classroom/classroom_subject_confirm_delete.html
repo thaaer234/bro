@@ -1,0 +1,27 @@
+<!-- templates/classroom/classroom_subject_confirm_delete.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="card-title mb-0">تأكيد الحذف</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">هل أنت متأكد من حذف المادة <strong>"{{ object.subject.name }}"</strong> من الشعبة <strong>"{{ object.classroom.name }}"</strong>؟</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">نعم، احذف</button>
+                            <a href="{% url 'classroom:classroom_subject_list' object.classroom.id %}" class="btn btn-secondary">إلغاء</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

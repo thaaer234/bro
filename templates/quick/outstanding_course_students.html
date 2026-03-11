@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+/* أنماط التقارير - نفس الأنماط التي طلبتها */
+:root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --info-gradient: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
+    --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    --secondary-gradient: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+}
+
+.report-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.report-card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.stats-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .card-body {
+    padding: 18px;
+    position: relative;
+}
+
+.stats-card .card-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.bg-primary { background: var(--primary-gradient) !important; }
+.bg-success { background: var(--success-gradient) !important; }
+.bg-warning { background: var(--warning-gradient) !important; }
+.bg-info { background: var(--info-gradient) !important; }
+.bg-secondary { background: var(--secondary-gradient) !important; }
+
+.amount-cell {
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.status-badge {
+    font-size: 0.7rem;
+    padding: 5px 9px;
+    border-radius: 15px;
+    font-weight: 600;
+}
+
+.table-row-paid {
+    background: linear-gradient(135deg, rgba(72, 187, 120, 0.03) 0%, rgba(56, 161, 105, 0.03) 100%) !important;
+    border-left: 3px solid #38a169;
+}
+
+.table-row-outstanding {
+    background: linear-gradient(135deg, rgba(246, 173, 85, 0.03) 0%, rgba(237, 137, 54, 0.03) 100%) !important;
+    border-left: 3px solid #d69e2e;
+}
+
+.table-row-no-receipts {
+    background: linear-gradient(135deg, rgba(245, 101, 101, 0.03) 0%, rgba(229, 62, 62, 0.03) 100%) !important;
+    border-left: 3px solid #e53e3e;
+}
+
+.amount-positive { color: #38a169; }
+.amount-warning { color: #d69e2e; }
+.amount-danger { color: #e53e3e; }
+.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+.sortable .sort-icon {
+    margin-right: 6px;
+    opacity: 0.7;
+    font-size: 0.75rem;
+}
+</style>
+
+<div class="container-fluid">
+    <!-- الرأس -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>جميع طلاب الدورة - {{ course.name }}{% if course.name_ar %} / {{ course.name_ar }}{% endif %}</h2>
+        <div>
+            <a href="{% url 'quick:outstanding_courses' %}?course_type={{ course_type }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i> رجوع
+            </a>
+            <a href="{% url 'quick:outstanding_course_detail' course.id %}?course_type={{ course_type }}" class="btn btn-warning">
+                <i class="fas fa-eye me-1"></i> غير المسددين فقط
+            </a>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4">
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-primary stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">إجمالي الطلاب</h5>
+                    <h3 class="card-text">{{ all_students_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-info stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-mars fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">الذكور</h5>
+                    <h3 class="card-text">{{ male_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-success stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-venus fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">الإناث</h5>
+                    <h3 class="card-text">{{ female_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-success stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">مسددين</h5>
+                    <h3 class="card-text">{{ fully_paid_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-warning stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">غير مسددين</h5>
+                    <h3 class="card-text">{{ outstanding_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-info stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">بدون إيصالات</h5>
+                    <h3 class="card-text">{{ students_without_receipts }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-secondary stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-eye fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">الطلاب المعروضين</h5>
+                    <h3 class="card-text">{{ total_students }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- معلومات الفلتر -->
+    <div class="alert alert-info report-card mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-filter fa-lg me-3"></i>
+            <div>
+                <strong class="d-block mb-1">عرض:</strong>
+                {% if current_filter == 'all' %}
+                    جميع الطلاب المسجلين في الدورة ({{ total_students }} طالب)
+                {% elif current_filter == 'paid' %}
+                    الطلاب المسددين بالكامل فقط ({{ total_students }} طالب)
+                {% else %}
+                    الطلاب الذين لديهم ذمم متبقية فقط ({{ total_students }} طالب)
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- الجدول الرئيسي -->
+    <div class="card report-card">
+        <div class="card-body">
+            {% if student_data %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="quickStudentsTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="40">#</th>
+                            <th class="sortable" data-sort="name">
+                                <i class="fas fa-sort sort-icon"></i>الطالب
+                            </th>
+                            <th>الهاتف</th>
+                            <th class="text-end">سعر الدورة</th>
+                            <th class="text-end">الصافي المستحق</th>
+                            <th class="text-end">المدفوع</th>
+                            <th class="text-end">المتبقي</th>
+                            <th class="text-center">الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in student_data %}
+                        <tr class="{% if row.is_fully_paid %}table-row-paid{% elif not row.has_receipts %}table-row-no-receipts{% elif row.remaining > 0 %}table-row-outstanding{% endif %}">
+                            <td class="text-muted fw-bold">{{ forloop.counter }}</td>
+                            <td data-sort-name="1">
+                                <a href="{% url 'quick:student_detail' row.student.id %}" class="fw-bold text-decoration-none">
+                                    {{ row.student.full_name }}
+                                </a>
+                            </td>
+                            <td>{{ row.student.phone }}</td>
+                            <td class="text-end amount-cell">{{ row.course_price|floatformat:0 }} ل.س</td>
+                            <td class="text-end amount-cell">{{ row.net_due|floatformat:0 }} ل.س</td>
+                            <td class="text-end amount-cell">{{ row.paid_total|floatformat:0 }} ل.س</td>
+                            <td class="text-end fw-bold amount-cell {% if row.remaining == 0 %}amount-positive{% elif row.remaining > 0 %}amount-warning{% else %}amount-danger{% endif %}">
+                                {{ row.remaining|floatformat:0 }} ل.س
+                            </td>
+                            <td class="text-center">
+                                {% if row.is_fully_paid %}
+                                    {% if row.is_free %}
+                                        <span class="badge bg-info status-badge">مجاني</span>
+                                    {% else %}
+                                        <span class="badge bg-success status-badge">مسدد</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning status-badge">غير مسدد</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-start">الإجمالي</td>
+                            <td class="text-end">{{ total_net_due|floatformat:0 }} ل.س</td>
+                            <td class="text-end">{{ total_paid|floatformat:0 }} ل.س</td>
+                            <td class="text-end">{{ total_remaining|floatformat:0 }} ل.س</td>
+                            <td class="text-center">-</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-user-graduate fa-4x mb-3 opacity-50"></i>
+                <h4 class="fw-light">لا يوجد طلاب مسجلين في هذه الدورة</h4>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- فلتر الطلاب -->
+    <div class="card mt-4 report-card">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>فلتر الطلاب</h5>
+        </div>
+        <div class="card-body">
+            <div class="btn-group btn-group-sm" role="group">
+                <a href="?filter=all" class="btn {% if current_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="fas fa-users me-1"></i> جميع الطلاب
+                </a>
+                <a href="?filter=paid" class="btn {% if current_filter == 'paid' %}btn-success{% else %}btn-outline-success{% endif %}">
+                    <i class="fas fa-check-circle me-1"></i> المسددين فقط
+                </a>
+                <a href="?filter=outstanding" class="btn {% if current_filter == 'outstanding' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                    <i class="fas fa-clock me-1"></i> غير المسددين
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const table = document.getElementById('quickStudentsTable');
+    if (!table) return;
+
+    const nameHeader = table.querySelector('th[data-sort="name"]');
+    const tbody = table.querySelector('tbody');
+    if (!nameHeader || !tbody) return;
+
+    const normalize = (value) => (value || '').toString().trim().toLowerCase();
+
+    nameHeader.addEventListener('click', () => {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const currentDir = nameHeader.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+
+        rows.sort((a, b) => {
+            const aCell = a.querySelector('[data-sort-name]');
+            const bCell = b.querySelector('[data-sort-name]');
+            const aText = normalize(aCell ? aCell.textContent : '');
+            const bText = normalize(bCell ? bCell.textContent : '');
+            if (aText < bText) return currentDir === 'asc' ? -1 : 1;
+            if (aText > bText) return currentDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        rows.forEach((row, idx) => {
+            const indexCell = row.querySelector('td');
+            if (indexCell) {
+                indexCell.textContent = idx + 1;
+            }
+            tbody.appendChild(row);
+        });
+
+        nameHeader.dataset.sortDir = currentDir;
+    });
+})();
+</script>
+{% endblock %}

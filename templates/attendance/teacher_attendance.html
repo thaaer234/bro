@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% load attendance_filters %}
 {% load emp_perms %}
 {% load static %}
 {% block content %}
@@ -7,8 +8,8 @@
     <div class="header-actions">    
         <h2>سجل حضور المدرسين</h2>
         <div class="header-actions">
-            <form method="get" class="d-inline">
-                <select name="teacher" class="form-select d-inline" style="width: auto;" onchange="this.form.submit()">
+            <form method="get" class="d-inline-flex gap-2 align-items-center">
+                <select name="teacher" class="form-select" style="width: auto;" onchange="this.form.submit()">
                     <option value="">جميع المدرسين</option>
                     {% for teacher in teachers %}
                     <option value="{{ teacher.id }}" {% if request.GET.teacher == teacher.id|stringformat:"s" %}selected{% endif %}>
@@ -16,45 +17,219 @@
                     </option>
                     {% endfor %}
                 </select>
+                
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-filter"></i> تصفية
+                </button>
+                <a href="{% url 'attendance:teacher_attendance' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-refresh"></i> إعادة تعيين
+                </a>
             </form>
+          <a href="{% url 'attendance:import_teacher_attendance' %}" class="btn btn-success">
+    <i class="fas fa-file-import me-2"></i>استيراد من JSON
+</a> 
+            
             <a href="{% url 'attendance:take_teacher_attendance' %}" class="btn btn-primary">
                 <i class="fas fa-clipboard-check"></i> تسجيل حضور جديد
             </a>
+          {% comment %} <a href="{% url 'attendance:fix_half_session_accruals' %}" class="btn btn-warning" onclick="return confirm('هل تريد تصحيح جميع القيود المفقودة لأنصاف الجلسات؟')">
+              <i class="fas fa-wrench"></i> تصحيح قيود أنصاف الجلسات
+          </a> {% endcomment %}
         </div>
     </div>
 </div>
 {% include "partials/_alerts.html" %}
 
-<div class="table-container">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>التاريخ</th>
-                <th>عدد الحاضرين</th>
-                <th>عدد الغائبين</th>
-                <th>إجمالي الجلسات</th>
-                <th>الإجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in summary %}
-                <tr>
-                    <td>{{ item.date|date:"Y-m-d" }}</td>
-                    <td>{{ item.present_count }}</td>
-                    <td>{{ item.absent_count }}</td>
-                    <td>{{ item.total_sessions }}</td>
-                    <td>
-                        <a href="{% url 'attendance:teacher_attendance_detail' item.date|date:'Y-m-d' %}" class="btn btn-sm btn-info">
-                            <i class="fas fa-eye"></i> عرض التفاصيل
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center">لا توجد سجلات حضور</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- إحصائيات سريعة -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ total_days }}</h5>
+                <p class="card-text">أيام الحضور</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ total_present }}</h5>
+                <p class="card-text">حضور مدرسين</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ total_sessions }}</h5>
+                <p class="card-text">جلسات كاملة</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ total_combined_sessions|floatformat:1 }}</h5>
+                <p class="card-text">إجمالي الجلسات</p>
+            </div>
+        </div>
+    </div>
 </div>
+
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>التاريخ</th>
+                    <th>عدد الحاضرين</th>
+                    <th>عدد غير المناوبين</th>
+                    <th>الجلسات الكاملة</th>
+                    <th>أنصاف الجلسات</th>
+                    <th>الإجمالي</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in summary %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.date|date:"Y-m-d" }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {% if item.date == today %}
+                                <span class="badge bg-success">اليوم</span>
+                                {% else %}
+                                {{ item.date|date:"l" }}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="badge bg-success">{{ item.present_count }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ item.no_duty_count }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ item.total_sessions }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ item.total_half_sessions }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-warning">{{ item.total_combined_sessions|floatformat:1 }}</span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'attendance:teacher_attendance_by_date' item.date|date:'Y-m-d' %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i> التفاصيل
+                                </a>
+                                <a href="{% url 'attendance:take_teacher_attendance' %}?date={{ item.date|date:'Y-m-d' }}" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i> تعديل المجموعة
+                                </a>
+                                <button type="button" class="btn btn-sm btn-danger delete-day" data-date="{{ item.date|date:'Y-m-d' }}">
+                                   <i class="fas fa-trash"></i> حذف اليوم والقيود
+                               </button>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i><br>
+                            لا توجد سجلات حضور
+                            <br>
+                            <a href="{% url 'attendance:take_teacher_attendance' %}" class="btn btn-primary mt-2">
+                                <i class="fas fa-plus"></i> تسجيل أول حضور
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- نموذج تأكيد الحذف -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">تأكيد الحذف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>هل أنت متأكد من أنك تريد حذف جميع سجلات حضور يوم <strong id="deleteDateText"></strong>؟</p>
+                <p class="text-danger"><strong>تحذير:</strong> هذا الإجراء سيحذف جميع قيود الرواتب المرتبطة بهذا اليوم ولا يمكن التراجع عنه.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="deleteForm" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">نعم، احذف اليوم كاملاً</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-group {
+    display: flex;
+    gap: 5px;
+}
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+.card {
+    margin-bottom: 1rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteButtons = document.querySelectorAll('.delete-day');
+    
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const date = this.getAttribute('data-date');
+            const today = new Date().toISOString().split('T')[0];
+            
+            let confirmMessage = `هل أنت متأكد من حذف جميع سجلات حضور يوم ${date}؟`;
+            
+            // تحذير إضافي للتواريخ المستقبلية
+            if (date > today) {
+                confirmMessage += '\n\n⚠️ تحذير: هذا تاريخ مستقبلي!';
+            }
+            
+            confirmMessage += '\n\nهذا الإجراء سيحذف جميع قيود الرواتب المرتبطة بهذا اليوم ولا يمكن التراجع عنه.';
+            
+            if (confirm(confirmMessage)) {
+                // استخدام الإصدار المحسن الذي يحذف القيود
+                fetch(` {% url 'attendance:delete_daily_attendance' '0000-00-00' %} `.replace('0000-00-00', date), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('خطأ: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('حدث خطأ في الاتصال');
+                });
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -1,0 +1,1122 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الطالب - {{ student.full_name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* إعدادات الطباعة المحسنة */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0.8cm;
+            }
+            
+            body, html {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+               -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                width: 100% !important;
+              /*  height: 100% !important;*/
+                font-size: 12px;
+            }
+            
+            .report-container {
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+            }
+            
+            .report-controls {
+                display: none !important;
+            }
+            
+            .a4-report {
+                width: 100% !important;
+                min-height: 29.7cm !important;
+                height: auto !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                padding: 0.8cm !important;
+                margin: 0 !important;
+                page-break-after: always;
+                page-break-inside: avoid;
+                position: relative;
+            }
+            
+            .watermark {
+                opacity: 0.08 !important;
+                display: block !important;
+            }
+            
+            .report-header {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                margin-bottom: 30px !important;
+                padding-bottom: 20px !important;
+                border-bottom: 3px solid var(--primary) !important;
+                position: relative !important;
+                z-index: 2 !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            
+            .stats-summary {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 15px !important;
+                margin-bottom: 25px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+            
+            .stat-card {
+                background: white !important;
+                border: 1px solid #e0e0e0 !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+                padding: 15px 10px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin-bottom: 20px !important;
+            }
+            
+            .table-container {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            
+            .report-footer {
+                position: fixed;
+                bottom: 0.8cm;
+                width: calc(100% - 1.6cm);
+            }
+            
+            /* إخفاء العناصر غير الضرورية للطباعة */
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        /* التصميم العام الجديد */
+        :root {
+            --primary: #1a4d8c;
+            --primary-light: #2a6bc5;
+            --secondary: #e74c3c;
+            --accent: #9b59b6;
+            --light: #f8f9fa;
+            --dark: #2c3e50;
+            --success: #27ae60;
+            --danger: #c0392b;
+            --warning: #f39c12;
+            --info: #3498db;
+            --gray: #7f8c8d;
+            --border-radius: 12px;
+            --box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            font-family: 'Tajawal', 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .report-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 21cm;
+        }
+
+        /* أزرار التحكم المطورة */
+        .report-controls {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .print-btn, .back-btn {
+            padding: 14px 28px;
+            border-radius: var(--border-radius);
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition);
+            cursor: pointer;
+            font-size: 15px;
+            box-shadow: var(--box-shadow);
+            border: none;
+            outline: none;
+        }
+
+        .print-btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+        }
+
+        .print-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(26, 77, 140, 0.3);
+        }
+
+        .back-btn {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        /* تقرير A4 محسن */
+        .a4-report {
+            width: 21cm;
+            min-height: 29.7cm;
+            background: white;
+            box-shadow: var(--box-shadow);
+            border-radius: var(--border-radius);
+            padding: 1.5cm;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* العلامة المائية */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            width: 80%;
+            height: auto;
+            z-index: 1;
+            opacity: 0.03;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .watermark-logo {
+            width: 100%;
+            height: auto;
+            max-width: 400px;
+        }
+
+        /* رأس التقرير الجديد */
+        .report-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--primary);
+            position: relative;
+            z-index: 2;
+        }
+
+        .institute-logo {
+            width: 200px;
+            height: auto;
+         /*   border-radius: 50%;
+       /*     background: linear-gradient(135deg, var(--primary), var(--accent));
+         */   display: flex;
+            align-items: center;
+            justify-content: center;
+         /*   box-shadow: var(--box-shadow);*/
+            overflow: hidden;
+        }
+
+        .institute-logo img {
+            width: 80%;
+            height: auto;
+          /*  filter: brightness(0) invert(1);*/
+        }
+
+        .institute-info {
+            text-align: center;
+            flex-grow: 1;
+            padding: 0 20px;
+        }
+
+        .institute-info h1 {
+            font-size: 24px;
+            margin: 0 0 12px 0;
+            color: var(--primary);
+            font-weight: 800;
+            position: relative;
+            display: inline-block;
+        }
+
+        .institute-info h1::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            right: 0;
+            width: 50%;
+            height: 3px;
+            background: linear-gradient(to right, var(--secondary), var(--accent));
+            border-radius: 3px;
+        }
+
+        .institute-info h2 {
+            font-size: 20px;
+            margin: 0 0 10px 0;
+            color: var(--dark);
+            font-weight: 700;
+        }
+
+        .institute-info p {
+            font-size: 14px;
+            margin: 15px 0 0 0;
+            color: var(--gray);
+            background: var(--light);
+            padding: 8px 18px;
+            border-radius: 20px;
+            display: inline-block;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        /* ملخص الإحصائيات المطورة */
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px 15px;
+            text-align: center;
+            box-shadow: var(--box-shadow);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-7px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            font-size: 2.2em;
+            margin-bottom: 12px;
+            color: var(--primary);
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-content h3 {
+            font-size: 12px;
+            margin: 0 0 10px 0;
+            color: var(--gray);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 800;
+            color: var(--primary);
+            display: block;
+        }
+
+        /* الأقسام المحسنة */
+        .section {
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 2;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        .section:hover {
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .section-header i {
+            color: white;
+            font-size: 1.3em;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(155, 89, 182, 0.3);
+        }
+
+        .section-header h3 {
+            color: var(--dark);
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* الجداول المذهلة */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .detailed-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            background: white;
+        }
+
+        .detailed-table th {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            font-weight: 700;
+            padding: 12px 10px;
+            text-align: center;
+            border: none;
+            white-space: nowrap;
+            position: relative;
+            font-size: 12px;
+        }
+
+        .detailed-table th:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 20%;
+            height: 60%;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .detailed-table td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        .detailed-table td:last-child {
+            border-right: none;
+        }
+
+        .detailed-table tr:nth-child(even) {
+            background: rgba(248, 250, 252, 0.7);
+        }
+
+        .detailed-table tr:hover {
+            background: rgba(240, 249, 255, 0.8);
+        }
+
+        /* التقديرات المحسنة */
+        .rating-excellent { 
+            color: #16a085; 
+            font-weight: 700;
+            background: #d1f2eb;
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid #1abc9c;
+            font-size: 11px;
+        }
+        
+        .rating-very-good { 
+            color: #27ae60; 
+            font-weight: 700;
+            background: #d5f4e6;
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid #2ecc71;
+            font-size: 11px;
+        }
+        
+        .rating-good { 
+            color: #2980b9; 
+            font-weight: 700;
+            background: #d6eaf8;
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid #3498db;
+            font-size: 11px;
+        }
+        
+        .rating-acceptable { 
+            color: #d35400; 
+            font-weight: 700;
+            background: #fdebd0;
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid #e67e22;
+            font-size: 11px;
+        }
+        
+        .rating-fail { 
+            color: #c0392b; 
+            font-weight: 700;
+            background: #fadbd8;
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid #e74c3c;
+            font-size: 11px;
+        }
+
+        .grade-value {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 12px;
+        }
+
+        .percentage {
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 12px;
+        }
+
+        /* الحضور المحسن */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-badge.present {
+            background: #d1f2eb;
+            color: #16a085;
+            border: 1px solid #1abc9c;
+        }
+
+        .status-badge.absent {
+            background: #fadbd8;
+            color: #c0392b;
+            border: 1px solid #e74c3c;
+        }
+
+        .notes {
+            text-align: right;
+            font-size: 11px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        /* شريط التقدم المطور */
+        .attendance-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-bar {
+            flex-grow: 1;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #1abc9c, #16a085);
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
+        .percentage-text {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--dark);
+            min-width: 35px;
+        }
+
+        .attendance-status {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+
+        .attendance-status.excellent { 
+            background: #d1f2eb;
+            color: #16a085;
+            border: 1px solid #1abc9c;
+        }
+        .attendance-status.good { 
+            background: #d6eaf8;
+            color: #2980b9;
+            border: 1px solid #3498db;
+        }
+        .attendance-status.acceptable { 
+            background: #fdebd0;
+            color: #d35400;
+            border: 1px solid #e67e22;
+        }
+        .attendance-status.poor { 
+            background: #fadbd8;
+            color: #c0392b;
+            border: 1px solid #e74c3c;
+        }
+
+        .present-count { 
+            color: #27ae60; 
+            font-weight: 700;
+            font-size: 12px;
+        }
+        .absent-count { 
+            color: #c0392b; 
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        /* حالة فارغة محسنة */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray);
+            background: var(--light);
+            border-radius: var(--border-radius);
+            border: 2px dashed #bdc3c7;
+        }
+
+        .empty-state i {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #bdc3c7;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        /* تذييل الصفحة المميز */
+        .report-footer {
+            margin-top: 40px;
+            padding-top: 25px;
+            border-top: 2px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            z-index: 2;
+        }
+
+        .contact-info h4 {
+            margin: 0 0 12px 0;
+            color: var(--primary);
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .contact-details p {
+            margin: 6px 0;
+            font-size: 12px;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .contact-details i {
+            color: var(--primary);
+            width: 15px;
+            font-size: 13px;
+        }
+
+        .report-signature {
+            text-align: center;
+        }
+
+        .report-signature p {
+            margin: 0 0 12px 0;
+            font-size: 12px;
+            color: var(--gray);
+            font-weight: 700;
+        }
+
+        .signature-line {
+            width: 180px;
+            height: 1px;
+            background: var(--primary);
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .signature-line::after {
+            content: '';
+            position: absolute;
+            top: -3px;
+            right: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--primary);
+            opacity: 0.5;
+        }
+
+        /* تحسينات للعرض على الشاشة */
+        @media screen and (max-width: 1200px) {
+            .a4-report {
+                width: 100%;
+                padding: 2rem;
+            }
+            
+            .stats-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 15px;
+                background: white;
+            }
+            
+            .report-container {
+                padding: 0;
+            }
+            
+            .a4-report {
+                padding: 1.5rem;
+                border-radius: 10px;
+            }
+            
+            .report-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+            
+            .institute-info {
+                padding: 0;
+            }
+            
+            .stats-summary {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .report-footer {
+                flex-direction: column;
+                gap: 25px;
+                text-align: center;
+            }
+            
+            .report-controls {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .print-btn, .back-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 16px 20px;
+            }
+            
+            .contact-details p {
+                justify-content: center;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .a4-report {
+                padding: 1rem;
+            }
+            
+            .section {
+                padding: 15px;
+            }
+            
+            .institute-info h1 {
+                font-size: 20px;
+            }
+            
+            .institute-info h2 {
+                font-size: 18px;
+            }
+            
+            .stat-card {
+                padding: 15px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- أزرار التحكم -->
+        <div class="report-controls no-print">
+            <button onclick="window.print()" class="btn btn-primary print-btn">
+                <i class="fas fa-print"></i> طباعة التقرير
+            </button>
+            <a href="{% url 'students:student_profile' student.id %}" class="btn btn-outline back-btn">
+                <i class="fas fa-arrow-right"></i> العودة للبروفايل
+            </a>
+        </div>
+
+        <!-- تقرير A4 -->
+        <div class="a4-report" dir="rtl">
+            <!-- العلامة المائية -->
+            <div class="watermark">
+                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" class="watermark-logo">
+            </div>
+            
+            <!-- رأس التقرير -->
+            <div class="report-header">
+                <div class="institute-logo">
+                    <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                </div>
+                <div class="institute-info">
+                    <h1>كشف حضور وعلامات الطالب</h1>
+                    <h2>{{ student.full_name }}</h2>
+                    <p>الرقم: {{ student.student_number }} | التاريخ: {{ report_date|date:"Y-m-d" }}</p>
+                </div>
+            </div>
+
+            <!-- ملخص الإحصائيات -->
+            <div class="stats-summary">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>إجمالي الاختبارات</h3>
+                        <span class="stat-value">{{ exam_stats.total_exams|default:0 }}</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>متوسط العلامات</h3>
+                        <span class="stat-value">{{ exam_stats.average_grade|default:0|floatformat:1 }}</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>إجمالي أيام الحضور</h3>
+                        <span class="stat-value">{{ all_attendance.count }}</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>نسبة النجاح</h3>
+                        <span class="stat-value">{{ exam_stats.success_rate|default:0|floatformat:1 }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- العلامات التفصيلية -->
+            <div class="section">
+                <div class="section-header">
+                    <i class="fas fa-list-ol"></i>
+                    <h3>العلامات التفصيلية</h3>
+                </div>
+                {% if all_exam_grades %}
+                    <div class="table-container">
+                        <table class="detailed-table">
+                            <thead>
+                                <tr>
+                                    <th width="5%">#</th>
+                                    <th width="20%">الاختبار</th>
+                                    <th width="15%">المادة</th>
+                                    <th width="10%">التاريخ</th>
+                                    <th width="10%">العلامة</th>
+                                    <th width="10%">الدرجة الكاملة</th>
+                                    <th width="10%">النسبة</th>
+                                    <th width="10%">التقدير</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exam in all_exam_grades %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ exam.exam.name }}</td>
+                                    <td>{{ exam.exam.subject.name }}</td>
+                                    <td>{{ exam.exam.exam_date|date:"Y-m-d" }}</td>
+                                    <td class="grade-value">{{ exam.grade|default:"-" }}</td>
+                                    <td>{{ exam.exam.max_grade }}</td>
+                                    <td class="percentage">
+                                        {% if exam.grade %}
+                                            {% widthratio exam.grade exam.exam.max_grade 100 %}%
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="rating">
+                                        {% if exam.grade %}
+                                            {% with percentage=exam.grade|floatformat:2 %}
+                                                {% if percentage >= 90 %}
+                                                    <span class="rating-excellent">ممتاز</span>
+                                                {% elif percentage >= 80 %}
+                                                    <span class="rating-very-good">جيد جداً</span>
+                                                {% elif percentage >= 70 %}
+                                                    <span class="rating-good">جيد</span>
+                                                {% elif percentage >= 60 %}
+                                                    <span class="rating-acceptable">مقبول</span>
+                                                {% else %}
+                                                    <span class="rating-fail">راسب</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-list"></i>
+                        <p>لا توجد علامات مسجلة للطالب</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- الحضور التفصيلي -->
+            <div class="section">
+                <div class="section-header">
+                    <i class="fas fa-calendar-alt"></i>
+                    <h3>الحضور التفصيلي</h3>
+                </div>
+                {% if all_attendance %}
+                    <div class="table-container">
+                        <table class="detailed-table">
+                            <thead>
+                                <tr>
+                                    <th width="5%">#</th>
+                                    <th width="15%">التاريخ</th>
+                                    <th width="15%">اليوم</th>
+                                    <th width="20%">الحصة</th>
+                                    <th width="15%">الحالة</th>
+                                    <th width="30%">ملاحظات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attendance in all_attendance %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ attendance.date|date:"Y-m-d" }}</td>
+                                    <td>{{ attendance.date|date:"l" }}</td>
+                                    <td>{{ attendance.classroom.name|default:"-" }}</td>
+                                    <td>
+                                        <span class="status-badge {% if attendance.status == 'present' %}present{% else %}absent{% endif %}">
+                                            <i class="fas {% if attendance.status == 'present' %}fa-check{% else %}fa-times{% endif %}"></i>
+                                            {{ attendance.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td class="notes">{{ attendance.notes|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>لا توجد سجلات حضور للطالب</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- إحصائيات شهرية -->
+            <div class="section">
+                <div class="section-header">
+                    <i class="fas fa-chart-bar"></i>
+                    <h3>إحصائيات الحضور الشهرية</h3>
+                </div>
+                {% if monthly_attendance %}
+                    <div class="table-container">
+                        <table class="detailed-table">
+                            <thead>
+                                <tr>
+                                    <th width="25%">الشهر</th>
+                                    <th width="15%">إجمالي الأيام</th>
+                                    <th width="15%">أيام الحضور</th>
+                                    <th width="15%">أيام الغياب</th>
+                                    <th width="20%">نسبة الحضور</th>
+                                    <th width="10%">الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for month in monthly_attendance %}
+                                <tr>
+                                    <td>{{ month.month|date:"Y-m" }}</td>
+                                    <td>{{ month.total_days }}</td>
+                                    <td class="present-count">{{ month.present_days }}</td>
+                                    <td class="absent-count">{{ month.absent_days }}</td>
+                                    <td>
+                                        <div class="attendance-progress">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: {% widthratio month.present_days month.total_days 100 %}%"></div>
+                                            </div>
+                                            <span class="percentage-text">{% widthratio month.present_days month.total_days 100 %}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% with percentage=month.present_days|floatformat:0 %}
+                                            {% if percentage >= 90 %}
+                                                <span class="attendance-status excellent">ممتاز</span>
+                                            {% elif percentage >= 80 %}
+                                                <span class="attendance-status good">جيد جداً</span>
+                                            {% elif percentage >= 70 %}
+                                                <span class="attendance-status good">جيد</span>
+                                            {% elif percentage >= 60 %}
+                                                <span class="attendance-status acceptable">مقبول</span>
+                                            {% else %}
+                                                <span class="attendance-status poor">ضعيف</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-chart-line"></i>
+                        <p>لا توجد إحصائيات شهرية متاحة</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- تذييل الصفحة -->
+            <div class="report-footer">
+                <div class="contact-info">
+                    <h4>معلومات التواصل</h4>
+                    <div class="contact-details">
+                        <p><i class="fas fa-phone"></i> 0938887774 - 0118887774</p>
+                        <p><i class="fas fa-map-marker-alt"></i> ميدان كونيش مقابل مكتبة الحلبي</p>
+                    </div>
+                </div>
+                <div class="report-signature">
+                    <p>ختم المعهد</p>
+                    <div class="signature-line"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // طباعة التقرير
+            const printButton = document.querySelector('.print-btn');
+            printButton.addEventListener('click', function() {
+                // تأكد من ظهور الإحصائيات قبل الطباعة
+                const statsSummary = document.querySelector('.stats-summary');
+                const statCards = document.querySelectorAll('.stat-card');
+                
+                statsSummary.style.display = 'grid';
+                statsSummary.style.opacity = '1';
+                statsSummary.style.visibility = 'visible';
+                
+                statCards.forEach(card => {
+                    card.style.display = 'block';
+                    card.style.opacity = '1';
+                    card.style.visibility = 'visible';
+                });
+                
+                setTimeout(function() {
+                    window.print();
+                }, 500);
+            });
+            
+            // إزالة الترقيم من الـ URL
+            if (window.history && window.history.replaceState) {
+                var newUrl = window.location.protocol + "//" + window.location.host + "{% url 'students:student_detailed_report' student.id %}";
+                window.history.replaceState({}, document.title, newUrl);
+            }
+        });
+    </script>
+</body>
+</html>

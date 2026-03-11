@@ -1,0 +1,309 @@
+﻿{% load static %}
+
+{% block extra_css %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Heebo:wght@300;400;500;600;700&display=swap');
+
+/* Custom font: Cocon Next Arabic */
+@font-face {
+  font-family: 'Cocon Next Arabic';
+  src: url("{% static 'font/Cocon_ Next Arabic-Bold.otf' %}") format('opentype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --deep: #f5f7fb;
+  --deep-strong: #eef2f7;
+  --card: #ffffff;
+  --primary: #0ea5c6;
+  --primary-strong: #0891b2;
+  --accent: #7c5ce4;
+  --accent-strong: #6d4fd3;
+  --text: #0f172a;
+  --text-soft: #64748b;
+  --radius: 32px;
+  --safe-top: max(env(safe-area-inset-top), 20px);
+  --safe-bottom: max(env(safe-area-inset-bottom), 20px);
+  color-scheme: light;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', sans-serif;
+
+}
+
+html {
+  height: 100%;
+  font-size: 16px;
+}
+
+body {
+  min-height: 100%;
+  font-family: 'Cocon Next Arabic', 'Cairo', 'Heebo', sans-serif;
+  background: var(--deep);
+  color: var(--text);
+}
+h1 {
+  font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', sans-serif;
+  size: 12px;
+}
+.welcome-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+ width: 100%;
+ display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(14, 165, 198, 0.18), transparent 55%),
+    radial-gradient(circle at 85% 10%, rgba(124, 92, 228, 0.18), transparent 55%),
+    radial-gradient(circle at 50% 90%, rgba(148, 163, 184, 0.28), transparent 55%),
+    url("{% static 'img/back.png' %}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  direction: rtl;
+}
+
+.welcome-shell {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: calc(32px + var(--safe-top)) 24px calc(32px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.shape {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.shape.one {
+  width: 220px;
+  height: 220px;
+  border-radius: 45% 55% 58% 42% / 50% 60% 40% 50%;
+  top: -80px;
+  right: -60px;
+  background: radial-gradient(circle at 35% 30%, rgba(14, 165, 198, 0.35), rgba(148, 163, 184, 0.15) 70%);
+  animation: float 14s ease-in-out infinite;
+}
+
+.shape.two {
+  width: 280px;
+  height: 280px;
+  border-radius: 52% 48% 40% 60% / 44% 52% 48% 56%;
+  bottom: -150px;
+  left: -120px;
+  background: radial-gradient(circle at 40% 40%, rgba(124, 92, 228, 0.32), rgba(148, 163, 184, 0.15) 70%);
+  animation: float 16s ease-in-out infinite 1s;
+}
+
+.shape.ring {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 2px dashed rgba(148, 163, 184, 0.55);
+  top: 38%;
+  left: -60px;
+  animation: float 12s ease-in-out infinite 0.5s;
+}
+
+.logo-wrap {
+  position: relative;
+  z-index: 1;
+  width: min(72vw, 320px);
+  height: auto;
+  border-radius: 26px;
+ /* background: linear-gradient(140deg, rgba(15, 23, 42, 0.9), rgba(17, 24, 39, 0.95));
+  box-shadow: 0 18px 38px rgba(2, 6, 23, 0.55);*/
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  overflow: hidden;
+}
+
+{% comment %} .logo-wrap::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  right: 22px;
+  width: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+} {% endcomment %}
+
+{% comment %} .logo-line {
+  position: absolute;
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  right: 34px;
+}
+
+.logo-line.top {
+  top: 20px;
+  width: 46px;
+}
+
+.logo-line.mid {
+  top: 41px;
+  width: 32px;
+}
+
+.logo-line.bottom {
+  top: 62px;
+  width: 48px;
+} {% endcomment %}
+.logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 18px;
+  background: rgb(255, 255, 255);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+}
+
+.title-block {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-size-adjust: 12px;
+}
+
+.app-name {
+  font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', sans-serif;
+  font-size: clamp(2.2rem, 5vw + 1.2rem, 4.2rem);
+  font-weight: 700;
+}
+
+.subtitle {
+  color: var(--text-soft);
+  font-size: clamp(1.2rem, 2.2vw + 0.9rem, 2.4rem);
+}
+
+.actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.cta-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: clamp(12px, 2.8vw, 18px) clamp(18px, 4.2vw, 26px);
+  border-radius: 18px;
+  text-decoration: none;
+  font-size: clamp(1.1rem, 2.6vw + 0.6rem, 1.8rem);
+  font-weight: 600;
+  color: #04131a;
+  background: linear-gradient(135deg, #0ea5c6 0%, #22c3dd 55%, #a07ee8 100%);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+}
+
+.ghost-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  font-size: clamp(1rem, 2.2vw + 0.5rem, 1.5rem);
+  color: var(--text-soft);
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: reveal 0.7s ease forwards;
+}
+
+.delay-1 {
+  animation-delay: 0.1s;
+}
+
+.delay-2 {
+  animation-delay: 0.2s;
+}
+
+@keyframes reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(12px);
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-shell {
+    padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom));
+  }
+
+  .app-name {
+    font-size: clamp(2rem, 6vw + 0.8rem, 3rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .shape.one,
+  .shape.two,
+  .shape.ring {
+    animation: none;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-screen" lang="ar" dir="rtl">
+  <div class="welcome-shell">
+    <div class="shape one"></div>
+    <div class="shape two"></div>
+    <div class="shape ring"></div>
+
+    <div class="logo-wrap">
+      <img src="{% static 'img/logo.png' %}" alt="logo" class="logo" />
+    </div>
+  
+
+    <div class="title-block reveal delay-1">
+      <h1 class="app-name">معهد اليمان</h1>
+      <p class="subtitle">أهلاً بك</p>
+    </div>
+
+    <div class="actions reveal delay-2">
+      <a class="cta-button" href="{% url 'mobile:login' %}">ابدأ</a>
+      <a class="ghost-link" href="{% url 'mobile:login' %}">لدي حساب بالفعل</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

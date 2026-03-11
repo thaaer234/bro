@@ -81,6 +81,9 @@
                     <div id="transaction-formset">
                         {% for form in transaction_formset %}
                         <div class="formset-row transaction-row" data-form-index="{{ forloop.counter0 }}">
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
                             {% if form.DELETE %}
                                 <div class="delete-checkbox">
                                     {{ form.DELETE }}

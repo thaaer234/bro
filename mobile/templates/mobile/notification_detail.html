@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #f3f4ff;
+  --card: #ffffff;
+  --border: rgba(15, 23, 42, 0.08);
+  --accent: linear-gradient(135deg, #667eea, #7c3aed);
+  --text: #1e1b4b;
+  --muted: #475569;
+  --safe-top: max(env(safe-area-inset-top), 16px);
+  color-scheme: light;
+}
+
+body {
+  font-family: 'Tajawal', 'Segoe UI', sans-serif;
+  padding-top: var(--safe-top);
+}
+
+.notification-shell {
+  min-height: 100vh;
+  background-color: var(--bg);
+  background-image: url("{% static 'img/back.png' %}");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: calc(20px + var(--safe-top)) 20px 20px;
+}
+
+.notification-card {
+  background: var(--card);
+  border-radius: 28px;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.notification-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.4), transparent);
+  pointer-events: none;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.notification-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.notification-title-wrapper h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.notification-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.notification-body {
+  font-size: 1rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.notification-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.badge-pill {
+  font-size: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(118, 75, 162, 0.1);
+  color: #5b21b6;
+  border: 1px solid rgba(118, 75, 162, 0.25);
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.5rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.back-link svg {
+  transition: transform 0.3s ease;
+}
+
+.back-link:hover svg {
+  transform: translateX(-4px);
+}
+
+.bottom-tabs {
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.8rem;
+}
+
+.bottom-tabs button {
+  border: none;
+  border-radius: 20px;
+  padding: 0.85rem 1rem;
+  background: rgba(118, 75, 162, 0.08);
+  font-weight: 600;
+  color: #312e81;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.bottom-tabs button:hover {
+  background: rgba(118, 75, 162, 0.18);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notification-shell">
+  <div class="notification-card">
+    <div class="notification-header">
+      <div class="notification-title-wrapper">
+        <div class="badge-pill" style="font-weight:700; background: linear-gradient(135deg, #667eea, #764ba2); color: white;">إشعار</div>
+        <h1>{{ notification.title }}</h1>
+      </div>
+      <div class="notification-meta">
+        <span><i class="fas fa-clock"></i> {{ notification.created_at|date:"d/m/Y H:i" }}</span>
+        {% if not notification.is_read %}
+        <span style="color:#ef4444;">مقروء؟ ⚠️</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="notification-body">
+      {{ notification.message }}
+    </div>
+
+    <div class="notification-meta" style="margin-bottom:1rem;">
+      {% if notification.student %}
+      <span><i class="fas fa-user-graduate"></i> {{ notification.student.full_name }}</span>
+      {% endif %}
+      {% if notification.teacher %}
+      <span><i class="fas fa-chalkboard-teacher"></i> {{ notification.teacher.full_name }}</span>
+      {% endif %}
+    </div>
+
+    <div class="notification-badges">
+      <span class="badge-pill"><i class="fas fa-bell"></i> تنبيه مهم</span>
+      <span class="badge-pill"><i class="fas fa-shield-alt"></i> مرسل عبر النظام</span>
+    </div>
+
+    <div class="bottom-tabs">
+      <button onclick="location.href='{% url 'mobile:notifications' %}'">
+        <i class="fas fa-list"></i>
+        قائمة الإشعارات
+      </button>
+      <button onclick="location.href='{% url 'mobile:notifications' %}'">
+        <i class="fas fa-refresh"></i>
+        تحديث المحتوى
+      </button>
+    </div>
+
+    <a class="back-link" href="{% url 'mobile:notifications' %}">
+      <i class="fas fa-arrow-right"></i>
+      رجوع إلى جميع الإشعارات
+    </a>
+  </div>
+</div>
+{% endblock %}

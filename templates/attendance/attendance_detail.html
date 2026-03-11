@@ -12,6 +12,12 @@
         <a href="{% url 'attendance:export_attendance' classroom.id date %}" class="btn btn-success">
             <i class="fas fa-file-excel"></i> تصدير إلى Excel
         </a>
+        <form method="post" action="{% url 'attendance:delete_attendance' classroom.id date %}" class="d-inline" onsubmit="return confirm('Delete this attendance record?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </form>
     </div>
 </div>
 {% include "partials/_alerts.html" %}

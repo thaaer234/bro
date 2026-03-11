@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% block content %}
+<div class="module-header">
+    <h2>تسجيل حضور الطلاب</h2>
+    <div class="header-actions">
+        <a href="{% url 'attendance:attendance' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> العودة للسجل
+        </a>
+    </div>
+</div>
+{% include "partials/_alerts.html" %}
+
+<form method="post" id="attendanceForm">
+    {% csrf_token %}
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <label for="date" class="form-label">التاريخ</label>
+            <input type="date" name="date" id="date" class="form-control" 
+                   value="{{ today|date:'Y-m-d' }}" required>
+        </div>
+        <div class="col-md-4">
+            <label for="classroom" class="form-label">الشعبة</label>
+            <select name="classroom" id="classroom" class="form-control" required>
+                <option value="">اختر الشعبة</option>
+                {% for classroom in classrooms %}
+                <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">&nbsp;</label>
+            <button type="button" id="loadStudents" class="btn btn-primary w-100">
+                <i class="fas fa-users"></i> تحميل الطلاب
+            </button>
+        </div>
+    </div>
+</form>
+
+<!-- منطقة عرض الطلاب -->
+<div id="studentsSection" style="display: none;">
+    <div class="table-container mt-4">
+        <h4>قائمة الطلاب</h4>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> جميع الطلاب غائبين افتراضياً. اختر "حاضر" للطلاب الحاضرين فقط.
+        </div>
+        <div id="studentsList"></div>
+        <button type="submit" form="attendanceForm" class="btn btn-success mt-3">
+            <i class="fas fa-save"></i> حفظ الحضور
+        </button>
+    </div>
+</div>
+
+<script>
+document.getElementById('loadStudents').addEventListener('click', function() {
+    const classroomId = document.getElementById('classroom').value;
+    const date = document.getElementById('date').value;
+    
+    if (!classroomId || !date) {
+        alert('يرجى اختيار التاريخ والشعبة');
+        return;
+    }
+    
+    // جلب الطلاب عبر AJAX
+    fetch(`/attendance/api/students/?classroom=${classroomId}`)
+        .then(response => response.json())
+        .then(students => {
+            if (students.error) {
+                alert(students.error);
+                return;
+            }
+            
+            let html = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الطالب</th>
+                            <th>حالة الحضور</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            students.forEach(student => {
+                html += `
+                    <tr>
+                        <td>${student.full_name}</td>
+                        <td>
+                            <div class="attendance-container">
+                                <label class="attendance-option present-option">
+                                    <input type="radio" name="status_${student.id}" 
+                                           value="present">
+                                    حاضر
+                                </label>
+                                <label class="attendance-option absent-option">
+                                    <input type="radio" name="status_${student.id}" 
+                                           value="absent" checked>
+                                    غائب
+                                </label>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="text" name="notes_${student.id}" 
+                                   class="form-control" placeholder="ملاحظات">
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table>`;
+            document.getElementById('studentsList').innerHTML = html;
+            document.getElementById('studentsSection').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في تحميل الطلاب');
+        });
+});
+</script>
+
+<style>
+.attendance-container {
+    display: flex;
+    gap: 20px;
+}
+.attendance-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.attendance-option input[type="radio"] {
+    transform: scale(1.3);
+    cursor: pointer;
+}
+.present-option {
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid #28a745;
+    color: #28a745;
+}
+.absent-option {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid #dc3545;
+    color: #dc3545;
+}
+.attendance-option input[type="radio"]:checked + * {
+    font-weight: bold;
+}
+</style>
+{% endblock %}

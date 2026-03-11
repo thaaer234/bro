@@ -1,166 +1,139 @@
 {% extends "base.html" %}
 
-{% load emp_perms %}
 {% load static %}
 {% block content %}
-{% now "Y-m-d" as today %}
-    <div class="module-header">
-        <h2>تسجيل الحضور</h2>
+<div class="module-header">
+    <div class="header-actions">    
+        <h2>سجل حضور المدرسين</h2>
+        <div class="header-actions">
+            <form method="get" class="d-inline-flex gap-2 align-items-center">
+                <select name="teacher" class="form-select" style="width: auto;" onchange="this.form.submit()">
+                    <option value="">جميع المدرسين</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}" {% if request.GET.teacher == teacher.id|stringformat:"s" %}selected{% endif %}>
+                        {{ teacher.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <input type="date" name="date_from" class="form-control" style="width: auto;" 
+                       value="{{ current_filters.date_from }}" placeholder="من تاريخ">
+                <input type="date" name="date_to" class="form-control" style="width: auto;" 
+                       value="{{ current_filters.date_to }}" placeholder="إلى تاريخ">
+                
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-filter"></i> تصفية
+                </button>
+                <a href="{% url 'attendance:teacher_attendance' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-refresh"></i> إعادة تعيين
+                </a>
+            </form>
+            
+            <a href="{% url 'attendance:take_teacher_attendance' %}" class="btn btn-primary">
+                <i class="fas fa-clipboard-check"></i> تسجيل حضور جديد
+            </a>
+        </div>
     </div>
+</div>
 {% include "partials/_alerts.html" %}
 
-<form method="post" id="attendanceForm">
-    {% csrf_token %}
-    <div class="form-row">  
-        <div class="form-col">
-            <label for="classroom">الشعبة</label>
-            <select name="classroom" id="classroom" class="form-control" required>
-                <option value="">اختر الشعبة</option>
-                {% for classroom in classrooms %}
-                <option value="{{ classroom.id }}">{{ classroom.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-col">
-            <label for="date">التاريخ</label>
-            <input type="date" name="date" id="date" class="form-control" required value="{{ today }}">
-        </div>
-    </div>
-    
-    <div class="table-container mt-4">
-        <table class="table">
-            <thead>
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead class="table-dark">
                 <tr>
-                    <th>الطالب</th>
-                    <th>حالة الحضور</th>
-                    <th>ملاحظات</th>
+                    <th>التاريخ</th>
+                    <th>الحاضرين</th>
+                    <th>ليس لديه دوام</th>
+                    <th>إجمالي الجلسات</th>
+                    <th>الإجراءات</th>
                 </tr>
             </thead>
-            <tbody id="studentsList">
-                <!-- سيتم ملؤها بواسطة JavaScript -->
+            <tbody>
+                {% for item in summary %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.date|date:"Y-m-d" }}</strong>
+                            <br>
+                            <small class="text-muted">{{ item.date|date:"l" }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-success">{{ item.present_count }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ item.no_duty_count }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ item.total_sessions }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'attendance:teacher_attendance_detail' item.date|date:'Y-m-d' %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> التفاصيل
+                            </a>
+                            <a href="{% url 'attendance:take_teacher_attendance' %}?date={{ item.date|date:'Y-m-d' }}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i> تعديل
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i><br>
+                            لا توجد سجلات حضور
+                        </td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
-    <button type="submit" class="btn btn-primary mt-3">حفظ الحضور</button>
-    <a href="{% url 'attendance:attendance' %}" class="btn btn-secondary mt-3 ml-2">العودة للسجل</a>
-</form>
-
-<style>
-.attendance-container {
-    display: flex;
-    gap: 20px;
-}
-.attendance-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.attendance-option input[type="radio"] {
-    transform: scale(1.3);
-    cursor: pointer;
-}
-.present-option {
-    background-color: rgba(40, 167, 69, 0.1);
-    border: 1px solid #28a745;
-    color: #28a745;
-}
-.absent-option {
-    background-color: rgba(220, 53, 69, 0.1);
-    border: 1px solid #dc3545;
-    color: #dc3545;
-}
-.attendance-option input[type="radio"]:checked + * {
-    font-weight: bold;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const classroomSelect = document.getElementById('classroom');
-    const studentsList = document.getElementById('studentsList');
     
-    classroomSelect.addEventListener('change', async function() {
-        const classroomId = this.value;
-        if (!classroomId) {
-            studentsList.innerHTML = '';
-            return;
-        }
-        
-        try {
-            // إظهار رسالة تحميل
-            studentsList.innerHTML = `
-                <tr>
-                    <td colspan="3" class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="sr-only">جاري التحميل...</span>
-                        </div>
-                    </td>
-                </tr>
-            `;
+    <!-- ترقيم الصفحات -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">الأولى</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">السابق</a>
+            </li>
+            {% endif %}
             
-            const response = await fetch(`{% url 'attendance:get_students' %}?classroom=${classroomId}`);
+            <li class="page-item active">
+                <span class="page-link">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+            </li>
             
-            if (!response.ok) {
-                throw new Error(`خطأ في الشبكة: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            console.log('البيانات المستلمة:', data);
-            studentsList.innerHTML = '';
-            
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            
-            if (data.length === 0) {
-                studentsList.innerHTML = `
-                    <tr>
-                        <td colspan="3" class="text-center">
-                            لا يوجد طلاب في هذه الشعبة
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            data.forEach(student => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${student.full_name}</td>
-                    <td>
-                        <div class="attendance-container">
-                            <label class="attendance-option present-option">
-                                <input type="radio" name="status_${student.id}" value="present" checked>
-                                حاضر
-                            </label>
-                            <label class="attendance-option absent-option">
-                                <input type="radio" name="status_${student.id}" value="absent">
-                                غائب
-                            </label>
-                        </div>
-                    </td>
-                    <td>
-                        <input type="text" name="notes_${student.id}" class="form-control" placeholder="ملاحظات">
-                    </td>
-                `;
-                studentsList.appendChild(row);
-            });
-        } catch (error) {
-            console.error('Error:', error);
-            studentsList.innerHTML = `
-                <tr>
-                    <td colspan="3" class="text-center text-danger">
-                        حدث خطأ: ${error.message}
-                    </td>
-                </tr>
-            `;
-        }
-    });
-});
-</script>
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">التالي</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">الأخيرة</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- إحصاءات سريعة -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">{{ summary|length }}</h5>
+                <p class="card-text">أيام مسجلة</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">{{ teachers.count }}</h5>
+                <p class="card-text">مدرس نشط</p>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

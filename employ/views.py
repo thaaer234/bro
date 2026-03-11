@@ -5,19 +5,38 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import View, TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponseRedirect, HttpResponse, HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Sum, Count
 from django.core.exceptions import FieldDoesNotExist
+from django.template.loader import render_to_string 
+from django.contrib.staticfiles import finders
+from django.conf import settings
 
-from accounts.models import ExpenseEntry, EmployeeAdvance, Account
+from accounts.models import ExpenseEntry, EmployeeAdvance, Account, TeacherAdvance, get_or_create_employee_cash_account
 from accounts.forms import EmployeeAdvanceForm
 from attendance.models import TeacherAttendance
 
-from .models import Teacher, Employee, Vacation, EmployeePermission
+from .models import Teacher, Employee, Vacation, EmployeePermission, ManualTeacherSalary
 from .forms import TeacherForm, EmployeeRegistrationForm, AdminVacationForm
+from xhtml2pdf import pisa
+try:
+    from weasyprint import HTML
+    from weasyprint.urls import default_url_fetcher
+    WEASYPRINT_AVAILABLE = True
+except Exception:
+    HTML = None
+    default_url_fetcher = None
+    WEASYPRINT_AVAILABLE = False
+import os
+import tempfile
+import io
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import registerFontFamily
+from urllib.parse import quote
 
 
 # -----------------------------
@@ -43,14 +62,17 @@ GROUP_PREFIXES = {
     'teachers_': 'teachers',
     'attendance_': 'attendance',
     'classroom_': 'classroom',
-    'grades_': 'grades',
+    'quick_students_': 'quick_students',
+    'exams_': 'exams',
+    'errors_': 'errors',
+    'registration_': 'registration',
     'courses_': 'courses',
     'accounting_': 'accounting',
     'hr_': 'hr',
     'admin_': 'admin',
     'reports_': 'reports',
     'course_accounting_': 'course_accounting',
-    'inventory_': 'inventory',   # سنجمع الأصول مع المخزون في نفس المجموعة
+    'inventory_': 'inventory',
     'assets_': 'inventory',
     'marketing_': 'marketing',
     'quality_': 'quality',
@@ -64,7 +86,11 @@ def _empty_permission_groups():
         'teachers': [],
         'attendance': [],
         'classroom': [],
-        'grades': [],
+        'quick_students': [],
+        'exams': [],
+        'errors': [],
+        'pages': [],
+        'registration': [],
         'courses': [],
         'accounting': [],
         'hr': [],
@@ -112,10 +138,18 @@ class EmployeePermissionsView(LoginRequiredMixin, View):
                 'is_granted': code in granted
             })
 
+        cash_account = employee.get_cash_account()
+        cash_account_balance = cash_account.get_net_balance() if cash_account else Decimal('0.00')
+
         return render(request, self.template_name, {
             'employee': employee,
-            'permission_groups': permission_groups
+            'permission_groups': permission_groups,
+            'cash_account': cash_account,
+            'cash_account_balance': cash_account_balance
         })
+
+
+
 
     @transaction.atomic
     def post(self, request, pk):
@@ -146,6 +180,32 @@ class EmployeePermissionsView(LoginRequiredMixin, View):
 
         messages.success(request, f'تم تحديث صلاحيات الموظف { _employee_full_name(employee) } بنجاح.')
         return redirect('employ:employee_permissions', pk=pk)
+
+
+class CreateEmployeeCashAccountView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        employee = get_object_or_404(Employee, pk=pk)
+        employee_name = _employee_full_name(employee) or employee.user.get_username()
+
+        try:
+            account, created = get_or_create_employee_cash_account(employee)
+            if created:
+                messages.success(
+                    request,
+                    f'Created cash account {account.code} for {employee_name}.'
+                )
+            else:
+                messages.info(
+                    request,
+                    f'Cash account {account.code} for {employee_name} already exists.'
+                )
+        except Exception as exc:
+            messages.error(
+                request,
+                f'Failed to create cash account: {exc}'
+            )
+
+        return redirect('employ:employee_permissions', pk=employee.pk)
 
 
 # -----------------------------
@@ -255,7 +315,14 @@ class teachers(LoginRequiredMixin, ListView):
         for teacher in teachers:
             monthly_sessions = teacher.get_monthly_sessions(salary_year, salary_month)
             salary_amount = teacher.calculate_monthly_salary(salary_year, salary_month)
-            salary_status = teacher.get_salary_status(salary_year, salary_month)
+            
+            # التحقق من الرواتب اليدوية المدفوعة
+            salary_status = ManualTeacherSalary.objects.filter(
+                teacher=teacher,
+                year=salary_year,
+                month=salary_month,
+                is_paid=True
+            ).exists()
 
             paid_count += 1 if salary_status else 0
             unpaid_count += 0 if salary_status else 1
@@ -285,6 +352,178 @@ class teachers(LoginRequiredMixin, ListView):
         return context
 
 
+def _prepare_teacher_cards(teachers):
+    for teacher in teachers:
+        try:
+            teacher.branch_display = teacher.get_branch_display()
+        except Exception:
+            teacher.branch_display = getattr(teacher, 'branch', '')
+
+
+def _teacher_cards_pdf_link_callback(uri, rel):
+    if uri.startswith('http://') or uri.startswith('https://'):
+        return uri
+
+    if uri.startswith(settings.MEDIA_URL):
+        path = os.path.join(settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, ''))
+    elif uri.startswith(settings.STATIC_URL):
+        path = finders.find(uri.replace(settings.STATIC_URL, ''))
+    else:
+        path = finders.find(uri)
+
+    if not path:
+        return uri
+
+    if isinstance(path, (list, tuple)):
+        path = path[0]
+    return path
+
+
+def _register_pdf_fonts():
+    try:
+        font_regular = finders.find('font/Cairo-400.ttf')
+        font_bold = finders.find('font/Cairo-600.ttf') or font_regular
+        font_black = finders.find('font/Cairo-800.ttf') or font_bold or font_regular
+
+        if font_regular:
+            pdfmetrics.registerFont(TTFont('Cairo', font_regular))
+        if font_bold and font_bold != font_regular:
+            pdfmetrics.registerFont(TTFont('Cairo-Bold', font_bold))
+        if font_black and font_black not in (font_regular, font_bold):
+            pdfmetrics.registerFont(TTFont('Cairo-Black', font_black))
+
+        if font_regular:
+            registerFontFamily(
+                'Cairo',
+                normal='Cairo',
+                bold='Cairo-Bold' if font_bold else 'Cairo',
+                italic='Cairo',
+                boldItalic='Cairo-Bold' if font_bold else 'Cairo',
+            )
+    except Exception:
+        pass
+
+
+def _teacher_weasyprint_url_fetcher(url):
+    if not default_url_fetcher:
+        return None
+
+    if url.startswith(settings.STATIC_URL):
+        path = finders.find(url.replace(settings.STATIC_URL, ''))
+    elif url.startswith(settings.MEDIA_URL):
+        path = os.path.join(settings.MEDIA_ROOT, url.replace(settings.MEDIA_URL, ''))
+    else:
+        return default_url_fetcher(url)
+
+    if not path:
+        return default_url_fetcher(url)
+
+    if isinstance(path, (list, tuple)):
+        path = path[0]
+
+    return default_url_fetcher(f'file://{path}')
+
+
+def _inline_css_vars(html):
+    css_vars = {
+        'ink': '#0e1424',
+        'muted': '#9fa6b6',
+        'paper': '#ffffff',
+        'line': '#d8e0ef',
+        'purple': '#513996',
+        'purple-dark': '#4f2f86',
+        'purple-light': '#6b4aa7',
+        'gold': '#f0a22b',
+        'teal': '#0b6c8e',
+        'grid': 'rgba(255, 255, 255, 0.08)',
+        'card-width': '100mm',
+        'card-height': '60mm',
+    }
+
+    for key, value in css_vars.items():
+        html = html.replace(f'var(--{key})', value)
+    return html
+
+
+class TeacherCardsPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'employ/teacher_cards_print.html'
+    app_download_url = 'https://yaman2.pythonanywhere.com/'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        should_generate = self.request.GET.get('generate') == '1'
+        teachers = []
+
+        if should_generate:
+            teachers = list(Teacher.objects.all().order_by('full_name'))
+
+        _prepare_teacher_cards(teachers)
+
+        per_page = 8
+        pages = [teachers[i:i + per_page] for i in range(0, len(teachers), per_page)]
+        if should_generate and not pages:
+            pages = [[]]
+
+        context.update({
+            'should_generate': should_generate,
+            'pages': pages,
+            'teachers_total': len(teachers),
+            'app_download_url': self.app_download_url,
+            'app_qr_url': f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={quote(self.app_download_url)}",
+            'pdf': False,
+        })
+        return context
+
+
+def teacher_cards_print_pdf(request):
+    should_generate = request.GET.get('generate') == '1'
+    teachers = []
+
+    if should_generate:
+        teachers = list(Teacher.objects.all().order_by('full_name'))
+
+    _prepare_teacher_cards(teachers)
+
+    per_page = 8
+    pages = [teachers[i:i + per_page] for i in range(0, len(teachers), per_page)]
+    if should_generate and not pages:
+        pages = [[]]
+
+    app_download_url = 'https://yaman2.pythonanywhere.com/'
+    context = {
+        'should_generate': should_generate,
+        'pages': pages,
+        'teachers_total': len(teachers),
+        'app_download_url': app_download_url,
+        'app_qr_url': f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={quote(app_download_url)}",
+        'pdf': True,
+    }
+
+    html = render_to_string('employ/teacher_cards_print.html', context, request=request)
+    tmp_dir = os.path.join(settings.BASE_DIR, '_tmp_pdf')
+    os.makedirs(tmp_dir, exist_ok=True)
+    os.environ['TMP'] = tmp_dir
+    os.environ['TEMP'] = tmp_dir
+    tempfile.tempdir = tmp_dir
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename=\"teacher_cards.pdf\"'
+
+    if WEASYPRINT_AVAILABLE:
+        pdf_bytes = HTML(
+            string=html,
+            base_url=request.build_absolute_uri('/'),
+            url_fetcher=_teacher_weasyprint_url_fetcher,
+        ).write_pdf()
+        response.write(pdf_bytes)
+        return response
+
+    _register_pdf_fonts()
+    html = _inline_css_vars(html)
+    pisa.CreatePDF(html, dest=response, link_callback=_teacher_cards_pdf_link_callback, encoding='UTF-8')
+    return response
+
+
 class CreateTeacherView(LoginRequiredMixin, CreateView):
     model = Teacher
     form_class = TeacherForm
@@ -293,6 +532,16 @@ class CreateTeacherView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         messages.success(self.request, 'تم إنشاء بيانات المعلم بنجاح.')
+        return super().form_valid(form)
+
+class TeacherUpdateView(LoginRequiredMixin, UpdateView):
+    model = Teacher
+    form_class = TeacherForm
+    template_name = 'employ/teacher_form.html'
+    success_url = reverse_lazy('employ:teachers')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم تحديث بيانات المعلم بنجاح.')
         return super().form_valid(form)
 
 
@@ -625,7 +874,14 @@ class SalaryManagementView(TemplateView):
         for teacher in teachers:
             monthly_sessions = teacher.get_monthly_sessions(selected_year, selected_month)
             calculated_salary = teacher.calculate_monthly_salary(selected_year, selected_month)
-            salary_status = teacher.get_salary_status(selected_year, selected_month)
+            
+            # التحقق من الرواتب اليدوية المدفوعة
+            salary_status = ManualTeacherSalary.objects.filter(
+                teacher=teacher,
+                year=selected_year,
+                month=selected_month,
+                is_paid=True
+            ).exists()
 
             teachers_salary_data.append({
                 'teacher': teacher,
@@ -655,198 +911,325 @@ class SalaryManagementView(TemplateView):
 
 
 # -----------------------------
-# قيد استحقاق راتب المدرس / دفعه
+# Teacher Profile View
 # -----------------------------
-class CreateTeacherAccrualView(View):
-    def post(self, request, pk):
-        teacher = get_object_or_404(Teacher, pk=pk)
-
-        def _sanitize_int(value, default, allowed=None):
-            if value is None:
-                return default
-            cleaned = ''.join(ch for ch in str(value) if ch.isdigit())
-            if cleaned:
-                try:
-                    numeric = int(cleaned)
-                    if allowed and numeric not in allowed:
-                        return default
-                    return numeric
-                except ValueError:
-                    pass
-            return default
-
-        year = _sanitize_int(request.POST.get('year'), timezone.now().year)
-        month = _sanitize_int(request.POST.get('month'), timezone.now().month, allowed=set(range(1, 13)))
-        return_to_profile = request.POST.get('return_to_profile')
-
-        try:
-            accrual_entry = teacher.create_salary_accrual_entry(request.user, year, month)
-            messages.success(
-                request,
-                f'تم إنشاء قيد استحقاق راتب {teacher.full_name} ({month:02d}/{year}) بنجاح. المرجع: {getattr(accrual_entry, "reference", accrual_entry.pk)}'
-            )
-        except Exception as e:
-            messages.error(request, f'تعذر إنشاء قيد الاستحقاق: {e}')
-
-        if return_to_profile:
-            return redirect('employ:teacher_profile', pk=teacher.pk)
-        return redirect('employ:salary_management')
-
-
-class PayTeacherSalaryView(View):
-    def post(self, request, pk):
-        teacher = get_object_or_404(Teacher, pk=pk)
-
-        def _sanitize_int(value, default, allowed=None):
-            if value is None:
-                return default
-            cleaned = ''.join(ch for ch in str(value) if ch.isdigit())
-            if cleaned:
-                try:
-                    numeric = int(cleaned)
-                    if allowed and numeric not in allowed:
-                        return default
-                    return numeric
-                except ValueError:
-                    pass
-            return default
-
-        year = _sanitize_int(request.POST.get('year'), timezone.now().year)
-        month = _sanitize_int(request.POST.get('month'), timezone.now().month, allowed=set(range(1, 13)))
-        return_to_profile = request.POST.get('return_to_profile')
-
-        gross_salary = teacher.calculate_monthly_salary(year, month)
-        total_advances = teacher.get_total_advances(year, month)
-        net_salary = teacher.calculate_net_salary(year, month)
-
-        if gross_salary <= 0:
-            messages.error(request, 'لا يمكن حساب راتب هذا المعلم.')
-            if return_to_profile:
-                return redirect('employ:teacher_profile', pk=teacher.pk)
-            return redirect('employ:salary_management')
-
-        if teacher.get_salary_status(year, month):
-            messages.warning(request, f'راتب {teacher.full_name} مسجل بالفعل لشهر {month:02d}/{year}.')
-            if return_to_profile:
-                return redirect('employ:teacher_profile', pk=teacher.pk)
-            return redirect('employ:salary_management')
-
-        from accounts.models import JournalEntry
-        accrual_exists = JournalEntry.objects.filter(
-            description__icontains=f"Teacher salary accrual - {teacher.full_name}",
-            entry_type='SALARY',
-            is_posted=True
-        ).exists()
-
-        if not accrual_exists:
-            messages.error(request, f'يجب إنشاء قيد الاستحقاق أولاً لراتب {teacher.full_name} عن شهر {month:02d}/{year}.')
-            if return_to_profile:
-                return redirect('employ:teacher_profile', pk=teacher.pk)
-            return redirect('employ:salary_management')
-
-        try:
-            payment_entry = teacher.create_salary_payment_entry(request.user, year, month)
-            messages.success(
-                request,
-                f'تم دفع راتب {teacher.full_name} ({month:02d}/{year}) بنجاح. '
-                f'الإجمالي: {gross_salary}, السلف: {total_advances}, الصافي: {net_salary}'
-            )
-        except Exception as e:
-            messages.error(request, f'تعذر تسجيل راتب {teacher.full_name}: {e}')
-            if return_to_profile:
-                return redirect('employ:teacher_profile', pk=teacher.pk)
-            return redirect('employ:salary_management')
-
-        if return_to_profile:
-            return redirect('employ:teacher_profile', pk=teacher.pk)
-        return redirect('employ:salary_management')
-
-
 class TeacherProfileView(DetailView):
     model = Teacher
     template_name = 'employ/teacher_profile.html'
     context_object_name = 'teacher'
 
-    def _get_period_from_request(self):
-        today = timezone.now().date()
-        year_param = self.request.GET.get('year')
-        month_param = self.request.GET.get('month')
-
-        def sanitize(value, default, low=1, high=12):
-            try:
-                ivalue = int(value)
-                if low <= ivalue <= high:
-                    return ivalue
-            except (TypeError, ValueError):
-                pass
-            return default
-
-        if year_param is not None or month_param is not None:
-            year = sanitize(year_param, today.year, low=1900, high=2100)
-            month = sanitize(month_param, today.month)
-            period_date = today.replace(year=year, month=month, day=1)
-        else:
-            if today.day >= 28:
-                period_date = today
-            else:
-                period_date = today.replace(day=1) - timedelta(days=1)
-            year = period_date.year
-            month = period_date.month
-
-        return today, period_date, year, month
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         teacher = self.get_object()
-        today, period_date, salary_year, salary_month = self._get_period_from_request()
-
-        # التأكد من وجود قيد الاستحقاق
-        from accounts.models import JournalEntry
-        has_accrual_entry = JournalEntry.objects.filter(
-            description__icontains=f"Teacher salary accrual - {teacher.full_name} ({salary_month:02d}/{salary_year})",
-            entry_type='SALARY',
-            is_posted=True
-        ).exists()
-
-        context['daily_sessions'] = teacher.get_daily_sessions(today)
-        context['monthly_sessions'] = teacher.get_monthly_sessions(today.year, today.month)
-        context['yearly_sessions'] = teacher.get_yearly_sessions(today.year)
-
-        context['salary_year'] = salary_year
-        context['salary_month'] = salary_month
-        context['salary_period_date'] = period_date
-        context['salary_period_label'] = f"{salary_year}/{salary_month:02d}"
-        context['salary_period_is_current'] = (salary_year == today.year and salary_month == today.month)
-        context['salary_amount'] = teacher.calculate_monthly_salary(salary_year, salary_month)
-        context['monthly_salary'] = context['salary_amount']
-        context['salary_status'] = teacher.get_salary_status(salary_year, salary_month)
-        context['has_accrual_entry'] = has_accrual_entry
-
-        context['daily_attendance'] = TeacherAttendance.objects.filter(teacher=teacher, date=today).first()
-
+        today = timezone.now().date()
+        latest_attendance_date = (TeacherAttendance.objects.filter(teacher=teacher)
+                                  .order_by('-date')
+                                  .values_list('date', flat=True)
+                                  .first())
+        attendance_date = latest_attendance_date or today
+        
+        # الحضور اليومي
+        daily_attendance_entries = TeacherAttendance.objects.filter(
+            teacher=teacher, 
+            date=attendance_date
+        ).order_by('branch')
+        
+        # الحضور الشهري (هذا الشهر)
         monthly_attendance = TeacherAttendance.objects.filter(
             teacher=teacher,
-            date__year=today.year,
-            date__month=today.month
+            date__year=attendance_date.year,
+            date__month=attendance_date.month
         )
+        
+        # الحضور السنوي (هذه السنة)
+        yearly_attendance = TeacherAttendance.objects.filter(
+            teacher=teacher,
+            date__year=attendance_date.year
+        )
+        
+        # إحصائيات شهرية مفصلة
+        monthly_present = monthly_attendance.filter(status='present')
+        monthly_present_days = monthly_present.count()
+        monthly_total_sessions = sum(att.total_sessions for att in monthly_present)
+        
+        # إحصائيات سنوية مفصلة
+        yearly_present = yearly_attendance.filter(status='present')
+        yearly_present_days = yearly_present.count()
+        yearly_total_sessions = sum(att.total_sessions for att in yearly_present)
+        
+        # حساب متوسط الجلسات اليومية
+        avg_daily_sessions_monthly = 0
+        if monthly_present_days > 0:
+            avg_daily_sessions_monthly = monthly_total_sessions / monthly_present_days
+        
+        avg_daily_sessions_yearly = 0
+        if yearly_present_days > 0:
+            avg_daily_sessions_yearly = yearly_total_sessions / yearly_present_days
+        
+        # حساب نسبة الحضور
+        attendance_rate_monthly = 0
+        if monthly_attendance.count() > 0:
+            attendance_rate_monthly = (monthly_present_days / monthly_attendance.count()) * 100
+        
+        attendance_rate_yearly = 0
+        if yearly_attendance.count() > 0:
+            attendance_rate_yearly = (yearly_present_days / yearly_attendance.count()) * 100
+        
+        context.update({
+            'today': today,
+            'daily_attendance_date': attendance_date,
+            'daily_attendance_entries': daily_attendance_entries,
+            'labels': self._get_labels(),
+            
+            # إحصائيات شهرية مفصلة
+            'monthly_stats': {
+                'total_days': monthly_attendance.count(),
+                'present_days': monthly_present_days,
+                'absent_days': monthly_attendance.filter(status='absent').count(),
+                'late_days': monthly_attendance.filter(status='late').count(),
+                'total_sessions': monthly_total_sessions,
+                'avg_daily_sessions': round(avg_daily_sessions_monthly, 1),
+                'attendance_rate': round(attendance_rate_monthly, 1),
+            },
+            
+            # إحصائيات سنوية مفصلة
+            'yearly_stats': {
+                'total_days': yearly_attendance.count(),
+                'present_days': yearly_present_days,
+                'absent_days': yearly_attendance.filter(status='absent').count(),
+                'late_days': yearly_attendance.filter(status='late').count(),
+                'total_sessions': yearly_total_sessions,
+                'avg_daily_sessions': round(avg_daily_sessions_yearly, 1),
+                'attendance_rate': round(attendance_rate_yearly, 1),
+            },
+            
+            # قائمة الحضور الأخيرة (10 أيام)
+            'recent_attendance': TeacherAttendance.objects.filter(
+                teacher=teacher
+            ).order_by('-date')[:10],
+            
+            # جلب جميع أيام الحضور للسنة الحالية
+            'all_attendance_days': TeacherAttendance.objects.filter(
+                teacher=teacher,
+                date__year=today.year
+            ).order_by('-date'),
+            
+            # إحصائيات الحضور حسب الشهور
+            'monthly_attendance_stats': self.get_monthly_attendance_stats(teacher, today.year),
+        })
+        
+        # الرواتب اليدوية
+        selected_year = self.request.GET.get('year', attendance_date.year)
+        try:
+            selected_year = int(selected_year)
+        except:
+            selected_year = attendance_date.year
 
-        context['monthly_stats'] = {
-            'present_days': monthly_attendance.filter(status='present').count(),
-            'absent_days': monthly_attendance.filter(status='absent').count(),
-            'total_days': monthly_attendance.count(),
-        }
-
-        yearly_attendance = TeacherAttendance.objects.filter(teacher=teacher, date__year=today.year)
-
-        context['yearly_stats'] = {
-            'present_days': yearly_attendance.filter(status='present').count(),
-            'absent_days': yearly_attendance.filter(status='absent').count(),
-            'total_days': yearly_attendance.count(),
-            'total_sessions': yearly_attendance.filter(status='present').aggregate(total=Sum('session_count'))['total'] or 0,
-        }
-
-        context['today'] = today
+        branch_monthly_tables = self.get_branch_monthly_tables(teacher)
+        branch_hourly_rates = self.get_branch_hourly_rates(teacher)
+        advance_account = teacher.get_teacher_advance_account()
+        advance_account_balance = advance_account.get_net_balance() if advance_account else Decimal('0.00')
+        
+        manual_salaries = ManualTeacherSalary.objects.filter(
+            teacher=teacher,
+            year=selected_year
+        ).order_by('-month')
+        
+        # حساب الإجماليات
+        total_gross_year = sum(s.gross_salary for s in manual_salaries)
+        total_advances_year = sum(s.advance_deduction for s in manual_salaries)
+        total_net_year = sum(s.net_salary for s in manual_salaries)
+        
+        # الرواتب المدفوعة
+        paid_salaries = manual_salaries.filter(is_paid=True)
+        total_paid_year = sum(s.net_salary for s in paid_salaries)
+        paid_count_year = paid_salaries.count()
+        
+        # المتبقي للدفع
+        total_remaining = total_net_year - total_paid_year
+        
+        # السلف المعلقة
+        total_advances_outstanding = teacher.get_total_advances()
+        
+        # نطاق السنوات
+        current_year = today.year
+        years_range = range(current_year - 5, current_year + 2)
+        
+        # إضافة بيانات الرواتب
+        context.update({
+            'manual_salaries': manual_salaries,
+            'selected_year': selected_year,
+            'years_range': years_range,
+            'total_gross_year': total_gross_year,
+            'total_advances_year': total_advances_year,
+            'total_net_year': total_net_year,
+            'total_paid_year': total_paid_year,
+            'paid_count_year': paid_count_year,
+            'total_remaining': total_remaining,
+            'total_advances_outstanding': total_advances_outstanding,
+            'branch_monthly_tables': branch_monthly_tables,
+            'branch_hourly_rates': branch_hourly_rates,
+            'advance_account': advance_account,
+            'advance_account_balance': advance_account_balance,
+        })
+        
         return context
+    
+    def get_monthly_attendance_stats(self, teacher, year):
+        """الحصول على إحصائيات الحضور لكل شهر في السنة"""
+        from django.db.models import Count, Sum
+        from django.db.models.functions import ExtractMonth
+        
+        stats = []
+        month_names = {
+            1: 'كانون الثاني', 2: 'شباط', 3: 'آذار', 4: 'نيسان',
+            5: 'أيار', 6: 'حزيران', 7: 'تموز', 8: 'آب',
+            9: 'أيلول', 10: 'تشرين الأول', 11: 'تشرين الثاني', 12: 'كانون الأول'
+        }
+        
+        for month_num in range(1, 13):
+            monthly_data = TeacherAttendance.objects.filter(
+                teacher=teacher,
+                date__year=year,
+                date__month=month_num
+            )
+            
+            present_days = monthly_data.filter(status='present').count()
+            total_days = monthly_data.count()
+            
+            if total_days > 0:
+                attendance_rate = (present_days / total_days) * 100
+                total_sessions = sum(att.total_sessions for att in monthly_data.filter(status='present'))
+                
+                stats.append({
+                    'month': month_num,
+                    'month_name': month_names.get(month_num, f'شهر {month_num}'),
+                    'present_days': present_days,
+                    'total_days': total_days,
+                    'attendance_rate': round(attendance_rate, 1),
+                    'total_sessions': total_sessions,
+                    'avg_sessions': round(total_sessions / present_days, 1) if present_days > 0 else 0,
+                })
+        
+        return stats
+
+    def _get_teacher_branches(self, teacher):
+        branches = teacher.get_branches_list()
+        return branches or [Teacher.BranchChoices.SCIENTIFIC]
+
+    def _get_attendance_branches(self, teacher, year=None):
+        qs = TeacherAttendance.objects.filter(teacher=teacher)
+        if year is not None:
+            qs = qs.filter(date__year=year)
+        branches = list(qs.values_list('branch', flat=True).distinct())
+        return branches
+
+    def _branch_label(self, branch):
+        try:
+            return Teacher.BranchChoices(branch).label
+        except Exception:
+            return branch
+
+    def _branch_title(self, branch):
+        title_map = {
+            Teacher.BranchChoices.SCIENTIFIC: 'البكالوريا العلمي',
+            Teacher.BranchChoices.LITERARY: 'البكالوريا الأدبي',
+            Teacher.BranchChoices.NINTH_GRADE: 'التاسع',
+            Teacher.BranchChoices.PREPARATORY: 'التمهيدي',
+        }
+        return title_map.get(branch, self._branch_label(branch))
+
+    def _get_labels(self):
+        return {
+            'profile_title': '\u0645\u0644\u0641 \u0627\u0644\u0623\u0633\u062a\u0627\u0630',
+            'attendance_button': '\u062d\u0636\u0648\u0631 \u0627\u0644\u0623\u0633\u062a\u0627\u0630',
+            'advance_button': '\u0633\u0644\u0641\u0629 \u062c\u062f\u064a\u062f\u0629',
+            'salary_button': '\u0625\u0636\u0627\u0641\u0629 \u0631\u0627\u062a\u0628',
+            'basic_info': '\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629',
+            'phone_number': '\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641',
+            'not_set': '\u063a\u064a\u0631 \u0645\u062d\u062f\u062f',
+            'hire_date': '\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u062a\u0639\u064a\u064a\u0646',
+            'salary_type': '\u0646\u0648\u0639 \u0627\u0644\u0631\u0627\u062a\u0628',
+            'hourly_rate_general': '\u0627\u0644\u0633\u0627\u0639\u0629 \u0627\u0644\u0639\u0627\u0645\u0629',
+            'notes': '\u0645\u0644\u0627\u062d\u0638\u0627\u062a',
+            'hourly_rate_by_branch': '\u0633\u0639\u0631 \u0627\u0644\u0633\u0627\u0639\u0629 \u062d\u0633\u0628 \u0627\u0644\u0641\u0631\u0639',
+            'no_branches': '\u0644\u0627 \u064a\u0648\u062c\u062f \u0641\u0631\u0648\u0639 \u0645\u062d\u062f\u062f\u0629',
+            'daily_attendance': '\u0627\u0644\u062d\u0636\u0648\u0631 \u0627\u0644\u064a\u0648\u0645\u064a',
+            'course_or_branch': '\u0646\u0648\u0639 \u0627\u0644\u062f\u0648\u0631\u0629/\u0627\u0644\u0641\u0631\u0639',
+            'status': '\u0627\u0644\u062d\u0627\u0644\u0629',
+            'session_count': '\u0639\u062f\u062f \u0627\u0644\u062c\u0644\u0633\u0627\u062a',
+            'half_sessions': '\u0623\u0646\u0635\u0627\u0641 \u062c\u0644\u0633\u0627\u062a',
+            'total': '\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a',
+            'wage': '\u0627\u0644\u0623\u062c\u0631',
+            'no_daily_attendance': '\u0644\u0627 \u064a\u0648\u062c\u062f \u062d\u0636\u0648\u0631 \u0645\u0633\u062c\u0644 \u0644\u0647\u0630\u0627 \u0627\u0644\u064a\u0648\u0645.',
+            'monthly_attendance_by_branch': '\u0627\u0644\u062d\u0636\u0648\u0631 \u0627\u0644\u0634\u0647\u0631\u064a \u062d\u0633\u0628 \u0627\u0644\u0641\u0631\u0639',
+            'year': '\u0627\u0644\u0633\u0646\u0629',
+            'hourly_rate': '\u0633\u0639\u0631 \u0627\u0644\u0633\u0627\u0639\u0629',
+            'month': '\u0627\u0644\u0634\u0647\u0631',
+            'due_amount': '\u0627\u0644\u0623\u062c\u0631 \u0627\u0644\u0645\u0633\u062a\u062d\u0642',
+            'no_monthly_attendance': '\u0644\u0627 \u064a\u0648\u062c\u062f \u062d\u0636\u0648\u0631 \u0634\u0647\u0631\u064a \u0645\u0633\u062c\u0644 \u0644\u0647\u0630\u0647 \u0627\u0644\u0633\u0646\u0629.',
+            'monthly_formula': '\u0627\u0644\u0623\u062c\u0631 \u0627\u0644\u0645\u0633\u062a\u062d\u0642 = \u0639\u062f\u062f \u0627\u0644\u062c\u0644\u0633\u0627\u062a \u00d7 \u0633\u0639\u0631 \u0627\u0644\u0633\u0627\u0639\u0629',
+            'advance_balance_title': '\u0631\u0635\u064a\u062f \u0633\u0644\u0641 \u0627\u0644\u0645\u062f\u0631\u0633 (\u0645\u0646 \u0645\u064a\u0632\u0627\u0646 \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629)',
+            'account': '\u0627\u0644\u062d\u0633\u0627\u0628',
+            'balance': '\u0627\u0644\u0631\u0635\u064a\u062f',
+            'no_advance_account': '\u0644\u0627 \u064a\u0648\u062c\u062f \u062d\u0633\u0627\u0628 \u0633\u0644\u0641\u0629 \u0644\u0647\u0630\u0627 \u0627\u0644\u0645\u062f\u0631\u0633.',
+            'currency': '\u0644.\u0633',
+        }
+
+    def get_branch_monthly_tables(self, teacher, year=None):
+        month_names = dict(ManualTeacherSalary.MONTH_CHOICES)
+        tables = []
+        branches = self._get_attendance_branches(teacher, year) or self._get_teacher_branches(teacher)
+        for branch in branches:
+            hourly_rate = teacher.get_hourly_rate_for_branch(branch)
+            rows = []
+            monthly_qs = TeacherAttendance.objects.filter(
+                teacher=teacher,
+                branch=branch,
+                status='present'
+            )
+            if year:
+                monthly_qs = monthly_qs.filter(date__year=year)
+
+            monthly_totals = {}
+            for att in monthly_qs:
+                key = (att.date.year, att.date.month)
+                monthly_totals[key] = monthly_totals.get(key, Decimal('0.00')) + att.total_sessions
+
+            for (year_num, month_num) in sorted(monthly_totals.keys()):
+                total_sessions = monthly_totals[(year_num, month_num)]
+                if total_sessions <= 0:
+                    continue
+                total_salary = total_sessions * (hourly_rate or Decimal('0.00'))
+                month_name = month_names.get(month_num, str(month_num))
+                rows.append({
+                    'month': month_num,
+                    'month_name': month_name,
+                    'month_label': f"{month_name} - {year_num}",
+                    'total_sessions': total_sessions,
+                    'total_salary': total_salary,
+                })
+            if rows:
+                tables.append({
+                    'branch': branch,
+                    'branch_label': self._branch_label(branch),
+                    'branch_title': self._branch_title(branch),
+                    'hourly_rate': hourly_rate,
+                    'rows': rows,
+                })
+        return tables
+
+    def get_branch_hourly_rates(self, teacher):
+        items = []
+        branches = self._get_teacher_branches(teacher)
+        for branch in branches:
+            items.append({
+                'branch': branch,
+                'branch_label': self._branch_label(branch),
+                'branch_title': self._branch_title(branch),
+                'hourly_rate': teacher.get_hourly_rate_for_branch(branch),
+            })
+        return items
 
 
 class TeacherDeleteView(LoginRequiredMixin, DeleteView):
@@ -861,175 +1244,29 @@ class TeacherDeleteView(LoginRequiredMixin, DeleteView):
 
 
 # -----------------------------
-# دفع راتب الموظف
-# -----------------------------
-class PayEmployeeSalaryView(View):
-    def post(self, request, pk):
-        employee = get_object_or_404(Employee, pk=pk)
-
-        def _sanitize_int(value, default, allowed=None):
-            if value is None:
-                return default
-            cleaned = ''.join(ch for ch in str(value) if ch.isdigit())
-            if cleaned:
-                try:
-                    numeric = int(cleaned)
-                    if allowed and numeric not in allowed:
-                        return default
-                    return numeric
-                except ValueError:
-                    pass
-            return default
-
-        year = _sanitize_int(request.POST.get('year'), timezone.now().year)
-        month = _sanitize_int(request.POST.get('month'), timezone.now().month, allowed=set(range(1, 13)))
-        return_to_profile = request.POST.get('return_to_profile')
-        manual_advance_amount = request.POST.get('manual_advance_amount', '0')
-
-        try:
-            manual_advance_amount = Decimal(str(manual_advance_amount))
-        except (ValueError, InvalidOperation):
-            manual_advance_amount = Decimal('0')
-
-        gross_salary = employee.salary or Decimal('0')
-        if gross_salary <= 0:
-            messages.error(request, 'لا يمكن حساب راتب هذا الموظف.')
-            if return_to_profile:
-                return redirect('employ:employee_profile', pk=employee.pk)
-            return redirect('accounts:employee_financial_profile', entity_type='employee', pk=employee.pk)
-
-        if employee.get_salary_status(year, month):
-            messages.warning(request, f'راتب { _employee_full_name(employee) } مسجل بالفعل لشهر {month:02d}/{year}.')
-            if return_to_profile:
-                return redirect('employ:employee_profile', pk=employee.pk)
-            return redirect('accounts:employee_financial_profile', entity_type='employee', pk=employee.pk)
-
-        display_name = _employee_full_name(employee)
-        net_salary = max(Decimal('0'), gross_salary - manual_advance_amount)
-
-        try:
-            from accounts.models import Account, JournalEntry, Transaction
-
-            salary_account = employee.get_salary_account()
-            cash_account, _ = Account.objects.get_or_create(
-                code='1210',
-                defaults={
-                    'name': 'Cash',
-                    'name_ar': 'النقدية',
-                    'account_type': 'ASSET',
-                    'is_active': True,
-                }
-            )
-
-            entry = JournalEntry.objects.create(
-                date=timezone.now().date(),
-                description=f'Employee salary - {display_name} ({month:02d}/{year})',
-                entry_type='SALARY',
-                total_amount=gross_salary,
-                created_by=request.user
-            )
-
-            # مدين: مصروف رواتب
-            Transaction.objects.create(
-                journal_entry=entry,
-                account=salary_account,
-                amount=gross_salary,
-                is_debit=True,
-                description=f'Salary expense - {display_name}'
-            )
-
-            # دائن: نقدية
-            if net_salary > 0:
-                Transaction.objects.create(
-                    journal_entry=entry,
-                    account=cash_account,
-                    amount=net_salary,
-                    is_debit=False,
-                    description=f'Cash payment - {display_name}'
-                )
-
-            # دائن: سلف الموظف (خصم)
-            if manual_advance_amount > 0:
-                from accounts.models import get_or_create_employee_advance_account
-                advance_account = get_or_create_employee_advance_account(employee)
-                Transaction.objects.create(
-                    journal_entry=entry,
-                    account=advance_account,
-                    amount=manual_advance_amount,
-                    is_debit=False,
-                    description=f'Advance deduction - {display_name}'
-                )
-
-            entry.post_entry(request.user)
-
-            # التحقق من وجود حقل employee قبل إنشاء ExpenseEntry
-            try:
-                ExpenseEntry._meta.get_field('employee')
-                ExpenseEntry.objects.create(
-                    date=timezone.now().date(),
-                    description=f'Salary - {display_name} ({month:02d}/{year})',
-                    category='SALARY',
-                    amount=gross_salary,
-                    payment_method='CASH',
-                    vendor=display_name or employee.user.get_username(),
-                    notes=f'Gross: {gross_salary}, Manual Advances: {manual_advance_amount}, Net: {net_salary}',
-                    created_by=request.user,
-                    employee=employee,
-                    journal_entry=entry
-                )
-            except FieldDoesNotExist:
-                # إذا لم يكن الحقل موجوداً، ننشئ ExpenseEntry بدون حقل employee
-                ExpenseEntry.objects.create(
-                    date=timezone.now().date(),
-                    description=f'Salary - {display_name} ({month:02d}/{year})',
-                    category='SALARY',
-                    amount=gross_salary,
-                    payment_method='CASH',
-                    vendor=display_name or employee.user.get_username(),
-                    notes=f'Gross: {gross_salary}, Manual Advances: {manual_advance_amount}, Net: {net_salary}',
-                    created_by=request.user,
-                    journal_entry=entry
-                )
-
-            messages.success(
-                request,
-                f'تم تسجيل راتب {display_name} ({month:02d}/{year}) بنجاح. '
-                f'الإجمالي: {gross_salary}, السلف: {manual_advance_amount}, الصافي: {net_salary}'
-            )
-        except Exception as e:
-            messages.error(request, f'حدث خطأ أثناء تسجيل الراتب: {e}')
-            if return_to_profile:
-                return redirect('employ:employee_profile', pk=employee.pk)
-            return redirect('accounts:employee_financial_profile', entity_type='employee', pk=employee.pk)
-
-        if return_to_profile:
-            return redirect('employ:employee_profile', pk=employee.pk)
-        return redirect('accounts:employee_financial_profile', entity_type='employee', pk=employee.pk)
-
-
-# -----------------------------
 # سلف المدرس
 # -----------------------------
 class TeacherAdvanceCreateView(LoginRequiredMixin, CreateView):
+    model = TeacherAdvance
     template_name = 'employ/teacher_advance_form.html'
     fields = ['date', 'amount', 'purpose']
+    
+    def get_queryset(self):
+        return TeacherAdvance.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['teacher'] = get_object_or_404(Teacher, pk=self.kwargs['teacher_id'])
+        context['advance'] = None
         return context
 
     def form_valid(self, form):
         teacher = get_object_or_404(Teacher, pk=self.kwargs['teacher_id'])
-
-        from accounts.models import TeacherAdvance
-        advance = TeacherAdvance.objects.create(
-            teacher=teacher,
-            date=form.cleaned_data['date'],
-            amount=form.cleaned_data['amount'],
-            purpose=form.cleaned_data['purpose'],
-            created_by=self.request.user
-        )
+        
+        advance = form.save(commit=False)
+        advance.teacher = teacher
+        advance.created_by = self.request.user
+        advance.save()
 
         try:
             advance.create_advance_journal_entry(self.request.user)
@@ -1039,12 +1276,37 @@ class TeacherAdvanceCreateView(LoginRequiredMixin, CreateView):
 
         return redirect('employ:teacher_profile', pk=teacher.pk)
 
-    def get_success_url(self):
-        return reverse('employ:teacher_profile', kwargs={'pk': self.kwargs['teacher_id']})
+
+class TeacherAdvanceUpdateView(LoginRequiredMixin, UpdateView):
+    model = TeacherAdvance
+    template_name = 'employ/teacher_advance_form.html'
+    fields = ['date', 'amount', 'purpose']
+
+    def get_queryset(self):
+        teacher = get_object_or_404(Teacher, pk=self.kwargs['teacher_id'])
+        return TeacherAdvance.objects.filter(teacher=teacher)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['teacher'] = self.object.teacher
+        context['advance'] = self.object
+        return context
+
+    def form_valid(self, form):
+        advance = form.save()
+        try:
+            advance.sync_advance_journal_entry(self.request.user)
+            messages.success(
+                self.request,
+                f'تم تحديث سلفة المدرس {advance.teacher.full_name} إلى {advance.amount} ل.س.'
+            )
+        except Exception as exc:
+            messages.error(self.request, f'حدث خطأ أثناء تحديث القيد المحاسبي: {exc}')
+
+        return redirect('employ:teacher_advance_list', teacher_id=advance.teacher.pk)
 
 
 class TeacherAdvanceListView(LoginRequiredMixin, ListView):
-    """قائمة سلف مدرس معيّن بحسب teacher_id في الـ URL"""
     template_name = 'employ/teacher_advance_list.html'
     context_object_name = 'advances'
 
@@ -1070,80 +1332,313 @@ class TeacherAdvanceListView(LoginRequiredMixin, ListView):
         return context
 
 
+def no_permission(request):
+    return render(request, "503.html", status=503)
+
+
+def require_employee_perm(permission_code):
+    def decorator(view_func):
+        def wrapper(request, *args, **kwargs):
+            # تنفيذ الكود الخاص بالصلاحية
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
 # -----------------------------
-# نظرة عامة على الشؤون المالية للموظفين
+# إدارة حسابات السلف للأساتذة
 # -----------------------------
-class EmployeeFinancialOverviewView(LoginRequiredMixin, TemplateView):
-    template_name = 'accounts/employee_financial_overview.html'
+class CreateTeacherAdvanceAccountView(View):
+    """إنشاء حساب سلفة للمدرس يدوياً فقط"""
+    
+    def post(self, request, pk):
+        teacher = get_object_or_404(Teacher, pk=pk)
+        
+        # التحقق إذا كان الحساب موجوداً
+        existing_account = teacher.get_teacher_advance_account()
+        if existing_account:
+            messages.info(request, f'حساب السلفة للمدرس {teacher.full_name} موجود بالفعل')
+            return redirect('employ:teacher_profile', pk=teacher.pk)
+        
+        # إنشاء الحساب يدوياً
+        from accounts.models import Account
+        try:
+            # كود الحساب: 121-5XXX حيث XXX هو ID المدرس
+            account_code = f"121-5{teacher.pk:03d}"
+            
+            account, created = Account.objects.get_or_create(
+                code=account_code,
+                defaults={
+                    'name': f'Teacher Advance - {teacher.full_name}',
+                    'name_ar': f'سلف أستاذ - {teacher.full_name}',
+                    'account_type': 'ASSET',
+                    'is_active': True,
+                }
+            )
+            
+            if created:
+                messages.success(request, f'تم إنشاء حساب سلفة للمدرس {teacher.full_name}: {account.code}')
+            else:
+                messages.info(request, f'حساب السلفة موجود مسبقاً: {account.code}')
+                
+        except Exception as e:
+            messages.error(request, f'خطأ في إنشاء حساب السلفة: {e}')
+        
+        return redirect('employ:teacher_profile', pk=teacher.pk)
+
+import re
+from decimal import Decimal, InvalidOperation
+# -----------------------------
+# إدارة الرواتب اليدوية
+# -----------------------------
+class AddManualSalaryView(LoginRequiredMixin, View):
+    """إضافة راتب يدوي للمدرس"""
+    
+    template_name = 'employ/add_manual_salary.html'
+    
+    def get(self, request, pk):
+        teacher = get_object_or_404(Teacher, pk=pk)
+        
+        # حساب السلف غير المسددة
+        total_advances = teacher.get_total_advances()
+        
+        # الشهور المتاحة
+        current_year = date.today().year
+        years_range = range(current_year - 5, current_year + 2)
+        selected_year = request.GET.get('year')
+        selected_month = request.GET.get('month')
+        try:
+            selected_year = int(selected_year) if selected_year else date.today().year
+        except (TypeError, ValueError):
+            selected_year = date.today().year
+        try:
+            selected_month = int(selected_month) if selected_month else date.today().month
+        except (TypeError, ValueError):
+            selected_month = date.today().month
+        if selected_month < 1 or selected_month > 12:
+            selected_month = date.today().month
+        auto_gross_salary = teacher.calculate_monthly_salary(selected_year, selected_month)
+        
+        context = {
+            'teacher': teacher,
+            'total_advances': total_advances,
+            'years_range': years_range,
+            'today': date.today(),
+            'selected_year': selected_year,
+            'selected_month': selected_month,
+            'auto_gross_salary': auto_gross_salary,
+        }
+        return render(request, self.template_name, context)
+    
+    def post(self, request, pk):
+        teacher = get_object_or_404(Teacher, pk=pk)
+        
+        # **1. تحقق من السنة والشهر بشكل آمن**
+        try:
+            year_str = request.POST.get('year', '').strip()
+            month_str = request.POST.get('month', '').strip()
+            
+            # إذا كانت فارغة، استخدم القيم الحالية
+            if not year_str or not year_str.isdigit():
+                year = date.today().year
+            else:
+                year = int(year_str)
+            
+            if not month_str or not month_str.isdigit():
+                month = date.today().month
+            else:
+                month = int(month_str)
+                
+            # تأكد من أن الشهر بين 1 و 12
+            if month < 1 or month > 12:
+                month = date.today().month
+                
+        except:
+            # إذا فشل كل شيء، استخدم التاريخ الحالي
+            today = date.today()
+            year = today.year
+            month = today.month
+        
+        # **2. الحصول على القيم المالية**
+        gross_salary_str = request.POST.get('gross_salary', '').strip()
+        advance_deduction_str = request.POST.get('advance_deduction', '0').strip()
+        notes = request.POST.get('notes', '')
+        auto_salary = request.POST.get('auto_salary') == '1'
+        
+        # **3. التحقق من وجود راتب لنفس الشهر**
+        existing = ManualTeacherSalary.objects.filter(
+            teacher=teacher, year=year, month=month
+        ).exists()
+        
+        if existing:
+            messages.error(request, f'❌ تم إضافة راتب لهذا الشهر مسبقاً!')
+            return redirect('employ:add_manual_salary', pk=teacher.pk)
+        
+        # **4. التحقق من الراتب الإجمالي**
+        if auto_salary:
+            gross_salary = teacher.calculate_monthly_salary(year, month)
+        elif not gross_salary_str:
+            messages.error(request, '❌ يجب إدخال قيمة للراتب الإجمالي')
+            return redirect('employ:add_manual_salary', pk=teacher.pk)
+        else:
+            gross_salary = None
+        
+        # **5. محاولة تحويل الراتب إلى رقم**
+        try:
+            # تنظيف النص
+            advance_clean = advance_deduction_str.replace(',', '').replace(' ', '')
+            
+            # تحويل إلى Decimal
+            if gross_salary is None:
+                gross_clean = gross_salary_str.replace(',', '').replace(' ', '')
+                gross_salary = Decimal(gross_clean)
+            advance_deduction = Decimal(advance_clean) if advance_clean else Decimal('0')
+            
+        except:
+            messages.error(request, '❌ قيمة الراتب غير صحيحة. استخدم أرقاماً فقط')
+            return redirect('employ:add_manual_salary', pk=teacher.pk)
+        
+        # **6. التحقق من أن الراتب أكبر من الصفر**
+        if gross_salary <= 0:
+            messages.error(request, '❌ يجب أن يكون الراتب أكبر من صفر')
+            return redirect('employ:add_manual_salary', pk=teacher.pk)
+        
+        # **7. حساب الصافي وإنشاء الراتب**
+        net_salary = gross_salary - advance_deduction
+        
+        try:
+            salary = ManualTeacherSalary.objects.create(
+                teacher=teacher,
+                year=year,
+                month=month,
+                gross_salary=gross_salary,
+                advance_deduction=advance_deduction,
+                net_salary=net_salary,
+                notes=notes,
+                created_by=request.user
+            )
+            
+            messages.success(request, f'✅ تم إضافة راتب شهر {month}/{year} للمدرس {teacher.full_name}')
+            return redirect('employ:teacher_profile', pk=teacher.pk)
+            
+        except Exception as e:
+            messages.error(request, f'❌ خطأ في الحفظ: {str(e)}')
+            return redirect('employ:add_manual_salary', pk=teacher.pk)
+        
+class EditManualSalaryView(LoginRequiredMixin, View):
+    """تعديل راتب يدوي"""
+    
+    template_name = 'employ/edit_manual_salary.html'
+    
+    def get(self, request, pk):
+        salary = get_object_or_404(ManualTeacherSalary, pk=pk)
+        
+        # التحقق من صلاحية التعديل (غير مدفوع)
+        if salary.is_paid:
+            messages.error(request, 'لا يمكن تعديل راتب تم دفعه')
+            return redirect('employ:teacher_profile', pk=salary.teacher.pk)
+        
+        # حساب السلف غير المسددة
+        total_advances = salary.teacher.get_total_advances(salary.year, salary.month)
+        
+        context = {
+            'salary': salary,
+            'teacher': salary.teacher,
+            'total_advances': total_advances,
+        }
+        return render(request, self.template_name, context)
+    
+    def post(self, request, pk):
+        salary = get_object_or_404(ManualTeacherSalary, pk=pk)
+        
+        # التحقق من صلاحية التعديل
+        if salary.is_paid:
+            messages.error(request, 'لا يمكن تعديل راتب تم دفعه')
+            return redirect('employ:teacher_profile', pk=salary.teacher.pk)
+        
+        try:
+            gross_salary = Decimal(request.POST.get('gross_salary', '0'))
+            advance_deduction = Decimal(request.POST.get('advance_deduction', '0'))
+            notes = request.POST.get('notes', '')
+            
+            # التحقق من عدم تجاوز خصم السلف
+            if advance_deduction > gross_salary:
+                messages.error(request, 'لا يمكن أن يتجاوز خصم السلف قيمة الراتب الإجمالي')
+                return redirect('employ:edit_manual_salary', pk=salary.pk)
+            
+            # تحديث الراتب
+            salary.gross_salary = gross_salary
+            salary.advance_deduction = advance_deduction
+            salary.notes = notes
+            salary.save()
+            
+            messages.success(request, 'تم تعديل الراتب بنجاح')
+            return redirect('employ:teacher_profile', pk=salary.teacher.pk)
+            
+        except Exception as e:
+            messages.error(request, f'خطأ في تعديل الراتب: {e}')
+            return redirect('employ:edit_manual_salary', pk=salary.pk)
+
+
+class PayManualSalaryView(LoginRequiredMixin, View):
+    """دفع راتب يدوي"""
+    
+    def post(self, request, pk):
+        salary = get_object_or_404(ManualTeacherSalary, pk=pk)
+        
+        # التحقق من عدم دفعه مسبقاً
+        if salary.is_paid:
+            messages.warning(request, 'هذا الراتب مدفوع مسبقاً')
+            return redirect('employ:teacher_profile', pk=salary.teacher.pk)
+        
+        try:
+            # تسجيل الدفع فقط
+            salary.is_paid = True
+            salary.paid_date = timezone.now().date()
+            salary.save()
+            
+            # تحديث حالة السلف إذا كان هناك خصم
+            if salary.advance_deduction > 0:
+                from accounts.models import TeacherAdvance
+                # تحديث السلف القديمة لهذا الشهر
+                advances = TeacherAdvance.objects.filter(
+                    teacher=salary.teacher,
+                    date__year=salary.year,
+                    date__month=salary.month,
+                    is_repaid=False
+                ).order_by('date')
+                
+                remaining_deduction = salary.advance_deduction
+                for advance in advances:
+                    if remaining_deduction <= 0:
+                        break
+                    
+                    if advance.outstanding_amount <= remaining_deduction:
+                        advance.is_repaid = True
+                        advance.repaid_amount = advance.outstanding_amount
+                        remaining_deduction -= advance.outstanding_amount
+                    else:
+                        advance.repaid_amount += remaining_deduction
+                        remaining_deduction = Decimal('0')
+                    
+                    advance.save()
+            
+            messages.success(request, f'تم دفع راتب شهر {salary.get_month_display()} {salary.year} للمدرس {salary.teacher.full_name}')
+            
+        except Exception as e:
+            messages.error(request, f'خطأ في عملية الدفع: {e}')
+        
+        return redirect('employ:teacher_profile', pk=salary.teacher.pk)
+
+
+class ViewManualSalaryView(LoginRequiredMixin, DetailView):
+    """عرض تفاصيل راتب يدوي"""
+    
+    model = ManualTeacherSalary
+    template_name = 'employ/view_manual_salary.html'
+    context_object_name = 'salary'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        from employ.models import Employee, Teacher
-        
-        # Get employee data
-        employees = Employee.objects.select_related('user').all()
-        employee_rows = []
-        
-        for employee in employees:
-            # Get salary payments (guard field existence)
-            try:
-                ExpenseEntry._meta.get_field('employee')
-                salary_payments = ExpenseEntry.objects.filter(employee=employee).order_by('-date')
-            except FieldDoesNotExist:
-                salary_payments = ExpenseEntry.objects.none()
-            last_payment = salary_payments.first()
-            total_paid = salary_payments.aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            
-            # Get outstanding advances
-            outstanding_advances = EmployeeAdvance.objects.filter(
-                employee=employee, is_repaid=False
-            ).aggregate(total=Sum('outstanding_amount'))['total'] or Decimal('0')
-            
-            employee_rows.append({
-                'employee': employee,
-                'display_name': _employee_full_name(employee),
-                'position': employee.get_position_display(),
-                'monthly_salary': employee.salary,
-                'total_paid': total_paid,
-                'outstanding_advances': outstanding_advances,
-                'last_payment': last_payment,
-                'detail_url': reverse('accounts:employee_financial_profile', kwargs={'entity_type': 'employee', 'pk': employee.pk})
-            })
-        
-        # Get teacher data
-        teachers = Teacher.objects.all()
-        teacher_rows = []
-        
-        for teacher in teachers:
-            # Get salary payments (guard field existence)
-            try:
-                ExpenseEntry._meta.get_field('teacher')
-                salary_payments = ExpenseEntry.objects.filter(teacher=teacher).order_by('-date')
-            except FieldDoesNotExist:
-                salary_payments = ExpenseEntry.objects.none()
-            last_payment = salary_payments.first()
-            total_paid = salary_payments.aggregate(total=Sum('amount'))['total'] or Decimal('0')
-            
-            teacher_rows.append({
-                'teacher': teacher,
-                'display_name': teacher.full_name,
-                'monthly_salary': teacher.calculate_monthly_salary(),
-                'total_paid': total_paid,
-                'last_payment': last_payment,
-                'detail_url': reverse('accounts:employee_financial_profile', kwargs={'entity_type': 'teacher', 'pk': teacher.pk})
-            })
-
-        context.update({
-            'employee_rows': employee_rows,
-            'teacher_rows': teacher_rows,
-            'total_employees': len(employee_rows),
-            'total_teachers': len(teacher_rows),
-        })
-        
+        context['teacher'] = self.object.teacher
         return context
-
-
-def no_permission(request):
-    # يستخدم للروابط المعروضة بدون إذن: يفتح 503 مباشرة
-    return render(request, "503.html", status=503)

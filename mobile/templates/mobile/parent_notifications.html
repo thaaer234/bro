@@ -1,0 +1,78 @@
+﻿{% extends "mobile/parent_base.html" %}
+
+{% block extra_css %}
+<style>
+  .list-item.unread {
+    border-right: 4px solid var(--accent);
+    background: rgba(249, 115, 22, 0.08);
+  }
+
+  .notification-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .status-present {
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+  }
+
+  .status-absent {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .status-late {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card reveal">
+  <div class="section-title">
+    <i class="fas fa-bell"></i>
+    الإشعارات
+  </div>
+  <div class="list">
+    {% for notification in notifications %}
+    <div class="list-item {% if not notification.is_read %}unread{% endif %}">
+      <div class="notification-head">
+        <h4>{{ notification.title }}</h4>
+        {% if notification.notification_type == "attendance" %}
+          {% if "غائب" in notification.message %}
+          <span class="status-chip status-absent">✖ غائب</span>
+          {% elif "حاضر" in notification.message %}
+          <span class="status-chip status-present">✔ حاضر</span>
+          {% elif "متأخر" in notification.message %}
+          <span class="status-chip status-late">⏱ متأخر</span>
+          {% endif %}
+        {% endif %}
+      </div>
+      <p>{{ notification.message|truncatechars:140 }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد إشعارات حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

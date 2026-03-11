@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-calendar-plus"></i></div>
+            <div>
+                <h1 class="page-title">إضافة فصل دراسي جديد</h1>
+                <p class="page-subtitle">املأ البيانات أدناه لإضافة فصل دراسي جديد</p>
+            </div>
+        </div>
+        <a href="{% url 'quick:academic_year_list' %}" class="btn btn--ghost">
+            <i class="fas fa-arrow-right"></i>
+            <span>العودة للقائمة</span>
+        </a>
+    </div>
+
+    <div class="card">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="grid">
+                <div class="field">
+                    <label class="label" for="{{ form.name.id_for_label }}">اسم الفصل الدراسي</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-tag"></i>
+                        {{ form.name|add_class:"input" }}
+                    </div>
+                    {% if form.name.errors %}
+                    <div class="field__error">{{ form.name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.year.id_for_label }}">السنة الدراسية</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-calendar"></i>
+                        {{ form.year|add_class:"input"|attr:"placeholder:مثال: 2024-2025" }}
+                    </div>
+                    {% if form.year.errors %}
+                    <div class="field__error">{{ form.year.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.start_date.id_for_label }}">تاريخ البدء</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-play-circle"></i>
+                        {{ form.start_date|add_class:"input"|attr:"type:date" }}
+                    </div>
+                    {% if form.start_date.errors %}
+                    <div class="field__error">{{ form.start_date.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.end_date.id_for_label }}">تاريخ الانتهاء</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-stop-circle"></i>
+                        {{ form.end_date|add_class:"input"|attr:"type:date" }}
+                    </div>
+                    {% if form.end_date.errors %}
+                    <div class="field__error">{{ form.end_date.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.is_active.id_for_label }}">
+                        {{ form.is_active }} نشط
+                    </label>
+                    {% if form.is_active.errors %}
+                    <div class="field__error">{{ form.is_active.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn--primary">
+                    <i class="fas fa-save"></i> حفظ الفصل الدراسي
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

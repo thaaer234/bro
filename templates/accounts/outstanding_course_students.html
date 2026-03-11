@@ -1,58 +1,674 @@
 {% extends 'accounts/base.html' %}
 
-
 {% load emp_perms %}
-{% block title %}ذمم الطلاب للدورة / Course Outstanding{% endblock %}
+{% block title %}طلاب الدورة / Course Students{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>ذمم الطلاب - {{ course.name }}{% if course.name_ar %} / {{ course.name_ar }}{% endif %}</h2>
-    <a href="{% url 'accounts:outstanding_courses' %}" class="btn btn-secondary">رجوع / Back</a>
-</div>
+<style>
+/* ===== أنماط خرافية موحدة لتقارير المتبقي ===== */
+:root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --info-gradient: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
+    --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    --secondary-gradient: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+}
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'accounts:reports' %}">التقارير / Reports</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'accounts:outstanding_courses' %}">الدورات غير المسددة / Outstanding Courses</a></li>
-        <li class="breadcrumb-item active">الطلاب / Students</li>
-    </ol>
+.report-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.report-card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.reports-table {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    background: white;
+    font-size: 0.85rem;
+}
+
+.reports-table .table {
+    margin-bottom: 0;
+    font-size: 0.85rem;
+}
+
+.reports-table .table > :not(caption) > * > * {
+    padding: 10px 12px;
+    vertical-align: middle;
+    font-size: 0.85rem;
+}
+
+.reports-table .table-hover tbody tr {
+    transition: all 0.2s ease;
+}
+
+.reports-table .table-hover tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.08) !important;
+    transform: scale(1.002);
+}
+
+.table-header-custom {
+    background: var(--dark-gradient) !important;
+    border-bottom: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.table-header-custom th {
+    padding: 14px 12px;
+    border: none;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.stats-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .card-body {
+    padding: 18px;
+    position: relative;
+}
+
+.stats-card .card-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.stats-card .card-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-card .card-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.breadcrumb-custom {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 10px;
+    padding: 10px 18px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+}
+
+.breadcrumb-custom .breadcrumb-item a {
+    color: #4a5568;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.breadcrumb-custom .breadcrumb-item a:hover {
+    color: #667eea;
+}
+
+.breadcrumb-custom .breadcrumb-item.active {
+    color: #2d3748;
+    font-weight: 600;
+}
+
+.btn-report {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+    font-size: 0.8rem;
+    border: none;
+    letter-spacing: 0.3px;
+}
+
+.btn-report:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.alert-report {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    font-size: 0.85rem;
+    background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+    border-left: 4px solid #38b2ac;
+}
+
+.amount-cell {
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.amount-positive {
+    color: #38a169;
+    background: rgba(72, 187, 120, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.amount-warning {
+    color: #d69e2e;
+    background: rgba(246, 173, 85, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.amount-danger {
+    color: #e53e3e;
+    background: rgba(245, 101, 101, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.status-badge {
+    font-size: 0.7rem;
+    padding: 5px 9px;
+    border-radius: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table-row-paid {
+    background: linear-gradient(135deg, rgba(72, 187, 120, 0.03) 0%, rgba(56, 161, 105, 0.03) 100%) !important;
+    border-left: 3px solid #38a169;
+}
+
+.table-row-outstanding {
+    background: linear-gradient(135deg, rgba(246, 173, 85, 0.03) 0%, rgba(237, 137, 54, 0.03) 100%) !important;
+    border-left: 3px solid #d69e2e;
+}
+
+.table-row-no-receipts {
+    background: linear-gradient(135deg, rgba(245, 101, 101, 0.03) 0%, rgba(229, 62, 62, 0.03) 100%) !important;
+    border-left: 3px solid #e53e3e;
+}
+.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+.sortable .sort-icon {
+    margin-right: 6px;
+    opacity: 0.7;
+    font-size: 0.75rem;
+}
+
+/* تدرجات الألوان الخرافية */
+.bg-primary { background: var(--primary-gradient) !important; }
+.bg-success { background: var(--success-gradient) !important; }
+.bg-warning { background: var(--warning-gradient) !important; }
+.bg-info { background: var(--info-gradient) !important; }
+.bg-secondary { background: var(--secondary-gradient) !important; }
+
+/* تأثيرات خاصة للرؤوس */
+h2 {
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 0;
+}
+
+/* تحسينات للجدول */
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table tbody tr td {
+    border-color: #f7fafc;
+    font-size: 0.85rem;
+}
+
+/* تحسينات للبطاقات */
+.card-header {
+    background: var(--primary-gradient);
+    border-bottom: none;
+    padding: 14px 18px;
+    font-size: 0.9rem;
+}
+
+.card-header h5 {
+    margin-bottom: 0;
+    font-weight: 600;
+    color: white;
+}
+
+/* تأثيرات للزر المحدد */
+.btn-group .btn.active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* تحسينات للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .stats-card .card-text {
+        font-size: 1.3rem;
+    }
     
-</nav>
+    .reports-table .table > :not(caption) > * > * {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .btn-report {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+    }
+    
+    .stats-card .card-body {
+        padding: 15px;
+    }
+    
+    h2 {
+        font-size: 1.3rem;
+    }
+}
 
-<div class="table-container">
-    {% if student_data %}
-        <div class="table-responsive">
-            <table class="table table-bordered">
-                <thead class="table-dark">
-                    <tr>
-                        <th>الطالب / Student</th>
-                        <th class="text-end">سعر الدورة / Course Price</th>
-                        <th class="text-end">الصافي المستحق / Net Due</th>
-                        <th class="text-end">المدفوع / Paid</th>
-                        <th class="text-end">المتبقي / Remaining</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in student_data %}
-                    <tr>
-                        <td>{{ row.student.full_name }}</td>
-                        <td class="text-end">{{ row.course_price|floatformat:2 }}</td>
-                        <td class="text-end">{{ row.net_due|floatformat:2 }}</td>
-                        <td class="text-end">{{ row.paid_total|floatformat:2 }}</td>
-                        <td class="text-end fw-bold">{{ row.remaining|floatformat:2 }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+/* تأثيرات إضافية */
+.container-fluid {
+    background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+/* تحسينات للأيقونات */
+.fas, .fab {
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+}
+
+/* تأثيرات للروابط */
+a {
+    transition: all 0.2s ease;
+}
+
+a:hover {
+    transform: translateY(-1px);
+}
+
+/* تخصيص الشارات */
+.badge {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+}
+
+/* تحسين تذييل الجدول */
+.table-secondary {
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
+    font-size: 0.85rem;
+}
+
+/* تأثيرات للزر المنسحب */
+.btn-warning {
+    background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+    border: none;
+    color: white;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    border: none;
+    color: white;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
+    border: none;
+    color: white;
+}
+</style>
+
+<div class="container-fluid">
+    <!-- الرأس المحسن -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>جميع طلاب الدورة - {{ course.name }}{% if course.name_ar %} / {{ course.name_ar }}{% endif %}</h2>
+        <div>
+            <a href="{% url 'accounts:outstanding_students_by_classroom' %}" class="btn btn-info me-2 btn-report">
+                <i class="fas fa-users me-1"></i> عرض حسب الشعبة
+            </a>
+            <a href="{% url 'accounts:outstanding_courses' %}" class="btn btn-secondary btn-report">
+                <i class="fas fa-arrow-left me-1"></i> رجوع
+            </a>
         </div>
-    {% else %}
-        <div class="text-center text-muted py-5">
-            <i class="fas fa-user-graduate fa-3x mb-3"></i>
-            <h4>لا يوجد طلاب بذمم / No outstanding students</h4>
+    </div>
+
+    <!-- إزالة معلومات التصحيح إذا لم تكن ضرورية -->
+    {% if debug_info %}
+    <div class="alert alert-dark report-card mb-4">
+        <h6 class="mb-3"><i class="fas fa-bug me-2"></i>معلومات التصحيح / Debug Info:</h6>
+        <div class="row text-center">
+            <div class="col-md-3">
+                <small class="text-muted">من التسجيلات</small>
+                <div class="fw-bold">{{ debug_info.from_enrollments }}</div>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">من الإيصالات</small>
+                <div class="fw-bold">{{ debug_info.from_receipts }}</div>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">من الملف الشخصي</small>
+                <div class="fw-bold">{{ debug_info.from_profile }}</div>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">جميع النشطين</small>
+                <div class="fw-bold">{{ debug_info.all_active }}</div>
+            </div>
         </div>
+    </div>
     {% endif %}
+
+    <!-- مسار التنقل المحسن -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb breadcrumb-custom">
+            <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="fas fa-tachometer-alt me-1"></i>لوحة التحكم</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'accounts:reports' %}"><i class="fas fa-chart-bar me-1"></i>التقارير</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'accounts:outstanding_courses' %}"><i class="fas fa-book me-1"></i>الدورات</a></li>
+            <li class="breadcrumb-item active"><i class="fas fa-users me-1"></i>جميع الطلاب</li>
+        </ol>
+    </nav>
+
+    <!-- إحصائيات سريعة محسنة -->
+    <div class="row mb-4">
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-primary stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">إجمالي الطلاب</h5>
+                    <h3 class="card-text">{{ all_students_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-info stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-mars fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">الذكور</h5>
+                    <h3 class="card-text">{{ male_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-success stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-venus fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">الإناث</h5>
+                    <h3 class="card-text">{{ female_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-success stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">مسددين</h5>
+                    <h3 class="card-text">{{ fully_paid_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 mb-3">
+            <div class="card text-white bg-warning stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">غير مسددين</h5>
+                    <h3 class="card-text">{{ outstanding_count }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-info stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">بدون إيصالات</h5>
+                    <h3 class="card-text">{{ students_without_receipts }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-secondary stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-eye fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">الطلاب المعروضين</h5>
+                    <h3 class="card-text">{{ total_students }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- معلومات الفلتر المحسنة -->
+    <div class="alert alert-info alert-report mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-filter fa-lg me-3"></i>
+            <div>
+                <strong class="d-block mb-1">عرض:</strong>
+                {% if current_filter == 'all' %}
+                    جميع الطلاب المسجلين في الدورة ({{ total_students }} طالب)
+                {% elif current_filter == 'paid' %}
+                    الطلاب المسددين بالكامل فقط ({{ total_students }} طالب)
+                {% else %}
+                    الطلاب الذين لديهم ذمم متبقية فقط ({{ total_students }} طالب)
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- الجدول المحسن -->
+    <div class="table-container">
+        {% if student_data %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover reports-table" id="accountsStudentsTable">
+                    <thead class="table-dark table-header-custom">
+                        <tr>
+                            <th width="40">#</th>
+                            <th class="sortable" data-sort="name">
+                                <i class="fas fa-sort sort-icon"></i>الطالب / Student
+                            </th>
+                            <th>الشعبة / Classroom</th>
+                            <th class="text-end" width="120">سعر الدورة</th>
+                            <th class="text-end" width="120">الصافي المستحق</th>
+                            <th class="text-end" width="120">المدفوع</th>
+                            <th class="text-end" width="120">المتبقي</th>
+                            <th class="text-center" width="100">الحالة</th>
+                            <th class="text-center" width="120">ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in student_data %}
+                        <tr class="{% if row.is_fully_paid %}table-row-paid{% elif not row.has_receipts %}table-row-no-receipts{% elif row.remaining > 0 %}table-row-outstanding{% endif %}">
+                            <td class="text-muted fw-bold">{{ forloop.counter }}</td>
+                            <td data-sort-name="1">
+                                <a href="{% url 'students:student_profile' row.student.id %}" class="text-decoration-none fw-bold d-block">
+                                    {{ row.student.full_name }}
+                                </a>
+                                {% if row.student.phone %}
+                                <small class="text-muted">{{ row.student.phone }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% with classroom=row.student.current_classroom %}
+                                    {% if classroom %}
+                                        <span class="badge bg-primary status-badge">{{ classroom.name }}</span>
+                                        <small class="text-muted d-block mt-1">{{ classroom.get_branches_display }}</small>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark status-badge">غير منضم</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td class="text-end amount-cell">{{ row.course_price|floatformat:2 }}</td>
+                            <td class="text-end amount-cell">{{ row.net_due|floatformat:2 }}</td>
+                            <td class="text-end amount-cell">{{ row.paid_total|floatformat:2 }}</td>
+                            <td class="text-end fw-bold">
+                                <span class="amount-cell {% if row.remaining == 0 %}amount-positive{% elif row.remaining > 0 %}amount-warning{% else %}amount-danger{% endif %}">
+                                    {{ row.remaining|floatformat:2 }} ل.س
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {% if row.is_fully_paid %}
+                                    {% if row.is_free %}
+                                        <span class="badge bg-info status-badge">
+                                            <i class="fas fa-gift me-1"></i>
+                                            مجاني
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success status-badge">
+                                            <i class="fas fa-check-circle me-1"></i>
+                                            مسدد
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-warning status-badge">
+                                        <i class="fas fa-clock me-1"></i>
+                                        غير مسدد
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if not row.has_receipts and not row.is_free %}
+                                    <span class="badge bg-danger status-badge">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        بدون إيصالات
+                                    </span>
+                                {% elif row.is_free %}
+                                    <span class="badge bg-secondary status-badge">
+                                        <i class="fas fa-gift me-1"></i>
+                                        مجاني
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success status-badge">
+                                        <i class="fas fa-receipt me-1"></i>
+                                        لديه إيصالات
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-start">الإجمالي / Total</td>
+                            <td class="text-end amount-cell">{{ total_net_due|floatformat:2 }} ل.س</td>
+                            <td class="text-end amount-cell">{{ total_paid|floatformat:2 }} ل.س</td>
+                            <td class="text-end amount-cell">{{ total_remaining|floatformat:2 }} ل.س</td>
+                            <td class="text-center">-</td>
+                            <td class="text-center">-</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-user-graduate fa-4x mb-3 opacity-50"></i>
+                <h4 class="fw-light">لا يوجد طلاب مسجلين في هذه الدورة</h4>
+                <p class="text-muted">No students enrolled in this course</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- فلتر الطلاب المحسن -->
+    <div class="card mt-4 report-card">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>فلتر الطلاب / Filter Students</h5>
+        </div>
+        <div class="card-body">
+            <div class="btn-group btn-group-sm" role="group">
+                <a href="?filter=all" class="btn {% if current_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %} btn-report">
+                    <i class="fas fa-users me-1"></i> جميع الطلاب
+                </a>
+                <a href="?filter=paid" class="btn {% if current_filter == 'paid' %}btn-success{% else %}btn-outline-success{% endif %} btn-report">
+                    <i class="fas fa-check-circle me-1"></i> المسددين فقط
+                </a>
+                <a href="?filter=outstanding" class="btn {% if current_filter == 'outstanding' %}btn-warning{% else %}btn-outline-warning{% endif %} btn-report">
+                    <i class="fas fa-clock me-1"></i> غير المسددين
+                </a>
+            </div>
+            
+            <div class="mt-3 pt-3 border-top">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    إجمالي الطلاب المسجلين في الدورة: <strong>{{ all_students_count }}</strong> طالب | 
+                    بدون إيصالات: <strong>{{ students_without_receipts }}</strong> طالب
+                </small>
+            </div>
+        </div>
+    </div>
 </div>
 
-{% endblock %}
+<script>
+(function () {
+    const table = document.getElementById('accountsStudentsTable');
+    if (!table) return;
 
+    const nameHeader = table.querySelector('th[data-sort="name"]');
+    const tbody = table.querySelector('tbody');
+    if (!nameHeader || !tbody) return;
+
+    const normalize = (value) => (value || '').toString().trim().toLowerCase();
+
+    nameHeader.addEventListener('click', () => {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const currentDir = nameHeader.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+
+        rows.sort((a, b) => {
+            const aCell = a.querySelector('[data-sort-name]');
+            const bCell = b.querySelector('[data-sort-name]');
+            const aText = normalize(aCell ? aCell.textContent : '');
+            const bText = normalize(bCell ? bCell.textContent : '');
+            if (aText < bText) return currentDir === 'asc' ? -1 : 1;
+            if (aText > bText) return currentDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        rows.forEach((row, idx) => {
+            const indexCell = row.querySelector('td');
+            if (indexCell) {
+                indexCell.textContent = idx + 1;
+            }
+            tbody.appendChild(row);
+        });
+
+        nameHeader.dataset.sortDir = currentDir;
+    });
+})();
+</script>
+{% endblock %}

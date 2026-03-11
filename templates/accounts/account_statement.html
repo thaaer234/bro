@@ -1,0 +1,178 @@
+{% extends 'accounts/base.html' %}
+
+{% load emp_perms %}
+{% block title %}كشف حساب مالي{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>كشف حساب مالي</h2>
+    {% if account_obj %}
+    <div class="d-flex gap-2">
+        <a href="{% url 'accounts:account_statement_export' %}?account_code={{ account_obj.code }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> تصدير Excel
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-secondary">
+            <i class="fas fa-print"></i> طباعة
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts:reports' %}">التقارير</a></li>
+        <li class="breadcrumb-item active">كشف حساب مالي</li>
+    </ol>
+</nav>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">اختر الحساب</label>
+                <input list="account-codes" class="form-control" name="account_code" value="{{ account_code }}" placeholder="كود الحساب">
+                <datalist id="account-codes">
+                    {% for acc in accounts_list %}
+                    <option value="{{ acc.code }}">{{ acc.code }} - {{ acc.display_name }}</option>
+                    {% endfor %}
+                </datalist>
+                <small class="text-muted">يعرض عمليات الحساب والأبناء.</small>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">من تاريخ</label>
+                <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">إلى تاريخ</label>
+                <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-primary">
+                    <i class="fas fa-search"></i> عرض
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if account_obj and statement_data %}
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="mb-0">{{ account_obj.code }} - {{ account_obj.display_name }}</h4>
+                <p class="text-muted mb-0">
+                    نوع الحساب: {{ account_obj.get_account_type_display }}
+                    {% if start_date or end_date %}
+                        | الفترة: {{ start_date|default:"..." }} - {{ end_date|default:"..." }}
+                    {% endif %}
+                </p>
+            </div>
+            <span class="badge bg-secondary">يشمل الحسابات الفرعية</span>
+        </div>
+
+        <div class="row text-center g-3">
+            <div class="col-md-3">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="text-muted">رصيد افتتاحي</h6>
+                    <div class="fs-5 fw-bold">{{ statement_data.opening_balance|floatformat:2 }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="text-muted">إجمالي مدين</h6>
+                    <div class="fs-5 fw-bold text-success">{{ statement_data.total_debit|floatformat:2 }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="text-muted">إجمالي دائن</h6>
+                    <div class="fs-5 fw-bold text-danger">{{ statement_data.total_credit|floatformat:2 }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="text-muted">رصيد ختامي</h6>
+                    <div class="fs-5 fw-bold text-primary">{{ statement_data.closing_balance|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>المرجع</th>
+                        <th>الحساب</th>
+                        <th>الوصف</th>
+                        <th class="text-center">مدين</th>
+                        <th class="text-center">دائن</th>
+                        <th class="text-center">الرصيد المتحرك</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="table-light">
+                        <td colspan="6"><strong>رصيد افتتاحي</strong></td>
+                        <td class="text-center"><strong>{{ statement_data.opening_balance|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% for item in statement_data.rows %}
+                    <tr>
+                        <td>{{ item.transaction.journal_entry.date }}</td>
+                        <td>
+                            <a href="{{ item.transaction.journal_entry.get_absolute_url }}" class="text-decoration-none">
+                                {{ item.transaction.journal_entry.reference }}
+                            </a>
+                        </td>
+                        <td>{{ item.account_code }} - {{ item.account_name }}</td>
+                        <td>{{ item.transaction.description|default:item.transaction.journal_entry.description }}</td>
+                        <td class="text-center">
+                            {% if item.transaction.is_debit %}
+                                <strong class="text-success">{{ item.transaction.amount|floatformat:2 }}</strong>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if not item.transaction.is_debit %}
+                                <strong class="text-danger">{{ item.transaction.amount|floatformat:2 }}</strong>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-center"><strong>{{ item.running_balance|floatformat:2 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-dark">
+                    <tr>
+                        <th colspan="4">الإجماليات</th>
+                        <th class="text-center">{{ statement_data.total_debit|floatformat:2 }}</th>
+                        <th class="text-center">{{ statement_data.total_credit|floatformat:2 }}</th>
+                        <th class="text-center">{{ statement_data.closing_balance|floatformat:2 }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% elif account_code %}
+<div class="alert alert-warning">
+    لم يتم العثور على بيانات لهذا الحساب أو الفترة.
+</div>
+{% endif %}
+
+<style>
+    @media print {
+        .sidebar, .breadcrumb, .btn, nav, form {
+            display: none !important;
+        }
+        .main-content {
+            margin-right: 0 !important;
+        }
+        body { font-size: 12px; }
+        .table th, .table td { padding: 0.5rem !important; }
+    }
+</style>
+{% endblock %}

@@ -1,6 +1,15 @@
 /* ملف style.css */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
 
+/* Custom font: Cocon Next Arabic */
+@font-face {
+    font-family: 'Cocon Next Arabic';
+    src: url('../font/Cocon_%20Next%20Arabic-Bold.otf') format('opentype');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* المتغيرات العامة */
 :root {
     --primary-color: #3498db;
@@ -33,7 +42,7 @@ html {
 }
 
 body {
-    font-family: 'Tajawal', sans-serif;
+    font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', sans-serif;
     background-image: url('../img/back.png');
     color: var(--black);
     direction: rtl;

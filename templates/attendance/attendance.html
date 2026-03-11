@@ -6,12 +6,68 @@
 <div class="module-header">
     <h2>سجل الحضور</h2>
     <div class="header-actions">
-        <a href="{% url 'attendance:take_attendance' %}" class="btn btn-primary">
-            <i class="fas fa-clipboard-check"></i> تسجيل حضور جديد
-        </a>
+    <a href="{% url 'attendance:take_students_attendance' %}" class="btn btn-primary">
+        <i class="fas fa-clipboard-check"></i> تسجيل حضور طلاب
+    </a>
+    {% if user.is_superuser %}
+    <a href="{% url 'attendance:attendance_tools' %}" class="btn btn-outline-primary">
+        <i class="fas fa-tools"></i> اداة تصحيح الحضور والاشعارات
+    </a>
+{% endif %}
     </div>
 </div>
 {% include "partials/_alerts.html" %}
+
+{% if months %}
+<div class="archive-section" style="margin: 16px 0;">
+    <h4 style="margin-bottom: 12px;">أرشيف الحضور حسب الشهر</h4>
+    <div class="archive-list" style="display:flex; flex-wrap:wrap; gap:8px;">
+        <a href="?{% if filters.branch %}branch={{ filters.branch }}&{% endif %}{% if filters.classroom %}classroom={{ filters.classroom }}&{% endif %}{% if filters.q %}q={{ filters.q }}{% endif %}"
+           class="btn btn-sm btn-outline-primary">
+            كل الشهور
+        </a>
+        {% for month in months %}
+            {% with month_value=month|date:"Y-m" %}
+                <a href="?month={{ month_value }}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}{% if filters.classroom %}&classroom={{ filters.classroom }}{% endif %}{% if filters.q %}&q={{ filters.q }}{% endif %}"
+                   class="btn btn-sm {% if current_month == month_value %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    حضور {{ month_value }}
+                </a>
+            {% endwith %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<form method="get" class="filter-bar" style="margin: 16px 0;">
+    <div class="row" style="gap: 12px; align-items: flex-end;">
+        <div class="col">
+            <label for="branch-filter">الفرع</label>
+            <select id="branch-filter" name="branch" class="form-control">
+                <option value="">كل الفروع</option>
+                {% for value, label in branches %}
+                    <option value="{{ value }}" {% if filters.branch == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col">
+            <label for="classroom-filter">الشعبة</label>
+            <select id="classroom-filter" name="classroom" class="form-control">
+                <option value="">كل الشعب</option>
+                {% for classroom in classrooms %}
+                    <option value="{{ classroom.id }}" {% if filters.classroom == classroom.id|stringformat:"s" %}selected{% endif %}>{{ classroom.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col">
+            <label for="classroom-search">بحث بالشعبة</label>
+            <input id="classroom-search" type="text" name="q" value="{{ filters.q }}" class="form-control" placeholder="ابحث باسم الشعبة">
+        </div>
+        <div class="col" style="display:flex; gap:8px;">
+            <button type="submit" class="btn btn-primary">بحث</button>
+            <a href="{% url 'attendance:attendance' %}" class="btn btn-secondary">مسح</a>
+        </div>
+    </div>
+</form>
 
 <div class="table-container">
     <table class="table">
@@ -36,6 +92,12 @@
                         <a href="{% url 'attendance:update_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="btn btn-sm btn-warning">
                             <i class="fas fa-edit"></i> تعديل
                         </a>
+                        <form method="post" action="{% url 'attendance:delete_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="d-inline" onsubmit="return confirm('Delete this attendance record?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% empty %}

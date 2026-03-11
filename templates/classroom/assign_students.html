@@ -17,105 +17,279 @@
     
     <div class="row mt-4">
         <div class="col-md-6">
-            <h4>الطلاب غير المعينين ({{ unassigned_students.count }})</h4>
-            <div class="form-group">
-                <input type="text" id="searchUnassigned" class="form-control" placeholder="ابحث عن طالب...">
-            </div>
-            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th><input type="checkbox" id="select-all"></th>
-                            <th>الاسم</th>
-                            <th>رقم الطالب</th>
-                            <th>الصف الحالي</th>
-                        </tr>
-                    </thead>
-                    <tbody id="unassignedStudents">
-                        {% for student in unassigned_students %}
-                        <tr>
-                            <td><input type="checkbox" name="student_ids" value="{{ student.id }}"></td>
-                            <td>{{ student.full_name }}</td>
-                            <td>{{ student.student_number }}</td>
-                            <td>
-                                {% if student.current_classroom %}
-                                    {{ student.current_classroom.name }}
-                                {% else %}
-                                    غير معين
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center">لا يوجد طلاب غير معينين</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">الطلاب غير المعينين ({{ unassigned_students.count }})</h4>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                            <input type="text" id="searchUnassigned" class="form-control" placeholder="ابحث عن طالب بالاسم أو الرقم...">
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted">عرض <span id="visibleUnassignedCount">{{ unassigned_students.count }}</span> من {{ unassigned_students.count }}</small>
+                        <div>
+                            <button type="button" id="selectAllVisible" class="btn btn-sm btn-outline-primary">تحديد المرئيين</button>
+                            <button type="button" id="deselectAll" class="btn btn-sm btn-outline-secondary">إلغاء الكل</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-hover table-sm">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th width="50"><input type="checkbox" id="select-all"></th>
+                                    <th>الاسم</th>
+                                    <th>رقم الطالب</th>
+                                    <th>الصف الحالي</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unassignedStudents">
+                                {% for student in unassigned_students %}
+                                <tr>
+                                    <td><input type="checkbox" name="student_ids" value="{{ student.id }}"></td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="student-avatar mr-2">
+                                                {% if student.profile_picture %}
+                                                    <img src="{{ student.profile_picture.url }}" alt="{{ student.full_name }}" class="rounded-circle" width="30" height="30">
+                                                {% else %}
+                                                    <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            {{ student.full_name }}
+                                        </div>
+                                    </td>
+                                    <td>{{ student.student_number }}</td>
+                                    <td>
+                                        {% if student.current_classroom %}
+                                            <span class="badge badge-info">{{ student.current_classroom.name }}</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">غير معين</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-3 text-muted">
+                                        <i class="fas fa-users fa-2x mb-2"></i><br>
+                                        لا يوجد طلاب غير معينين
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
         
         <div class="col-md-6">
-            <h4>طلاب الشعبة الحالية ({{ assigned_students.count }})</h4>
-            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>الاسم</th>
-                            <th>رقم الطالب</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for student in assigned_students %}
-                        <tr>
-                            <td>{{ student.full_name }}</td>
-                            <td>{{ student.student_number }}</td>
-                            <td>
-                                <form action="{% url 'classroom:unassign_student' classroom.id student.id %}" method="post">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من إزالة هذا الطالب من الشعبة؟');">
-                                        <i class="fas fa-times"></i> إزالة
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="3" class="text-center">لا يوجد طلاب في هذه الشعبة</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">طلاب الشعبة الحالية ({{ assigned_students.count }})</h4>
+                </div>
+                <div class="card-body">
+                    {% if assigned_students %}
+                    <div class="form-group">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                            <input type="text" id="searchAssigned" class="form-control" placeholder="ابحث في طلاب الشعبة...">
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-hover table-sm">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>رقم الطالب</th>
+                                    <th width="120">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignedStudents">
+                                {% for student in assigned_students %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="student-avatar mr-2">
+                                                {% if student.profile_picture %}
+                                                    <img src="{{ student.profile_picture.url }}" alt="{{ student.full_name }}" class="rounded-circle" width="30" height="30">
+                                                {% else %}
+                                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            {{ student.full_name }}
+                                        </div>
+                                    </td>
+                                    <td>{{ student.student_number }}</td>
+                                    <td>
+                                        <form action="{% url 'classroom:unassign_student' classroom.id student.id %}" method="post" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من إزالة الطالب {{ student.full_name }} من الشعبة؟');" title="إزالة من الشعبة">
+                                                <i class="fas fa-user-minus"></i>
+                                            </button>
+                                        </form>
+                                        <a href="{% url 'students:student_profile' student.id %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-3 text-muted">
+                                        <i class="fas fa-users fa-2x mb-2"></i><br>
+                                        لا يوجد طلاب في هذه الشعبة
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
-    <div class="text-center mt-3">
-        <button type="submit" class="btn btn-primary" {% if not unassigned_students %}disabled{% endif %}>
-            <i class="fas fa-save"></i> حفظ التغييرات
+    <div class="text-center mt-4">
+        <div class="selected-count alert alert-info d-inline-block">
+            <i class="fas fa-users"></i>
+            تم تحديد <span id="selectedStudentsCount">0</span> طالب
+        </div>
+        <br>
+        <button type="submit" class="btn btn-primary btn-lg mt-2" {% if not unassigned_students %}disabled{% endif %}>
+            <i class="fas fa-user-plus"></i> إضافة الطلاب المحددين
         </button>
     </div>
 </form>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // تحديث عدد الطلاب المحددين
+    function updateSelectedCount() {
+        const selectedCount = document.querySelectorAll('input[name="student_ids"]:checked').length;
+        document.getElementById('selectedStudentsCount').textContent = selectedCount;
+        
+        // إظهار/إخفاء عداد التحديد
+        const countElement = document.querySelector('.selected-count');
+        if (selectedCount > 0) {
+            countElement.style.display = 'inline-block';
+        } else {
+            countElement.style.display = 'none';
+        }
+    }
+
     // تحديد/إلغاء تحديد الكل
     document.getElementById('select-all').addEventListener('change', function(e) {
-        document.querySelectorAll('input[name="student_ids"]').forEach(checkbox => {
-            checkbox.checked = e.target.checked;
+        const checkboxes = document.querySelectorAll('input[name="student_ids"]');
+        checkboxes.forEach(checkbox => {
+            if (checkbox.closest('tr').style.display !== 'none') {
+                checkbox.checked = e.target.checked;
+            }
         });
+        updateSelectedCount();
+    });
+
+    // تحديد جميع الطلاب المرئيين
+    document.getElementById('selectAllVisible').addEventListener('click', function() {
+        document.querySelectorAll('#unassignedStudents tr').forEach(row => {
+            if (row.style.display !== 'none') {
+                const checkbox = row.querySelector('input[name="student_ids"]');
+                if (checkbox) checkbox.checked = true;
+            }
+        });
+        updateSelectedCount();
+    });
+
+    // إلغاء تحديد الكل
+    document.getElementById('deselectAll').addEventListener('click', function() {
+        document.querySelectorAll('input[name="student_ids"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        document.getElementById('select-all').checked = false;
+        updateSelectedCount();
     });
 
     // البحث في الطلاب غير المعينين
     document.getElementById('searchUnassigned').addEventListener('input', function(e) {
         const searchText = e.target.value.toLowerCase();
+        let visibleCount = 0;
+        
         document.querySelectorAll('#unassignedStudents tr').forEach(row => {
             const studentName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-            row.style.display = studentName.includes(searchText) ? '' : 'none';
+            const studentNumber = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+            const isVisible = studentName.includes(searchText) || studentNumber.includes(searchText);
+            
+            row.style.display = isVisible ? '' : 'none';
+            if (isVisible) visibleCount++;
         });
+        
+        document.getElementById('visibleUnassignedCount').textContent = visibleCount;
+        updateSelectedCount();
     });
+
+    // البحث في الطلاب المعينين
+    const searchAssigned = document.getElementById('searchAssigned');
+    if (searchAssigned) {
+        searchAssigned.addEventListener('input', function(e) {
+            const searchText = e.target.value.toLowerCase();
+            
+            document.querySelectorAll('#assignedStudents tr').forEach(row => {
+                const studentName = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+                const studentNumber = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const isVisible = studentName.includes(searchText) || studentNumber.includes(searchText);
+                
+                row.style.display = isVisible ? '' : 'none';
+            });
+        });
+    }
+
+    // تحديث العداد عند التحديد يدوياً
+    document.querySelectorAll('input[name="student_ids"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+
+    // تهيئة العداد الأولي
+    updateSelectedCount();
 });
 </script>
+
+<style>
+.student-avatar img, .student-avatar div {
+    width: 30px;
+    height: 30px;
+    object-fit: cover;
+}
+
+.selected-count {
+    display: none;
+    padding: 8px 16px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+</style>
 
 {% endblock %}

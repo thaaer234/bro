@@ -1,0 +1,156 @@
+{% extends "mobile/parent_base.html" %}
+
+{% block content %}
+<div class="card reveal">
+  <div class="section-title">
+    <i class="fas fa-id-card"></i>
+    ملف الطالب
+  </div>
+  <div class="pill-row">
+    <div class="pill">
+      <strong>{{ student.full_name|default:"-" }}</strong>
+      <span>اسم الطالب</span>
+    </div>
+    <div class="pill">
+      <strong>{{ student.student_number|default:"-" }}</strong>
+      <span>رقم الطالب</span>
+    </div>
+    <div class="pill">
+      <strong>{{ student.academic_year.name|default:"-" }}</strong>
+      <span>السنة الدراسية</span>
+    </div>
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.05s;">
+  <div class="section-title">
+    <i class="fas fa-school"></i>
+    الشعب المسجلة
+  </div>
+  <div class="list">
+    {% for classroom in classrooms %}
+    <div class="list-item">
+      <h4>{{ classroom.name }}</h4>
+      <p>{{ classroom.get_class_type_display }} · {{ classroom.schedule|default:"غير محدد" }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد شعب مسجلة حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.1s;">
+  <div class="section-title">
+    <i class="fas fa-info-circle"></i>
+    البيانات الأساسية
+  </div>
+  <div class="list">
+    {% for label, value in general_info %}
+    <div class="list-item">
+      <h4>{{ label }}</h4>
+      <p>{{ value }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.15s;">
+  <div class="section-title">
+    <i class="fas fa-exclamation-triangle"></i>
+    اجتماع أولياء الأمور
+  </div>
+  <div class="list">
+    {% for warning in warnings %}
+    <div class="list-item">
+      <h4>{{ warning.title }}</h4>
+      <p>{{ warning.details|default:"بدون تفاصيل" }}</p>
+      <p class="muted">التاريخ: {{ warning.created_at|date:"d/m/Y" }} - المستوى: {{ warning.get_severity_display }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد اجتماعات أولياء أمور حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.2s;">
+  <div class="section-title">
+    <i class="fas fa-calendar-check"></i>
+    آخر الحضور
+  </div>
+  <p class="muted" style="margin-top:10px;">
+    حاضر {{ attendance_stats.present|default:0 }} · غائب {{ attendance_stats.absent|default:0 }} · متأخر {{ attendance_stats.late|default:0 }}
+  </p>
+  <div class="list">
+    {% for record in latest_attendance %}
+    <div class="list-item">
+      <h4>{{ record.classroom.name }}</h4>
+      <p>
+        {{ record.date|date:"d/m/Y" }}
+        {% if record.status == "present" %}
+          · حاضر
+        {% elif record.status == "absent" %}
+          · غائب
+        {% elif record.status == "late" %}
+          · متأخر
+        {% endif %}
+      </p>
+      <p class="muted">ملاحظات: {{ record.notes|default:"لا يوجد" }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد سجلات حضور حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.25s;">
+  <div class="section-title">
+    <i class="fas fa-star"></i>
+    آخر العلامات
+  </div>
+  <div class="list">
+    {% for grade in latest_grades %}
+    <div class="list-item">
+      <h4>{{ grade.exam.name }}</h4>
+      <p>
+        {{ grade.exam.subject.name }}
+        {% if grade.exam.classroom %}
+          · {{ grade.exam.classroom.name }}
+        {% endif %}
+        · {{ grade.grade|default:"-"|floatformat:0 }} / {{ grade.exam.max_grade|floatformat:0 }}
+      </p>
+      <p class="muted">تاريخ الاختبار: {{ grade.exam.exam_date|date:"d/m/Y" }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد علامات حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.3s;">
+  <div class="section-title">
+    <i class="fas fa-bell"></i>
+    آخر الإشعارات
+  </div>
+  <div class="list">
+    {% for notification in latest_notifications %}
+    <div class="list-item">
+      <h4>{{ notification.title }}</h4>
+      <p>{{ notification.message|truncatechars:120 }}</p>
+      <p class="muted">{{ notification.created_at|date:"d/m/Y - h:i A" }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد إشعارات حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

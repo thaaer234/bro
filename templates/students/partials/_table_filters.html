@@ -1,0 +1,70 @@
+<div class="filters-container">
+    <div class="filter-row">
+        <div class="filter-group">
+            <label for="id-filter">فلتر حسب الرقم:</label>
+            <input type="text" id="id-filter" placeholder="ابحث برقم الطالب...">
+        </div>
+        <div class="filter-group">
+            <label for="name-filter">فلتر حسب الاسم:</label>
+            <input type="text" id="name-filter" placeholder="ابحث باسم الطالب...">
+        </div>
+        <div class="filter-group">
+            <label for="phone-filter">فلتر حسب رقم الهاتف:</label>
+            <input type="text" id="phone-filter" placeholder="ابحث برقم الهاتف...">
+        </div>
+    </div>
+    <div class="filter-actions">
+        <button class="btn btn-secondary" id="reset-filters">
+            <i class="fas fa-redo"></i> إعادة تعيين الفلاتر
+        </button>
+    </div>
+</div>
+
+<script>
+// دالة لتهيئة الفلاتر
+function initializeTableFilters() {
+    const tableRows = Array.from(document.querySelectorAll('#studentsTable tbody tr'));
+    
+    function filterTable() {
+        const idFilter = document.getElementById('id-filter')?.value.toLowerCase() || '';
+        const nameFilter = document.getElementById('name-filter')?.value.toLowerCase() || '';
+        const phoneFilter = document.getElementById('phone-filter')?.value.toLowerCase() || '';
+        
+        tableRows.forEach(row => {
+            const id = row.cells[0].textContent.toLowerCase();
+            const name = row.cells[2].textContent.toLowerCase();
+            const phone = row.cells[3].textContent.toLowerCase();
+            
+            const showRow = 
+                id.includes(idFilter) &&
+                name.includes(nameFilter) &&
+                phone.includes(phoneFilter);
+            
+            row.style.display = showRow ? '' : 'none';
+        });
+    }
+    
+    // إضافة مستمعي الأحداث للفلاتر
+    ['id-filter', 'name-filter', 'phone-filter'].forEach(filterId => {
+        const element = document.getElementById(filterId);
+        if (element) {
+            element.addEventListener('input', filterTable);
+        }
+    });
+    
+    // إعادة تعيين الفلاتر
+    const resetBtn = document.getElementById('reset-filters');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            ['id-filter', 'name-filter', 'phone-filter'].forEach(filterId => {
+                const element = document.getElementById(filterId);
+                if (element) element.value = '';
+            });
+            filterTable();
+        });
+    }
+}
+
+// تهيئة الفلاتر عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', initializeTableFilters);
+</script>

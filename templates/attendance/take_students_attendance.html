@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% block content %}
+<div class="module-header">
+    <h2>تسجيل حضور الطلاب</h2>
+    <div class="header-actions">
+        <a href="{% url 'attendance:attendance' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> العودة للسجل
+        </a>
+         <button type="submit" form="attendanceForm" class="btn btn-success mt-3">
+            <i class="fas fa-save"></i> حفظ الحضور
+        </button>
+    </div>
+</div>
+{% include "partials/_alerts.html" %}
+
+<form method="post" id="attendanceForm">
+    {% csrf_token %}
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <label for="date" class="form-label">التاريخ</label>
+            <input type="date" name="date" id="date" class="form-control" 
+                   value="{{ today|date:'Y-m-d' }}" required>
+        </div>
+        <div class="col-md-4">
+            <label for="classroom" class="form-label">الشعبة</label>
+            <select name="classroom" id="classroom" class="form-control" required>
+                <option value="">اختر الشعبة</option>
+                {% for classroom in classrooms %}
+                <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">&nbsp;</label>
+            <button type="button" id="loadStudents" class="btn btn-primary w-100">
+                <i class="fas fa-users"></i> تحميل الطلاب
+            </button>
+        </div>
+    </div>
+
+    <!-- منطقة عرض الطلاب داخل الفورم -->
+    <div id="studentsSection" style="display: none;">
+        <div class="table-container mt-4">
+            <h4>قائمة الطلاب</h4>
+            <div id="studentsList"></div>
+            <button type="submit" class="btn btn-success mt-3">
+                <i class="fas fa-save"></i> حفظ الحضور
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+document.getElementById('loadStudents').addEventListener('click', function() {
+    const classroomId = document.getElementById('classroom').value;
+    const date = document.getElementById('date').value;
+    
+    if (!classroomId || !date) {
+        alert('يرجى اختيار التاريخ والشعبة');
+        return;
+    }
+    
+    // جلب الطلاب عبر AJAX
+    fetch(`/attendance/api/students/?classroom=${classroomId}`)
+        .then(response => response.json())
+        .then(students => {
+            if (students.error) {
+                alert(students.error);
+                return;
+            }
+            
+            let html = `
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="8%">الرقم</th>
+                            <th width="30%">الطالب</th>
+                            <th width="40%">حالة الحضور</th>
+                            <th width="22%">ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            students.forEach((student, index) => {
+                html += `
+                    <tr>
+                        <td class="student-index">${index + 1}</td>
+                        <td class="student-name">${student.full_name}</td>
+                        <td>
+                            <div class="attendance-container" data-student-id="${student.id}">
+                                <label class="attendance-option present-option active">
+                                    <input type="radio" name="status_${student.id}" 
+                                        value="present" checked>
+                                    <span class="option-text">حاضر</span>
+                                </label>
+                                <label class="attendance-option absent-option">
+                                    <input type="radio" name="status_${student.id}" 
+                                        value="absent">
+                                    <span class="option-text">غائب</span>
+                                </label>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="text" name="notes_${student.id}" 
+                                class="form-control form-control-sm" placeholder="ملاحظات">
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `</tbody></table>`;
+            document.getElementById('studentsList').innerHTML = html;
+            document.getElementById('studentsSection').style.display = 'block';
+            
+            // تفعيل اختيار الحضور
+            initializeAttendanceSelection();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في تحميل الطلاب');
+        });
+});
+
+// دالة لتهيئة اختيار الحضور
+function initializeAttendanceSelection() {
+    const containers = document.querySelectorAll('.attendance-container');
+    
+    containers.forEach(container => {
+        const options = container.querySelectorAll('.attendance-option');
+        const radios = container.querySelectorAll('input[type="radio"]');
+        
+        // التأكد من أن الحاضر مختار افتراضيًا
+        options[0].classList.add('active');
+        options[0].style.opacity = '1';
+        options[0].style.fontWeight = 'bold';
+        options[1].style.opacity = '0.6';
+        options[1].style.fontWeight = 'normal';
+        
+        options.forEach((option, index) => {
+            option.addEventListener('click', function(e) {
+                // منع الحدث المزدوج
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // إلغاء تحديد جميع الخيارات في هذه المجموعة
+                options.forEach(opt => {
+                    opt.classList.remove('active');
+                    opt.style.opacity = '0.6';
+                    opt.style.fontWeight = 'normal';
+                });
+                
+                // تحديد الخيار المختار
+                this.classList.add('active');
+                this.style.opacity = '1';
+                this.style.fontWeight = 'bold';
+                
+                // تحديد الـ radio button المقابل
+                radios[index].checked = true;
+                
+                console.log(`✅ تم اختيار: ${radios[index].value} للطالب ${container.dataset.studentId}`);
+            });
+        });
+    });
+}
+
+// تأكد من إرسال البيانات بشكل صحيح عند الحفظ
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('attendanceForm');
+    form.addEventListener('submit', function(e) {
+        // التحقق من أن جميع الحقول ممتلئة
+        const date = document.getElementById('date').value;
+        const classroom = document.getElementById('classroom').value;
+        
+        if (!date || !classroom) {
+            e.preventDefault();
+            alert('يرجى اختيار التاريخ والشعبة أولاً');
+            return;
+        }
+        
+        // التحقق من وجود طلاب
+        const studentsSection = document.getElementById('studentsSection');
+        if (studentsSection.style.display === 'none') {
+            e.preventDefault();
+            alert('يرجى تحميل قائمة الطلاب أولاً');
+            return;
+        }
+        
+        // طباعة البيانات المرسلة للتصحيح
+        console.log('📤 البيانات المرسلة إلى السيرفر:');
+        let presentCount = 0;
+        let absentCount = 0;
+        
+        const formData = new FormData(this);
+        for (let [key, value] of formData.entries()) {
+            if (key.startsWith('status_')) {
+                console.log(`   ${key}: ${value}`);
+                if (value === 'present') presentCount++;
+                if (value === 'absent') absentCount++;
+            }
+        }
+        
+        console.log(`📊 الإحصائيات: ${presentCount} حاضر, ${absentCount} غائب`);
+        
+        // تأكيد قبل الإرسال
+        const totalStudents = document.querySelectorAll('.attendance-container').length;
+        const confirmation = confirm(`هل تريد حفظ حضور ${totalStudents} طالب؟\nالحاضرين: ${presentCount}\nالغائبين: ${absentCount}`);
+        
+        if (!confirmation) {
+            e.preventDefault();
+        }
+    });
+});
+
+// تحميل تلقائي عند اختيار الشعبة إذا كان التاريخ محدد
+document.getElementById('classroom').addEventListener('change', function() {
+    const date = document.getElementById('date').value;
+    if (date && this.value) {
+        document.getElementById('loadStudents').click();
+    }
+});
+
+// تحميل تلقائي عند اختيار التاريخ إذا كانت الشعبة محددة
+document.getElementById('date').addEventListener('change', function() {
+    const classroom = document.getElementById('classroom').value;
+    if (classroom && this.value) {
+        document.getElementById('loadStudents').click();
+    }
+});
+</script>
+
+<style>
+.attendance-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.attendance-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0.6;
+    font-weight: normal;
+    border: 2px solid transparent;
+    min-width: 80px;
+    justify-content: center;
+}
+
+.attendance-option input[type="radio"] {
+    display: none; /* إخفاء كامل لـ radio buttons */
+}
+
+.present-option {
+    background-color: rgba(40, 167, 69, 0.15);
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.absent-option {
+    background-color: rgba(220, 53, 69, 0.15);
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+/* تمييز الخيار المختار */
+.attendance-option.active {
+    opacity: 1;
+    font-weight: bold;
+    box-shadow: 0 0 0 2px currentColor;
+    transform: scale(1.05);
+}
+
+.attendance-option:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.option-text {
+    font-size: 14px;
+    font-weight: inherit;
+}
+
+.student-name {
+    font-weight: 500;
+    padding: 12px 8px;
+}
+
+.student-index {
+    font-weight: 600;
+    text-align: center;
+}
+
+.table-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.table th {
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    text-align: center;
+}
+
+.table td {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    padding: 10px 30px;
+    font-size: 16px;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.alert {
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}

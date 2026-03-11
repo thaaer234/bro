@@ -1,0 +1,49 @@
+serviceAccountKey.json
+*.pem
+*.p12
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Environment
+.env
+.env.*
+.venv/
+venv/
+ENV/
+env/
+
+# Packaging
+*.egg-info/
+dist/
+build/
+
+# Archives / backups / temp
+*.zip
+*.tar.gz
+backups/
+complete_backups/
+folder/
+_tmp*/
+_tmp_*
+.templates/
+
+# Databases
+*.sqlite3
+*.sqlite3-journal
+
+# IDEs / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

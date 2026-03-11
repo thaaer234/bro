@@ -9,6 +9,9 @@
         <a href="{% url 'classroom:create_classroom' %}" class="btn btn-primary">
             <i class="fas fa-plus"></i> انشاء شعبة جديدة
         </a>
+        <a href="{% url 'classroom:classroom_cards_print' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-id-card"></i> بطاقات الشعب
+        </a>
     </div>
 </div>
 {% include "partials/_alerts.html" %}
@@ -31,6 +34,14 @@
             </select>
         </div>
         <div class="form-col">
+            <select id="statusFilter" class="form-control">
+                <option value="">جميع الحالات</option>
+                <option value="active">نشطة</option>
+                <option value="full">مكتملة</option>
+                <option value="empty">فارغة</option>
+            </select>
+        </div>
+        <div class="form-col">
             <input type="text" id="branchSearch" class="form-control" placeholder="بحث باسم الشعبة...">
         </div>
         <div class="form-col">
@@ -44,26 +55,98 @@
     </div>
 </div>
 
+<div class="stats-cards mb-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon study-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_study_classrooms }}</h3>
+                    <span>شعبة دراسية</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon course-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_course_classrooms }}</h3>
+                    <span>دورة تدريبية</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon student-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_students }}</h3>
+                    <span>طالب مسجل</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon empty-icon">
+                    <i class="fas fa-door-open"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ empty_classrooms }}</h3>
+                    <span>شعبة فارغة</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="table-container">
-    <table id="branchesTable">
-        <thead>
+    <div class="table-header">
+        <div class="table-actions">
+            <button class="btn btn-sm btn-outline-secondary" id="exportBtn">
+                <i class="fas fa-download"></i> تصدير البيانات
+            </button>
+            <div class="table-info">
+                عرض <span id="visibleCount">{{ classrooms.count }}</span> من {{ classrooms.count }} شعبة
+            </div>
+        </div>
+    </div>
+    
+    <table id="branchesTable" class="table table-hover">
+        <thead class="thead-light">
             <tr>
-                <th>#</th>
+                <th width="60">#</th>
                 <th>اسم الشعبة</th>
                 <th>نوع الشعبة</th>
                 <th>الفرع</th>
-                <th>عدد الطلاب</th>
-                <th>الإجراءات</th>
+                <th width="120">عدد الطلاب</th>
+                <th width="150">الحالة</th>
+                <th width="300">الإجراءات</th>
             </tr>
         </thead>
         <tbody>
             {% for classroom in classrooms %}
-            <tr>
+            <tr data-class-type="{{ classroom.class_type }}" 
+                data-branch="{{ classroom.branches }}"
+                data-students-count="{{ classroom.enrollments.count }}"
+                data-name="{{ classroom.name|lower }}">
                 <td>{{ classroom.id }}</td>
-                <td>{{ classroom.name }}</td>
+                <td>
+                    <div class="classroom-name">
+                        <strong>{{ classroom.name }}</strong>
+                        {% if classroom.description %}
+                        <small class="text-muted d-block">{{ classroom.description|truncatewords:5 }}</small>
+                        {% endif %}
+                    </div>
+                </td>
                 <td>
                     <span class="badge {% if classroom.class_type == 'study' %}study-badge{% else %}course-badge{% endif %}" 
                           data-type="{{ classroom.class_type }}">
+                        <i class="{% if classroom.class_type == 'study' %}fas fa-graduation-cap{% else %}fas fa-chalkboard-teacher{% endif %} mr-1"></i>
                         {{ classroom.get_class_type_display }}
                     </span>
                 </td>
@@ -74,36 +157,84 @@
                         {% elif classroom.branches == 'أدبي' %}literary-badge
                         {% else %}ninth-badge{% endif %}"
                         data-branch="{{ classroom.branches }}">
+                        <i class="fas fa-code-branch mr-1"></i>
                         {{ classroom.get_branches_display }}
                     </span>
                     {% else %}
-                    -
+                    <span class="text-muted">-</span>
                     {% endif %}
                 </td>
-                <td>{{ classroom.enrollments.count }}</td>
+                <td>
+                    <div class="student-count">
+                        <span class="count">{{ classroom.enrollments.count }}</span>
+                        <div class="progress" style="height: 5px; width: 80px;">
+                            <div class="progress-bar 
+                                {% if classroom.enrollments.count == 0 %}bg-secondary
+                                {% elif classroom.enrollments.count < 10 %}bg-warning
+                                {% else %}bg-success{% endif %}" 
+                                style="width: {% widthratio classroom.enrollments.count 30 100 %}%">
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    {% if classroom.enrollments.count == 0 %}
+                        <span class="status-badge empty">
+                            <i class="fas fa-door-open"></i> فارغة
+                        </span>
+                    {% elif classroom.enrollments.count >= 25 %}
+                        <span class="status-badge full">
+                            <i class="fas fa-user-check"></i> مكتملة
+                        </span>
+                    {% else %}
+                        <span class="status-badge active">
+                            <i class="fas fa-user-clock"></i> نشطة
+                        </span>
+                    {% endif %}
+                </td>
                 <td>
                     <div class="action-buttons">
-                        <a href="{% url 'classroom:classroom_students' classroom.id %}" class="btn btn-sm btn-info">
-                            <i class="fas fa-users"></i> عرض الطلاب
-                        </a>
-                        <a href="{% url 'classroom:assign_students' classroom.id %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-user-plus"></i> إضافة طلاب
-                        </a>
-                        <a href="{% url 'classroom:classroom_subject_list' classroom.id %}" class="btn btn-sm btn-warning">
-                            <i class="fas fa-cog"></i> إدارة مواد الشعبة
-                        </a>
-                        <form action="{% url 'classroom:delete_classroom' classroom.id %}" method="post" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذه الشعبة؟ سيتم إزالة جميع الطلاب منها.');">
-                                <i class="fas fa-trash"></i> حذف
-                            </button>
-                        </form>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'classroom:classroom_students' classroom.id %}" class="btn btn-sm btn-info" 
+                               title="عرض الطلاب" data-toggle="tooltip">
+                                <i class="fas fa-users"></i>
+                            </a>
+                            <a href="{% url 'classroom:assign_students' classroom.id %}" class="btn btn-sm btn-primary"
+                               title="إضافة طلاب" data-toggle="tooltip">
+                                <i class="fas fa-user-plus"></i>
+                            </a>
+                            <a href="{% url 'classroom:classroom_subject_list' classroom.id %}" class="btn btn-sm btn-warning"
+                               title="إدارة المواد" data-toggle="tooltip">
+                                <i class="fas fa-cog"></i>
+                            </a>
+                            <a href="{% url 'classroom:edit_classroom' classroom.id %}" class="btn btn-sm btn-secondary"
+                               title="تعديل الشعبة" data-toggle="tooltip">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form action="{% url 'classroom:delete_classroom' classroom.id %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger" 
+                                        onclick="return confirm('هل أنت متأكد من حذف الشعبة {{ classroom.name }}؟ سيتم إزالة جميع الطلاب منها.');"
+                                        title="حذف الشعبة" data-toggle="tooltip">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center">لا توجد شعب متاحة</td>
+                <td colspan="7" class="text-center py-4">
+                    <div class="empty-state">
+                        <i class="fas fa-chalkboard-teacher fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">لا توجد شعب متاحة</h5>
+                        <p class="text-muted">انقر على زر "إنشاء شعبة جديدة" لبدء إضافة الشعب</p>
+                        <a href="{% url 'classroom:create_classroom' %}" class="btn btn-primary mt-2">
+                            <i class="fas fa-plus"></i> إنشاء شعبة جديدة
+                        </a>
+                    </div>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -111,76 +242,193 @@
 </div>
 
 <style>
-    .study-badge {
-        background-color: #3498db;
-        color: white;
-    }
-    .course-badge {
-        background-color: #2ecc71;
-        color: white;
-    }
-    .scientific-badge {
-        background-color: #e74c3c;
-        color: white;
-    }
-    .literary-badge {
-        background-color: #9b59b6;
-        color: white;
-    }
-    .ninth-badge {
-        background-color: #f39c12;
-        color: white;
-    }
-    .badge {
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 14px;
-    }
+.study-badge { background-color: #3498db; color: white; }
+.course-badge { background-color: #2ecc71; color: white; }
+.scientific-badge { background-color: #e74c3c; color: white; }
+.literary-badge { background-color: #9b59b6; color: white; }
+.ninth-badge { background-color: #f39c12; color: white; }
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.status-badge.empty { background-color: #95a5a6; color: white; }
+.status-badge.active { background-color: #27ae60; color: white; }
+.status-badge.full { background-color: #e74c3c; color: white; }
+
+.stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    border-left: 4px solid #3498db;
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    color: white;
+    font-size: 20px;
+}
+
+.study-icon { background: #3498db; }
+.course-icon { background: #2ecc71; }
+.student-icon { background: #9b59b6; }
+.empty-icon { background: #95a5a6; }
+
+.stat-info h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.stat-info span {
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.student-count .count {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.progress {
+    background-color: #ecf0f1;
+    border-radius: 10px;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.table-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.table-info {
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.empty-state {
+    padding: 40px 20px;
+}
+
+.action-buttons .btn-group .btn {
+    border-radius: 4px;
+    margin: 0 2px;
+}
+
+.classroom-name strong {
+    color: #2c3e50;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const classTypeFilter = document.getElementById('classTypeFilter');
     const branchTypeFilter = document.getElementById('branchTypeFilter');
+    const statusFilter = document.getElementById('statusFilter');
     const branchSearch = document.getElementById('branchSearch');
     const filterBtn = document.getElementById('filterBranchesBtn');
     const resetBtn = document.getElementById('resetFilterBtn');
+    const exportBtn = document.getElementById('exportBtn');
     const tableRows = document.querySelectorAll('#branchesTable tbody tr');
+    const visibleCount = document.getElementById('visibleCount');
 
     function filterBranches() {
         const selectedClassType = classTypeFilter.value;
         const selectedBranchType = branchTypeFilter.value;
+        const selectedStatus = statusFilter.value;
         const searchText = branchSearch.value.toLowerCase();
 
+        let visibleRows = 0;
+
         tableRows.forEach(row => {
-            const className = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-            const classTypeValue = row.querySelector('td:nth-child(3) span').dataset.type;
-            const branchTypeElement = row.querySelector('td:nth-child(4) span');
-            const branchTypeValue = branchTypeElement ? branchTypeElement.dataset.branch : '';
+            if (row.querySelector('.empty-state')) return;
+
+            const className = row.dataset.name;
+            const classTypeValue = row.dataset.classType;
+            const branchTypeValue = row.dataset.branch || '';
+            const studentsCount = parseInt(row.dataset.studentsCount);
             
+            // تحديد الحالة بناءً على عدد الطلاب
+            let status = '';
+            if (studentsCount === 0) status = 'empty';
+            else if (studentsCount >= 25) status = 'full';
+            else status = 'active';
+
             const classTypeMatch = selectedClassType === '' || classTypeValue === selectedClassType;
             const branchTypeMatch = selectedBranchType === '' || branchTypeValue === selectedBranchType;
+            const statusMatch = selectedStatus === '' || status === selectedStatus;
             const searchMatch = className.includes(searchText);
             
-            row.style.display = classTypeMatch && branchTypeMatch && searchMatch ? '' : 'none';
+            const isVisible = classTypeMatch && branchTypeMatch && statusMatch && searchMatch;
+            row.style.display = isVisible ? '' : 'none';
+            
+            if (isVisible) visibleRows++;
         });
+
+        visibleCount.textContent = visibleRows;
     }
 
-    filterBtn.addEventListener('click', filterBranches);
-    resetBtn.addEventListener('click', function() {
+    function resetFilters() {
         classTypeFilter.value = '';
         branchTypeFilter.value = '';
+        statusFilter.value = '';
         branchSearch.value = '';
         tableRows.forEach(row => row.style.display = '');
-    });
+        visibleCount.textContent = tableRows.length;
+    }
+
+    function exportData() {
+        // يمكن تطوير هذه الدالة لتصدير البيانات لاحقاً
+        alert('سيتم تطوير خاصية التصدير في النسخ القادمة');
+    }
+
+    // Event Listeners
+    filterBtn.addEventListener('click', filterBranches);
+    resetBtn.addEventListener('click', resetFilters);
+    exportBtn.addEventListener('click', exportData);
 
     branchSearch.addEventListener('keyup', function(e) {
         if (e.key === 'Enter') filterBranches();
     });
 
-    // تطبيق التصفية تلقائياً عند تغيير نوع الشعبة أو الفرع
+    // تطبيق التصفية تلقائياً عند تغيير الفلاتر
     classTypeFilter.addEventListener('change', filterBranches);
     branchTypeFilter.addEventListener('change', filterBranches);
+    statusFilter.addEventListener('change', filterBranches);
+
+    // تهيئة أدوات التلميح
+    $('[data-toggle="tooltip"]').tooltip();
+
+    // تحديث العدد الأولي
+    visibleCount.textContent = tableRows.length;
 });
 </script>
+
 {% endblock %}

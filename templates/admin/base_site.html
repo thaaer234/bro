@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | نظام مراقبة الأخطاء المتقدم{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        <img src="{% static 'admin/img/icon-monitoring.svg' %}" height="40px" style="margin-left: 10px;">
+        نظام مراقبة الأخطاء المتقدم - معهد اليمان
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+{{ block.super }}
+<style>
+.dashboard-button {
+    background: linear-gradient(135deg, #FF2E63, #FF6B6B);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    text-decoration: none;
+    margin-right: 20px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(255, 46, 99, 0.3);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dashboard-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 46, 99, 0.4);
+    color: white;
+}
+</style>
+
+{% if user.is_staff %}
+<a href="{% url 'error_dashboard' %}" class="dashboard-button">
+    📊 لوحة تحكم الأخطاء
+</a>
+{% endif %}
+{% endblock %}  

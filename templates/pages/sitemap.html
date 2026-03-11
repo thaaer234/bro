@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container2 {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .search-box {
+            margin: 20px auto;
+            max-width: 500px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .main-content2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+        
+        .module {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-left: 5px solid #3498db;
+        }
+        
+        .module:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .module h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eaeaea;
+            display: flex;
+            align-items: center;
+        }
+        
+        .module h2 i {
+            margin-left: 10px;
+            font-size: 1.5rem;
+        }
+        
+        .module ul {
+            list-style-type: none;
+        }
+        
+        .module li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #eaeaea;
+        }
+        
+        .module li:last-child {
+            border-bottom: none;
+        }
+        
+        .module a {
+            color: #555;
+            text-decoration: none;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .module a:hover {
+            color: #3498db;
+        }
+        
+        .module a i {
+            margin-left: 8px;
+            font-size: 0.9rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #666;
+            border-top: 1px solid #eaeaea;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f1f8ff;
+            border-radius: 10px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content2 {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        /* ألوان مختلفة لكل وحدة */
+        .accounts { border-left-color: #3498db; }
+        .students { border-left-color: #2ecc71; }
+        .employees { border-left-color: #e74c3c; }
+        .classrooms { border-left-color: #9b59b6; }
+        .courses { border-left-color: #f39c12; }
+        .attendance { border-left-color: #1abc9c; }
+        .grades { border-left-color: #d35400; }
+        .reports { border-left-color: #c0392b; }
+        .quick { border-left-color: #16a085; }
+        .pages { border-left-color: #8e44ad; }
+        .registration { border-left-color: #27ae60; }
+        .errors { border-left-color: #7f8c8d; }
+    </style>
+
+    <div class="container2">
+        <header>
+            <h1><i class="fas fa-sitemap"></i> خريطة الموقع الشاملة</h1>
+            <p class="subtitle">النظام التعليمي المتكامل - جميع الأقسام والوظائف</p>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="ابحث في خريطة الموقع...">
+            </div>
+        </header>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number">12</div>
+                <div class="stat-label">وحدة رئيسية</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">80+</div>
+                <div class="stat-label">صفحة ونموذج</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">6</div>
+                <div class="stat-label">أنظمة تقارير</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">4</div>
+                <div class="stat-label">أنظمة مالية</div>
+            </div>
+        </div>
+        
+        <div class="main-content2">
+            <!-- الحسابات المالية -->
+            <div class="module accounts">
+                <h2><i class="fas fa-calculator"></i> الحسابات المالية</h2>
+                <ul>
+                    <li><a href="/accounts/"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
+                    <li><a href="/accounts/chart/"><i class="fas fa-chart-bar"></i> دليل الحسابات</a></li>
+                    <li><a href="/accounts/accounts/create/"><i class="fas fa-plus-circle"></i> إنشاء حساب جديد</a></li>
+                    <li><a href="/accounts/journal/"><i class="fas fa-book"></i> القيود اليومية</a></li>
+                    <li><a href="/accounts/journal/create/"><i class="fas fa-plus"></i> إنشاء قيد يومي</a></li>
+                    <li><a href="/accounts/receipts/create/"><i class="fas fa-receipt"></i> إنشاء إيصال طالب</a></li>
+                    <li><a href="/accounts/expenses/create/"><i class="fas fa-money-bill-wave"></i> إنشاء مصروف</a></li>
+                    <li><a href="/accounts/advances/"><i class="fas fa-hand-holding-usd"></i> سلف الموظفين</a></li>
+                    <li><a href="/accounts/budgets/"><i class="fas fa-chart-pie"></i> إدارة الميزانيات</a></li>
+                    <li><a href="/accounts/periods/"><i class="fas fa-calendar-alt"></i> الفترات المحاسبية</a></li>
+                </ul>
+            </div>
+            
+            <!-- الطلاب -->
+            <div class="module students">
+                <h2><i class="fas fa-user-graduate"></i> إدارة الطلاب</h2>
+                <ul>
+                    <li><a href="/students/"><i class="fas fa-list"></i> قائمة الطلاب</a></li>
+                    <li><a href="/students/create/"><i class="fas fa-user-plus"></i> إنشاء طالب جديد</a></li>
+                    <li><a href="/students/search/"><i class="fas fa-search"></i> بحث الطلاب</a></li>
+                    <li><a href="/students/groups/"><i class="fas fa-users"></i> المجموعات الطلابية</a></li>
+                    <li><a href="/students/numbers/"><i class="fas fa-sort-numeric-down"></i> أرقام الطلاب</a></li>
+                    <li><a href="/students/student-type-choice/"><i class="fas fa-user-check"></i> اختيار نوع الطالب</a></li>
+                    <li><a href="/students/auto-assign-students/"><i class="fas fa-robot"></i> التعيين التلقائي للطلاب</a></li>
+                </ul>
+            </div>
+            
+            <!-- الموظفين والمعلمين -->
+            <div class="module employees">
+                <h2><i class="fas fa-chalkboard-teacher"></i> إدارة الموظفين</h2>
+                <ul>
+                    <li><a href="/employ/teachers/"><i class="fas fa-user-tie"></i> قائمة المعلمين</a></li>
+                    <li><a href="/employ/create/"><i class="fas fa-plus"></i> إضافة معلم جديد</a></li>
+                    <li><a href="/employ/hr/"><i class="fas fa-users-cog"></i> الموارد البشرية</a></li>
+                    <li><a href="/employ/register/"><i class="fas fa-user-plus"></i> تسجيل موظف جديد</a></li>
+                    <li><a href="/employ/update/"><i class="fas fa-user-edit"></i> تحديث بيانات الموظفين</a></li>
+                    <li><a href="/employ/vacations/"><i class="fas fa-umbrella-beach"></i> إجازات الموظفين</a></li>
+                    <li><a href="/employ/salary-management/"><i class="fas fa-money-check-alt"></i> إدارة الرواتب</a></li>
+                </ul>
+            </div>
+            
+            <!-- الفصول الدراسية -->
+            <div class="module classrooms">
+                <h2><i class="fas fa-door-open"></i> إدارة الفصول</h2>
+                <ul>
+                    <li><a href="/classroom/classroom/"><i class="fas fa-list"></i> قائمة الفصول</a></li>
+                    <li><a href="/classroom/create_classroom/"><i class="fas fa-plus"></i> إنشاء فصل جديد</a></li>
+                    <li><a href="/classroom/classrooms/"><i class="fas fa-school"></i> جميع الفصول</a></li>
+                    <li><a href="/classroom/assign-students/1/"><i class="fas fa-user-plus"></i> تعيين الطلاب للفصول</a></li>
+                    <li><a href="/classroom/classroom/1/students/"><i class="fas fa-user-friends"></i> طلاب الفصل</a></li>
+                    <li><a href="/classroom/classroom/1/subjects/"><i class="fas fa-book"></i> مواد الفصل</a></li>
+                    <li><a href="/classroom/classroom/1/students/export/"><i class="fas fa-file-export"></i> تصدير طلاب الفصل</a></li>
+                </ul>
+            </div>
+            
+            <!-- المواد الدراسية -->
+            <div class="module courses">
+                <h2><i class="fas fa-book"></i> المواد الدراسية</h2>
+                <ul>
+                    <li><a href="/courses/courses/"><i class="fas fa-list"></i> قائمة المواد</a></li>
+                    <li><a href="/courses/subjects/"><i class="fas fa-th-list"></i> جميع المواد الدراسية</a></li>
+                    <li><a href="/courses/subjects/add/"><i class="fas fa-plus"></i> إضافة مادة جديدة</a></li>
+                    <li><a href="/accounts/courses/"><i class="fas fa-dollar-sign"></i> الدورات (شؤون مالية)</a></li>
+                    <li><a href="/accounts/courses/create/"><i class="fas fa-plus-circle"></i> إنشاء دورة جديدة</a></li>
+                </ul>
+            </div>
+            
+            <!-- الحضور -->
+            <div class="module attendance">
+                <h2><i class="fas fa-calendar-check"></i> نظام الحضور</h2>
+                <ul>
+                    <li><a href="/attendance/attendance/"><i class="fas fa-clipboard-list"></i> سجل الحضور</a></li>
+                    <li><a href="/attendance/attendance/take/"><i class="fas fa-edit"></i> تسجيل الحضور</a></li>
+                    <li><a href="/attendance/teacher-attendance/"><i class="fas fa-user-check"></i> حضور المعلمين</a></li>
+                    <li><a href="/attendance/take-teacher-attendance/"><i class="fas fa-user-edit"></i> تسجيل حضور المعلمين</a></li>
+                    <li><a href="/attendance/import-teacher-attendance/"><i class="fas fa-file-import"></i> استيراد حضور المعلمين</a></li>
+                    <li><a href="/attendance/export-attendance-template/"><i class="fas fa-file-export"></i> تصدير نموذج الحضور</a></li>
+                </ul>
+            </div>
+            
+            <!-- النظام السريع -->
+            <div class="module quick">
+                <h2><i class="fas fa-bolt"></i> النظام السريع</h2>
+                <ul>
+                    <li><a href="/quick/academic-years/"><i class="fas fa-calendar-alt"></i> السنوات الأكاديمية</a></li>
+                    <li><a href="/quick/courses/"><i class="fas fa-book-open"></i> الدورات السريعة</a></li>
+                    <li><a href="/quick/students/"><i class="fas fa-user-graduate"></i> الطلاب السريعين</a></li>
+                    <li><a href="/quick/enrollments/create/"><i class="fas fa-user-plus"></i> تسجيل سريع</a></li>
+                    <li><a href="/quick/reports/outstanding/"><i class="fas fa-chart-line"></i> تقارير المستحقات</a></li>
+                    <li><a href="/quick/auto-assign-years/"><i class="fas fa-robot"></i> التعيين التلقائي</a></li>
+                </ul>
+            </div>
+            
+            <!-- التقارير -->
+            <div class="module reports">
+                <h2><i class="fas fa-chart-line"></i> التقارير والإحصائيات</h2>
+                <ul>
+                    <li><a href="/accounts/reports/"><i class="fas fa-chart-bar"></i> التقارير المالية</a></li>
+                    <li><a href="/accounts/reports/trial-balance/"><i class="fas fa-balance-scale"></i> ميزان المراجعة</a></li>
+                    <li><a href="/accounts/reports/income-statement/"><i class="fas fa-file-invoice-dollar"></i> قائمة الدخل</a></li>
+                    <li><a href="/accounts/reports/balance-sheet/"><i class="fas fa-file-contract"></i> الميزانية العمومية</a></li>
+                    <li><a href="/accounts/reports/outstanding-courses/"><i class="fas fa-exclamation-circle"></i> الدورات المتأخرة</a></li>
+                    <li><a href="/accounts/reports/financial/"><i class="fas fa-chart-pie"></i> التقارير المالية الشاملة</a></li>
+                    <li><a href="/accounts/reports/site-export/"><i class="fas fa-file-export"></i> تصدير بيانات الموقع</a></li>
+                    <li><a href="/errors/analytics/"><i class="fas fa-chart-area"></i> تحليل الأخطاء</a></li>
+                </ul>
+            </div>
+            
+            <!-- الصفحات العامة -->
+            <div class="module pages">
+                <h2><i class="fas fa-home"></i> الصفحات العامة</h2>
+                <ul>
+                    <li><a href="/"><i class="fas fa-home"></i> الصفحة الرئيسية</a></li>
+                    <li><a href="/pages/"><i class="fas fa-door-open"></i> صفحة الترحيب</a></li>
+                    <li><a href="/pages/index"><i class="fas fa-info-circle"></i> صفحة المعلومات</a></li>
+                    <li><a href="/pages/export-activities/"><i class="fas fa-download"></i> تصدير الأنشطة</a></li>
+                    <li><a href="/login/"><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</a></li>
+                    <li><a href="/logout/"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+                </ul>
+            </div>
+            
+            <!-- التسجيل والمستخدمين -->
+            <div class="module registration">
+                <h2><i class="fas fa-user-cog"></i> إدارة المستخدمين</h2>
+                <ul>
+                    <li><a href="/registration/signup/"><i class="fas fa-user-plus"></i> إنشاء حساب جديد</a></li>
+                    <li><a href="/registration/profile/"><i class="fas fa-user"></i> الملف الشخصي</a></li>
+                    <li><a href="/registration/profile/edit/"><i class="fas fa-edit"></i> تعديل الملف الشخصي</a></li>
+                    <li><a href="/registration/password-reset-request/"><i class="fas fa-key"></i> استعادة كلمة المرور</a></li>
+                    <li><a href="/registration/superuser-password-reset/"><i class="fas fa-user-shield"></i> إعادة تعيين كلمة المرور</a></li>
+                </ul>
+            </div>
+            
+            <!-- نظام الدرجات -->
+            <div class="module grades">
+                <h2><i class="fas fa-star"></i> نظام الدرجات</h2>
+                <ul>
+                    <li><a href="/grade/"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
+                    <li><a href="/grade/1/subjects/"><i class="fas fa-book"></i> اختيار المادة</a></li>
+                    <li><a href="/grade/1/subjects/1/"><i class="fas fa-eye"></i> عرض الدرجات</a></li>
+                    <li><a href="/grade/1/subjects/1/edit/"><i class="fas fa-edit"></i> تعديل الدرجات</a></li>
+                    <li><a href="/grade/1/subjects/1/export-excel/"><i class="fas fa-file-excel"></i> تصدير الدرجات</a></li>
+                    <li><a href="/grade/classroom/1/subject/1/custom-print/"><i class="fas fa-print"></i> طباعة مخصصة</a></li>
+                </ul>
+            </div>
+            
+            <!-- إدارة الأخطاء -->
+            <div class="module errors">
+                <h2><i class="fas fa-exclamation-triangle"></i> نظام المراقبة</h2>
+                <ul>
+                    <li><a href="/errors/dashboard/"><i class="fas fa-tachometer-alt"></i> لوحة تحكم الأخطاء</a></li>
+                    <li><a href="/errors/analytics/"><i class="fas fa-chart-bar"></i> تحليل الأخطاء</a></li>
+                    <li><a href="/errors/network-analysis/"><i class="fas fa-network-wired"></i> تحليل الشبكة</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <footer>
+            <p>خريطة الموقع الشاملة للنظام التعليمي &copy; 2023 - جميع الحقوق محفوظة</p>
+            <p>تم تصميم هذه الخريطة بناءً على تحليل 10 ملفات urls.py تحتوي على 80+ مسار مختلف</p>
+        </footer>
+    </div>
+
+    <script>
+        // وظيفة البحث في خريطة الموقع
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const modules = document.querySelectorAll('.module');
+            
+            modules.forEach(module => {
+                const links = module.querySelectorAll('a');
+                let found = false;
+                
+                links.forEach(link => {
+                    const text = link.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        found = true;
+                        link.style.backgroundColor = '#fff3cd';
+                    } else {
+                        link.style.backgroundColor = '';
+                    }
+                });
+                
+                if (found || module.querySelector('h2').textContent.toLowerCase().includes(searchTerm)) {
+                    module.style.display = 'block';
+                } else {
+                    module.style.display = 'none';
+                }
+            });
+        });
+        
+        // إضافة تأثيرات عند التمرير
+        window.addEventListener('scroll', function() {
+            const modules = document.querySelectorAll('.module');
+            modules.forEach(module => {
+                const position = module.getBoundingClientRect().top;
+                const screenPosition = window.innerHeight / 1.3;
+                
+                if (position < screenPosition) {
+                    module.style.opacity = '1';
+                    module.style.transform = 'translateY(0)';
+                }
+            });
+        });
+        
+        // تهيئة أولية للتأثيرات
+        document.querySelectorAll('.module').forEach(module => {
+            module.style.opacity = '0';
+            module.style.transform = 'translateY(20px)';
+            module.style.transition = 'opacity 0.5s, transform 0.5s';
+        });
+        
+        // تشغيل التأثيرات بعد تحميل الصفحة
+        window.addEventListener('load', function() {
+            document.querySelectorAll('.module').forEach((module, index) => {
+                setTimeout(() => {
+                    module.style.opacity = '1';
+                    module.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+{% endblock %}

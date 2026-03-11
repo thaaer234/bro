@@ -1,0 +1,62 @@
+{% extends "mobile/parent_base.html" %}
+
+{% block content %}
+<div class="card reveal">
+  <div class="section-title">
+    <i class="fas fa-wallet"></i>
+    الملخص المالي
+  </div>
+  <div class="pill-row">
+    <div class="pill">
+      <strong>{{ financial_summary.total_due|floatformat:2 }}</strong>
+      <span>إجمالي المستحق</span>
+    </div>
+    <div class="pill">
+      <strong>{{ financial_summary.total_paid|floatformat:2 }}</strong>
+      <span>إجمالي المدفوع</span>
+    </div>
+    <div class="pill">
+      <strong>{{ financial_summary.total_balance|floatformat:2 }}</strong>
+      <span>المتبقي</span>
+    </div>
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.05s;">
+  <div class="section-title">
+    <i class="fas fa-layer-group"></i>
+    تفاصيل الدورات
+  </div>
+  <div class="list">
+    {% for enrollment in enrollments %}
+    <div class="list-item">
+      <h4>{{ enrollment.course.name }}</h4>
+      <p>الصافي: {{ enrollment.net_amount|floatformat:2 }} · المدفوع: {{ enrollment.amount_paid|floatformat:2 }} · المتبقي: {{ enrollment.balance_due|floatformat:2 }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد دورات مالية حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.1s;">
+  <div class="section-title">
+    <i class="fas fa-receipt"></i>
+    آخر الإيصالات
+  </div>
+  <div class="list">
+    {% for receipt in receipts %}
+    <div class="list-item">
+      <h4>{{ receipt.get_course_name|default:"إيصال" }}</h4>
+      <p>{{ receipt.date|date:"d/m/Y" }} · {{ receipt.paid_amount|floatformat:2 }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد إيصالات مسجلة.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

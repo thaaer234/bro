@@ -5,79 +5,614 @@
 {% block content %}
 
 <div class="module-header">
-    <h2>
-        {% if object %}
-            تعديل المادة: {{ object.name }}
-        {% else %}
-            إضافة مادة جديدة
-        {% endif %}
-    </h2>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <form method="post">
-            {% csrf_token %}
-            
-            <!-- Display form errors -->
-            {% if form.errors %}
-            <div class="alert alert-danger">
-                {% for field, errors in form.errors.items %}
-                    {% for error in errors %}
-                        <p>{{ field|title }}: {{ error }}</p>
-                    {% endfor %}
-                {% endfor %}
-            </div>
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">
+            {% if object %}
+                <i class="fas fa-edit text-warning me-2"></i>تعديل المادة: {{ object.name }}
+            {% else %}
+                <i class="fas fa-plus text-success me-2"></i>إضافة مادة جديدة
             {% endif %}
-            
-            <!-- Name Field -->
-            <div class="form-group">
-                <label for="id_name">اسم المادة:</label>
-                <input type="text" name="name" id="id_name" 
-                    class="form-control" required
-                    value="{{ form.name.value|default_if_none:'' }}">
-            </div>
-            
-            <!-- Subject Type Field -->
-            <div class="form-group">
-                <label for="id_subject_type">نوع المادة:</label>
-                <select name="subject_type" id="id_subject_type" class="form-control" required>
-                    <option value="">اختر نوع المادة...</option>
-                    {% for value, label in form.subject_type.field.choices %}
-                        <option value="{{ value }}" 
-                            {% if form.subject_type.value == value %}selected{% endif %}>
-                            {{ label }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <!-- Teachers Field -->
-            <div class="form-group">
-                <label for="id_teachers">المدرسون:</label>
-                <select name="teachers" id="id_teachers" class="form-control" multiple>
-                    {% for teacher in form.teachers.field.queryset %}
-                        <option value="{{ teacher.id }}"
-                            {% if teacher in form.teachers.value %}selected{% endif %}>
-                            {{ teacher.full_name }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <small class="form-text text-muted">
-                    اضغط مع الاستمرار على زر Ctrl (Windows) أو Command (Mac) لتحديد أكثر من مدرس
-                </small>
-            </div>
-            
-            <!-- Submit Button -->
-            <button type="submit" class="btn btn-primary mt-3">
-                <i class="fas fa-save"></i> حفظ
-            </button>
-            
-            <a href="{% url 'courses:subject_list' %}" class="btn btn-secondary mt-3">
-                <i class="fas fa-times"></i> إلغاء
-            </a>
-        </form>
+        </h2>
+        <a href="{% url 'courses:subject_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i> العودة للقائمة
+        </a>
     </div>
 </div>
+
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-book me-2"></i>
+                    {% if object %}تعديل بيانات المادة{% else %}إضافة مادة جديدة{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="subjectForm">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>يوجد أخطاء في النموذج
+                        </h6>
+                        <ul class="mb-0 mt-2">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <li>{{ field|title }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <!-- حقل اسم المادة -->
+                        <div class="col-md-12 mb-4">
+                            <label for="id_name" class="form-label fw-bold">
+                                <i class="fas fa-tag me-1"></i>اسم المادة
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="name" id="id_name" 
+                                class="form-control form-control-lg" 
+                                placeholder="أدخل اسم المادة..."
+                                value="{{ form.name.value|default_if_none:'' }}" required>
+                            <div class="form-text text-muted">
+                                أدخل اسم المادة باللغة العربية بشكل واضح ومفهوم
+                            </div>
+                        </div>
+
+                        <!-- حقل نوع المادة -->
+                        <div class="col-md-6 mb-4">
+                            <label for="id_subject_type" class="form-label fw-bold">
+                                <i class="fas fa-list-alt me-1"></i>نوع المادة
+                                <span class="text-danger">*</span>
+                            </label>
+                            <select name="subject_type" id="id_subject_type" class="form-control" required>
+                                <option value="">اختر نوع المادة...</option>
+                                {% for value, label in form.subject_type.field.choices %}
+                                    <option value="{{ value }}" 
+                                        {% if form.subject_type.value == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- حقل الكود -->
+                        <div class="col-md-6 mb-4">
+                            <label for="id_code" class="form-label fw-bold">
+                                <i class="fas fa-code me-1"></i>كود المادة
+                            </label>
+                            <input type="text" name="code" id="id_code" 
+                                class="form-control" 
+                                placeholder="مثال: MATH101"
+                                value="{{ form.code.value|default_if_none:'' }}">
+                            <div class="form-text text-muted">
+                                كود اختياري للمادة (يمكن تركه فارغاً)
+                            </div>
+                        </div>
+
+                        <!-- حقل المدرسون - النسخة المحسنة -->
+                        <div class="col-md-12 mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-chalkboard-teacher me-1"></i>المدرسون
+                            </label>
+                            
+                            <!-- شريط البحث السريع -->
+                            <div class="teacher-search-container mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" id="teacherQuickSearch" class="form-control" 
+                                           placeholder="ابحث عن مدرس بالاسم أو التخصص...">
+                                </div>
+                            </div>
+
+                            <!-- بطاقات المدرسين -->
+                            <div class="teachers-selection-container">
+                                <div class="row g-3" id="teachersGrid">
+                                    {% for teacher in form.teachers.field.queryset %}
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="teacher-card {% if teacher in form.teachers.value %}selected{% endif %}" 
+                                             data-teacher-id="{{ teacher.id }}"
+                                             data-teacher-name="{{ teacher.full_name }}"
+                                             data-teacher-specialization="{{ teacher.specialization|default:'غير محدد' }}">
+                                            <div class="card h-100 teacher-select-card">
+                                                <div class="card-body text-center p-3">
+                                                    <!-- صورة المدرس -->
+                                                    <div class="teacher-avatar mb-2 mx-auto">
+                                                        {% if teacher.profile_picture %}
+                                                            <img src="{{ teacher.profile_picture.url }}" 
+                                                                 alt="{{ teacher.full_name }}" 
+                                                                 class="rounded-circle">
+                                                        {% else %}
+                                                            <div class="avatar-placeholder bg-primary text-white rounded-circle">
+                                                                {{ teacher.full_name|slice:":1" }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    
+                                                    <!-- معلومات المدرس -->
+                                                    <h6 class="teacher-name mb-1">{{ teacher.full_name }}</h6>
+                                                    <p class="teacher-specialization text-muted small mb-2">
+                                                        {{ teacher.specialization|default:"غير محدد" }}
+                                                    </p>
+                                                    
+                                                    <!-- حالة المدرس -->
+                                                    <div class="teacher-status mb-2">
+                                                        {% if teacher.is_active %}
+                                                        <span class="badge bg-success btn-sm">
+                                                            <i class="fas fa-check-circle me-1"></i>نشط
+                                                        </span>
+                                                        {% else %}
+                                                        <span class="badge bg-secondary btn-sm">
+                                                            <i class="fas fa-pause-circle me-1"></i>غير نشط
+                                                        </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    
+                                                    <!-- زر الاختيار -->
+                                                    <div class="form-check">
+                                                        <input class="form-check-input teacher-checkbox" 
+                                                               type="checkbox" 
+                                                               name="teachers" 
+                                                               value="{{ teacher.id }}"
+                                                               id="teacher_{{ teacher.id }}"
+                                                               {% if teacher in form.teachers.value %}checked{% endif %}>
+                                                        <label class="form-check-label small" for="teacher_{{ teacher.id }}">
+                                                            اختر المدرس
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="col-12">
+                                        <div class="text-center py-4 text-muted">
+                                            <i class="fas fa-users fa-2x mb-3"></i>
+                                            <p>لا يوجد مدرسون متاحون</p>
+                                            <a href="{% url 'teachers:teacher_create' %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-plus me-1"></i>إضافة مدرس جديد
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- المدرسون المختارون -->
+                            <div class="selected-teachers-container mt-3">
+                                <label class="form-label fw-bold text-success">
+                                    <i class="fas fa-user-check me-1"></i>المدرسون المختارون
+                                    <span class="badge bg-success ms-1" id="selectedTeachersCount">0</span>
+                                </label>
+                                <div class="selected-teachers-list" id="selectedTeachersList">
+                                    <!-- سيتم عرض المدرسون المختارون هنا -->
+                                </div>
+                            </div>
+
+                            <div class="form-text text-muted mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                يمكنك اختيار أكثر من مدرس للمادة عن طريق النقر على البطاقات
+                            </div>
+                        </div>
+
+                        <!-- حقل الوصف -->
+                        <div class="col-md-12 mb-4">
+                            <label for="id_description" class="form-label fw-bold">
+                                <i class="fas fa-align-left me-1"></i>وصف المادة
+                            </label>
+                            <textarea name="description" id="id_description" 
+                                class="form-control" rows="4"
+                                placeholder="أدخل وصفاً مختصراً للمادة...">{{ form.description.value|default_if_none:'' }}</textarea>
+                            <div class="form-text text-muted">
+                                <span id="descriptionCounter">0</span>/500 حرف
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-4 mt-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <button type="submit" class="btn btn-success px-4">
+                                    <i class="fas fa-save me-2"></i> 
+                                    {% if object %}تحديث{% else %}حفظ{% endif %}
+                                </button>
+                                <a href="{% url 'courses:subject_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i> إلغاء
+                                </a>
+                            </div>
+                            <div class="text-muted">
+                                <small>جميع الحقول marked with <span class="text-danger">*</span> إلزامية</small>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- معلومات سريعة -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>معلومات مهمة</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-check text-success me-3"></i>
+                            <div>
+                                <small class="fw-bold">المادة الإجبارية</small>
+                                <div class="text-muted">ضرورية لجميع الطلاب</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-list-alt text-warning me-3"></i>
+                            <div>
+                                <small class="fw-bold">المادة الاختيارية</small>
+                                <div class="text-muted">يختارها الطالب حسب رغبته</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-users text-info me-3"></i>
+                            <div>
+                                <small class="fw-bold">تعدد المدرسين</small>
+                                <div class="text-muted">يمكن إضافة أكثر من مدرس للمادة</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-code text-secondary me-3"></i>
+                            <div>
+                                <small class="fw-bold">كود المادة</small>
+                                <div class="text-muted">يسهل البحث والترتيب</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-label {
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+/* تنسيق بطاقات المدرسين */
+.teacher-card .card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+.teacher-card.selected .card {
+    border-color: #28a745;
+    background-color: #f8fff9;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+}
+
+.teacher-card:hover .card {
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.teacher-avatar {
+    width: 60px;
+    height: 60px;
+}
+
+.teacher-avatar img,
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+.teacher-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.teacher-specialization {
+    font-size: 12px;
+    min-height: 32px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.teacher-checkbox {
+    transform: scale(1.1);
+}
+
+/* قائمة المدرسين المختارين */
+.selected-teachers-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 50px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #dee2e6;
+}
+
+.selected-teacher-tag {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    animation: fadeIn 0.3s ease;
+}
+
+.selected-teacher-tag .remove-teacher {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.selected-teacher-tag .remove-teacher:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* شريط البحث */
+.teacher-search-container {
+    max-width: 400px;
+}
+
+/* تأثيرات الحركة */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* التجاوب */
+@media (max-width: 768px) {
+    .teacher-card .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+/* تنسيق النص العربي */
+.teacher-name, .teacher-specialization {
+    line-height: 1.4;
+}
+
+.form-control-lg {
+    font-size: 1.1rem;
+    padding: 0.75rem 1rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const teacherCards = document.querySelectorAll('.teacher-card');
+    const teacherQuickSearch = document.getElementById('teacherQuickSearch');
+    const selectedTeachersList = document.getElementById('selectedTeachersList');
+    const selectedTeachersCount = document.getElementById('selectedTeachersCount');
+    const descriptionTextarea = document.getElementById('id_description');
+    const descriptionCounter = document.getElementById('descriptionCounter');
+
+    // تحديث عداد وصف المادة
+    function updateDescriptionCounter() {
+        const count = descriptionTextarea.value.length;
+        descriptionCounter.textContent = count;
+        
+        if (count > 500) {
+            descriptionCounter.classList.add('text-danger');
+        } else {
+            descriptionCounter.classList.remove('text-danger');
+        }
+    }
+
+    descriptionTextarea.addEventListener('input', updateDescriptionCounter);
+    updateDescriptionCounter(); // التهيئة الأولية
+
+    // تحديث قائمة المدرسين المختارين
+    function updateSelectedTeachersList() {
+        const selectedTeachers = document.querySelectorAll('.teacher-checkbox:checked');
+        selectedTeachersCount.textContent = selectedTeachers.length;
+        
+        selectedTeachersList.innerHTML = '';
+        
+        selectedTeachers.forEach(checkbox => {
+            const teacherCard = checkbox.closest('.teacher-card');
+            const teacherId = teacherCard.dataset.teacherId;
+            const teacherName = teacherCard.dataset.teacherName;
+            const teacherSpecialization = teacherCard.dataset.teacherSpecialization;
+            
+            const tag = document.createElement('div');
+            tag.className = 'selected-teacher-tag';
+            tag.innerHTML = `
+                <span>${teacherName}</span>
+                <button type="button" class="remove-teacher" data-teacher-id="${teacherId}">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            selectedTeachersList.appendChild(tag);
+        });
+        
+        // إضافة رسالة إذا لم يتم اختيار أي مدرس
+        if (selectedTeachers.length === 0) {
+            selectedTeachersList.innerHTML = `
+                <div class="text-muted text-center w-100">
+                    <i class="fas fa-info-circle me-1"></i>
+                    لم يتم اختيار أي مدرس بعد
+                </div>
+            `;
+        }
+    }
+
+    // تفعيل/إلغاء اختيار المدرس عند النقر على البطاقة
+    teacherCards.forEach(card => {
+        const checkbox = card.querySelector('.teacher-checkbox');
+        
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('.remove-teacher')) {
+                checkbox.checked = !checkbox.checked;
+                card.classList.toggle('selected', checkbox.checked);
+                updateSelectedTeachersList();
+            }
+        });
+        
+        // منع النقر المزدوج على checkbox
+        checkbox.addEventListener('click', function(e) {
+            e.stopPropagation();
+            card.classList.toggle('selected', this.checked);
+            updateSelectedTeachersList();
+        });
+    });
+
+    // إزالة مدرس من القائمة المختارة
+    selectedTeachersList.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-teacher')) {
+            const removeBtn = e.target.closest('.remove-teacher');
+            const teacherId = removeBtn.dataset.teacherId;
+            const checkbox = document.querySelector(`.teacher-checkbox[value="${teacherId}"]`);
+            const teacherCard = checkbox.closest('.teacher-card');
+            
+            checkbox.checked = false;
+            teacherCard.classList.remove('selected');
+            updateSelectedTeachersList();
+        }
+    });
+
+    // البحث السريع عن المدرسين
+    teacherQuickSearch.addEventListener('input', function(e) {
+        const searchText = e.target.value.toLowerCase();
+        
+        teacherCards.forEach(card => {
+            const teacherName = card.dataset.teacherName.toLowerCase();
+            const teacherSpecialization = card.dataset.teacherSpecialization.toLowerCase();
+            
+            const isVisible = teacherName.includes(searchText) || 
+                            teacherSpecialization.includes(searchText);
+            
+            card.style.display = isVisible ? 'block' : 'none';
+        });
+    });
+
+    // التحقق من النموذج قبل الإرسال
+    document.getElementById('subjectForm').addEventListener('submit', function(e) {
+        const nameField = document.getElementById('id_name');
+        const typeField = document.getElementById('id_subject_type');
+        
+        if (!nameField.value.trim()) {
+            e.preventDefault();
+            showAlert('يرجى إدخال اسم المادة', 'danger');
+            nameField.focus();
+            return false;
+        }
+        
+        if (!typeField.value) {
+            e.preventDefault();
+            showAlert('يرجى اختيار نوع المادة', 'danger');
+            typeField.focus();
+            return false;
+        }
+        
+        return true;
+    });
+
+    // توليد كود تلقائي إذا كان الحقل فارغاً
+    const nameField = document.getElementById('id_name');
+    const codeField = document.getElementById('id_code');
+    
+    nameField.addEventListener('blur', function() {
+        if (!codeField.value && nameField.value) {
+            // توليد كود مبسط من اسم المادة
+            const arabicToEnglish = {
+                'أ': 'A', 'ب': 'B', 'ت': 'T', 'ث': 'TH', 'ج': 'J',
+                'ح': 'H', 'خ': 'KH', 'د': 'D', 'ذ': 'TH', 'ر': 'R',
+                'ز': 'Z', 'س': 'S', 'ش': 'SH', 'ص': 'S', 'ض': 'D',
+                'ط': 'T', 'ظ': 'Z', 'ع': 'A', 'غ': 'GH', 'ف': 'F',
+                'ق': 'Q', 'ك': 'K', 'ل': 'L', 'م': 'M', 'ن': 'N',
+                'ه': 'H', 'و': 'W', 'ي': 'Y', 'ة': 'H', 'ى': 'A'
+            };
+            
+            let code = '';
+            for (let char of nameField.value) {
+                if (arabicToEnglish[char]) {
+                    code += arabicToEnglish[char];
+                } else if (/[a-zA-Z0-9]/.test(char)) {
+                    code += char.toUpperCase();
+                }
+                if (code.length >= 4) break;
+            }
+            
+            if (code.length < 2) {
+                code = 'SUB'; // قيمة افتراضية
+            }
+            
+            codeField.value = code + '101';
+        }
+    });
+
+    // وظيفة عرض التنبيهات
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const form = document.getElementById('subjectForm');
+        form.insertBefore(alertDiv, form.firstChild);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // التهيئة الأولية لقائمة المدرسين المختارين
+    updateSelectedTeachersList();
+});
+</script>
 
 {% endblock %}

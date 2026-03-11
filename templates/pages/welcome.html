@@ -7,7 +7,6 @@
     <div class="welcome-container">
         <div class="logo-space">
             <img src="{% static "img/logo.png" %}" alt="شعار المعهد" class="institute-logo">
-            
         </div>
 
         <!-- قسم الترحيب الرئيسي -->
@@ -25,12 +24,45 @@
             {% else %}
             <div class="welcome-message">
                 <p>مرحباً بعودتك، {{ user.get_full_name }}</p>
+                
+                <!-- زر خريطة الموقع -->
+                <!-- الرابط الجديد الصحيح -->
+{% comment %} <a href="{% url 'pages:sitemap' %}" class="sitemap-btn">
+    <i class="fas fa-sitemap"></i> استكشف خريطة الموقع
+</a> {% endcomment %}
             </div>
             {% endif %}
         </div>
-</div>
+
+        <!-- باقي المحتوى -->
+    </div>
 
 <style>
+    /* الإضافات الجديدة للزر */
+    .sitemap-btn {
+        display: inline-block;
+        background: #2c3e50;
+        color: white;
+        padding: 0.8rem 1.5rem;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 10px rgba(44, 62, 80, 0.3);
+        margin-top: 1rem;
+    }
+
+    .sitemap-btn:hover {
+        background: #1a252f;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(44, 62, 80, 0.4);
+    }
+
+    .sitemap-btn i {
+        margin-left: 8px;
+    }
+
+    /* الأنماط الحالية تبقى كما هي */
     :root {
         --primary-color: #3498db;
         --secondary-color: #2c3e50;
@@ -59,14 +91,6 @@
         max-width: 100%;
     }
 
-    .logo-text {
-        color: var(--secondary-color);
-        font-size: 2.5rem;
-        border: 2px dashed #ccc;
-        padding: 1rem 2rem;
-        border-radius: 8px;
-    }
-
     .welcome-header {
         margin-bottom: 3rem;
     }
@@ -82,41 +106,6 @@
         font-size: 1.2rem;
         max-width: 800px;
         margin: 0 auto;
-        line-height: 1.6;
-    }
-
-    .services-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 2rem;
-        margin: 3rem 0;
-    }
-
-    .service-card {
-        background: white;
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        transition: transform 0.3s ease;
-    }
-
-    .service-card:hover {
-        transform: translateY(-10px);
-    }
-
-    .service-icon {
-        font-size: 3rem;
-        color: var(--primary-color);
-        margin-bottom: 1.5rem;
-    }
-
-    .service-card h3 {
-        color: var(--secondary-color);
-        margin-bottom: 1rem;
-    }
-
-    .service-card p {
-        color: #666;
         line-height: 1.6;
     }
 
@@ -159,10 +148,6 @@
     @media (max-width: 768px) {
         .welcome-title {
             font-size: 2rem;
-        }
-        
-        .services-grid {
-            grid-template-columns: 1fr;
         }
     }
 </style>

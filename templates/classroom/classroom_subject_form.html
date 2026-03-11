@@ -5,68 +5,345 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="card">
-        <div class="card-header bg-primary text-white">
-            <h4>إضافة مادة لشعبة {{ classroom.name }}</h4>
-        </div>
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                
-                {% if form.non_field_errors %}
-                <div class="alert alert-danger">
-                    {% for error in form.non_field_errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-                {% endif %}
-                
-                <!-- حقل المادة مع التعديل -->
-                <div class="form-group">
-                    <label for="subject_select">
-                        المادة <span class="text-danger">*</span>
-                    </label>
-                    <select name="subject" class="form-control" id="subject_select" required>
-                        <option value="">اختر المادة</option>
-                        {% for subject_id, subject_name in subject_choices %}
-                            <option value="{{ subject_id }}" {% if form.subject.value == subject_id %}selected{% endif %}>
-                                {{ subject_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    {% if form.subject.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.subject.errors }}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-book me-2"></i>
+                            {% if editing %}
+                                تعديل المادة في شعبة {{ classroom.name }}
+                            {% else %}
+                                إضافة مادة لشعبة {{ classroom.name }}
+                            {% endif %}
+                        </h4>
+                        <span class="badge bg-light text-primary">
+                            {{ classroom.get_class_type_display }}
+                        </span>
                     </div>
-                    {% endif %}
                 </div>
-                
-                <!-- باقي الحقول -->
-                {% for field in form %}
-                    {% if field.name != 'subject' %}
-                    <div class="form-group">
-                        <label for="{{ field.id_for_label }}">
-                            {{ field.label }}
-                            {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
-                        </label>
-                        {{ field }}
-                        {% if field.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ field.errors }}
+                <div class="card-body">
+                    <div class="classroom-info mb-4 p-3 bg-light rounded">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>اسم الشعبة:</strong> {{ classroom.name }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>عدد الطلاب:</strong> {{ classroom.enrollments.count }}
+                            </div>
+                            {% if classroom.class_type == 'study' %}
+                            <div class="col-md-6 mt-2">
+                                <strong>الفرع:</strong> 
+                                <span class="badge bg-info">{{ classroom.get_branches_display }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="col-md-6 mt-2">
+                                <strong>المواد المضافة:</strong> 
+                                <span class="badge bg-secondary">{{ classroom.subjects.count }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post" id="subjectForm">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
                         </div>
                         {% endif %}
-                    </div>
-                    {% endif %}
-                {% endfor %}
-                
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-save"></i> حفظ
-                </button>
-                <a href="{% url 'classroom:classroom_subject_list' classroom.id %}" class="btn btn-secondary">
-                    <i class="fas fa-times"></i> إلغاء
-                </a>
-            </form>
+                        
+                        <!-- حقل المادة مع البحث -->
+                        <div class="form-group mb-4">
+                            <label for="subject_select" class="form-label fw-bold">
+                                <i class="fas fa-book me-1"></i>
+                                المادة <span class="text-danger">*</span>
+                            </label>
+                            <select name="subject" class="form-control select2" id="subject_select" required
+                                    data-placeholder="اختر المادة من القائمة أو ابحث...">
+                                <option value=""></option>
+                                {% for subject_id, subject_name in subject_choices %}
+                                    <option value="{{ subject_id }}" 
+                                        {% if form.subject.value == subject_id %}selected{% endif %}
+                                        data-description="{{ subject_name.description|default:'' }}">
+                                        {{ subject_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text text-muted">
+                                <small>اختر المادة من القائمة أو اكتب للبحث</small>
+                            </div>
+                            {% if form.subject.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.subject.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- معلومات المادة المختارة -->
+                        <div id="subjectInfo" class="alert alert-info d-none">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 id="selectedSubjectName" class="mb-1"></h6>
+                                    <p id="selectedSubjectDescription" class="mb-0 small"></p>
+                                </div>
+                                <button type="button" class="btn-close" onclick="hideSubjectInfo()"></button>
+                            </div>
+                        </div>
+                        
+                        <!-- باقي الحقول -->
+                        <div class="row">
+                            {% for field in form %}
+                                {% if field.name != 'subject' %}
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ field.id_for_label }}" class="form-label fw-bold">
+                                        {{ field.label }}
+                                        {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                                    </label>
+                                    
+                                    {% if field.field.widget.input_type == 'select' %}
+                                        <select name="{{ field.name }}" id="{{ field.id_for_label }}" 
+                                                class="form-control {% if field.errors %}is-invalid{% endif %}">
+                                            {% for choice in field.field.choices %}
+                                                <option value="{{ choice.0 }}" 
+                                                    {% if field.value == choice.0 %}selected{% endif %}>
+                                                    {{ choice.1 }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    {% else %}
+                                        <input type="{{ field.field.widget.input_type }}" 
+                                               name="{{ field.name }}" 
+                                               id="{{ field.id_for_label }}"
+                                               class="form-control {% if field.errors %}is-invalid{% endif %}"
+                                               value="{{ field.value|default:'' }}"
+                                               {% if field.field.required %}required{% endif %}>
+                                    {% endif %}
+                                    
+                                    {% if field.help_text %}
+                                    <div class="form-text text-muted">
+                                        <small>{{ field.help_text }}</small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in field.errors %}
+                                            <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small><br>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <!-- ملخص التكلفة -->
+                        {% comment %} <div id="costSummary" class="card bg-light d-none mb-4">
+                            <div class="card-body">
+                                <h6 class="card-title"><i class="fas fa-calculator me-2"></i>ملخص التكلفة</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small>تكلفة المادة:</small>
+                                        <div id="subjectCost" class="fw-bold">0 ر.س</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small>عدد الطلاب:</small>
+                                        <div class="fw-bold">{{ classroom.enrollments.count }}</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small>التكلفة الإجمالية:</small>
+                                        <div id="totalCost" class="fw-bold text-primary">0 ر.س</div>
+                                    </div>
+                                </div>
+                            </div> {% endcomment %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                            <div>
+                                <button type="submit" class="btn btn-success px-4">
+                                    <i class="fas fa-save me-2"></i> 
+                                    {% if editing %}تحديث{% else %}حفظ{% endif %}
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="previewForm()">
+                                    <i class="fas fa-eye me-2"></i> معاينة
+                                </button>
+                            </div>
+                            <div>
+                                <a href="{% url 'classroom:classroom_subject_list' classroom.id %}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-2"></i> إلغاء
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- معلومات سريعة -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>معلومات مهمة</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            تأكد من اختيار المادة المناسبة للشعبة والفرع
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            يمكنك إضافة أكثر من مادة للشعبة الواحدة
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            سيتم ربط المادة بجميع طلاب الشعبة تلقائياً
+                        </li>
+                        {% if classroom.class_type == 'study' %}
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            المواد المضافة يجب أن تتوافق مع فرع الشعبة ({{ classroom.get_branches_display }})
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+.select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: calc(2.25rem + 2px);
+    padding: 0.375rem 0.75rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: calc(2.25rem + 2px);
+}
+
+.classroom-info {
+    border-right: 4px solid #007bff;
+}
+
+.form-label {
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const subjectSelect = document.getElementById('subject_select');
+    const subjectInfo = document.getElementById('subjectInfo');
+    const costSummary = document.getElementById('costSummary');
+    const subjectCostElement = document.getElementById('subjectCost');
+    const totalCostElement = document.getElementById('totalCost');
+    const studentCount = {{ classroom.enrollments.count }};
+
+    // تهيئة Select2 للبحث
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('#subject_select').select2({
+            placeholder: "اختر المادة من القائمة أو ابحث...",
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() {
+                    return "لا توجد نتائج";
+                }
+            }
+        });
+    }
+
+    // عرض معلومات المادة المختارة
+    subjectSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        
+        if (selectedOption.value) {
+            const subjectName = selectedOption.text;
+            const subjectDescription = selectedOption.getAttribute('data-description');
+            
+            document.getElementById('selectedSubjectName').textContent = subjectName;
+            document.getElementById('selectedSubjectDescription').textContent = 
+                subjectDescription || 'لا يوجد وصف للمادة';
+            
+            subjectInfo.classList.remove('d-none');
+            
+            // حساب التكلفة (يمكن تطوير هذا الجزء)
+            calculateCost();
+        } else {
+            hideSubjectInfo();
+        }
+    });
+
+    // إخفاء معلومات المادة
+    window.hideSubjectInfo = function() {
+        subjectInfo.classList.add('d-none');
+        costSummary.classList.add('d-none');
+    };
+
+    // حساب التكلفة
+    function calculateCost() {
+        // هنا يمكن إضافة منطق حساب التكلفة بناءً على المادة المختارة
+        const baseCost = 100; // تكلفة افتراضية
+        const totalCost = baseCost * studentCount;
+        
+        subjectCostElement.textContent = baseCost + ' ر.س';
+        totalCostElement.textContent = totalCost + ' ر.س';
+        costSummary.classList.remove('d-none');
+    }
+
+    // معاينة النموذج
+    window.previewForm = function() {
+        const formData = new FormData(document.getElementById('subjectForm'));
+        let previewText = 'معاينة البيانات:\n\n';
+        
+        for (let [key, value] of formData.entries()) {
+            if (value) {
+                const fieldLabel = document.querySelector(`[for="id_${key}"]`) || 
+                                 document.querySelector(`[for="${key}"]`);
+                const labelText = fieldLabel ? fieldLabel.textContent.trim() : key;
+                previewText += `${labelText}: ${value}\n`;
+            }
+        }
+        
+        alert(previewText);
+    };
+
+    // التحقق من النموذج قبل الإرسال
+    document.getElementById('subjectForm').addEventListener('submit', function(e) {
+        const subjectValue = subjectSelect.value;
+        
+        if (!subjectValue) {
+            e.preventDefault();
+            alert('يرجى اختيار المادة قبل الحفظ');
+            subjectSelect.focus();
+            return false;
+        }
+        
+        // يمكن إضافة المزيد من التحقق هنا
+        return true;
+    });
+
+    // تهيئة الحقول عند التحميل
+    if (subjectSelect.value) {
+        subjectSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+
 {% endblock %}

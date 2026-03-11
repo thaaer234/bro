@@ -1,0 +1,407 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>تقرير أعداد الدورات السريعة - {{ course_type_report_label }}</title>
+    <style>
+        :root {
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --accent: #0f3d5e;
+            --accent-soft: #e3f2f1;
+            --border: #e5e7eb;
+            --paper: #ffffff;
+            --shadow: 0 20px 36px -28px rgba(15, 61, 94, 0.45);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Tahoma", "Arial", sans-serif;
+            background: #f4f6f8;
+            color: var(--ink);
+        }
+        .page {
+            position: relative;
+            max-width: 980px;
+            margin: 28px auto;
+            background: var(--paper);
+            padding: 28px 32px 36px;
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .page::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: url("{% static 'img/logo.png' %}") center 120px / 520px no-repeat;
+            opacity: 0.05;
+            pointer-events: none;
+        }
+        .no-print { text-align: center; margin: 16px auto 0; }
+        .actions { display: inline-flex; gap: 12px; flex-wrap: wrap; }
+        .btn {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .btn-print { background: var(--accent); color: #fff; }
+        .btn-back { background: #f3f4f6; color: var(--ink); text-decoration: none; }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+            background: linear-gradient(135deg, #0f3d5e 0%, #1f7a8c 100%);
+            color: #fff;
+            border-radius: 16px;
+            margin-bottom: 18px;
+            position: relative;
+            z-index: 1;
+        }
+        .hero .brand { display: flex; align-items: center; gap: 16px; }
+        .hero img { width: 84px; height: 84px; object-fit: contain; }
+        .hero h1 { margin: 0; font-size: 1.5rem; }
+        .hero p { margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 0.92rem; }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+            position: relative;
+            z-index: 1;
+        }
+        .summary-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+        .summary-card .label { color: var(--muted); font-size: 12px; }
+        .summary-card .value { font-size: 18px; font-weight: 700; margin-top: 4px; }
+
+        .table-wrap {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+            background: #fff;
+        }
+        .comparison {
+            margin-top: 20px;
+            padding: 16px 18px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #fff;
+            position: relative;
+            z-index: 1;
+        }
+        .section-title {
+            margin: 22px 0 10px;
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+        .comparison h2 {
+            margin: 0 0 10px;
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+        .comparison-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .comparison-item {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
+            background: #f9fafb;
+        }
+        .comparison-item .label {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        .comparison-item .value {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .delta {
+            margin-top: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .delta.up { color: #0f766e; }
+        .delta.down { color: #b91c1c; }
+        .delta.flat { color: var(--muted); }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead th {
+            background: var(--accent);
+            color: #fff;
+            padding: 12px;
+            font-weight: 600;
+        }
+        tbody td {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+        }
+        tbody tr:nth-child(even) { background: #f8fafc; }
+        .text-end { text-align: right; }
+        .text-center { text-align: center; }
+        .muted { color: var(--muted); font-size: 12px; }
+        .price-pill {
+            display: inline-block;
+            background: var(--accent-soft);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .index-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #eef2f7;
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 12px;
+        }
+        @media print {
+            body {
+                background: #f4f6f8;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .page {
+                margin: 0;
+                border-radius: 18px;
+                box-shadow: var(--shadow);
+            }
+            .no-print { display: none !important; }
+            @page {
+                size: A4;
+                margin: 12mm;
+            }
+            table {
+                font-size: 12.5px;
+            }
+            thead {
+                display: table-header-group;
+            }
+            tfoot {
+                display: table-footer-group;
+            }
+            tr, td, th {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            .summary-card {
+                break-inside: avoid;
+            }
+            .comparison {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <div class="actions">
+            <button class="btn btn-print" onclick="window.print()">طباعة التقرير</button>
+            <a class="btn btn-back" href="{% url 'quick:outstanding_courses' %}?course_type={{ course_type }}">عودة للتقرير</a>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="hero">
+            <div class="brand">
+                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" />
+                <div>
+                    <h1>تقرير أعداد الدورات السريعة</h1>
+                    <p>ملخص الدورات وإجماليات المدفوعات ({{ course_type_report_label }})</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary">
+            <div class="summary-card">
+                <div class="label">إجمالي الدورات</div>
+                <div class="value">{{ totals.total_courses }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">إجمالي الطلاب</div>
+                <div class="value">{{ totals.total_students }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">الطلاب المسددين</div>
+                <div class="value">{{ totals.total_paid_students }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">الطلاب غير المسددين</div>
+                <div class="value">{{ totals.total_outstanding_students }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">إجمالي المدفوع</div>
+                <div class="value">{{ totals.total_paid_amount|floatformat:0 }} ل.س</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">إجمالي المتبقي</div>
+                <div class="value">{{ totals.total_outstanding_amount|floatformat:0 }} ل.س</div>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="text-center">ترقيم</th>
+                        <th>الدورة</th>
+                        <th class="text-center">سعر الدورة</th>
+                        <th class="text-center">إجمالي الطلاب</th>
+                        <th class="text-center">مسددين</th>
+                        <th class="text-center">غير مسددين</th>
+                        <th class="text-end">رصيد الدورة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in courses %}
+                    <tr>
+                        <td class="text-center"><span class="index-pill">{{ forloop.counter }}</span></td>
+                        <td>
+                            <strong>{{ row.course.name }}</strong>
+                            {% if row.course.name_ar %}
+                            <div class="muted">{{ row.course.name_ar }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-center"><span class="price-pill">{{ row.course.price|floatformat:0 }} ل.س</span></td>
+                        <td class="text-center">{{ row.total_students }}</td>
+                        <td class="text-center">{{ row.paid_students }}</td>
+                        <td class="text-center">{{ row.outstanding_students }}</td>
+                        <td class="text-end">{{ row.total_paid|floatformat:0 }} ل.س</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">لا توجد بيانات لعرضها</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="section-title">أعداد الطلاب حسب الجنس لكل دورة سريعة</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="text-center">ترقيم</th>
+                        <th>الدورة</th>
+                        <th class="text-center">ذكور</th>
+                        <th class="text-center">إناث</th>
+                        <th class="text-center">الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in courses %}
+                    <tr>
+                        <td class="text-center"><span class="index-pill">{{ forloop.counter }}</span></td>
+                        <td>
+                            <strong>{{ row.course.name }}</strong>
+                            {% if row.course.name_ar %}
+                            <div class="muted">{{ row.course.name_ar }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ row.male_students }}</td>
+                        <td class="text-center">{{ row.female_students }}</td>
+                        <td class="text-center">{{ row.total_students }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">لا توجد بيانات لعرضها</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if totals.total_unknown_students %}
+        <div class="muted" style="margin-top: 6px;">
+            ملاحظة: {{ totals.total_unknown_students }} طالب/طالبة بدون تحديد الجنس، لذلك قد لا يساوي مجموع الذكور والإناث الإجمالي.
+        </div>
+        {% endif %}
+
+        <div class="comparison">
+            <h2>مقارنة التقرير الحالي مع التقرير السابق</h2>
+            <div class="comparison-meta">
+                <div>تاريخ التقرير الحالي: {{ print_date }}</div>
+                <div>
+                    تاريخ التقرير السابق:
+                    {% if previous_report_time %}
+                        {{ previous_report_time }}
+                    {% else %}
+                        غير متوفر
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if comparison %}
+                <div class="comparison-grid">
+                    {% for item in comparison.items %}
+                    <div class="comparison-item">
+                        <div class="label">{{ item.label }}</div>
+                        <div class="value">
+                            {{ item.current|floatformat:0 }}
+                        </div>
+                        <div class="delta {% if item.delta > 0 %}up{% elif item.delta < 0 %}down{% else %}flat{% endif %}">
+                            الفرق: {{ item.delta|floatformat:0 }} ({{ item.trend }})
+                        </div>
+                        <div class="muted">السابق: {{ item.previous|floatformat:0 }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if comparison.total_tracked %}
+                <div class="muted" style="margin-top: 10px;">
+                    التحسينات: {{ comparison.improvement_count }} | التراجعات: {{ comparison.decline_count }}
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="muted">
+                    لا يوجد تقرير سابق للمقارنة بعد. اطبع التقرير مرة أخرى لإظهار الفروقات والتحسينات.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var originalTitle = document.title;
+            window.addEventListener('beforeprint', function () {
+                document.title = '';
+            });
+            window.addEventListener('afterprint', function () {
+                document.title = originalTitle;
+            });
+        })();
+    </script>
+</body>
+</html>

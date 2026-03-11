@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4 app-users-report">
+  <div class="report-hero mb-4">
+    <div>
+      <h3>تقرير مستخدمي التطبيق</h3>
+      <p>إحصائيات حية + أكثر مستخدم نشاطًا اليوم</p>
+    </div>
+    <div class="hero-actions">
+      <a href="{% url 'pages:system_report' %}" class="btn btn-outline-secondary">التقارير العامة</a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">عدد المستخدمين الكلي</h6>
+          <div class="display-6">{{ total_users }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">عدد الطلاب</h6>
+          <div class="display-6">{{ students_total }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">عدد الأهالي</h6>
+          <div class="display-6">{{ parents_total }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">عدد المدرّسين</h6>
+          <div class="display-6">{{ teachers_total }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">عدد الدخول اليومي</h6>
+          <div class="display-6">{{ daily_logins }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">عدد الأجهزة المفعلة اليوم</h6>
+          <div class="display-6">{{ active_devices }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">إجمالي الأجهزة</h6>
+          <div class="display-6">{{ devices_total }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body">
+          <h6 class="text-muted">آخر دخول</h6>
+          <div class="small">{{ last_activity|date:"Y-m-d H:i" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="mb-3">توزيع الدخول حسب الدور</h5>
+          <div class="row g-2">
+            {% for role, count in role_counts.items %}
+            <div class="col-6">
+              <div class="mini-card text-center">
+                <div class="mini-title">{{ role }}</div>
+                <div class="mini-value">{{ count }}</div>
+              </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-muted">لا توجد بيانات.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card h-100 highlight-card">
+        <div class="card-body">
+          <h5 class="mb-2">الأكثر دخولًا اليوم</h5>
+          {% if most_active_user %}
+          <div class="top-user">
+            <div>
+              <div class="name">{{ most_active_user.name }}</div>
+              <div class="meta">نوع الحساب: {{ most_active_user.user_type }}</div>
+            </div>
+            <div class="count">{{ most_active_count }}</div>
+          </div>
+          {% else %}
+          <div class="text-muted">لا توجد بيانات اليوم.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">قائمة المستخدمين</h5>
+        <span class="text-muted">مرتبة حسب آخر دخول</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>اسم المستخدم</th>
+              <th>النوع</th>
+              <th>آخر دخول</th>
+              <th>آخر نشاط جهاز</th>
+              <th>أجهزة مرتبطة</th>
+              <th>نشط اليوم</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in users_list %}
+            <tr>
+              <td>{{ row.name }}</td>
+              <td>{{ row.username }}</td>
+              <td>{{ row.user_type }}</td>
+              <td>{{ row.last_login|date:"Y-m-d H:i" }}</td>
+              <td>{{ row.last_seen|date:"Y-m-d H:i" }}</td>
+              <td>{{ row.devices }}</td>
+              <td>{{ row.today_active }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-muted">لا توجد بيانات</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.app-users-report .report-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #f0fff9 0%, #fff6ef 100%);
+  border: 1px solid #c8e6de;
+}
+.app-users-report .report-hero h3 { margin: 0 0 4px; }
+.app-users-report .report-hero p { margin: 0; color: #667085; }
+.mini-card {
+  border-radius: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+.mini-title { color: #64748b; font-size: 0.85rem; }
+.mini-value { font-size: 1.2rem; font-weight: 700; }
+.highlight-card {
+  border: 1px solid #b6f0e1;
+  background: linear-gradient(120deg, #ecfff9 0%, #fff3e9 100%);
+}
+.top-user {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+.top-user .name { font-weight: 700; }
+.top-user .meta { color: #64748b; font-size: 0.85rem; }
+.top-user .count { font-size: 1.5rem; font-weight: 800; color: #0c7f68; }
+</style>
+{% endblock %}

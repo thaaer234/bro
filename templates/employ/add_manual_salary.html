@@ -1,0 +1,475 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="module-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-title">
+            <i class="fas fa-money-bill-wave text-success me-2"></i>
+            إضافة راتب يدوي
+        </h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'employ:teachers' %}">المعلمين</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'employ:teacher_profile' teacher.pk %}">{{ teacher.full_name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">إضافة راتب</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'employ:teacher_profile' teacher.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> رجوع للملف الشخصي
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-gradient-success text-white rounded-top">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        إضافة راتب جديد
+                    </h5>
+                    <span class="badge bg-light text-success fs-6">
+                        {{ teacher.full_name }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="card-body p-4">
+                <!-- رسائل التنبيه -->
+                {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- معلومات سريعة -->
+                <div class="teacher-summary mb-4 p-3 bg-light rounded">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <div class="info-label">نوع الراتب</div>
+                                <div class="info-value">{{ teacher.get_salary_type_display }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <div class="info-label">الأجر/ساعة</div>
+                                <div class="info-value text-success">{{ teacher.hourly_rate|default:"0" }} ل.س</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box">
+                                <div class="info-label">حالة حساب السلف</div>
+                                <div class="info-value">
+                                    {% if teacher.has_advance_account %}
+                                        <span class="badge bg-success">مفعل</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">غير مفعل</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- نموذج إضافة الراتب -->
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="form-section mb-4">
+                        <h6 class="section-title">
+                            <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                            الفترة الزمنية
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="year" class="form-label">
+                                    <i class="fas fa-calendar me-1 text-muted"></i>
+                                    السنة
+                                </label>
+                                <select name="year" id="year" class="form-select form-select-lg" required>
+                                    {% for y in years_range %}
+                                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">
+                                    يرجى اختيار السنة
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="month" class="form-label">
+                                    <i class="fas fa-calendar-week me-1 text-muted"></i>
+                                    الشهر
+                                </label>
+                                <select name="month" id="month" class="form-select form-select-lg" required>
+                                    <option value="1" {% if selected_month == 1 %}selected{% endif %}>كانون الثاني</option>
+                                    <option value="2" {% if selected_month == 2 %}selected{% endif %}>شباط</option>
+                                    <option value="3" {% if selected_month == 3 %}selected{% endif %}>آذار</option>
+                                    <option value="4" {% if selected_month == 4 %}selected{% endif %}>نيسان</option>
+                                    <option value="5" {% if selected_month == 5 %}selected{% endif %}>أيار</option>
+                                    <option value="6" {% if selected_month == 6 %}selected{% endif %}>حزيران</option>
+                                    <option value="7" {% if selected_month == 7 %}selected{% endif %}>تموز</option>
+                                    <option value="8" {% if selected_month == 8 %}selected{% endif %}>آب</option>
+                                    <option value="9" {% if selected_month == 9 %}selected{% endif %}>أيلول</option>
+                                    <option value="10" {% if selected_month == 10 %}selected{% endif %}>تشرين الأول</option>
+                                    <option value="11" {% if selected_month == 11 %}selected{% endif %}>تشرين الثاني</option>
+                                    <option value="12" {% if selected_month == 12 %}selected{% endif %}>كانون الأول</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    يرجى اختيار الشهر
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section mb-4">
+                        <h6 class="section-title">
+                            <i class="fas fa-calculator me-2 text-warning"></i>
+                            تفاصيل الراتب
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="gross_salary" class="form-label">
+                                    <i class="fas fa-money-bill-wave me-1 text-muted"></i>
+                                    الراتب الإجمالي (ل.س) *
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <input type="hidden" name="auto_salary" value="1">
+                                    <input type="text" name="gross_salary" id="gross_salary" 
+                                           class="form-control text-end" required 
+                                           placeholder="0" pattern="[0-9]*" value="{{ auto_gross_salary|floatformat:0 }}" readonly>
+                                    <span class="input-group-text bg-light">ل.س</span>
+                                    <div class="invalid-feedback">
+                                        يرجى إدخال الراتب الإجمالي
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">
+                                    الراتب الإجمالي قبل الخصومات
+                                </small>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="advance_deduction" class="form-label">
+                                    <i class="fas fa-hand-holding-usd me-1 text-muted"></i>
+                                    خصم السلف (ل.س)
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <input type="text" name="advance_deduction" id="advance_deduction" 
+                                           class="form-control text-end" 
+                                           placeholder="0" pattern="[0-9]*" value="0">
+                                    <span class="input-group-text bg-light">ل.س</span>
+                                    <div class="invalid-feedback">
+                                        يرجى إدخال المبلغ بشكل صحيح
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">
+                                    المبلغ المخصوم من السلف المستحقة
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- معاينة الحساب -->
+                        <div class="salary-preview mt-4 p-3 bg-light rounded">
+                            <h6 class="mb-3">
+                                <i class="fas fa-eye me-2"></i>
+                                معاينة الراتب
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="preview-item">
+                                        <span class="preview-label">الإجمالي</span>
+                                        <span class="preview-value" id="preview-gross">0 ل.س</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="preview-item">
+                                        <span class="preview-label">الخصم</span>
+                                        <span class="preview-value text-warning" id="preview-deduction">0 ل.س</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="preview-item">
+                                        <span class="preview-label">الصافي</span>
+                                        <span class="preview-value text-success fw-bold" id="preview-net">0 ل.س</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section mb-4">
+                        <h6 class="section-title">
+                            <i class="fas fa-sticky-note me-2 text-info"></i>
+                            معلومات إضافية
+                        </h6>
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">
+                                <i class="fas fa-comment me-1 text-muted"></i>
+                                ملاحظات
+                            </label>
+                            <textarea name="notes" id="notes" class="form-control" rows="3" 
+                                      placeholder="أي ملاحظات إضافية حول الراتب..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- أزرار الإجراء -->
+                    <div class="action-buttons pt-4 border-top">
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'employ:teacher_profile' teacher.pk %}" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-times me-1"></i> إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg px-5">
+                                <i class="fas fa-save me-1"></i> حفظ الراتب
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- معلومات توجيهية -->
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="info-card text-center p-3">
+                            <i class="fas fa-info-circle fa-2x text-primary mb-2"></i>
+                            <h6>الراتب الإجمالي</h6>
+                            <p class="text-muted small">المبلغ الكامل قبل أي خصومات</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-card text-center p-3">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                            <h6>خصم السلف</h6>
+                            <p class="text-muted small">يتم خصمه تلقائياً إذا كان هناك سلف مستحقة</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-card text-center p-3">
+                            <i class="fas fa-calculator fa-2x text-success mb-2"></i>
+                            <h6>الصافي المستحق</h6>
+                            <p class="text-muted small">المبلغ الذي سيحصل عليه المعلم بعد الخصم</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- التنسيقات المخصصة -->
+<style>
+/* تنسيقات عامة */
+.page-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #42e695 0%, #3bb2b8 100%);
+}
+
+/* مربع المعلومات */
+.teacher-summary {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #198754;
+}
+
+.info-box {
+    padding: 10px;
+}
+
+.info-box .info-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.info-box .info-value {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+/* أقسام النموذج */
+.form-section {
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.section-title {
+    color: #2c3e50;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+    font-weight: 600;
+}
+
+/* معاينة الراتب */
+.salary-preview {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px dashed #ced4da;
+}
+
+.preview-item {
+    text-align: center;
+    padding: 10px;
+}
+
+.preview-label {
+    display: block;
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.preview-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* بطاقات المعلومات */
+.info-card {
+    border-radius: 8px;
+    background: #f8f9fa;
+    transition: all 0.3s;
+    height: 100%;
+}
+
+.info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* إدخالات النموذج */
+.form-control-lg, .form-select-lg {
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+}
+
+/* تحسينات للتجاوب */
+@media (max-width: 768px) {
+    .form-section {
+        padding: 15px;
+    }
+    
+    .preview-value {
+        font-size: 1.2rem;
+    }
+    
+    .btn-lg {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+}
+
+/* التحقق من النموذج */
+.was-validated .form-control:invalid,
+.was-validated .form-select:invalid {
+    border-color: #dc3545;
+}
+
+.was-validated .form-control:valid,
+.was-validated .form-select:valid {
+    border-color: #198754;
+}
+
+/* الألوان */
+.text-primary { color: #0d6efd !important; }
+.text-success { color: #198754 !important; }
+.text-warning { color: #ffc107 !important; }
+.text-info { color: #0dcaf0 !important; }
+</style>
+
+<!-- سكريبت لحساب المعاينة -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const grossInput = document.getElementById('gross_salary');
+    const deductionInput = document.getElementById('advance_deduction');
+    const previewGross = document.getElementById('preview-gross');
+    const previewDeduction = document.getElementById('preview-deduction');
+    const previewNet = document.getElementById('preview-net');
+    const yearSelect = document.getElementById('year');
+    const monthSelect = document.getElementById('month');
+    
+    function formatNumber(num) {
+        return new Intl.NumberFormat().format(num);
+    }
+    
+    function updatePreview() {
+        let gross = parseFloat(grossInput.value) || 0;
+        let deduction = parseFloat(deductionInput.value) || 0;
+        let net = gross - deduction;
+        
+        // تحديث المعاينة
+        previewGross.textContent = formatNumber(gross) + ' ل.س';
+        previewDeduction.textContent = formatNumber(deduction) + ' ل.س';
+        previewNet.textContent = formatNumber(net) + ' ل.س';
+    }
+    
+    // تحديث المعاينة عند الكتابة
+    grossInput.addEventListener('input', updatePreview);
+    deductionInput.addEventListener('input', updatePreview);
+    
+    // تهيئة المعاينة
+    updatePreview();
+    function refreshAutoSalary() {
+        if (!yearSelect || !monthSelect) {
+            return;
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.set('year', yearSelect.value);
+        url.searchParams.set('month', monthSelect.value);
+        window.location.href = url.toString();
+    }
+
+    if (yearSelect) {
+        yearSelect.addEventListener('change', refreshAutoSalary);
+    }
+    if (monthSelect) {
+        monthSelect.addEventListener('change', refreshAutoSalary);
+    }
+
+    
+    // التحقق من النموذج
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+});
+</script>
+{% endblock %}

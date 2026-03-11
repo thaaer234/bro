@@ -1,0 +1,93 @@
+
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 2.5em;
+        font-weight: bold;
+        color: #417690;
+    }
+    
+    .world-map {
+        height: 500px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+{% endblock %}
+
+{% block content %}
+<h1>🌍 لوحة مراقبة الأخطاء العالمية</h1>
+
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-number">{{ error_stats.total_errors }}</div>
+        <div>إجمالي الأخطاء</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ error_stats.recent_errors }}</div>
+        <div>أخطاء اليوم</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ error_stats.unresolved_errors }}</div>
+        <div>أخطاء غير محلولة</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ error_stats.security_alerts }}</div>
+        <div>تنبيهات أمنية</div>
+    </div>
+</div>
+
+<div class="world-map" id="worldMap"></div>
+
+<!-- باقي محتوى الـ dashboard -->
+{% endblock %}
+
+{% block extrajs %}
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+    // تهيئة الخريطة العالمية
+    var worldMap = L.map('worldMap').setView([20, 0], 2);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(worldMap);
+    
+    // إضافة علامات للأخطاء
+    var mapData = {{ map_data_json|safe }};
+    
+    mapData.forEach(function(error) {
+        if (error.latitude && error.longitude) {
+            var marker = L.marker([error.latitude, error.longitude]).addTo(worldMap);
+            marker.bindPopup(`
+                <div style="text-align: right;">
+                    <strong>كود الخطأ:</strong> ${error.error_code}<br>
+                    <strong>IP:</strong> ${error.ip_address}<br>
+                    <strong>البلد:</strong> ${error.country}<br>
+                    <strong>المدينة:</strong> ${error.city}
+                </div>
+            `);
+        }
+    });
+</script>
+{% endblock %}

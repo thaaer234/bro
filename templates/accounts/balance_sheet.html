@@ -8,9 +8,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>الميزانية العمومية / Balance Sheet</h2>
     <div>
-        <a href="?{% url 'accounts:balance_sheet_export' %}" class="btn btn-success">
-            <i class="fas fa-file-excel"></i> تصدير Excel / Export Excel
-        </a>
+         <a href="{% url 'accounts:balance_sheet_export' %}" class="btn btn-success">
+             <i class="fas fa-file-excel"></i> تصدير Excel / Export Excel
+         </a>
         <button onclick="window.print()" class="btn btn-outline-secondary">
             <i class="fas fa-print"></i> طباعة / Print
         </button>

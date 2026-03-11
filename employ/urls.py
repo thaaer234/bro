@@ -1,33 +1,67 @@
 from django.contrib import admin
 from django.urls import path
 from . import views
+from employ.decorators import require_employee_perm
 
 app_name = "employ"
 
 urlpatterns = [
-    path('teachers/',views.teachers.as_view() , name="teachers"),
-    path('delete/<int:pk>/', views.TeacherDeleteView.as_view(), name="delete_teacher"),
-    path('teacher/<int:pk>/', views.TeacherProfileView.as_view(), name='teacher_profile'),
-    path('employee/<int:pk>/', views.EmployeeProfileView.as_view(), name='employee_profile'),
-    path('employee/<int:pk>/pay-salary/', views.PayEmployeeSalaryView.as_view(), name='pay_employee_salary'),
-    path('employee/<int:pk>/permissions/', views.EmployeePermissionsView.as_view(), name='employee_permissions'),
-    path('employee/<int:pk>/permissions/', views.EmployeePermissionsView.as_view(), name='employee_permissions'),
-    path('hr/',views.hr.as_view() , name="hr"),
-    path('create/', views.CreateTeacherView.as_view(), name="create"),
-    path('delete-employee/<int:pk>/', views.EmployeeDeleteView.as_view(), name='employee_delete'),
-    path('register/', views.EmployeeCreateView.as_view(), name='employee_register'),
-    path('update/', views.select_employee, name='select_employee'),
-    path('update/<int:pk>/', views.EmployeeUpdateView.as_view(), name='employee_update'),
-    path('vacations/', views.VacationListView.as_view(), name='vacation_list'),
-    path('vacations/create/', views.VacationCreateView.as_view(), name='vacation_create'),
-    path('vacations/update/<int:pk>/', views.VacationUpdateView.as_view(), name='vacation_update'),
-    path('teacher/<int:pk>/pay-salary/', views.PayTeacherSalaryView.as_view(), name='pay_teacher_salary'),
-    path('teacher/<int:pk>/create-accrual/', views.CreateTeacherAccrualView.as_view(), name='create_teacher_accrual'),
-    path('salary-management/', views.SalaryManagementView.as_view(), name='salary_management'),
-    path('teacher/<int:teacher_id>/advance/create/', views.TeacherAdvanceCreateView.as_view(), name='teacher_advance_create'),
-    path('teacher/<int:teacher_id>/advances/', views.TeacherAdvanceListView.as_view(), name='teacher_advance_list'),
-    path('employee/advance/create/', views.EmployeeAdvanceCreateView.as_view(), name='employee_advance_create'),
-    path('employee/advance/list/', views.EmployeeAdvanceListView.as_view(), name='employee_advance_list'),
-    path("employee/<int:pk>/permissions/", views.EmployeePermissionsView.as_view(), name="employee_permissions"),
+    # إدارة المدرسين
+    path('teachers/', require_employee_perm('teachers_view')(views.teachers.as_view()), name="teachers"),
+    path('teacher-cards-print/', require_employee_perm('teachers_view')(views.TeacherCardsPrintView.as_view()), name="teacher_cards_print"),
+    path('teacher-cards-print/pdf/', require_employee_perm('teachers_view')(views.teacher_cards_print_pdf), name="teacher_cards_print_pdf"),
+    path('delete/<int:pk>/', require_employee_perm('teachers_delete')(views.TeacherDeleteView.as_view()), name="delete_teacher"),
+    path('teacher/<int:pk>/', require_employee_perm('teachers_profile')(views.TeacherProfileView.as_view()), name='teacher_profile'),
+    path('teacher/update/<int:pk>/', require_employee_perm('teachers_edit')(views.TeacherUpdateView.as_view()), name='update_teacher'),
+    path('employee/<int:pk>/', require_employee_perm('hr_profile')(views.EmployeeProfileView.as_view()), name='employee_profile'),
+    # path('employee/<int:pk>/pay-salary/', require_employee_perm('hr_salary_pay')(views.PayEmployeeSalaryView.as_view()), name='pay_employee_salary'),
+    path('employee/<int:pk>/permissions/', require_employee_perm('hr_permissions')(views.EmployeePermissionsView.as_view()), name='employee_permissions'),
+    path('employee/<int:pk>/cash-account/create/', require_employee_perm('hr_permissions')(views.CreateEmployeeCashAccountView.as_view()), name='create_employee_cash_account'),
+    path('hr/', require_employee_perm('hr_view')(views.hr.as_view()), name="hr"),
+    path('create/', require_employee_perm('teachers_create')(views.CreateTeacherView.as_view()), name="create"),
+    path('delete-employee/<int:pk>/', require_employee_perm('hr_delete')(views.EmployeeDeleteView.as_view()), name='employee_delete'),
+    path('register/', require_employee_perm('hr_create')(views.EmployeeCreateView.as_view()), name='employee_register'),
+    path('update/', require_employee_perm('hr_view')(views.select_employee), name='select_employee'),
+    path('update/<int:pk>/', require_employee_perm('hr_edit')(views.EmployeeUpdateView.as_view()), name='employee_update'),
+    
+    # الإجازات
+    path('vacations/', require_employee_perm('hr_vacations')(views.VacationListView.as_view()), name='vacation_list'),
+    path('vacations/create/', require_employee_perm('hr_vacations')(views.VacationCreateView.as_view()), name='vacation_create'),
+    path('vacations/update/<int:pk>/', require_employee_perm('hr_vacations')(views.VacationUpdateView.as_view()), name='vacation_update'),
+    
+    # رواتب المدرسين
+    # path('teacher/<int:pk>/pay-salary/', require_employee_perm('teachers_salary_pay')(views.PayTeacherSalaryView.as_view()), name='pay_teacher_salary'),
+    # path('teacher/<int:pk>/create-accrual/', require_employee_perm('teachers_salary_accrual')(views.CreateTeacherAccrualView.as_view()), name='create_teacher_accrual'),
+    path('salary-management/', require_employee_perm('teachers_salary')(views.SalaryManagementView.as_view()), name='salary_management'),
+    
+    # سلف المدرسين
+    path('teacher/<int:teacher_id>/advance/create/', require_employee_perm('teachers_advance_create')(views.TeacherAdvanceCreateView.as_view()), name='teacher_advance_create'),
+    path('teacher/<int:teacher_id>/advances/', require_employee_perm('teachers_advance')(views.TeacherAdvanceListView.as_view()), name='teacher_advance_list'),
+    path('teacher/<int:teacher_id>/advance/<int:pk>/edit/', require_employee_perm('teachers_advance')(views.TeacherAdvanceUpdateView.as_view()), name='teacher_advance_edit'),
+    
+    # سلف الموظفين
+    path('employee/advance/create/', require_employee_perm('hr_advances_create')(views.EmployeeAdvanceCreateView.as_view()), name='employee_advance_create'),
+    path('employee/advance/list/', require_employee_perm('hr_advances')(views.EmployeeAdvanceListView.as_view()), name='employee_advance_list'),
+    
+    # صفحة عدم الصلاحية
     path("denied/", views.no_permission, name="no_permission"),
+
+
+     path('teacher/<int:pk>/create-advance-account/', 
+         views.CreateTeacherAdvanceAccountView.as_view(), 
+         name='create_teacher_advance_account'),
+    
+    # الرواتب اليدوية
+    path('teacher/<int:pk>/add-manual-salary/', 
+         views.AddManualSalaryView.as_view(), 
+         name='add_manual_salary'),
+    path('manual-salary/<int:pk>/edit/', 
+         views.EditManualSalaryView.as_view(), 
+         name='edit_manual_salary'),
+    path('manual-salary/<int:pk>/view/', 
+         views.ViewManualSalaryView.as_view(), 
+         name='view_manual_salary'),
+    path('manual-salary/<int:pk>/pay/', 
+         views.PayManualSalaryView.as_view(), 
+         name='pay_manual_salary'),
 ]

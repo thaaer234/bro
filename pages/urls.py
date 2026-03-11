@@ -1,11 +1,17 @@
 from django.contrib import admin
 from django.urls import path
 from . import views
+from employ.decorators import require_employee_perm, require_superuser
 
 app_name = "pages"
 
-
 urlpatterns = [
-    path('index',views.IndexView.as_view() , name="index"),
-    path('',views.welcome.as_view() , name="welcome"),
-]
+    path('index', require_employee_perm('admin_dashboard')(views.IndexView.as_view()), name="index"),
+    path('', require_employee_perm('admin_dashboard')(views.welcome.as_view()), name="welcome"),
+    path('export-activities/', require_employee_perm('admin_logs')(views.export_activities), name='export_activities'),
+    path('sitemap/', require_employee_perm('admin_dashboard')(views.sitemap_view), name='sitemap'),
+    path('system-report/', require_superuser(views.system_report_dashboard), name='system_report'),
+    path('system-report/print/<int:report_id>/', require_superuser(views.system_report_print), name='system_report_print'),
+    path('app-users-report/', require_superuser(views.app_users_report), name='app_users_report'),
+    path('track-click/', views.track_click_event, name='track_click'),
+]   

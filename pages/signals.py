@@ -3,7 +3,8 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.core.exceptions import ObjectDoesNotExist
-from .models import ActivityLog
+from decimal import Decimal
+from .models import ActivityLog, SystemReport
 import inspect
 from django.db import connection
 
@@ -108,3 +109,58 @@ def log_logout(sender, request, user, **kwargs):
         object_repr=user.username,
         details="تم تسجيل الخروج من النظام"
     )
+
+
+def _to_decimal(value):
+    if value in (None, ''):
+        return Decimal('0')
+    if isinstance(value, Decimal):
+        return value
+    try:
+        return Decimal(str(value))
+    except Exception:
+        return Decimal('0')
+
+
+@receiver(post_save, sender=SystemReport)
+def alert_on_report_change(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    previous = SystemReport.objects.exclude(pk=instance.pk).order_by('-created_at').first()
+    if not previous or not instance.summary or not previous.summary:
+        return
+
+    fields = {
+        'users_total': ('counts', 'users_total'),
+        'students_total': ('counts', 'students_total'),
+        'transactions_count': ('transactions', 'count'),
+        'debit_total': ('transactions', 'debit_total'),
+        'credit_total': ('transactions', 'credit_total'),
+    }
+    threshold = Decimal('0.20')
+    changes = []
+
+    for label, path in fields.items():
+        current = instance.summary
+        previous_data = previous.summary
+        for key in path:
+            current = current.get(key, {})
+            previous_data = previous_data.get(key, {})
+        current_value = _to_decimal(current)
+        previous_value = _to_decimal(previous_data)
+        if previous_value == 0:
+            continue
+        change_ratio = (current_value - previous_value).copy_abs() / previous_value
+        if change_ratio >= threshold:
+            changes.append(f"{label}: {previous_value} -> {current_value}")
+
+    if changes:
+        ActivityLog.objects.create(
+            user=instance.created_by,
+            action='other',
+            content_type='SystemReport',
+            object_id=instance.id,
+            object_repr=str(instance)[:200],
+            details="Large change detected in system report. " + "; ".join(changes),
+        )

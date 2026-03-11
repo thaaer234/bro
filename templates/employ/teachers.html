@@ -1,193 +1,398 @@
 {% extends "base.html" %}
 
+
+
 {% load emp_perms %}
+
 {% load static %}
 
+
+
 {% block content %}
+
 <div class="module-header">
+
     <h2>إدارة المدرسين</h2>
+
     <div class="header-actions">
+
+        <a href="{% url 'employ:teacher_cards_print' %}" class="btn btn-outline-secondary">
+
+            <i class="fas fa-id-card"></i> بطاقات المدرسين
+
+        </a>
+
         <a href="{% url 'employ:salary_management' %}" class="btn btn-success">
+
             <i class="fas fa-money-bill-wave"></i> إدارة الرواتب
+
         </a>
+
         <a href="{% url 'employ:create' %}" class="btn btn-primary">
+
             <i class="fas fa-plus"></i> إضافة مدرس جديد
+
         </a>
+
     </div>
+
 </div>
+
+
 
 {% include "partials/_alerts.html" %}
 
+
+
 <!-- إحصائيات سريعة -->
+
 <div class="dashboard-cards">
+
     <div class="dashboard-card">
+
         <div class="dashboard-card-icon bg-primary">
+
             <i class="fas fa-chalkboard-teacher"></i>
+
         </div>
+
         <div class="dashboard-card-title">إجمالي المدرسين</div>
+
         <div class="dashboard-card-value">{{ teachers_data|length }}</div>
+
         <div class="dashboard-card-change">مدرس مسجل</div>
+
     </div>
+
     
+
     <div class="dashboard-card">
+
         <div class="dashboard-card-icon bg-success">
+
             <i class="fas fa-check-circle"></i>
+
         </div>
+
         <div class="dashboard-card-title">رواتب مدفوعة</div>
+
         <div class="dashboard-card-value">{{ paid_count }}</div>
+
         <div class="dashboard-card-change">هذا الشهر</div>
+
     </div>
+
     
+
     <div class="dashboard-card">
+
         <div class="dashboard-card-icon bg-warning">
+
             <i class="fas fa-clock"></i>
+
         </div>
+
         <div class="dashboard-card-title">رواتب معلقة</div>
+
         <div class="dashboard-card-value">{{ unpaid_count }}</div>
+
         <div class="dashboard-card-change">تحتاج دفع</div>
+
     </div>
+
     
+
     <div class="dashboard-card">
+
         <div class="dashboard-card-icon bg-info">
+
             <i class="fas fa-calendar-check"></i>
+
         </div>
+
         <div class="dashboard-card-title">جلسات اليوم</div>
+
         <div class="dashboard-card-value">{{ today_sessions }}</div>
+
         <div class="dashboard-card-change">جلسة</div>
+
     </div>
+
 </div>
+
+
 
 <div class="table-container">
+
     <table class="table">
+
         <thead>
+
             <tr>
+
                 <th>المدرس</th>
+
                 <th>رقم الهاتف</th>
+
                 <th>الفروع</th>
+
                 <th>تاريخ التعيين</th>
+
                 <th>نوع الراتب</th>
+
                 <th>حالة الراتب</th>
+
                 <th>الإجراءات</th>
+
             </tr>
+
         </thead>
+
         <tbody>
+
             {% for data in teachers_data %}
+
             <tr>
+
                 <td>
+
                     <div class="d-flex align-items-center gap-3">
+
                         <div class="teacher-avatar">
+
                             <i class="fas fa-user-circle text-primary" style="font-size: 2.5rem;"></i>
+
                         </div>
+
                         <div>
+
                             <strong>{{ data.teacher.full_name }}</strong>
+
                             <br>
+
                             <small class="text-muted">ID: {{ data.teacher.id }}</small>
+
                         </div>
+
                     </div>
+
                 </td>
+
                 <td>
+
                     <span class="text-dark">{{ data.teacher.phone_number }}</span>
+
                 </td>
+
                 <td>
+
                     <div class="d-flex gap-1 flex-wrap">
+
                         {% for branch in data.teacher.get_branches_list %}
+
                             <span class="badge 
+
                                 {% if branch == 'علمي' %}bg-success
+
                                 {% elif branch == 'أدبي' %}bg-info
+
                                 {% else %}bg-warning{% endif %}">
+
                                 {{ branch }}
+
                             </span>
+
                         {% endfor %}
+
                     </div>
+
                 </td>
+
                 <td>{{ data.teacher.hire_date|date:"Y-m-d" }}</td>
+
                 <td>
+
                     <span class="badge 
+
                         {% if data.teacher.salary_type == 'hourly' %}badge-info
+
                         {% elif data.teacher.salary_type == 'monthly' %}badge-success
+
                         {% else %}badge-warning{% endif %}">
+
                         {{ data.teacher.get_salary_type_display }}
+
                     </span>
+
                     <br>
+
                     <small class="text-muted">
+
                         {% if data.teacher.salary_type == 'hourly' %}
+
                             {{ data.teacher.hourly_rate|floatformat:2 }}/ساعة
+
                         {% elif data.teacher.salary_type == 'monthly' %}
+
                             {{ data.teacher.monthly_salary|floatformat:2 }} ثابت
+
                         {% else %}
+
                             {{ data.teacher.monthly_salary|floatformat:2 }} + {{ data.teacher.hourly_rate|floatformat:2 }}/ساعة
+
                         {% endif %}
+
                     </small>
+
                 </td>
+
                 <td>
+
                     <div class="salary-status-indicator" data-teacher-id="{{ data.teacher.id }}">
+
                         {% if data.salary_status %}
+
                             <div class="status-indicator paid">
+
                                 <i class="fas fa-check-circle"></i>
+
                                 تم الدفع
+
                             </div>
+
                         {% else %}
+
                             <div class="status-indicator unpaid">
+
                                 <i class="fas fa-times-circle"></i>
+
                                 لم يتم الدفع
+
                             </div>
+
                         {% endif %}
+
                     </div>
+
                 </td>
+
                 <td>
+
                     <div class="d-flex gap-2">
+
                         <a href="{% url 'employ:teacher_profile' data.teacher.pk %}" class="btn btn-sm btn-info">
+
                             <i class="fas fa-eye"></i> عرض
+
                         </a>
+
+                        <a href="{% url 'employ:update_teacher' data.teacher.pk %}" class="btn btn-sm btn-warning">
+
+                            <i class="fas fa-edit"></i> تعديل
+
+                        </a>
+
                         <button type="button" class="btn btn-sm btn-danger" onclick="deleteTeacher({{ data.teacher.pk }}, '{{ data.teacher.full_name }}')">
+
                             <i class="fas fa-trash"></i> حذف
+
                         </button>
+
                     </div>
+
                 </td>
+
             </tr>
+
             {% empty %}
+
             <tr>
+
                 <td colspan="7" class="text-center">
+
                     <div class="p-5">
+
                         <i class="fas fa-chalkboard-teacher fa-3x text-muted mb-3"></i>
+
                         <h5>لا توجد مدرسين</h5>
+
                         <p class="text-muted">لم يتم تسجيل أي مدرسين في النظام بعد</p>
+
                         <a href="{% url 'employ:create' %}" class="btn btn-primary">
+
                             <i class="fas fa-plus"></i> إضافة مدرس جديد
+
                         </a>
+
                     </div>
+
                 </td>
+
             </tr>
+
             {% endfor %}
+
         </tbody>
+
     </table>
+
 </div>
 
+
+
 <script>
+
 function deleteTeacher(teacherId, teacherName) {
+
     if (confirm(`هل أنت متأكد من حذف المدرس: ${teacherName}؟`)) {
+
         fetch(`/employ/delete/${teacherId}/`, {
+
             method: 'POST',
+
             headers: {
+
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+
                 'Content-Type': 'application/json',
+
             }
+
         })
+
         .then(response => response.json())
+
         .then(data => {
+
             if (data.success) {
+
                 location.reload();
+
             } else {
+
                 alert('خطأ في الحذف: ' + data.message);
+
             }
+
         })
+
         .catch(error => {
+
             console.error('Error:', error);
+
             alert('خطأ في الاتصال بالخادم');
+
         });
+
     }
+
 }
+
 </script>
 
+
+
 {% csrf_token %}
+
 {% endblock %}
+

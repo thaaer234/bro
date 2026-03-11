@@ -1,6 +1,15 @@
 /* Al-Yaman Institute Management System - Professional CSS */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;600;700&display=swap');
 
+/* Custom font: Cocon Next Arabic */
+@font-face {
+    font-family: 'Cocon Next Arabic';
+    src: url('../font/Cocon_%20Next%20Arabic-Bold.otf') format('opentype');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* CSS Variables */
 :root {
    
@@ -41,8 +50,10 @@
 }
 
 body {
-    font-family: 'Tajawal', sans-serif;
-    background: var(--gray-50);
+    font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', sans-serif;
+    /* background: var(--gray-50);
+     */
+    background-image: url('.../static/img/back.jpg');
     color: var(--gray-800);
     direction: rtl;
     line-height: 1.6;
@@ -56,7 +67,7 @@ body {
     position: fixed;
     right: 0;
     top: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #2c3e50 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 50%, var(--bg) 100%);
     color: var(--white);
     overflow-y: auto;
     overflow-x: hidden;

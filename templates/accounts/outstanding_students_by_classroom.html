@@ -1,0 +1,209 @@
+{% extends 'accounts/base.html' %}
+
+{% load emp_perms %}
+{% block title %}المتبقي على الطلاب حسب الشعبة{% endblock %}
+
+{% block content %}
+<style>
+/* ===== أنماط موحدة لتقارير المتبقي ===== */
+.report-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.report-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .card-body {
+    padding: 20px;
+}
+
+.stats-card .card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    opacity: 0.9;
+}
+
+.stats-card .card-text {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.classroom-card {
+    height: 100%;
+    border: none;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.classroom-card .card-header {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    padding: 15px 20px;
+}
+
+.classroom-card .card-footer {
+    background-color: transparent;
+    border-top: 1px solid #e9ecef;
+    padding: 15px 20px;
+}
+
+.btn-report {
+    border-radius: 6px;
+    font-weight: 500;
+    padding: 8px 16px;
+    transition: all 0.2s ease;
+}
+
+.amount-cell {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.bg-primary { background: linear-gradient(135deg, #3498db, #2980b9) !important; }
+.bg-success { background: linear-gradient(135deg, #28a745, #20c997) !important; }
+.bg-warning { background: linear-gradient(135deg, #ffc107, #fd7e14) !important; }
+.bg-info { background: linear-gradient(135deg, #17a2b8, #6f42c1) !important; }
+
+@media (max-width: 768px) {
+    .stats-card .card-text {
+        font-size: 1.4rem;
+    }
+    
+    .classroom-card {
+        margin-bottom: 20px;
+    }
+}
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>المتبقي على الطلاب حسب الشعبة</h2>
+        <div>
+            <a href="{% url 'accounts:outstanding_courses' %}" class="btn btn-secondary btn-report">
+                <i class="fas fa-arrow-left"></i> العودة لتقرير الدورات
+            </a>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary stats-card">
+                <div class="card-body">
+                    <h5 class="card-title">عدد الشعب</h5>
+                    <h3 class="card-text">{{ total_classrooms }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info stats-card">
+                <div class="card-body">
+                    <h5 class="card-title">إجمالي الطلاب</h5>
+                    <h3 class="card-text">{{ total_students_all }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning stats-card">
+                <div class="card-body">
+                    <h5 class="card-title">إجمالي المتبقي</h5>
+                    <h3 class="card-text amount-cell">{{ total_remaining_all|floatformat:2 }} ل.س</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success stats-card">
+                <div class="card-body">
+                    <h5 class="card-title">متوسط المتبقي</h5>
+                    <h3 class="card-text amount-cell">
+                        {% if total_students_all > 0 %}
+                            {% widthratio total_remaining_all total_students_all 1 as avg %}
+                            {{ avg|floatformat:2 }} ل.س
+                        {% else %}
+                            0.00 ل.س
+                        {% endif %}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة الشعب -->
+    {% if classroom_data %}
+    <div class="row">
+        {% for classroom_info in classroom_data %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 report-card classroom-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users"></i> {{ classroom_info.classroom.name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-primary mb-0">{{ classroom_info.students_count }}</h4>
+                                <small class="text-muted">طالب</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-warning mb-0 amount-cell">{{ classroom_info.total_remaining|floatformat:2 }}</h4>
+                            <small class="text-muted">ل.س متبقي</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-map-marker-alt"></i> 
+                            {{ classroom_info.classroom.get_branches_display }}
+                        </small>
+                    </div>
+                    
+                    {% if classroom_info.classroom.description %}
+                    <p class="card-text small text-muted">
+                        {{ classroom_info.classroom.description|truncatewords:10 }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-grid">
+                        <a href="{% url 'accounts:classroom_detail' classroom_info.classroom.id %}" 
+                           class="btn btn-primary btn-sm btn-report">
+                            <i class="fas fa-external-link-alt"></i> عرض تفاصيل الشعبة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">لا توجد شعب دراسية</h4>
+        <p class="text-muted">لا توجد شعب دراسية بها طلاب لديهم متبقي مالي.</p>
+    </div>
+    {% endif %}
+
+    <!-- إذا كان هناك شعب بدون طلاب -->
+    {% if total_classrooms == 0 %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 
+        لا توجد شعب دراسية بها طلاب لديهم متبقي مالي. 
+        <a href="{% url 'accounts:outstanding_courses' %}" class="alert-link">عرض التقرير حسب الدورات</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

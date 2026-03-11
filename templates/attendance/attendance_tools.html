@@ -1,0 +1,112 @@
+﻿{% extends "base.html" %}
+
+{% load static %}
+
+{% block content %}
+<div class="module-header">
+  <h2>أدوات الحضور والإشعارات</h2>
+  <div class="header-actions">
+    <a href="{% url 'attendance:attendance' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-right"></i> رجوع إلى سجل الحضور
+    </a>
+  </div>
+</div>
+
+{% include "partials/_alerts.html" %}
+
+<div class="card" style="margin-bottom: 20px;">
+  <div class="card-header" style="font-weight: 700;">تصحيح إشعارات الحضور تلقائياً</div>
+  <div class="card-body">
+    <form method="post" class="row" style="gap: 12px; align-items: flex-end;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="fix_notifications">
+      <div class="col">
+        <label>الطالب (اختياري)</label>
+        <select name="student_id" class="form-control">
+          <option value="">كل الطلاب</option>
+          {% for student in students %}
+            <option value="{{ student.id }}">{{ student.full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col">
+        <label>من تاريخ</label>
+        <input type="date" name="from_date" class="form-control" required>
+      </div>
+      <div class="col">
+        <label>إلى تاريخ</label>
+        <input type="date" name="to_date" class="form-control" required>
+      </div>
+      <div class="col" style="min-width: 220px;">
+        <div class="form-check" style="margin-bottom: 8px;">
+          <input class="form-check-input" type="checkbox" name="create_missing" value="1" id="create_missing">
+          <label class="form-check-label" for="create_missing">إنشاء إشعار إذا كان مفقوداً</label>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-wand-magic-sparkles"></i> تنفيذ التصحيح
+        </button>
+      </div>
+    </form>
+    <p class="text-muted" style="margin-top: 10px;">
+      سيتم تحديث عناوين ورسائل إشعارات الحضور لتتضمن حالة الطالب والتاريخ والشعبة.
+    </p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header" style="font-weight: 700;">تعديل حضور طالب يدوياً</div>
+  <div class="card-body">
+    <form method="post" class="row" style="gap: 12px; align-items: flex-end;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_attendance">
+      <div class="col">
+        <label>الطالب</label>
+        <select name="edit_student_id" class="form-control" required>
+          <option value="">اختر الطالب</option>
+          {% for student in students %}
+            <option value="{{ student.id }}">{{ student.full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col">
+        <label>الشعبة</label>
+        <select name="edit_classroom_id" class="form-control" required>
+          <option value="">اختر الشعبة</option>
+          {% for classroom in classrooms %}
+            <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col">
+        <label>التاريخ</label>
+        <input type="date" name="edit_date" class="form-control" value="{{ today|date:'Y-m-d' }}" required>
+      </div>
+      <div class="col">
+        <label>الحالة</label>
+        <select name="edit_status" class="form-control" required>
+          {% for value, label in status_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col" style="min-width: 240px;">
+        <label>ملاحظات</label>
+        <input type="text" name="edit_notes" class="form-control" placeholder="اختياري">
+      </div>
+      <div class="col" style="min-width: 260px;">
+        <div class="form-check" style="margin-bottom: 8px;">
+          <input class="form-check-input" type="checkbox" name="sync_notification" value="1" id="sync_notification" checked>
+          <label class="form-check-label" for="sync_notification">تحديث إشعار الحضور بعد التعديل</label>
+        </div>
+        <div class="form-check" style="margin-bottom: 8px;">
+          <input class="form-check-input" type="checkbox" name="sync_create_missing" value="1" id="sync_create_missing">
+          <label class="form-check-label" for="sync_create_missing">إنشاء إشعار إذا كان مفقوداً</label>
+        </div>
+        <button type="submit" class="btn btn-success">
+          <i class="fas fa-save"></i> حفظ التعديل
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

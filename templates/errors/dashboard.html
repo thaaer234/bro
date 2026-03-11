@@ -1,0 +1,771 @@
+{% extends "error_base.html" %}
+{% load static humanize %}
+
+{% block title %}لوحة تحكم الأخطاء - معهد اليمان{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <svg width="35" height="35" fill="currentColor" style="margin-left: 15px;">
+                    <path d="M10 2a1 1 0 00-1 1v1h-1a1 1 0 000 2h1v1a1 1 0 002 0V6h1a1 1 0 000-2h-1V3a1 1 0 00-1-1z"/>
+                    <path d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H4V7h3a1 1 0 000-2H4z"/>
+                </svg>
+                لوحة تحكم الأخطاء والمراقبة
+            </h1>
+            <div class="institute-badge">
+                <span>معهد اليمان</span>
+                <small>نظام مراقبة الأخطاء المتقدم</small>
+            </div>
+        </div>
+        <div class="header-stats">
+            <div class="stat-badge">
+                <span class="stat-value">{{ total_errors|intcomma }}</span>
+                <span class="stat-label">إجمالي الأخطاء</span>
+            </div>
+            <div class="stat-badge">
+                <span class="stat-value">{{ today_errors|intcomma }}</span>
+                <span class="stat-label">أخطاء اليوم</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+                <div class="stat-number">{{ total_errors|intcomma }}</div>
+                <div class="stat-label">إجمالي الأخطاء</div>
+                <div class="stat-trend up">+5%</div>
+            </div>
+        </div>
+        <div class="stat-card secondary">
+            <div class="stat-icon">📅</div>
+            <div class="stat-content">
+                <div class="stat-number">{{ today_errors|intcomma }}</div>
+                <div class="stat-label">أخطاء اليوم</div>
+                <div class="stat-trend down">-2%</div>
+            </div>
+        </div>
+        <div class="stat-card accent">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-content">
+                <div class="stat-number">{{ unresolved_errors|intcomma }}</div>
+                <div class="stat-label">أخطاء غير محلولة</div>
+                <div class="stat-trend up">+8%</div>
+            </div>
+        </div>
+        <div class="stat-card dark">
+            <div class="stat-icon">🔒</div>
+            <div class="stat-content">
+                <div class="stat-number">{{ security_alerts|intcomma }}</div>
+                <div class="stat-label">تنبيهات أمنية</div>
+                <div class="stat-trend down">-3%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="recent-errors">
+            <div class="section-header">
+                <h2>آخر الأخطاء</h2>
+                <a href="/errors" class="view-all">عرض الكل</a>
+            </div>
+            <div class="error-list">
+                {% for error in recent_errors|slice:":10" %}
+                <div class="error-item">
+                    <span class="error-code error-{{ error.error_code }}">{{ error.error_code }}</span>
+                    <span class="error-path">{{ error.path }}</span>
+                    <span class="error-ip">{{ error.ip_address }}</span>
+                    <span class="error-time">{{ error.timestamp|timesince }}</span>
+                    <span class="error-status {% if error.resolved %}resolved{% else %}pending{% endif %}">
+                        {% if error.resolved %}✔️{% else %}⏳{% endif %}
+                    </span>
+                </div>
+                {% empty %}
+                <div class="no-errors">
+                    <svg width="60" height="60" fill="#38a169">
+                        <path d="M10 2a1 1 0 00-1 1v1h-1a1 1 0 000 2h1v1a1 1 0 002 0V6h1a1 1 0 000-2h-1V3a1 1 0 00-1-1z"/>
+                    </svg>
+                    <p>لا توجد أخطاء حديثة</p>
+                    <small>النظام يعمل بشكل طبيعي</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="distribution-chart">
+            <div class="section-header">
+                <h2>توزيع الأخطاء</h2>
+                <span class="chart-legend">النسبة المئوية</span>
+            </div>
+            <div class="chart">
+                {% for dist in error_distribution %}
+                <div class="chart-bar">
+                    <div class="bar-label">
+                        <span class="error-dot error-{{ dist.error_code }}"></span>
+                        خطأ {{ dist.error_code }}
+                    </div>
+                    <div class="bar-container">
+                        <div class="bar-fill" style="width: {% widthratio dist.count total_errors 100 %}%"></div>
+                        <span class="bar-count">{{ dist.count }}</span>
+                    </div>
+                    <span class="bar-percentage">{% widthratio dist.count total_errors 100 %}%</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="additional-stats">
+        <div class="stat-box">
+            <h3>أكثر الصفحات خطأ</h3>
+            <div class="top-pages">
+                {% for page in top_error_pages %}
+                <div class="page-item">
+                    <span class="page-path">{{ page.path }}</span>
+                    <span class="page-count">{{ page.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="stat-box">
+            <h3>النشاط اليومي</h3>
+            <div class="activity-chart">
+                <div class="activity-bars">
+                    {% for hour in hourly_activity %}
+                    <div class="activity-bar">
+                        <div class="bar" style="height: {{ hour.percentage }}%"></div>
+                        <span>{{ hour.hour }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 30px 20px;
+    background: #f7fafc;
+    min-height: 100vh;
+    position: relative;
+}
+
+.dashboard-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 300px;
+    background: linear-gradient(135deg, #FF2E63 0%, #252A34 100%);
+    z-index: 0;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    position: relative;
+    z-index: 10;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.page-title {
+    color: #252A34;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.institute-badge {
+    text-align: center;
+    padding: 15px 25px;
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: 15px;
+    box-shadow: var(--shadow);
+}
+
+.institute-badge span {
+    display: block;
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+.institute-badge small {
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+.header-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-badge {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px 25px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #252A34;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #718096;
+    margin-top: 5px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 10;
+}
+
+.stat-card {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px;
+}
+
+.stat-card.primary::before { background: var(--gradient-primary); }
+.stat-card.secondary::before { background: var(--gradient-secondary); }
+.stat-card.accent::before { background: linear-gradient(135deg, #FFC107, #FFA000); }
+.stat-card.dark::before { background: var(--gradient-dark); }
+
+.stat-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-icon {
+    font-size: 3rem;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.stat-card.primary .stat-icon { background: rgba(255, 46, 99, 0.1); }
+.stat-card.secondary .stat-icon { background: rgba(8, 217, 214, 0.1); }
+.stat-card.accent .stat-icon { background: rgba(255, 193, 7, 0.1); }
+.stat-card.dark .stat-icon { background: rgba(37, 42, 52, 0.1); }
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #252A34;
+    margin-bottom: 5px;
+    line-height: 1;
+}
+
+.stat-label {
+    color: #718096;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.stat-trend {
+    font-size: 0.9rem;
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.stat-trend.up {
+    background: #fed7d7;
+    color: #c53030;
+}
+
+.stat-trend.down {
+    background: #c6f6d5;
+    color: #276749;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 10;
+}
+
+.recent-errors, .distribution-chart {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.recent-errors:hover, .distribution-chart:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f7fafc;
+}
+
+.section-header h2 {
+    color: #252A34;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.view-all {
+    color: #FF2E63;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.view-all:hover {
+    background: rgba(255, 46, 99, 0.1);
+}
+
+.chart-legend {
+    color: #718096;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.error-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.error-item {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px 100px 60px;
+    gap: 15px;
+    padding: 15px;
+    border-bottom: 1px solid #f7fafc;
+    align-items: center;
+    transition: var(--transition);
+    border-radius: 10px;
+}
+
+.error-item:hover {
+    background: #f7fafc;
+    transform: translateX(5px);
+}
+
+.error-code {
+    padding: 8px 12px;
+    border-radius: 25px;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.error-404 { background: var(--gradient-primary); }
+.error-403 { background: linear-gradient(135deg, #FFC107, #FFA000); }
+.error-500 { background: var(--gradient-secondary); }
+.error-503 { background: var(--gradient-dark); }
+
+.error-path {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #4a5568;
+    font-weight: 600;
+}
+
+.error-ip {
+    color: #718096;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.error-time {
+    color: #a0aec0;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.error-status.resolved {
+    color: #38a169;
+    font-size: 1.2rem;
+}
+
+.error-status.pending {
+    color: #ed8936;
+    font-size: 1.2rem;
+}
+
+.no-errors {
+    text-align: center;
+    padding: 60px 20px;
+    color: #718096;
+}
+
+.no-errors svg {
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.no-errors p {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.no-errors small {
+    font-size: 0.9rem;
+}
+
+.chart-bar {
+    display: grid;
+    grid-template-columns: 150px 1fr 60px;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.bar-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    color: #4a5568;
+    font-size: 1rem;
+}
+
+.error-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.error-404 { background: #FF2E63; }
+.error-403 { background: #FFC107; }
+.error-500 { background: #08D9D6; }
+.error-503 { background: #252A34; }
+
+.bar-container {
+    background: #f7fafc;
+    border-radius: 10px;
+    height: 30px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.bar-count {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: bold;
+    color: white;
+    font-size: 0.9rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.bar-percentage {
+    color: #718096;
+    font-weight: bold;
+    text-align: right;
+    font-size: 1rem;
+}
+
+.additional-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    position: relative;
+    z-index: 10;
+}
+
+.stat-box {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.stat-box:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-box h3 {
+    color: #252A34;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f7fafc;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.top-pages .page-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f7fafc;
+    transition: var(--transition);
+}
+
+.page-item:hover {
+    background: #f7fafc;
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin: 0 -15px;
+}
+
+.page-path {
+    color: #4a5568;
+    font-family: monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.page-count {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 8px rgba(255, 46, 99, 0.2);
+}
+
+.activity-chart {
+    padding: 20px 0;
+}
+
+.activity-bars {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 8px;
+    height: 200px;
+    padding: 20px 0;
+    border-bottom: 2px solid #f7fafc;
+}
+
+.activity-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    height: 100%;
+}
+
+.activity-bar .bar {
+    background: var(--gradient-primary);
+    width: 100%;
+    border-radius: 8px 8px 0 0;
+    transition: height 0.5s ease;
+    min-height: 5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.activity-bar .bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 3s infinite;
+}
+
+.activity-bar span {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #718096;
+    font-weight: 600;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .additional-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 992px) {
+    .dashboard-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .header-content {
+        flex-direction: column;
+    }
+    
+    .header-stats {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .error-item {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .chart-bar {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .activity-bars {
+        height: 150px;
+    }
+}
+</style>
+
+<script>
+// Add interactive effects to dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    // Animate stat cards on scroll
+    const statCards = document.querySelectorAll('.stat-card');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    statCards.forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(card);
+    });
+    
+    // Add hover effects to error items
+    const errorItems = document.querySelectorAll('.error-item');
+    errorItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateX(10px)';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateX(0)';
+        });
+    });
+    
+    // Animate chart bars
+    const chartBars = document.querySelectorAll('.bar-fill');
+    chartBars.forEach(bar => {
+        const originalWidth = bar.style.width;
+        bar.style.width = '0%';
+        
+        setTimeout(() => {
+            bar.style.width = originalWidth;
+        }, 500);
+    });
+});
+</script>
+{% endblock %}

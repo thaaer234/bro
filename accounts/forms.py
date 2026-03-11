@@ -6,13 +6,13 @@ from employ.models import Employee, Teacher
 from .models import (
     Account, JournalEntry, Transaction, StudentReceipt, ExpenseEntry,
     Course, Student, Studentenrollment, EmployeeAdvance, AccountingPeriod, Budget,
-    DiscountRule
+    DiscountRule, CostCenter
 )
 
 class AccountForm(forms.ModelForm):
     class Meta:
         model = Account
-        fields = ['code', 'account_type', 'parent', 'name', 'name_ar', 'is_course_account', 'course_name', 'description', 'is_active']
+        fields = ['code', 'account_type', 'parent', 'name', 'name_ar', 'cost_center', 'is_course_account', 'course_name', 'description', 'is_active']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
             'name': forms.TextInput(attrs={'placeholder': 'Account Name'}),
@@ -23,6 +23,8 @@ class AccountForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['cost_center'].queryset = CostCenter.objects.filter(is_active=True)
+        self.fields['cost_center'].empty_label = "اختر مركز التكلفة / Select Cost Center"
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Row(
@@ -37,6 +39,7 @@ class AccountForm(forms.ModelForm):
                 css_class='form-row'
             ),
             Row(
+                Column('cost_center', css_class='form-group col-md-6 mb-0'),
                 Column('is_course_account', css_class='form-group col-md-6 mb-0'),
                 Column('course_name', css_class='form-group col-md-6 mb-0'),
                 css_class='form-row'
@@ -256,6 +259,8 @@ class BudgetForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['account'].queryset = Account.objects.filter(is_active=True).order_by('code')
         self.fields['account'].empty_label = "اختر الحساب / Select Account"
+        self.fields['cost_center'].queryset = CostCenter.objects.filter(is_active=True)
+        self.fields['cost_center'].empty_label = "اختر مركز التكلفة / Select Cost Center"
         self.fields['period'].empty_label = "اختر الفترة / Select Period"
         
         self.helper = FormHelper()
@@ -395,78 +400,37 @@ class StudentReceiptForm(forms.ModelForm):
 class ExpenseEntryForm(forms.ModelForm):
     class Meta:
         model = ExpenseEntry
-        fields = ['date', 'Account', 'description', 'amount', 'payment_method', 'receipt_number', 'notes']
+        fields = [
+            'date',
+            'account',
+            'cost_center',
+            'description',
+            'amount',
+            'payment_method',
+            'notes',
+        ]
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
             'description': forms.TextInput(attrs={'placeholder': 'وصف المصروف / Expense Description'}),
             'amount': forms.NumberInput(attrs={'step': '0.01', 'min': '0.01', 'placeholder': '0.00'}),
-            # 'receipt_number': forms.TextInput(attrs={'placeholder': 'رقم الإيصال / Receipt Number'}),
             'notes': forms.Textarea(attrs={'rows': 3, 'placeholder': 'ملاحظات إضافية / Additional notes'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        # جلب حسابات المصاريف التي تبدأ بـ 503 فقط
+
         expense_accounts = Account.objects.filter(
-            code__startswith='503', 
+            code__gte='503',
+            code__lte='599',
             is_active=True
         ).order_by('code')
-        
-        # تعيين queryset للحساب - استخدم 'Account' بدلاً من 'account'
-        self.fields['Account'].queryset = expense_accounts
-        self.fields['Account'].empty_label = "اختر الحساب / Select Account"
-        
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            Row(
-                Column('date', css_class='form-group col-md-6 mb-0'),
-                Column('payment_method', css_class='form-group col-md-6 mb-0'),
-                css_class='form-row'
-            ),
-            Row(
-                Column('Account', css_class='form-group col-md-6 mb-0'),
-                Column('receipt_number', css_class='form-group col-md-6 mb-0'),
-                css_class='form-row'
-            ),
-            Row(
-                Column('description', css_class='form-group col-md-8 mb-0'),
-                Column('amount', css_class='form-group col-md-4 mb-0'),
-                css_class='form-row'
-            ),
-            'notes',
-            Submit('submit', 'تسجيل مصروف / Record Expense', css_class='btn btn-primary')
-        )
 
-    def clean(self):
-        cleaned_data = super().clean()
-        # تنظيف إضافي إذا لزم الأمر
-        return cleaned_data
-    class Meta:
-        model = ExpenseEntry
-        fields = ['date', 'account', 'description', 'amount', 'payment_method',  'notes']
-        widgets = {
-            'date': forms.DateInput(attrs={'type': 'date'}),
-            'description': forms.TextInput(attrs={'placeholder': 'وصف المصروف / Expense Description'}),
-            'amount': forms.NumberInput(attrs={'step': '0.01', 'min': '0.01', 'placeholder': '0.00'}),
-            # 'receipt_number': forms.TextInput(attrs={'placeholder': 'رقم الإيصال / Receipt Number'}),
-            'notes': forms.Textarea(attrs={'rows': 3, 'placeholder': 'ملاحظات إضافية / Additional notes'}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        # جلب حسابات المصاريف التي تبدأ بـ 503 فقط
-       # جلب حسابات المصاريف التي تبدأ بـ 503 أو أكبر
-        expense_accounts = Account.objects.filter(
-           code__gte='503', 
-           is_active=True
-       ).order_by('code')
-        
-        # تعيين queryset للحساب
         self.fields['account'].queryset = expense_accounts
         self.fields['account'].empty_label = "اختر الحساب / Select Account"
-        
+
+        self.fields['cost_center'].queryset = CostCenter.objects.filter(is_active=True)
+        self.fields['cost_center'].empty_label = "اختر مركز التكلفة / Select Cost Center"
+
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Row(
@@ -476,7 +440,7 @@ class ExpenseEntryForm(forms.ModelForm):
             ),
             Row(
                 Column('account', css_class='form-group col-md-6 mb-0'),
-                Column('receipt_number', css_class='form-group col-md-6 mb-0'),
+                Column('cost_center', css_class='form-group col-md-6 mb-0'),
                 css_class='form-row'
             ),
             Row(
@@ -490,5 +454,4 @@ class ExpenseEntryForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        # تنظيف إضافي إذا لزم الأمر
         return cleaned_data

@@ -73,24 +73,18 @@
                                     <span class="text-danger">*</span>
                                 </label>
                                 <div class="branches-container p-3 border rounded">
+                                    {% with selected_branches=form.branches.value %}
+                                    {% for value, label in form.branches.field.choices %}
                                     <div class="form-check">
-                                        <input type="checkbox" name="branches" value="علمي" id="branch_scientific" class="form-check-input">
-                                        <label class="form-check-label" for="branch_scientific">
-                                            العلمي
+                                        <input type="checkbox" name="branches" value="{{ value }}"
+                                               id="branch_{{ forloop.counter }}" class="form-check-input"
+                                               {% if selected_branches and value in selected_branches %}checked{% endif %}>
+                                        <label class="form-check-label" for="branch_{{ forloop.counter }}">
+                                            {{ label }}
                                         </label>
                                     </div>
-                                    <div class="form-check">
-                                        <input type="checkbox" name="branches" value="أدبي" id="branch_literary" class="form-check-input">
-                                        <label class="form-check-label" for="branch_literary">
-                                            الأدبي
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input type="checkbox" name="branches" value="تاسع" id="branch_ninth" class="form-check-input">
-                                        <label class="form-check-label" for="branch_ninth">
-                                            الصف التاسع
-                                        </label>
-                                    </div>
+                                    {% endfor %}
+                                    {% endwith %}
                                 </div>
                                 {% if form.branches.errors %}
                                 <div class="text-danger small mt-1">
@@ -118,62 +112,45 @@
                         </div>
 
                         <!-- معلومات الراتب -->
-                        <div class="card bg-light mb-3">
-                            <div class="card-body">
-                                <h6 class="card-title">معلومات الراتب</h6>
-                                
-                                <div class="row">
-                                    <div class="col-md-12 mb-3">
-                                        <label for="{{ form.salary_type.id_for_label }}" class="form-label">
-                                            {{ form.salary_type.label }}
-                                            <span class="text-danger">*</span>
-                                        </label>
-                                        {{ form.salary_type }}
-                                        {% if form.salary_type.errors %}
-                                        <div class="text-danger small mt-1">
-                                            {% for error in form.salary_type.errors %}
-                                                {{ error }}
-                                            {% endfor %}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ form.hourly_rate.id_for_label }}" class="form-label">
-                                            {{ form.hourly_rate.label }}
-                                        </label>
-                                        {{ form.hourly_rate }}
-                                        <small class="form-text text-muted">مطلوب للراتب بالساعة أو المختلط</small>
-                                        {% if form.hourly_rate.errors %}
-                                        <div class="text-danger small mt-1">
-                                            {% for error in form.hourly_rate.errors %}
-                                                {{ error }}
-                                            {% endfor %}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    <div class="col-md-6 mb-3">
-                                        <label for="{{ form.monthly_salary.id_for_label }}" class="form-label">
-                                            {{ form.monthly_salary.label }}
-                                        </label>
-                                        {{ form.monthly_salary }}
-                                        <small class="form-text text-muted">مطلوب للراتب الثابت أو المختلط</small>
-                                        {% if form.monthly_salary.errors %}
-                                        <div class="text-danger small mt-1">
-                                            {% for error in form.monthly_salary.errors %}
-                                                {{ error }}
-                                            {% endfor %}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        {% comment %} <div class="d-none">
+                            {{ form.salary_type }}
+                            {{ form.hourly_rate }}
+                            {{ form.monthly_salary }}
+                        </div> {% endcomment %}
 
-                        <!-- ملاحظات -->
+
+
+                                                        <div class="row">
+                                    <div class="col-12">
+                                        <h6 class="border-top pt-3">أسعار الساعة حسب الفرع</h6>
+                                    </div>
+                                    <div class="col-md-6 mb-3 branch-hourly-field" id="branch-rate-scientific">
+                                        <label for="{{ form.hourly_rate_scientific.id_for_label }}" class="form-label">
+                                            العلمي
+                                        </label>
+                                        {{ form.hourly_rate_scientific }}
+                                    </div>
+                                    <div class="col-md-6 mb-3 branch-hourly-field" id="branch-rate-literary">
+                                        <label for="{{ form.hourly_rate_literary.id_for_label }}" class="form-label">
+                                            الأدبي
+                                        </label>
+                                        {{ form.hourly_rate_literary }}
+                                    </div>
+                                    <div class="col-md-6 mb-3 branch-hourly-field" id="branch-rate-ninth">
+                                        <label for="{{ form.hourly_rate_ninth.id_for_label }}" class="form-label">
+                                            الصف التاسع
+                                        </label>
+                                        {{ form.hourly_rate_ninth }}
+                                    </div>
+                                    <div class="col-md-6 mb-3 branch-hourly-field" id="branch-rate-preparatory">
+                                        <label for="{{ form.hourly_rate_preparatory.id_for_label }}" class="form-label">
+                                            التمهيدي
+                                        </label>
+                                        {{ form.hourly_rate_preparatory }}
+                                    </div>
+                                </div>
+
+<!-- ملاحظات -->
                         <div class="mb-3">
                             <label for="{{ form.notes.id_for_label }}" class="form-label">
                                 {{ form.notes.label }}
@@ -256,6 +233,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const salaryTypeSelect = document.getElementById('{{ form.salary_type.id_for_label }}');
     const hourlyRateField = document.getElementById('{{ form.hourly_rate.id_for_label }}');
     const monthlySalaryField = document.getElementById('{{ form.monthly_salary.id_for_label }}');
+    const branchCheckboxes = document.querySelectorAll('input[name="branches"]');
+    const branchRateFields = document.querySelectorAll('.branch-hourly-field');
+    const branchRateMap = {
+        'علمي': 'branch-rate-scientific',
+        'أدبي': 'branch-rate-literary',
+        'تاسع': 'branch-rate-ninth',
+        'تمهيدي': 'branch-rate-preparatory'
+    };
+
     
     function updateSalaryFields() {
         const salaryType = salaryTypeSelect.value;
@@ -277,11 +263,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+
+    function updateBranchRateFields() {
+        branchRateFields.forEach(field => {
+            field.classList.add('d-none');
+            const input = field.querySelector('input');
+            if (input) {
+                input.disabled = true;
+            }
+        });
+
+        branchCheckboxes.forEach(checkbox => {
+            if (!checkbox.checked) {
+                return;
+            }
+            const fieldId = branchRateMap[checkbox.value];
+            if (!fieldId) {
+                return;
+            }
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.classList.remove('d-none');
+                const input = field.querySelector('input');
+                if (input) {
+                    input.disabled = false;
+                }
+            }
+        });
+    }
+
     // Update fields when salary type changes
     salaryTypeSelect.addEventListener('change', updateSalaryFields);
+    branchCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBranchRateFields);
+    });
     
     // Initialize on page load
     updateSalaryFields();
+    updateBranchRateFields();
 });
 </script>
 {% endblock %}

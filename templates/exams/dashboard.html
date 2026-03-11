@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% load emp_perms %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">إدارة الاختبارات - اختر الشعبة</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for classroom in classrooms %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ classroom.name }}</h5>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            {{ classroom.get_branches_display }}<br>
+                                            عدد الطلاب: {{ classroom.students.count }}
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="{% url 'exams:exam_list' classroom.id %}" 
+                                    class="btn btn-primary btn-sm">
+                                        📝 إدارة الاختبارات
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12">
+                            <div class="text-center py-4">
+                                <p class="text-muted">لا توجد شعب متاحة</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

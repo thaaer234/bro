@@ -1,6 +1,5 @@
 {% extends 'accounts/base.html' %}
 
-
 {% load emp_perms %}
 {% block title %}ميزان المراجعة / Trial Balance{% endblock %}
 
@@ -8,9 +7,11 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>ميزان المراجعة / Trial Balance</h2>
     <div>
-        <a href="?{% url 'accounts:trial_balance_export' %}" class="btn btn-success">
-            <i class="fas fa-file-excel"></i> تصدير Excel / Export Excel
-        </a>
+        <form method="get" action="{% url 'accounts:trial_balance_export_excel' %}" style="display: inline;">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> تصدير Excel / Export Excel
+            </button>
+        </form>
         <button onclick="window.print()" class="btn btn-outline-secondary">
             <i class="fas fa-print"></i> طباعة / Print
         </button>

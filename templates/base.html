@@ -6,7 +6,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>معهد اليمان - لوحة التحكم</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>معهد اليمان - التعليم والتدريب المتخصص | لوحة التحكم</title>
+    <meta name="description" content="معهد اليمان - مؤسسة تعليمية متخصصة في تقديم الدورات التدريبية والبرامج التعليمية المتميزة. تطوير المهارات وبناء المستقبل المهني.">
+    <meta name="keywords" content="معهد اليمان, تعليم, تدريب, دورات, تعليم مستمر, تطوير مهارات, Yemen institute">
+    <meta name="author" content="معهد اليمان">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="معهد اليمان - التعليم والتدريب المتخصص">
+    <meta property="og:description" content="معهد اليمان - مؤسسة تعليمية متخصصة في تقديم الدورات التدريبية والبرامج التعليمية المتميزة">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{% static 'img/logo.png' %}">
+    <meta property="og:locale" content="ar_SA">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="معهد اليمان - التعليم والتدريب المتخصص">
+    <meta name="twitter:description" content="معهد اليمان - مؤسسة تعليمية متخصصة في تقديم الدورات التدريبية والبرامج التعليمية المتميزة">
+    <meta name="twitter:image" content="{% static 'img/logo.png' %}">
+    
+    <!-- Structured Data / JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://alyaman.pythonanywhere.com",
+        "@type": "EducationalOrganization",
+        "name": "معهد اليمان",
+        "description": "معهد اليمان - مؤسسة تعليمية متخصصة في تقديم الدورات التدريبية والبرامج التعليمية المتميزة",
+        "url": "{{ request.scheme }}://{{ request.get_host }}",
+        "logo": "{{ request.scheme }}://{{ request.get_host }}{% static 'img/logo.png' %}",
+        "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "SA"
+        },
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service"
+        }
+    }
+    </script>
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
     
     <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -14,13 +56,137 @@
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
     <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
-</head>
-<body>
-    {% include "partials/_navbar.html" %}
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'img/logo.png' %}">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/logo.png' %}">
     
-    <div class="main-content">
+    <!-- لأجهزة Apple -->
+    <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+      <!-- تحميل الـ Static files -->
+    {% load static %}
+    
+<script>
+document.addEventListener('keydown', function(e) {
+    // الحسابات المالية
+    if (e.ctrlKey && e.key === '`') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:dashboard' %}";
+    }
+    if (e.ctrlKey && e.key === '1') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:journal_entry_create' %}";
+    }
+    if (e.ctrlKey && e.key === '2') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:student_receipt_create' %}";
+    }
+    if (e.ctrlKey && e.key === '3') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:expense_create' %}";
+    }
+    if (e.ctrlKey && e.key === '4') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:account_create' %}";
+    }
+    if (e.ctrlKey && e.key === '5') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:chart_of_accounts' %}";
+    }
+    if (e.ctrlKey && e.key === '6') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:journal_entry_list' %}";
+    }
+
+    // إدارة الطلاب
+    if (e.ctrlKey && e.key === 'q') {
+        e.preventDefault();
+        window.location.href = "{% url 'students:create_student' %}";
+    }
+    if (e.ctrlKey && e.key === 'w') {
+        e.preventDefault();
+        window.location.href = "{% url 'students:student_search' %}";
+    }
+    if (e.ctrlKey && e.key === 'e') {
+        e.preventDefault();
+        window.location.href = "{% url 'students:student_groups' %}";
+    }
+
+    // إدارة الموظفين
+    if (e.ctrlKey && e.key === 'a') {
+        e.preventDefault();
+        window.location.href = "{% url 'employ:create' %}";
+    }
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        window.location.href = "{% url 'employ:employee_register' %}";
+    }
+    if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        window.location.href = "{% url 'employ:salary_management' %}";
+    }
+
+    // الفصول والمواد
+    if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        window.location.href = "{% url 'classroom:create_classroom' %}";
+    }
+    if (e.ctrlKey && e.key === 'x') {
+        e.preventDefault();
+        window.location.href = "{% url 'courses:subject_list' %}";
+    }
+    if (e.ctrlKey && e.key === 'c') {
+        e.preventDefault();
+        window.location.href = "{% url 'classroom:classroom_list' %}";
+    }
+
+    // الحضور والدرجات
+    if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        window.location.href = "{% url 'attendance:take_attendance' %}";
+    }
+    if (e.ctrlKey && e.key === 'g') {
+        e.preventDefault();
+        window.location.href = "{% url 'exams:dashboard' %}";
+    }
+
+    // التقارير
+    if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:reports' %}";
+    }
+    if (e.ctrlKey && e.key === 't') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:trial_balance' %}";
+    }
+    if (e.ctrlKey && e.key === 'y') {
+        e.preventDefault();
+        window.location.href = "{% url 'accounts:balance_sheet' %}";
+    }
+});
+</script>
+</head>
+<body style="background-image: url(" static 'img/logo.png'");">
+
+    
+    <!-- إضافة علامات هيكلية لتحسين SEO -->
+    <header role="banner">
+        {% include "partials/_navbar.html" %}
+    </header>
+
+    {% block extra_css %}
+    {% endblock %} 
+
+    <main class="main-content" role="main">
         <div class="container mt-3">
+            {% if user.is_superuser %}
+                <div class="d-flex justify-content-end mobile-super-link">
+                    <a href="{% url 'mobile:dashboard' %}" class="btn btn-sm btn-outline-warning shadow-sm">
+                        تجربة واجهة الموبايل
+                    </a>
+                </div>
+            {% endif %}
             {% if messages %}
                 <div class="alert-messages">
                     {% for message in messages %}
@@ -31,20 +197,118 @@
                     {% endfor %}
                 </div>
             {% endif %}
-          <!-- DEBUG -->
-<div style="display:none">
-  emp_perms_count={{ emp_perms|length }} ; emp_perms={{ emp_perms }}
-</div>
-
-
+            
+            <!-- DEBUG -->
+            <div style="display:none">
+                emp_perms_count={{ emp_perms|length }} ; emp_perms={{ emp_perms }}
+            </div>
         </div>
+        
         {% block content %}
         {% endblock %}
-    </div>
+    </main>
 
     <!-- JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/script.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <!-- تحسينات أداء إضافية -->
+    <script>
+    // تحميل سريع للصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        // تحميل الصور بكسل عندما تكون في viewport
+        const lazyImages = [].slice.call(document.querySelectorAll('img.lazy'));
+        if ('IntersectionObserver' in window) {
+            let lazyImageObserver = new IntersectionObserver(function(entries, observer) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        let lazyImage = entry.target;
+                        lazyImage.src = lazyImage.dataset.src;
+                        lazyImage.classList.remove('lazy');
+                        lazyImageObserver.unobserve(lazyImage);
+                    }
+                });
+            });
+            lazyImages.forEach(function(lazyImage) {
+                lazyImageObserver.observe(lazyImage);
+            });
+        }
+    });
+    </script>
+
+    <script>
+    (function () {
+        var isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+        if (!isAuthenticated) {
+            return;
+        }
+
+        var endpoint = "{% url 'pages:track_click' %}";
+        var lastClick = { key: '', ts: 0 };
+
+        function getCookie(name) {
+            var value = '; ' + document.cookie;
+            var parts = value.split('; ' + name + '=');
+            if (parts.length === 2) {
+                return parts.pop().split(';').shift();
+            }
+            return '';
+        }
+
+        document.addEventListener('click', function (event) {
+            if (!event.isTrusted || event.button !== 0) {
+                return;
+            }
+
+            var target = event.target;
+            if (!target || !target.closest) {
+                return;
+            }
+
+            if (target.closest('[data-click-ignore="true"]')) {
+                return;
+            }
+
+            var text = (target.innerText || target.value || '').trim();
+            var signature = [
+                target.tagName || '',
+                target.id || '',
+                (target.className || '').toString(),
+                text.slice(0, 60)
+            ].join('|');
+            var now = Date.now();
+            if (signature === lastClick.key && (now - lastClick.ts) < 400) {
+                return;
+            }
+            lastClick = { key: signature, ts: now };
+
+            var payload = {
+                path: window.location.pathname,
+                page_title: document.title || '',
+                element_tag: target.tagName || '',
+                element_id: target.id || '',
+                element_class: (target.className || '').toString().slice(0, 120),
+                element_text: text.slice(0, 120),
+                is_trusted: true,
+                x: event.clientX,
+                y: event.clientY
+            };
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(payload),
+                credentials: 'same-origin'
+            }).catch(function () {});
+        }, true);
+    })();
+    </script>
+
 </body>
 </html>

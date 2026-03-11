@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>الطلاب غير المسددين - {{ course.name }}</h2>
+        <div>
+            <a href="{% url 'quick:outstanding_courses' %}?course_type={{ course_type }}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i> رجوع
+            </a>
+            <a href="{% url 'quick:course_students' course.id %}?course_type={{ course_type }}" class="btn btn-info">
+                <i class="fas fa-users me-1"></i> جميع الطلاب
+            </a>
+        </div>
+    </div>
+
+    <!-- إحصائيات -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card text-white bg-warning stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">طلاب غير مسددين</h5>
+                    <h3 class="card-text">{{ total_students }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card text-white bg-danger stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-money-bill-wave fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">إجمالي المتبقي</h5>
+                    <h3 class="card-text">{{ total_outstanding|floatformat:0 }} ل.س</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card text-white bg-info stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-calculator fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">المتوسط للطالب</h5>
+                    <h3 class="card-text">
+                        {% if total_students > 0 %}
+                            {{ total_outstanding|floatformat:0 }}
+                        {% else %}
+                            0
+                        {% endif %} ل.س
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول الطلاب -->
+    <div class="card report-card">
+        <div class="card-body">
+            {% if rows %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>الطالب</th>
+                            <th>الهاتف</th>
+                            <th class="text-end">المبلغ المستحق</th>
+                            <th class="text-end">المدفوع</th>
+                            <th class="text-end">المتبقي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in rows %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'quick:student_detail' r.student_id %}" class="fw-bold text-decoration-none">
+                                    {{ r.student_name }}
+                                </a>
+                            </td>
+                            <td>{{ r.phone }}</td>
+                            <td class="text-end amount-cell">{{ r.net_amount|floatformat:0 }} ل.س</td>
+                            <td class="text-end amount-cell">{{ r.paid_amount|floatformat:0 }} ل.س</td>
+                            <td class="text-end amount-cell fw-bold text-danger">
+                                {{ r.remaining|floatformat:0 }} ل.س
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary fw-bold">
+                        <tr>
+                            <td colspan="2" class="text-start">الإجمالي</td>
+                            <td class="text-end">{{ total_net_amount|floatformat:0 }} ل.س</td>
+                            <td class="text-end">{{ total_paid_amount|floatformat:0 }} ل.س</td>
+                            <td class="text-end">{{ total_outstanding|floatformat:0 }} ل.س</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-check-circle fa-4x mb-3 opacity-50"></i>
+                <h4 class="fw-light">لا يوجد طلاب غير مسددين في هذه الدورة</h4>
+                <p class="text-muted">جميع الطلاب مسددين بالكامل</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

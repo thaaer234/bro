@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="module-header">
+    <h2><i class="fas fa-calendar-alt"></i> إدارة الفصول الدراسية</h2>
+    <a href="{% url 'quick:academic_year_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> إضافة فصل دراسي
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>اسم الفصل</th>
+                        <th>السنة الدراسية</th>
+                        <th>تاريخ البدء</th>
+                        <th>تاريخ الانتهاء</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for year in academic_years %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ year.name }}</td>
+                        <td>{{ year.year }}</td>
+                        <td>{{ year.start_date|date:"Y-m-d" }}</td>
+                        <td>{{ year.end_date|date:"Y-m-d" }}</td>
+                        <td>
+                            {% if year.is_active %}
+                            <span class="badge badge-success">نشط</span>
+                            {% else %}
+                            <span class="badge badge-secondary">غير نشط</span>
+                            {% endif %}
+                            {% if year.is_closed %}
+                            <span class="badge badge-danger">مقفول</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not year.is_closed %}
+                            <a href="{% url 'quick:academic_year_close' year.pk %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-lock"></i> إغلاق
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'quick:student_list' %}?academic_year={{ year.id }}" 
+                               class="btn btn-sm btn-info">
+                                <i class="fas fa-users"></i> الطلاب
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">لا توجد فصول دراسية</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

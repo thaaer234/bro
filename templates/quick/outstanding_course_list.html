@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+/* أنماط التقارير - نفس الأنماط التي طلبتها */
+:root {
+    --primary-gradient: linear-gradient(135deg, #0f3d5e 0%, #1f7a8c 100%);
+    --success-gradient: linear-gradient(135deg, #1b998b 0%, #1f6f8b 100%);
+    --warning-gradient: linear-gradient(135deg, #f4a261 0%, #e76f51 100%);
+    --info-gradient: linear-gradient(135deg, #2a9d8f 0%, #264653 100%);
+    --dark-gradient: linear-gradient(135deg, #1d3557 0%, #457b9d 100%);
+    --surface: #ffffff;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --ring: rgba(31, 122, 140, 0.2);
+}
+
+.container-fluid {
+    background: radial-gradient(circle at 15% 0%, rgba(31, 122, 140, 0.08), transparent 45%),
+                radial-gradient(circle at 90% 10%, rgba(231, 111, 81, 0.10), transparent 40%);
+    border-radius: 16px;
+    padding: 18px 18px 28px;
+}
+
+.report-hero {
+    background: var(--dark-gradient);
+    color: #fff;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 16px 28px -18px rgba(15, 61, 94, 0.5);
+}
+
+.report-hero h2 {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.report-hero .subtitle {
+    margin-top: 6px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.92rem;
+}
+
+.report-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.report-card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.stats-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .card-body {
+    padding: 18px;
+    position: relative;
+}
+
+.stats-card .card-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.bg-primary { background: var(--primary-gradient) !important; }
+.bg-success { background: var(--success-gradient) !important; }
+.bg-warning { background: var(--warning-gradient) !important; }
+.bg-info { background: var(--info-gradient) !important; }
+
+.amount-cell {
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.status-badge {
+    font-size: 0.7rem;
+    padding: 5px 9px;
+    border-radius: 15px;
+    font-weight: 600;
+}
+
+.action-btn {
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-weight: 600;
+    box-shadow: 0 6px 14px -10px rgba(0, 0, 0, 0.35);
+}
+
+.btn-primary.action-btn {
+    background: #0f3d5e;
+    border-color: transparent;
+}
+
+.btn-primary.action-btn:hover {
+    background: #124a6f;
+}
+
+.btn-secondary.action-btn {
+    background: #f3f4f6;
+    color: var(--ink);
+    border-color: transparent;
+}
+
+.table thead th {
+    background: #0f3d5e;
+    color: #fff;
+    border: none;
+    font-size: 0.9rem;
+}
+
+.table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background: rgba(31, 122, 140, 0.08);
+}
+</style>
+
+<div class="container-fluid">
+    <!-- الرأس -->
+    <div class="d-flex justify-content-between align-items-center mb-4 report-hero">
+        <div>
+            <h2>الدورات السريعة - تقرير المستحقات ({{ course_type_report_label }})</h2>
+            <div class="subtitle">عرض شامل لأعداد الطلاب والحسابات بحسب كل دورة</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'quick:outstanding_courses_print' %}?course_type=INTENSIVE" target="_blank" class="btn btn-primary action-btn">
+                <i class="fas fa-print me-1"></i> طباعة اعداد المكثفات
+            </a>
+            <a href="{% url 'quick:outstanding_courses_print' %}?course_type=EXAM" target="_blank" class="btn btn-primary action-btn">
+                <i class="fas fa-print me-1"></i> طباعة اعداد الامتحانيات
+            </a>
+            <a href="{% url 'quick:course_list' %}" class="btn btn-secondary action-btn">
+                <i class="fas fa-arrow-left me-1"></i> رجوع للدورات
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4 report-card">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <h5 class="mb-1"><i class="fas fa-filter me-2"></i>اختر نوع الدورة</h5>
+                <div class="text-muted small">حدد النوع قبل عرض الدورات</div>
+            </div>
+            <form method="get" class="d-flex align-items-center gap-2">
+                <label class="text-muted small mb-0" for="course_type_select">نوع الدورة</label>
+                <select id="course_type_select" name="course_type" class="form-select" onchange="this.form.submit()">
+                    {% for option in course_type_options %}
+                        <option value="{{ option.value }}" {% if option.value == course_type %}selected{% endif %}>
+                            {{ option.label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-primary stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-book fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">الدورات</h5>
+                    <h3 class="card-text">{{ total_courses }}</h3>
+                </div>
+            </div>
+        </div>
+        {% comment %} <div class="col-md-3 mb-3">
+            <div class="card text-white bg-warning stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">طلاب غير مسددين</h5>
+                    <h3 class="card-text">{{ total_outstanding_students }}</h3>
+                </div>
+            </div>
+        </div> {% endcomment %}
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-info stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-money-bill-wave fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">إجمالي المدفوع</h5>
+                    <h3 class="card-text">{{ total_paid_amount|floatformat:0 }} ل.س</h3>
+                </div>
+            </div>
+        </div>
+        {% comment %} <div class="col-md-3 mb-3">
+            <div class="card text-white bg-success stats-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-lg mb-2 opacity-75"></i>
+                    <h5 class="card-title">متوسط المدفوع</h5>
+                    <h3 class="card-text">
+                        {% if total_outstanding_students > 0 %}
+                            {{ average_paid_per_course|floatformat:0 }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </h3>
+                </div>
+            </div>
+        </div> {% endcomment %}
+    </div>
+
+    <!-- جدول الدورات -->
+    <div class="card report-card">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>جميع الدورات السريعة</h5>
+        </div>
+        <div class="card-body">
+            {% if courses %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>اسم الدورة</th>
+                            <th class="text-center">سعر الدورة</th>
+                            <th class="text-center">إجمالي الطلاب</th>
+                            <th class="text-center">مسددين</th>
+                            <th class="text-center">اجمالي المدفوع</th>
+                            {% comment %} <th class="text-end">رصيد الدورة</th> {% endcomment %}
+                            <th class="text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in courses %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.course.name }}</strong>
+                                {% if item.course.name_ar %}
+                                <br><small class="text-muted">{{ item.course.name_ar }}</small>
+                                {% endif %}
+                                <br><small class="text-muted">{{ item.course.price|floatformat:0 }} ل.س</small>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-primary status-badge">{{ item.total_students }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-success status-badge">{{ item.paid_students }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-warning status-badge">{{ item.outstanding_students }}</span>
+                            </td>
+                            <td class="text-end amount-cell fw-bold text-warning">
+                                {{ item.total_paid|floatformat:0 }} ل.س
+                            </td>
+                            <td class="text-center">
+                                    {% comment %} <a href="{% url 'quick:outstanding_course_detail' item.course.id %}?course_type={{ course_type }}" 
+                                    class="btn btn-sm btn-warning me-1">
+                                        <i class="fas fa-eye me-1"></i>عرض
+                                    </a> {% endcomment %}
+                                <a href="{% url 'quick:course_students' item.course.id %}?course_type={{ course_type }}" 
+                                   class="btn btn-sm btn-info">
+                                    <i class="fas fa-users me-1"></i>جميع الطلاب
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-check-circle fa-4x mb-3 opacity-50"></i>
+                <h4 class="fw-light">لا توجد دورات بها طلاب غير مسددين</h4>
+                <p class="text-muted">جميع الطلاب مسددين بالكامل</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

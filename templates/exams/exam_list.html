@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}قائمة الاختبارات - {{ classroom.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-list"></i>
+                        قائمة الاختبارات - {{ classroom.name }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <a href="{% url 'exams:create_exam' classroom.id %}" class="btn btn-success">
+                            <i class="fas fa-plus"></i> إنشاء اختبار جديد
+                        </a>
+                    </div>
+                    
+                    {% if exams %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>اسم الاختبار</th>
+                                    <th>المادة</th>
+                                    <th>تاريخ الاختبار</th>
+                                    <th>العلامة القصوى</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exam in exams %}
+                                <tr>
+                                    <td>{{ exam.name }}</td>
+                                    <td>{{ exam.subject.name }}</td>
+                                    <td>{{ exam.exam_date }}</td>
+                                    <td>{{ exam.max_grade|floatformat:"-2" }}</td>
+                                    <td class="d-flex flex-wrap gap-1">
+                                        <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-sm btn-info">
+                                            عرض التفاصيل
+                                        </a>
+                                        <a href="{% url 'exams:view_exam_grades' exam.id %}" class="btn btn-sm btn-warning">
+                                            عرض العلامات
+                                        </a>
+                                        <a href="{% url 'exams:edit_exam_grades' exam.id %}" class="btn btn-sm btn-primary">
+                                            إدخال العلامات
+                                        </a>
+                                        <a href="{% url 'exams:edit_exam' exam.id %}" class="btn btn-sm btn-outline-primary">
+                                            تعديل البيانات
+                                        </a>
+                                        <a href="{% url 'exams:delete_exam' exam.id %}" class="btn btn-sm btn-danger" 
+                                           onclick="return confirm('هل أنت متأكد من حذف هذا الاختبار؟')">
+                                            حذف
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle"></i>
+                        لا توجد اختبارات لهذه الشعبة بعد.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

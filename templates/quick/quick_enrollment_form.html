@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-user-plus"></i></div>
+            <div>
+                <h1 class="page-title">تسجيل طالب في دورة سريعة</h1>
+                <p class="page-subtitle">املأ البيانات أدناه لتسجيل طالب في دورة سريعة</p>
+            </div>
+        </div>
+        <a href="{% url 'quick:student_list' %}" class="btn btn--ghost">
+            <i class="fas fa-arrow-right"></i>
+            <span>العودة للقائمة</span>
+        </a>
+    </div>
+
+    <div class="card">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="grid">
+                <div class="field">
+                    <label class="label" for="{{ form.student.id_for_label }}">الطالب</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-user"></i>
+                        {{ form.student|add_class:"input" }}
+                    </div>
+                    {% if form.student.errors %}
+                    <div class="field__error">{{ form.student.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.course.id_for_label }}">الدورة</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-book"></i>
+                        {{ form.course|add_class:"input" }}
+                    </div>
+                    {% if form.course.errors %}
+                    <div class="field__error">{{ form.course.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.enrollment_date.id_for_label }}">تاريخ التسجيل</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-calendar"></i>
+                        {{ form.enrollment_date|add_class:"input"|attr:"type:date" }}
+                    </div>
+                    {% if form.enrollment_date.errors %}
+                    <div class="field__error">{{ form.enrollment_date.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.total_amount.id_for_label }}">المبلغ الإجمالي</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                        {{ form.total_amount|add_class:"input" }}
+                    </div>
+                    {% if form.total_amount.errors %}
+                    <div class="field__error">{{ form.total_amount.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.discount_percent.id_for_label }}">نسبة الخصم %</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-percentage"></i>
+                        {{ form.discount_percent|add_class:"input" }}
+                    </div>
+                    {% if form.discount_percent.errors %}
+                    <div class="field__error">{{ form.discount_percent.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.discount_amount.id_for_label }}">قيمة الخصم</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-tag"></i>
+                        {{ form.discount_amount|add_class:"input" }}
+                    </div>
+                    {% if form.discount_amount.errors %}
+                    <div class="field__error">{{ form.discount_amount.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.payment_method.id_for_label }}">طريقة الدفع</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-credit-card"></i>
+                        {{ form.payment_method|add_class:"input" }}
+                    </div>
+                    {% if form.payment_method.errors %}
+                    <div class="field__error">{{ form.payment_method.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field field--full">
+                    <label class="label" for="{{ form.notes.id_for_label }}">ملاحظات</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-sticky-note"></i>
+                        {{ form.notes|add_class:"input" }}
+                    </div>
+                    {% if form.notes.errors %}
+                    <div class="field__error">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                سيتم إنشاء قيد محاسبي تلقائياً بعد التسجيل
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn--primary">
+                    <i class="fas fa-save"></i> تسجيل الطالب
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تعبئة المبلغ الإجمالي تلقائياً عند اختيار الدورة
+    const courseSelect = document.getElementById('{{ form.course.id_for_label }}');
+    const totalAmountInput = document.getElementById('{{ form.total_amount.id_for_label }}');
+    
+    if (courseSelect && totalAmountInput) {
+        courseSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.dataset.price) {
+                totalAmountInput.value = selectedOption.dataset.price;
+            }
+        });
+        
+        // تعبئة أولية إذا كان هناك دورة محددة مسبقاً
+        if (courseSelect.value) {
+            const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+            if (selectedOption && selectedOption.dataset.price && !totalAmountInput.value) {
+                totalAmountInput.value = selectedOption.dataset.price;
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

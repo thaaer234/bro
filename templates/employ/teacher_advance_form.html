@@ -11,7 +11,11 @@
                 <div class="card-header bg-warning text-white">
                     <h4 class="mb-0 text-center">
                         <i class="fas fa-hand-holding-usd me-2"></i>
-                        إنشاء سلفة للمدرس: {{ teacher.full_name }}
+                        {% if advance %}
+                            تعديل سلفة المدرس {{ teacher.full_name }}
+                        {% else %}
+                            إنشاء سلفة للمدرس: {{ teacher.full_name }}
+                        {% endif %}
                     </h4>
                 </div>
                 <div class="card-body">
@@ -45,7 +49,7 @@
                                 تاريخ السلفة <span class="text-danger">*</span>
                             </label>
                             <input type="date" name="date" id="date" class="form-control" required 
-                                   value="{% now 'Y-m-d' %}">
+                                   value="{% if advance %}{{ advance.date|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
                         </div>
 
                         <!-- Amount -->
@@ -55,7 +59,8 @@
                                 مبلغ السلفة (ل.س) <span class="text-danger">*</span>
                             </label>
                             <input type="number" step="0.01" min="0.01" name="amount" id="amount" 
-                                   class="form-control" required placeholder="أدخل مبلغ السلفة">
+                                   class="form-control" required placeholder="أدخل مبلغ السلفة"
+                                   value="{% if advance %}{{ advance.amount|floatformat:2 }}{% endif %}">
                         </div>
 
                         <!-- Purpose -->
@@ -65,13 +70,17 @@
                                 الغرض من السلفة <span class="text-danger">*</span>
                             </label>
                             <textarea name="purpose" id="purpose" class="form-control" rows="3" 
-                                      required placeholder="اذكر الغرض من السلفة..."></textarea>
+                                      required placeholder="اذكر الغرض من السلفة...">{% if advance %}{{ advance.purpose }}{% endif %}</textarea>
                         </div>
 
                         <div class="d-flex justify-content-center gap-3 mt-4">
                             <button type="submit" class="btn btn-warning px-4">
                                 <i class="fas fa-save me-2"></i>
-                                إنشاء السلفة
+                                {% if advance %}
+                                    حفظ التعديلات
+                                {% else %}
+                                    إنشاء السلفة
+                                {% endif %}
                             </button>
                             <a href="{% url 'employ:teacher_profile' teacher.id %}" class="btn btn-secondary px-4">
                                 <i class="fas fa-times me-2"></i>

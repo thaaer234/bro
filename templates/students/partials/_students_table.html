@@ -1,0 +1,83 @@
+<!-- students/partials/_students_table.html -->
+<div class="table-responsive">
+    <table id="teachersTable" class="table table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>النوع</th>
+                <th>الاسم</th>
+                <th>الهاتف</th>
+                <th>البريد</th>
+                <th>الفرع/الدورة</th>
+                <th>الحالة</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    {% if student.student_type == 'QUICK' or student.is_quick_student %}
+                    <span class="badge badge-warning student-badge">سريع</span>
+                    {% else %}
+                    <span class="badge badge-info student-badge">نظامي</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <strong>
+                    {% if student.student_type == 'QUICK' or student.is_quick_student %}
+                        <a href="{% url 'quick:student_profile' student.id %}">{{ student.full_name }}</a>
+                    {% else %}
+                        <a href="{% url 'students:student_profile' student.id %}">{{ student.full_name }}</a>
+                    {% endif %}
+                    </strong>
+                </td>
+                <td>{{ student.phone|default:student.phone|default:"-" }}</td>
+                <td>{{ student.email|default:"-" }}</td>
+                <td>
+                    {% if student.student_type == 'QUICK' or student.is_quick_student %}
+                        {{ student.academic_year.name|default:"-" }}
+                    {% else %}
+                        {{ student.branch|default:"-" }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if student.is_active %}
+                    <span class="badge badge-success">نشط</span>
+                    {% else %}
+                    <span class="badge badge-secondary">غير نشط</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if student.student_type == 'QUICK' or student.is_quick_student %}
+                    <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-sm btn-info">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    {% else %}
+                    <a href="{% url 'students:student_profile' student.id %}" class="btn btn-sm btn-info">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    {% if student.added_by == request.user or request.user.is_superuser %}
+                    <a href="{% url 'students:update_student' student.id %}" class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    {% endif %}
+                    <button class="btn btn-sm btn-danger delete-btn" data-id="{{ student.id }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-muted py-4">
+                    <i class="fas fa-users fa-2x mb-3"></i>
+                    <br>
+                    لا توجد طلاب
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

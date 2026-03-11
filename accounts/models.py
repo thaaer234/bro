@@ -39,6 +39,17 @@ class Account(models.Model):
     description = models.TextField(blank=True, verbose_name='الوصف / Description')
     is_active = models.BooleanField(default=True, verbose_name='نشط / Active')
     balance = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='الرصيد / Balance')
+    # ===========
+    
+    # إضافة حقل مركز الكلفة
+    cost_center = models.ForeignKey(
+        'CostCenter', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='accounts',
+        verbose_name='مركز التكلفة / Cost Center'
+    )
     
     # Special account flags
     is_course_account = models.BooleanField(default=False, verbose_name='حساب الدورة / Course Account')
@@ -133,8 +144,11 @@ class Account(models.Model):
             account.save(update_fields=['balance'])
 
     @classmethod
-    def get_or_create_student_ar_account(cls, student):
-        """Get or create AR account for student"""
+    def get_or_create_student_ar_account(cls, student, course):
+        """Get or create AR account for student; must be scoped to a course"""
+        if not course:
+            raise ValueError("Course is required for student AR account creation")
+        
         # Ensure AR parent exists
         ar_parent, _ = cls.objects.get_or_create(
             code='1251',
@@ -146,21 +160,63 @@ class Account(models.Model):
             }
         )
         
-        # Create student-specific AR account
-        student_code = f"1251-{student.id:03d}"
-        account, created = cls.objects.get_or_create(
-            code=student_code,
+        # Resolve student and course names
+        student_name = getattr(student, 'full_name', None) or getattr(student, 'name', '') or getattr(student, 'student_name', '') or str(student)
+        course_name = getattr(course, 'name', '')
+        course_name_ar = getattr(course, 'name_ar', None) or course_name
+        
+        # Create or get course-level AR account first
+        course_code = f"1251-{course.id:03d}"
+        course_account, _ = cls.objects.get_or_create(
+            code=course_code,
             defaults={
-                'name': f"AR - {student.full_name}",
-                'name_ar': f"ذمة {student.full_name}",
+                'name': f"Accounts Receivable - {course_name}",
+                'name_ar': f"ذمم طلاب دورة {course_name_ar}",
                 'account_type': 'ASSET',
                 'parent': ar_parent,
-                'is_student_account': True,
-                'student_name': student.full_name,
+                'is_course_account': True,
+                'course_name': course_name,
                 'is_active': True,
             }
         )
-        return account
+        
+        # Create or get student-specific AR account under the course
+        # التنسيق: 1251-الدورة-الطالب
+        student_code = f"1251-{course.id:03d}-{student.id:03d}"
+        student_account, created = cls.objects.get_or_create(
+            code=student_code,
+            defaults={
+                'name': f"AR - {student_name} - {course_name}",
+                'name_ar': f"ذمة {student_name} - {course_name_ar}",
+                'account_type': 'ASSET',
+                'parent': course_account,  # مرتبط بحساب الدورة
+                'is_student_account': True,
+                'student_name': student_name,
+                'course_name': course_name,
+                'is_active': True,
+            }
+        )
+        
+        return student_account
+    @classmethod
+    def get_student_ar_account_for_course(cls, student, course):
+        """Get student AR account for a specific course (without creating)"""
+        if not course or not student:
+            return None
+        
+        # بناء الكود المتوقع
+        student_code = f"1251-{course.id:03d}-{student.id:03d}"
+        
+        try:
+            # البحث عن الحساب
+            account = cls.objects.get(
+                code=student_code,
+                is_student_account=True,
+                is_active=True
+            )
+            return account
+        except cls.DoesNotExist:
+            return None
 
     @classmethod
     def get_or_create_course_deferred_account(cls, course):
@@ -175,18 +231,13 @@ class Account(models.Model):
                 'is_active': True,
             }
         )
-
-
-        # =========================
-
-        
-        # Create course-specific deferred revenue account
+        # إنشاء حساب الإيرادات المؤجلة الخاص بالدورة
         course_code = f"21001-{course.id:03d}"
         account, created = cls.objects.get_or_create(
             code=course_code,
             defaults={
                 'name': f"Deferred Revenue - {course.name}",
-                'name_ar': f"إيرادات مؤجلة - {course.name}",
+                'name_ar': f"إيرادات مؤجلة - {getattr(course, 'name_ar', None) or course.name}",
                 'account_type': 'LIABILITY',
                 'parent': deferred_parent,
                 'is_course_account': True,
@@ -194,17 +245,129 @@ class Account(models.Model):
                 'is_active': True,
             }
         )
+        return account 
 
+    @classmethod
+    def get_or_create_course_account(cls, course):
+        """Get or create revenue account for course"""
+        Revenue, _ = cls.objects.get_or_create(
+            code='4',
+            defaults={
+                'name': 'Revenue - Courses',
+                'name_ar': 'إيرادات  - الدورات',
+                'account_type': 'REVENUE',
+                'is_active': True,
+            }
+        )
 
-        # ===================
-               # Create course-specific deferred revenue account
+        # إنشاء حساب الإيرادات  الخاص بالدورة
         course_code = f"4101-{course.id:03d}"
         account, created = cls.objects.get_or_create(
             code=course_code,
             defaults={
-                'name': f"Deferred Revenue - {course.name}",
-                'name_ar': f"  إيرادات  دورة - {course.name}",
+                'name': f"Revenue - {course.name}",
+                'name_ar': f"إيرادات دورة - {getattr(course, 'name_ar', None) or course.name}",
                 'account_type': 'REVENUE',
+                'parent': Revenue,
+                'is_course_account': True,
+                'course_name': course.name,
+                'is_active': True,
+            }
+        )
+        return account
+    # ==========================
+    @classmethod
+    def get_or_create_withdrawal_revenue_account(cls, student, course):
+        """إنشاء أو جلب حساب إيرادات سحب الطالب"""
+        # الحساب الرئيسي لإيرادات السحب (4201)
+        parent_account, _ = cls.objects.get_or_create(
+            code='4201',
+            defaults={
+                'name': 'Withdrawal Revenue - Students',
+                'name_ar': 'إيرادات انسحاب طلاب',
+                'account_type': 'REVENUE',
+                'is_active': True,
+            }
+        )
+        
+        # حساب الطالب المحدد
+        student_name = getattr(student, 'full_name', None) or getattr(student, 'name', '') or str(student)
+        course_name = getattr(course, 'name', '') or str(course)
+        
+        account_code = f"4201-{course.id:03d}-{student.id:03d}"
+        account, created = cls.objects.get_or_create(
+            code=account_code,
+            defaults={
+                'name': f'Withdrawal Revenue - {student_name} - {course_name}',
+                'name_ar': f'إيرادات انسحاب - {student_name} - {course_name}',
+                'account_type': 'REVENUE',
+                'parent': parent_account,
+                'is_active': True,
+            }
+        )
+        return account
+
+
+
+## ====================
+# الطلاب السريعين 
+# ====================
+# accounts/models.py - إضافة إلى نموذج Account
+
+    # ... الكود الحالي ...
+    
+    @classmethod
+    def get_or_create_quick_student_ar_account(cls, student):
+        """إنشاء أو جلب حساب ذمم الطالب السريع"""
+        # الحساب الرئيسي لذمم الطلاب السريعين
+        ar_parent, _ = cls.objects.get_or_create(
+            code='1252',
+            defaults={
+                'name': 'Accounts Receivable - Quick Students',
+                'name_ar': 'ذمم الطلاب السريعين المدينة',
+                'account_type': 'ASSET',
+                'is_active': True,
+            }
+        )
+        
+        # حساب الطالب السريع المحدد
+        student_code = f"1252-{student.id:03d}"
+        account, created = cls.objects.get_or_create(
+            code=student_code,
+            defaults={
+                'name': f"AR - Quick Student - {student.full_name}",
+                'name_ar': f"ذمة طالب سريع - {student.full_name}",
+                'account_type': 'ASSET',
+                'parent': ar_parent,
+                'is_student_account': True,
+                'student_name': student.full_name,
+                'is_active': True,
+            }
+        )
+        return account
+    
+    @classmethod
+    def get_or_create_quick_course_deferred_account(cls, course):
+        """إنشاء أو جلب حساب الإيرادات المؤجلة للدورة السريعة"""
+        # الحساب الرئيسي للإيرادات المؤجلة للدورات السريعة
+        deferred_parent, _ = cls.objects.get_or_create(
+            code='2151',
+            defaults={
+                'name': 'Deferred Revenue - Quick Courses',
+                'name_ar': 'إيرادات مؤجلة - الدورات السريعة',
+                'account_type': 'LIABILITY',
+                'is_active': True,
+            }
+        )
+        
+        # حساب الدورة السريعة المحددة
+        course_code = f"2151-{course.id:03d}"
+        account, created = cls.objects.get_or_create(
+            code=course_code,
+            defaults={
+                'name': f"Deferred Revenue - Quick Course - {course.name}",
+                'name_ar': f"إيرادات مؤجلة - دورة سريعة - {course.name_ar or course.name}",
+                'account_type': 'LIABILITY',
                 'parent': deferred_parent,
                 'is_course_account': True,
                 'course_name': course.name,
@@ -212,6 +375,38 @@ class Account(models.Model):
             }
         )
         return account
+    
+    @classmethod
+    def get_or_create_quick_course_revenue_account(cls, course):
+        """إنشاء أو جلب حساب إيرادات الدورة السريعة"""
+        # الحساب الرئيسي لإيرادات الدورات السريعة
+        revenue_parent, _ = cls.objects.get_or_create(
+            code='4111',
+            defaults={
+                'name': 'Revenue - Quick Courses',
+                'name_ar': 'إيرادات الدورات السريعة',
+                'account_type': 'REVENUE',
+                'is_active': True,
+            }
+        )
+        
+        # حساب الدورة السريعة المحددة
+        course_code = f"4111-{course.id:03d}"
+        account, created = cls.objects.get_or_create(
+            code=course_code,
+            defaults={
+                'name': f"Revenue - Quick Course - {course.name}",
+                'name_ar': f"إيرادات دورة سريعة - {course.name_ar or course.name}",
+                'account_type': 'REVENUE',
+                'parent': revenue_parent,
+                'is_course_account': True,
+                'course_name': course.name,
+                'is_active': True,
+            }
+        )
+        return account
+
+   
 
 
 class CostCenter(models.Model):
@@ -220,6 +415,7 @@ class CostCenter(models.Model):
         ('ADMINISTRATIVE', 'إداري / Administrative'),
         ('OPERATIONAL', 'تشغيلي / Operational'),
         ('SUPPORT', 'دعم / Support'),
+        ('MARKETING', 'تسويقي / Marketing'),
     ]
     
     code = models.CharField(max_length=20, unique=True, verbose_name='الرمز / Code')
@@ -232,10 +428,21 @@ class CostCenter(models.Model):
     # Manager information
     manager_name = models.CharField(max_length=200, blank=True, verbose_name='اسم المدير / Manager Name')
     manager_phone = models.CharField(max_length=20, blank=True, verbose_name='هاتف المدير / Manager Phone')
+    manager_email = models.EmailField(blank=True, verbose_name='بريد المدير / Manager Email')
     
     # Budget information
     annual_budget = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='الميزانية السنوية / Annual Budget')
     monthly_budget = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='الميزانية الشهرية / Monthly Budget')
+    actual_annual_spent = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='المصروف الفعلي السنوي / Actual Annual Spent')
+    actual_monthly_spent = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='المصروف الفعلي الشهري / Actual Monthly Spent')
+    
+    # Performance metrics
+    target_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='الإيراد المستهدف / Target Revenue')
+    target_profit_margin = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name='هامش الربح المستهدف % / Target Profit Margin %')
+    opening_balance = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="رصيد الافتتاح")
+    # Dates
+    start_date = models.DateField(null=True, blank=True, verbose_name='تاريخ البدء / Start Date')
+    end_date = models.DateField(null=True, blank=True, verbose_name='تاريخ الانتهاء / End Date')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -244,126 +451,772 @@ class CostCenter(models.Model):
         verbose_name = 'مركز التكلفة / Cost Center'
         verbose_name_plural = 'مراكز التكلفة / Cost Centers'
         ordering = ['code']
+        indexes = [
+            models.Index(fields=['code']),
+            models.Index(fields=['cost_center_type']),
+            models.Index(fields=['is_active']),
+        ]
 
     def __str__(self):
         return f"{self.code} - {self.name_ar if self.name_ar else self.name}"
     
-    def get_total_expenses(self, start_date=None, end_date=None):
-        """Get total expenses for this cost center in a period"""
+    def get_absolute_url(self):
+        return reverse('accounts:cost_center_detail', kwargs={'pk': self.pk})
+    
+    # ===== REVENUE METHODS =====
+
+    def get_other_expenses(self, start_date, end_date):
+        """
+        حساب إجمالي المصاريف الأخرى لفترة محددة
+        """
+        try:
+            from .models import OtherExpense  # تأكد من المسار الصحيح
+            total = OtherExpense.objects.filter(
+                cost_center=self,
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total if total else 0
+        except Exception as e:
+            return 0
+
+
+
+    # الحقول الموجودة لديك...
+    
+    def get_opening_balance(self, start_date=None, end_date=None):
+        """رصيد الافتتاح - مع معالجة القيم الافتراضية"""
+        try:
+            # إذا ما بدك تستخدم التواريخ، ممكن ترجع قيمة ثابتة
+            return self.opening_balance or 0
+        except:
+            return 0
+
+    def get_cash_inflow(self, start_date, end_date):
+        """إجمالي التدفقات النقدية الداخلة"""
+        try:
+            total = self.cashinflow_set.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    def get_cash_outflow(self, start_date, end_date):
+        """إجمالي التدفقات النقدية الخارجة"""
+        try:
+            total = self.cashoutflow_set.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    def get_other_expenses(self, start_date, end_date):
+        """المصاريف الأخرى"""
+        try:
+            total = self.otherexpense_set.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    def get_salary_expenses(self, start_date, end_date):
+        """مصاريف الرواتب"""
+        try:
+            total = self.salary_set.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    def get_operational_expenses(self, start_date, end_date):
+        """المصاريف التشغيلية"""
+        try:
+            total = self.operationalexpense_set.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    def get_closing_balance(self, start_date, end_date):
+        """رصيد الإغلاق"""
+        try:
+            opening = self.get_opening_balance(start_date, end_date)
+            inflow = self.get_cash_inflow(start_date, end_date)
+            outflow = self.get_cash_outflow(start_date, end_date)
+            return opening + inflow - outflow
+        except:
+            return 0
+
+ 
+
+    def get_total_expenses(self, start_date, end_date):
+        """إجمالي المصاريف"""
+        salary = self.get_salary_expenses(start_date, end_date)
+        operational = self.get_operational_expenses(start_date, end_date)
+        other = self.get_other_expenses(start_date, end_date)
+        return salary + operational + other
+
+    def get_net_income(self, start_date, end_date):
+        """صافي الدخل"""
+        revenue = self.get_total_revenue(start_date, end_date)
+        expenses = self.get_total_expenses(start_date, end_date)
+        return revenue - expenses
+    # الحقول الموجودة لديك...
+    
+    def get_cash_inflow(self, start_date, end_date):
+        """احصل على إجمالي التدفقات النقدية الداخلة"""
+        try:
+            # استبدل بنموذجك الفعلي
+            total = self.cash_inflows.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    def get_cash_outflow(self, start_date, end_date):
+        """احصل على إجمالي التدفقات النقدية الخارجة"""
+        try:
+            # استبدل بنموذجك الفعلي
+            total = self.cash_outflows.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    def get_other_expenses(self, start_date, end_date):
+        """احصل على إجمالي المصاريف الأخرى"""
+        try:
+            total = self.other_expenses.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    def get_salary_expenses(self, start_date, end_date):
+        """احصل على إجمالي مصاريف الرواتب"""
+        try:
+            total = self.salaries.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    def get_operational_expenses(self, start_date, end_date):
+        """احصل على إجمالي المصاريف التشغيلية"""
+        try:
+            total = self.operational_expenses.filter(
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total or 0
+        except:
+            return 0
+
+    # دوال إضافية قد تحتاجها
+
+
+    def get_total_expenses(self, start_date, end_date):
+        """إجمالي المصاريف (يمكن أن يكون مجموع عدة أنواع)"""
+        salary = self.get_salary_expenses(start_date, end_date)
+        operational = self.get_operational_expenses(start_date, end_date)
+        other = self.get_other_expenses(start_date, end_date)
+        return salary + operational + other
+
+    # الحقول الموجودة لديك...
+    
+    def get_cash_inflow(self, start_date, end_date):
+        """
+        حساب إجمالي التدفقات النقدية الداخلة
+        """
+        try:
+            # استبدل CashInflow بنموذج التدفقات النقدية الفعلي لديك
+            from .models import CashInflow
+            total = CashInflow.objects.filter(
+                cost_center=self,
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total if total else 0
+        except Exception as e:
+            return 0
+
+    def get_other_expenses(self, start_date, end_date):
+        """
+        حساب إجمالي المصاريف الأخرى
+        """
+        try:
+            from .models import OtherExpense
+            total = OtherExpense.objects.filter(
+                cost_center=self,
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total if total else 0
+        except Exception as e:
+            return 0
+
+    def get_salary_expenses(self, start_date, end_date):
+        """
+        حساب إجمالي مصاريف الرواتب
+        """
+        try:
+            from employ.models import Salary  # أو من أي app آخر
+            total = Salary.objects.filter(
+                cost_center=self,
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total if total else 0
+        except Exception as e:
+            return 0
+
+    def get_operational_expenses(self, start_date, end_date):
+        """
+        حساب إجمالي المصاريف التشغيلية
+        """
+        try:
+            from .models import OperationalExpense
+            total = OperationalExpense.objects.filter(
+                cost_center=self,
+                date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total']
+            return total if total else 0
+        except Exception as e:
+            return 0
+    def get_revenue_by_course(self, start_date=None, end_date=None):
+        """تفصيل الإيرادات حسب الدورة"""
+        revenue_data = []
+        
+        for course in self.courses.filter(is_active=True):
+            course_revenue_account = Account.objects.filter(
+                code=f'4101-{course.id:03d}'
+            ).first()
+            
+            if course_revenue_account:
+                revenue = course_revenue_account.get_net_balance()
+                if revenue > 0:
+                    revenue_data.append({
+                        'course': course,
+                        'revenue': revenue,
+                        'enrollments': course.get_enrollment_count(start_date, end_date),
+                        'course_price': course.price
+                    })
+        
+        return revenue_data
+    def get_total_revenue(self, start_date=None, end_date=None):
+        """إجمالي الإيرادات مع معالجة القيم الافتراضية"""
+        try:
+            # استخدام القيم الافتراضية إذا لم يتم توفيرها
+            if not start_date or not end_date:
+                # آخر 30 يوم كقيمة افتراضية
+                end_date = timezone.now().date()
+                start_date = end_date - timedelta(days=30)
+            
+            # البحث في المعاملات المرتبطة بمركز التكلفة
+            total = self.transactions.filter(
+                journal_entry__date__range=[start_date, end_date],
+                is_debit=False  # الإيرادات بتكون دائن
+            ).aggregate(total=Sum('amount'))['total']
+            
+            return total if total else 0
+        except Exception as e:
+            print(f"Error in get_total_revenue: {e}")
+            return 0
+    # ===== TEACHER SALARIES METHODS =====
+    def get_teacher_salaries(self, start_date=None, end_date=None):
+        """رواتب جميع مدرسي مركز التكلفة"""
         from django.db.models import Sum
-        transactions = self.transaction_set.all()
+        total_salaries = Decimal('0.00')
+        
+        # جميع المدرسين المرتبطين بدورات مركز التكلفة
+        for teacher in self.get_teacher_list():
+            # راتب المدرس من الحساب 501 (رواتب المدرسين)
+            teacher_salary_account = Account.objects.filter(
+                code=f'501-{teacher.id:03d}'
+            ).first()
+            
+            if teacher_salary_account:
+                salary = teacher_salary_account.get_net_balance()
+                total_salaries += salary
+        
+        return total_salaries
+    
+    def get_teacher_count(self):
+        """عدد المدرسين في مركز التكلفة"""
+        return len(self.get_teacher_list())
+    
+    def get_teacher_list(self):
+        """قائمة جميع المدرسين في مركز التكلفة"""
+        teachers = []
+        
+        for course in self.courses.filter(is_active=True):
+            assignments = course.courseteacherassignment_set.filter(is_active=True)
+            for assignment in assignments:
+                if assignment.teacher and assignment.teacher not in teachers:
+                    teachers.append(assignment.teacher)
+        
+        return teachers
+    
+    def get_teacher_data(self):
+        """بيانات مفصلة عن المدرسين"""
+        teacher_data = []
+        
+        for teacher in self.get_teacher_list():
+            # حساب راتب المدرس
+            teacher_salary_account = Account.objects.filter(
+                code=f'501-{teacher.id:03d}'
+            ).first()
+            salary = teacher_salary_account.get_net_balance() if teacher_salary_account else Decimal('0.00')
+            
+            # الدورات التي يدرسها في هذا المركز
+            teacher_courses = teacher.assigned_courses.filter(cost_center=self)
+            
+            teacher_data.append({
+                'teacher': teacher,
+                'salary': salary,
+                'courses': teacher_courses,
+                'courses_count': teacher_courses.count()
+            })
+        
+        return teacher_data
+    
+    # ===== EXPENSE METHODS =====
+    def get_total_expenses(self, start_date=None, end_date=None):
+        """إجمالي مصروفات مركز التكلفة"""
+        teacher_salaries = self.get_teacher_salaries(start_date, end_date)
+        operational_expenses = self.get_operational_expenses(start_date, end_date)
+        return teacher_salaries + operational_expenses
+    
+    def get_operational_expenses(self, start_date=None, end_date=None):
+        """المصاريف التشغيلية لمركز التكلفة"""
+        from django.db.models import Sum
+        
+        # جميع المصاريف المرتبطة بمركز التكلفة (من جدول Transaction)
+        expenses = Transaction.objects.filter(
+            cost_center=self,
+            is_debit=True  # المصاريف بتكون مدين
+        )
         
         if start_date:
-            transactions = transactions.filter(journal_entry__date__gte=start_date)
+            expenses = expenses.filter(journal_entry__date__gte=start_date)
         if end_date:
-            transactions = transactions.filter(journal_entry__date__lte=end_date)
+            expenses = expenses.filter(journal_entry__date__lte=end_date)
         
-        # Sum debit transactions (expenses)
-        return transactions.filter(is_debit=True).aggregate(
-            total=Sum('amount'))['total'] or Decimal('0.00')
+        return expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     
-    def get_teacher_salaries(self, start_date=None, end_date=None):
-        """Get teacher salaries allocated to this cost center based on course assignments"""
-        from django.db.models import Sum
-        total_salary = Decimal('0.00')
+    def get_expenses_by_category(self, start_date=None, end_date=None):
+        """تفصيل المصروفات حسب النوع"""
+        expenses = {}
         
-        # Get all courses assigned to this cost center
-        courses = self.courses.filter(is_active=True)
+        # رواتب المدرسين
+        expenses['teacher_salaries'] = self.get_teacher_salaries(start_date, end_date)
         
-        for course in courses:
-            # Get teacher assignments for this course
-            assignments = course.courseteacherassignment_set.filter(is_active=True)
-            
-            if start_date:
-                assignments = assignments.filter(start_date__gte=start_date)
-            if end_date:
-                assignments = assignments.filter(start_date__lte=end_date)
-            
-            # Calculate total salary for each assignment
-            for assignment in assignments:
-                total_salary += assignment.calculate_total_salary()
+        # مصاريف تشغيلية
+        expenses['operational'] = self.get_operational_expenses(start_date, end_date)
         
-        return total_salary
+        return expenses
     
+    # ===== PROFITABILITY METHODS =====
+    def get_net_income(self, start_date=None, end_date=None):
+        """صافي الدخل (الإيرادات - المصروفات)"""
+        revenue = self.get_total_revenue(start_date, end_date)
+        expenses = self.get_total_expenses(start_date, end_date)
+        return revenue - expenses
+    
+    def get_profit_margin(self, start_date=None, end_date=None):
+        """هامش الربح"""
+        revenue = self.get_total_revenue(start_date, end_date)
+        net_income = self.get_net_income(start_date, end_date)
+        
+        if revenue > 0:
+            return (net_income / revenue) * 100
+        return Decimal('0.00')
+    
+    def get_budget_utilization(self, start_date=None, end_date=None):
+        """نسبة استخدام الميزانية"""
+        if self.monthly_budget > 0:
+            expenses = self.get_total_expenses(start_date, end_date)
+            return (expenses / self.monthly_budget) * 100
+        return Decimal('0.00')
+    
+    def get_budget_variance(self, start_date=None, end_date=None):
+        """الانحراف عن الميزانية"""
+        budgeted = self.monthly_budget
+        actual = self.get_total_expenses(start_date, end_date)
+        return actual - budgeted
+    
+    # ===== COURSE MANAGEMENT METHODS =====
     def get_course_count(self):
-        """Get number of courses associated with this cost center"""
+        """عدد الدورات المرتبطة"""
         return self.courses.filter(is_active=True).count()
     
-    def get_total_revenue(self, start_date=None, end_date=None):
-        """Get total revenue for this cost center from course enrollments"""
-        from django.db.models import Sum
-        total_revenue = Decimal('0.00')
+    def get_active_courses(self):
+        """الدورات النشطة"""
+        return self.courses.filter(is_active=True)
+    
+    def get_course_performance(self, course):
+        """أداء دورة محددة"""
+        course_revenue_account = Account.objects.filter(
+            code=f'4101-{course.id:03d}'
+        ).first()
+        revenue = course_revenue_account.get_net_balance() if course_revenue_account else Decimal('0.00')
         
-        # Get all courses assigned to this cost center
+        expenses = self.get_course_expenses(course)
+        net_income = revenue - expenses
+        enrollments = course.get_enrollment_count()
+        
+        return {
+            'course': course,
+            'revenue': revenue,
+            'expenses': expenses,
+            'net_income': net_income,
+            'enrollments': enrollments,
+            'revenue_per_student': revenue / enrollments if enrollments > 0 else Decimal('0.00'),
+            'profit_margin': (net_income / revenue * 100) if revenue > 0 else Decimal('0.00')
+        }
+    
+    def get_course_expenses(self, course, start_date=None, end_date=None):
+        """تكاليف دورة محددة"""
+        # رواتب مدرسي هذه الدورة
+        teacher_salaries = Decimal('0.00')
+        assignments = course.courseteacherassignment_set.filter(is_active=True)
+        
+        for assignment in assignments:
+            teacher = assignment.teacher
+            teacher_salary_account = Account.objects.filter(
+                code=f'501-{teacher.id:03d}'
+            ).first()
+            if teacher_salary_account:
+                teacher_salaries += teacher_salary_account.get_net_balance()
+        
+        # مصاريف تشغيلية مرتبطة بالدورة
+        operational_expenses = Transaction.objects.filter(
+            cost_center=self,
+            journal_entry__description__icontains=course.name,
+            is_debit=True
+        )
+        
+        if start_date:
+            operational_expenses = operational_expenses.filter(journal_entry__date__gte=start_date)
+        if end_date:
+            operational_expenses = operational_expenses.filter(journal_entry__date__lte=end_date)
+            
+        operational_total = operational_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        
+        return teacher_salaries + operational_total
+    
+    # ===== COMPREHENSIVE REPORTING METHODS =====
+    def get_financial_summary(self, start_date=None, end_date=None):
+        """ملخص مالي شامل"""
+        return {
+            'total_revenue': self.get_total_revenue(start_date, end_date),
+            'total_expenses': self.get_total_expenses(start_date, end_date),
+            'teacher_salaries': self.get_teacher_salaries(start_date, end_date),
+            'operational_expenses': self.get_operational_expenses(start_date, end_date),
+            'net_income': self.get_net_income(start_date, end_date),
+            'profit_margin': self.get_profit_margin(start_date, end_date),
+            'budget_utilization': self.get_budget_utilization(start_date, end_date),
+            'course_count': self.get_course_count(),
+            'teacher_count': self.get_teacher_count()
+        }
+    
+    def get_detailed_financial_report(self, start_date=None, end_date=None):
+        """تقرير مالي مفصل"""
+        financial_summary = self.get_financial_summary(start_date, end_date)
+        
+        # إضافة تفاصيل إضافية
+        financial_summary.update({
+            'revenue_by_course': self.get_revenue_by_course(start_date, end_date),
+            'expenses_by_category': self.get_expenses_by_category(start_date, end_date),
+            'teacher_data': self.get_teacher_data()
+        })
+        
+        return financial_summary
+    
+    # ===== SAFE METHODS (with error handling) =====
+   
+    
+    def get_teacher_salaries_safe(self, start_date=None, end_date=None):
+        try:
+            return self.get_teacher_salaries(start_date, end_date)
+        except:
+            return Decimal('0.00')
+    
+    def get_operational_expenses_safe(self, start_date=None, end_date=None):
+        try:
+            return self.get_operational_expenses(start_date, end_date)
+        except:
+            return Decimal('0.00')
+    
+    def get_total_expenses_safe(self, start_date=None, end_date=None):
+        try:
+            return self.get_total_expenses(start_date, end_date)
+        except:
+            return Decimal('0.00')
+    
+    def get_net_income_safe(self, start_date=None, end_date=None):
+        try:
+            return self.get_net_income(start_date, end_date)
+        except:
+            return Decimal('0.00')
+    
+    # ===== VALIDATION METHODS =====
+    def clean(self):
+        """التحقق من صحة البيانات"""
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValidationError({
+                'end_date': 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء'
+            })
+        
+        if self.monthly_budget < 0:
+            raise ValidationError({
+                'monthly_budget': 'الميزانية الشهرية لا يمكن أن تكون سالبة'
+            })
+    
+    def save(self, *args, **kwargs):
+        """حفظ مع التحقق"""
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    def get_courses_summary(self):
+        """ملخص الدورات المرتبطة بمركز التكلفة"""
+        try:
+            courses = self.courses.filter(is_active=True)
+            total_enrollments = 0
+            total_course_revenue = Decimal('0.00')
+            
+            for course in courses:
+                total_enrollments += course.get_enrollment_count()
+                
+                # حساب إيرادات الدورة من الحساب 4101
+                course_revenue_account = Account.objects.filter(
+                    code=f'4101-{course.id:03d}'
+                ).first()
+                if course_revenue_account:
+                    total_course_revenue += course_revenue_account.get_net_balance()
+            
+            return {
+                'total_courses': courses.count(),
+                'active_courses': courses.filter(is_active=True).count(),
+                'total_enrollments': total_enrollments,
+                'total_course_revenue': total_course_revenue
+            }
+        except Exception as e:
+            print(f"Error in get_courses_summary: {e}")
+            return {
+                'total_courses': 0,
+                'active_courses': 0,
+                'total_enrollments': 0,
+                'total_course_revenue': Decimal('0.00')
+            }
+    
+    def get_revenue_account(self):
+        """الحصول على حساب إيرادات الدورة"""
+        try:
+            return Account.objects.get(code=f'4101-{self.id:03d}')
+        except Account.DoesNotExist:
+            return None
+    
+    def get_teacher_assignments(self):
+        """الحصول على تعيينات المدرسين المرتبطة بمركز التكلفة"""
+        try:
+            from .models import CourseTeacherAssignment
+            assignments = []
+            for course in self.courses.filter(is_active=True):
+                course_assignments = CourseTeacherAssignment.objects.filter(
+                    course=course, 
+                    is_active=True
+                )
+                assignments.extend(course_assignments)
+            return assignments
+        except:
+            return []
+    
+    def get_transaction_history(self, limit=50):
+        """سجل المعاملات المرتبطة بمركز التكلفة"""
+        try:
+            return Transaction.objects.filter(cost_center=self).select_related(
+                'journal_entry', 'account'
+            ).order_by('-journal_entry__date')[:limit]
+        except:
+            return []
+    
+    def get_accounts(self):
+        """الحصول على جميع الحسابات المرتبطة بمركز التكلفة"""
+        try:
+            return self.accounts.all()
+        except:
+            return []
+        
+
+
+# ===========
+    def get_teachers_by_branch(self):
+        """جلب المدرسين حسب تخصص مركز التكلفة"""
+        # تحديد تخصص مركز التكلفة من الاسم
+        cost_center_name = self.name_ar or self.name
+        
+        if 'علمي' in cost_center_name:
+            target_branch = 'SCIENCE'
+        elif 'أدبي' in cost_center_name:
+            target_branch = 'LITERARY'
+        elif 'تاسع' in cost_center_name:
+            target_branch = 'NINTH'
+        elif 'تمهيدي' in cost_center_name:
+            target_branch = 'PREPARATORY'
+        else:
+            target_branch = None
+        
+        if target_branch:
+            # جلب المدرسين من هذا التخصص
+            from employ.models import Teacher
+            return Teacher.objects.filter(branch=target_branch)
+        return Teacher.objects.none()
+    
+    def auto_assign_teachers_to_courses(self):
+        """تعيين المدرسين تلقائياً للدورات المناسبة"""
+        teachers = self.get_teachers_by_branch()
         courses = self.courses.filter(is_active=True)
         
-        for course in courses:
-            total_revenue += course.get_total_revenue(start_date, end_date)
+        assigned_count = 0
         
-        return total_revenue
+        for teacher in teachers:
+            for course in courses:
+                # تحقق إذا المدرس مش معين أصلاً للدورة
+                assignment_exists = CourseTeacherAssignment.objects.filter(
+                    teacher=teacher,
+                    course=course
+                ).exists()
+                
+                if not assignment_exists:
+                    # إنشاء تعيين جديد
+                    CourseTeacherAssignment.objects.create(
+                        teacher=teacher,
+                        course=course,
+                        start_date=timezone.now().date(),
+                        is_active=True,
+                        notes=f"تعيين تلقائي - تخصص {teacher.get_branch_display()}"
+                    )
+                    assigned_count += 1
+        
+        return assigned_count
     
-    def get_other_expenses(self, start_date=None, end_date=None):
-        """Get other expenses (non-salary) for this cost center"""
-        total_expenses = self.get_total_expenses(start_date, end_date)
-        teacher_salaries = self.get_teacher_salaries(start_date, end_date)
-        return total_expenses - teacher_salaries
+    def get_auto_assigned_teachers(self):
+        """جلب المدرسين المعينين تلقائياً"""
+        teachers_data = []
+        
+        # جلب المدرسين حسب التخصص
+        teachers = self.get_teachers_by_branch()
+        
+        for teacher in teachers:
+            # حساب راتب المدرس
+            teacher_salary_account = Account.objects.filter(
+                code=f'501-{teacher.id:03d}'
+            ).first()
+            salary = teacher_salary_account.get_net_balance() if teacher_salary_account else Decimal('0.00')
+            
+            # الدورات التي يدرسها في هذا المركز
+            teacher_courses = teacher.assigned_courses.filter(cost_center=self)
+            
+            teachers_data.append({
+                'teacher': teacher,
+                'salary': salary,
+                'courses': teacher_courses,
+                'courses_count': teacher_courses.count(),
+                'branch': teacher.get_branch_display(),
+                'is_auto_assigned': True
+            })
+        
+        return teachers_data
     
-    def get_cash_inflow(self, start_date=None, end_date=None):
-        """Get cash inflow for this cost center"""
-        from django.db.models import Sum
-        transactions = self.transaction_set.filter(
-            account__code__in=['121', '1120'],  # Cash and Bank accounts
-            is_debit=True  # Cash inflow is debit to cash accounts
-        )
+    def get_branch_type(self):
+        """تحديد نوع مركز التكلفة (علمي، أدبي، إلخ)"""
+        cost_center_name = self.name_ar or self.name
         
-        if start_date:
-            transactions = transactions.filter(journal_entry__date__gte=start_date)
-        if end_date:
-            transactions = transactions.filter(journal_entry__date__lte=end_date)
+        if 'علمي' in cost_center_name:
+            return 'SCIENCE'
+        elif 'أدبي' in cost_center_name:
+            return 'LITERARY'
+        elif 'تاسع' in cost_center_name:
+            return 'NINTH'
+        elif 'تمهيدي' in cost_center_name:
+            return 'PREPARATORY'
+        else:
+            return 'OTHER'
         
-        return transactions.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    def get_teacher_count(self):
+        """عدد المدرسين المرتبطين بمركز التكلفة"""
+        try:
+            # المدرسين من خلال التعيينات في الدورات
+            teacher_ids = set()
+            for course in self.courses.filter(is_active=True):
+                assignments = course.courseteacherassignment_set.filter(is_active=True)
+                for assignment in assignments:
+                    if assignment.teacher:
+                        teacher_ids.add(assignment.teacher.id)
+            return len(teacher_ids)
+        except:
+            return 0
     
-    def get_cash_outflow(self, start_date=None, end_date=None):
-        """Get cash outflow for this cost center"""
-        from django.db.models import Sum
-        transactions = self.transaction_set.filter(
-            account__code__in=['121', '1120'],  # Cash and Bank accounts
-            is_debit=False  # Cash outflow is credit to cash accounts
-        )
-        
-        if start_date:
-            transactions = transactions.filter(journal_entry__date__gte=start_date)
-        if end_date:
-            transactions = transactions.filter(journal_entry__date__lte=end_date)
-        
-        return transactions.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    def get_account_count(self):
+        """عدد الحسابات المرتبطة بمركز التكلفة"""
+        try:
+            return self.accounts.count()
+        except:
+            return 0
     
-    def get_opening_balance(self, start_date=None):
-        """Get opening balance for this cost center"""
-        if not start_date:
-            return Decimal('0.00')
-        
-        from django.db.models import Sum
-        transactions = self.transaction_set.filter(
-            journal_entry__date__lt=start_date
-        )
-        
-        # Calculate net balance before start date
-        debit_total = transactions.filter(is_debit=True).aggregate(
-            total=Sum('amount'))['total'] or Decimal('0.00')
-        credit_total = transactions.filter(is_debit=False).aggregate(
-            total=Sum('amount'))['total'] or Decimal('0.00')
-        
-        return debit_total - credit_total
+    def get_student_count(self):
+        """عدد الطلاب المرتبطين بمركز التكلفة"""
+        try:
+            from students.models import Student
+            student_ids = set()
+            for course in self.courses.filter(is_active=True):
+                enrollments = course.enrollments.filter(is_completed=False)
+                for enrollment in enrollments:
+                    if enrollment.student:
+                        student_ids.add(enrollment.student.id)
+            return len(student_ids)
+        except:
+            return 0
     
-    def get_closing_balance(self, start_date=None, end_date=None):
-        """Get closing balance for this cost center"""
-        opening_balance = self.get_opening_balance(start_date)
-        inflow = self.get_cash_inflow(start_date, end_date)
-        outflow = self.get_cash_outflow(start_date, end_date)
-        
-        return opening_balance + inflow - outflow
-
+    def get_transaction_count(self):
+        """عدد المعاملات المرتبطة بمركز التكلفة"""
+        try:
+            return self.transaction_set.count()
+        except:
+            return 0
+    
+    def get_course_count(self):
+        """عدد الدورات المرتبطة"""
+        try:
+            return self.courses.filter(is_active=True).count()
+        except:
+            return 0
+    
+    def get_enrollment_count(self):
+        """عدد التسجيلات في دورات المركز"""
+        try:
+            total = 0
+            for course in self.courses.filter(is_active=True):
+                total += course.get_enrollment_count()
+            return total
+        except:
+            return 0
+    
+    def get_detailed_statistics(self):
+        """إحصائيات مفصلة لمركز التكلفة"""
+        return {
+            'teachers': self.get_teacher_count(),
+            'accounts': self.get_account_count(),
+            'students': self.get_student_count(),
+            'transactions': self.get_transaction_count(),
+            'courses': self.get_course_count(),
+            'enrollments': self.get_enrollment_count(),
+        }
 
 class AccountingPeriod(models.Model):
     name = models.CharField(max_length=100, verbose_name='اسم الفترة / Period Name')
@@ -588,7 +1441,124 @@ class Course(models.Model):
             enrollments = enrollments.filter(enrollment_date__lte=end_date)
         
         return enrollments.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+    # الحقول الحالية...
+    
+    def auto_determine_cost_center(self):
+        """تحديد مركز التكلفة تلقائياً من الاسم"""
+        course_name = (self.name_ar or self.name).lower()
+        
+        keyword_mapping = {
+            'علمي': ['علمي', 'العلمي', 'scientific', 'science', 'اساس', 'أساس'],
+            'أدبي': ['أدبي', 'الأدبي', 'literary', 'literature'],
+            'تاسع': ['تاسع', 'التاسع', 'ninth', 'grade9'],
+            'تمهيدي': ['تمهيدي', 'التمهيدي', 'preparatory', 'prep'],
+        }
+        
+        for branch_type, keywords in keyword_mapping.items():
+            for keyword in keywords:
+                if keyword.lower() in course_name:
+                    # البحث عن مركز التكلفة المناسب
+                    cost_center = CostCenter.objects.filter(
+                        Q(name_ar__icontains=keyword) | Q(name__icontains=keyword)
+                    ).first()
+                    return cost_center
+        
+        return None
+    
+    def save(self, *args, **kwargs):
+        """تحديث الحفظ لربط مركز التكلفة تلقائياً"""
+        is_new = self.pk is None
+        
+        # إذا لم يكن هناك مركز تكلفة محدد، حاول تحديده تلقائياً
+        if not self.cost_center:
+            auto_cost_center = self.auto_determine_cost_center()
+            if auto_cost_center:
+                self.cost_center = auto_cost_center
+        
+        super().save(*args, **kwargs)
+        
+        # بعد الحفظ، تأكد من تعيين المدرسين المناسبين
+        if is_new and self.cost_center:
+            self.auto_assign_teachers()
+    
+    def auto_assign_teachers(self):
+        """التعيين التلقائي للمدرسين بعد إنشاء الدورة"""
+        from employ.models import Teacher
+        
+        if not self.cost_center:
+            return
+        
+        cost_center_name = (self.cost_center.name_ar or self.cost_center.name).lower()
+        
+        branch_keywords = {
+            'SCIENCE': ['علمي', 'العلمي', 'scientific', 'science', 'اساس', 'أساس'],
+            'LITERARY': ['أدبي', 'الأدبي', 'literary', 'literature'],
+            'NINTH': ['تاسع', 'التاسع', 'ninth', 'grade9'],
+            'PREPARATORY': ['تمهيدي', 'التمهيدي', 'preparatory', 'prep'],
+        }
+        
+        # تحديد التخصص من اسم مركز التكلفة
+        target_branch = None
+        for branch, keywords in branch_keywords.items():
+            for keyword in keywords:
+                if keyword.lower() in cost_center_name:
+                    target_branch = branch
+                    break
+            if target_branch:
+                break
+        
+        if target_branch:
+            # البحث عن المدرسين المناسبين
+            matching_teachers = Teacher.objects.filter(branches__contains=[target_branch])
+            
+            for teacher in matching_teachers:
+                CourseTeacherAssignment.objects.get_or_create(
+                    teacher=teacher,
+                    course=self,
+                    defaults={
+                        'start_date': timezone.now().date(),
+                        'is_active': True,
+                        'notes': f"تعيين تلقائي - تخصص {target_branch}"
+                    }
+                )
 
+
+# ================
+    # الحقول الحالية...
+    
+    def create_auto_cost_center(self):
+        """إنشاء مركز كلفة تلقائي بنفس اسم الدورة"""
+        from .models import CostCenter
+        
+        if self.cost_center:
+            return self.cost_center
+        
+        course_name = self.name_ar or self.name
+        course_code = f"CRS-{self.id:03d}"
+        
+        cost_center = CostCenter.objects.create(
+            code=course_code,
+            name=self.name,
+            name_ar=self.name_ar or self.name,
+            cost_center_type='ACADEMIC',
+            is_active=True,
+            description=f"مركز كلفة للدورة: {course_name}"
+        )
+        
+        self.cost_center = cost_center
+        self.save()
+        
+        return cost_center
+    
+    def save(self, *args, **kwargs):
+        """تحديث الحفظ لإنشاء مركز كلفة تلقائي"""
+        is_new = self.pk is None
+        
+        super().save(*args, **kwargs)
+        
+        # بعد إنشاء الدورة، إنشاء مركز كلفة تلقائي
+        if is_new and not self.cost_center:
+            self.create_auto_cost_center()
 
 class CourseTeacherAssignment(models.Model):
     """Model to track teacher assignments to courses with salary details"""
@@ -620,7 +1590,8 @@ class CourseTeacherAssignment(models.Model):
         unique_together = ('course', 'teacher', 'start_date')
 
     def __str__(self):
-        return f"{self.teacher.full_name} - {self.course.name_ar or self.course.name}"
+        teacher_name = getattr(self.teacher, 'full_name', None) or getattr(self.teacher, 'name', '') or str(self.teacher)
+        return f"{teacher_name} - {self.course.name_ar or self.course.name}"
 
     def calculate_total_salary(self):
         """Calculate total salary for this assignment"""
@@ -653,12 +1624,54 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.student_id} - {self.name}"
 
+    def get_ar_account(self, course=None):
+        """Return/create student's AR account. If course provided, scope to that course."""
+        return Account.get_or_create_student_ar_account(self, course)
+
     @property
     def ar_account(self):
-        """Get or create AR account for this student"""
-        return Account.get_or_create_student_ar_account(self)
-
-
+        """Backward-compatible: generic (non-course) AR account."""
+        return self.get_ar_account(course=None)
+    
+def get_remaining_balance_for_course(self, course):
+    """حساب المبلغ المتبقي في ذمة الطالب لدورة محددة - نسخة مبسطة"""
+    try:
+        enrollment = Studentenrollment.objects.get(student=self, course=course)
+        if not enrollment.enrollment_journal_entry:
+            return 0
+        
+        # البحث عن حساب ذمة الطالب من القيد الأصلي
+        student_debit_transaction = enrollment.enrollment_journal_entry.transactions.filter(
+            is_debit=True
+        ).first()
+        
+        if not student_debit_transaction:
+            return 0
+            
+        student_account = student_debit_transaction.account
+        
+        # حساب الرصيد الحالي
+        from django.db.models import Sum
+        
+        debit_sum = Transaction.objects.filter(
+            account=student_account, 
+            is_debit=True
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        credit_sum = Transaction.objects.filter(
+            account=student_account, 
+            is_debit=False
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        balance = debit_sum - credit_sum
+        print(f"Account: {student_account.name}, Debit: {debit_sum}, Credit: {credit_sum}, Balance: {balance}")  # DEBUG
+        
+        return max(balance, 0)
+        
+    except Exception as e:
+        print(f"Error in get_remaining_balance: {e}")
+        return 0
+from students.models import Student as StudentProfile 
 class Studentenrollment(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ('CASH', 'نقد / Cash'),
@@ -692,7 +1705,8 @@ class Studentenrollment(models.Model):
         unique_together = ('student', 'course')
 
     def __str__(self):
-        return f"{self.student.full_name} - {self.course.name}"
+        student_display = getattr(self.student, 'full_name', None) or getattr(self.student, 'name', '') or str(self.student)
+        return f"{student_display} - {self.course.name}"
 
     @property
     def net_amount(self):
@@ -719,14 +1733,15 @@ class Studentenrollment(models.Model):
         if net_amount <= 0:
             return None
         
-        # Get accounts
-        student_ar_account = self.student.ar_account
+        # Get accounts (pass course to scope AR under course)
+        student_ar_account = Account.get_or_create_student_ar_account(self.student, self.course)
         course_deferred_account = Account.get_or_create_course_deferred_account(self.course)
         
         # Create journal entry
+        student_name = getattr(self.student, 'full_name', None) or getattr(self.student, 'name', '') or str(self.student)
         entry = JournalEntry.objects.create(
             date=self.enrollment_date,
-            description=f"Student enrollment - {self.student.full_name} in {self.course.name}",
+            description=f"Student enrollment - {student_name} in {self.course.name}",
             entry_type='enrollment',
             total_amount=net_amount,
             created_by=user
@@ -738,7 +1753,7 @@ class Studentenrollment(models.Model):
             account=student_ar_account,
             amount=net_amount,
             is_debit=True,
-            description=f"enrollment - {self.student.full_name}"
+            description=f"enrollment - {student_name}"
         )
         
         # CR: Deferred Revenue
@@ -819,13 +1834,20 @@ class StudentReceipt(models.Model):
         return max(Decimal('0'), after_percent - self.discount_amount)
 
     def get_student_name(self):
+        if self.enrollment and self.enrollment.student:
+            return getattr(self.enrollment.student, 'full_name', None) or getattr(self.enrollment.student, 'name', '') or self.student_name
         if self.student_profile:
-            return self.student_profile.full_name
+            return getattr(self.student_profile, 'full_name', None) or getattr(self.student_profile, 'name', '') or self.student_name
+        if self.student:
+            return getattr(self.student, 'full_name', None) or getattr(self.student, 'name', '') or self.student_name
         return self.student_name
 
     def get_course_name(self):
+        if self.enrollment and self.enrollment.course:
+            c = self.enrollment.course
+            return getattr(c, 'name_ar', None) or c.name
         if self.course:
-            return self.course.name
+            return getattr(self.course, 'name_ar', None) or self.course.name
         return self.course_name
 
     def create_accrual_journal_entry(self, user):
@@ -837,25 +1859,28 @@ class StudentReceipt(models.Model):
         if paid_amount <= 0:
             return None
         
-        # Get accounts
-        cash_account, _ = Account.objects.get_or_create(
-            code='121',
-            defaults={
-                'name': 'Cash',
-                'name_ar': 'النقدية',
-                'account_type': 'ASSET',
-                'is_active': True,
-            }
-        )
+        cash_account = get_user_cash_account(user, fallback_code='121')
+
+        # Determine course context if available
+        course_ctx = None
+        if self.enrollment and self.enrollment.course:
+            course_ctx = self.enrollment.course
+        elif self.course:
+            course_ctx = self.course
         
-        student_ar_account = None
-        if self.student_profile:
-            student_ar_account = self.student_profile.ar_account
+        # Resolve student object and AR account
+        student_obj = None
+        if self.enrollment and self.enrollment.student:
+            student_obj = self.enrollment.student
+        elif self.student_profile:
+            student_obj = self.student_profile
         elif self.student:
-            student_ar_account = self.student.ar_account
-        
-        if not student_ar_account:
-            raise ValueError("No student AR account found")
+            student_obj = self.student
+
+        if not student_obj:
+            raise ValueError("No student provided")
+
+        student_ar_account = Account.get_or_create_student_ar_account(student_obj, course_ctx)
         
         # Create journal entry
         entry = JournalEntry.objects.create(
@@ -894,15 +1919,48 @@ class StudentReceipt(models.Model):
         return entry
 
 
+    # إضافة العلاقة الجديدة للتسجيلات السريعة
+    quick_enrollment = models.ForeignKey(
+        'quick.QuickEnrollment', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        verbose_name='التسجيل السريع'
+    )
+
+class Category(models.Model):
+    code = models.CharField(max_length=20, unique=True, verbose_name='الرمز / Code')
+    name = models.CharField(max_length=100, verbose_name='الاسم / Name')
+    name_ar = models.CharField(max_length=100, blank=True, verbose_name='الاسم بالعربية / Arabic Name')
+    is_active = models.BooleanField(default=True, verbose_name='نشط / Active')
+
+    class Meta:
+        verbose_name = 'التصنيف / Category'
+        verbose_name_plural = 'التصنيفات / Categories'
+        ordering = ['code']
+
+    def __str__(self):
+        return self.name_ar if self.name_ar else self.name
+
+
 class ExpenseEntry(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
+        
+    cost_center = models.ForeignKey(
+        'CostCenter', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        verbose_name='مركز التكلفة / Cost Center'
+    )
+
     PAYMENT_METHOD_CHOICES = [
         ('CASH', 'نقد / Cash'),
         ('BANK', 'بنك / Bank'),
         ('CARD', 'بطاقة / Card'),
         ('TRANSFER', 'تحويل / Transfer'),
     ]
-    category = models.ForeignKey('Category', on_delete=models.CASCADE, null=True, blank=True)
+    # category = models.ForeignKey('Category', on_delete=models.CASCADE, null=True, blank=True)
     reference = models.CharField(max_length=50, unique=True, verbose_name='المرجع / Reference')
     date = models.DateField(verbose_name='التاريخ / Date')
     description = models.CharField(max_length=500, verbose_name='الوصف / Description')
@@ -943,7 +2001,7 @@ class ExpenseEntry(models.Model):
         expense_account = self.account
         
         # Get payment account
-        payment_account = self.get_payment_account()
+        payment_account = self.get_payment_account(user=user)
         
         # Create journal entry
         entry = JournalEntry.objects.create(
@@ -960,7 +2018,8 @@ class ExpenseEntry(models.Model):
             account=expense_account,
             amount=self.amount,
             is_debit=True,
-            description=self.description
+            description=self.description,
+            cost_center=self.cost_center  # ← إضافة مركز التكلفة
         )
         
         # CR: Payment Account
@@ -969,7 +2028,9 @@ class ExpenseEntry(models.Model):
             account=payment_account,
             amount=self.amount,
             is_debit=False,
-            description=f"Payment - {self.get_payment_method_display()}"
+            description=f"Payment - {self.get_payment_method_display()}",
+            cost_center=self.cost_center  # ← إضافة مركز التكلفة
+
         )
         
         # Post the entry
@@ -978,19 +2039,36 @@ class ExpenseEntry(models.Model):
         # Link to expense
         self.journal_entry = entry
         self.save(update_fields=['journal_entry'])
-        
+    @property
+    def category_name(self):
+        """Get category name from account"""
+        if self.account and self.account.code:
+            try:
+                account_code = int(self.account.code)
+                if 503 <= account_code <= 599:
+                    return self.account.display_name
+            except (ValueError, TypeError):
+                pass
+        return "مصاريف أخرى / Other Expenses"
+
+    def get_category_display(self):
+        """Display category name"""
+        return self.category_name
         return entry
 
-    def get_payment_account(self):
-        """Get payment account based on payment method"""
+    def get_payment_account(self, user=None):
+        """Return the account used to pay this expense."""
+        method = (self.payment_method or '').upper()
+        if method == 'CASH':
+            return get_user_cash_account(user, fallback_code='121')
+
         account_mapping = {
-            'CASH': ('121', 'Cash', 'النقدية'),
             'BANK': ('1120', 'Bank Account', 'حساب البنك'),
             'CARD': ('1120', 'Bank Account', 'حساب البنك'),
             'TRANSFER': ('1120', 'Bank Account', 'حساب البنك'),
         }
-        
-        code, name, name_ar = account_mapping.get(self.payment_method, account_mapping['CASH'])
+
+        code, name, name_ar = account_mapping.get(method, account_mapping['BANK'])
         account, _ = Account.objects.get_or_create(
             code=code,
             defaults={
@@ -1000,11 +2078,14 @@ class ExpenseEntry(models.Model):
                 'is_active': True,
             }
         )
+
         return account
 
     @property
-    def category(self):
-        """Get category from account code (503-599)"""
+    def category_name(self):
+        """Infer category name from account code (503-599) when FK is empty."""
+        if self.category:
+            return str(self.category)
         if self.account and self.account.code:
             try:
                 account_code = int(self.account.code)
@@ -1016,7 +2097,8 @@ class ExpenseEntry(models.Model):
 
     def get_category_display(self):
         """Display category name"""
-        return self.category
+        return self.category_name
+
 
 class EmployeeAdvance(models.Model):
     employee = models.ForeignKey('employ.Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='advances', verbose_name='الموظف / Employee')
@@ -1034,7 +2116,7 @@ class EmployeeAdvance(models.Model):
     
     created_by = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name='أُنشئ بواسطة / Created By')
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = 'سلفة الموظف / Employee Advance'
@@ -1068,15 +2150,7 @@ class EmployeeAdvance(models.Model):
         
         # Get accounts
         advance_account = get_or_create_employee_advance_account(self.employee)
-        cash_account, _ = Account.objects.get_or_create(
-            code='121',
-            defaults={
-                'name': 'Cash',
-                'name_ar': 'النقدية',
-                'account_type': 'ASSET',
-                'is_active': True,
-            }
-        )
+        cash_account = get_user_cash_account(user, fallback_code='121')
         
         # Create journal entry
         entry = JournalEntry.objects.create(
@@ -1139,7 +2213,8 @@ class TeacherAdvance(models.Model):
         ordering = ['-date']
 
     def __str__(self):
-        return f"Advance - {self.teacher.full_name} - {self.amount}"
+        teacher_name = getattr(self.teacher, 'full_name', None) or getattr(self.teacher, 'name', '') or str(self.teacher)
+        return f"Advance - {teacher_name} - {self.amount}"
 
     @property
     def outstanding_amount(self):
@@ -1153,20 +2228,13 @@ class TeacherAdvance(models.Model):
         
         # Get accounts
         advance_account = get_or_create_teacher_advance_account(self.teacher)
-        cash_account, _ = Account.objects.get_or_create(
-            code='121',
-            defaults={
-                'name': 'Cash',
-                'name_ar': 'النقدية',
-                'account_type': 'ASSET',
-                'is_active': True,
-            }
-        )
+        cash_account = get_user_cash_account(user, fallback_code='121-1')
         
         # Create journal entry
+        teacher_name = getattr(self.teacher, 'full_name', None) or getattr(self.teacher, 'name', '') or str(self.teacher)
         entry = JournalEntry.objects.create(
             date=self.date,
-            description=f"Teacher advance - {self.teacher.full_name}",
+            description=f"Teacher advance - {teacher_name}",
             entry_type='ADVANCE',
             total_amount=self.amount,
             created_by=user
@@ -1178,7 +2246,7 @@ class TeacherAdvance(models.Model):
             account=advance_account,
             amount=self.amount,
             is_debit=True,
-            description=f"Advance - {self.teacher.full_name}"
+            description=f"Advance - {teacher_name}"
         )
         
         # CR: Cash
@@ -1197,6 +2265,49 @@ class TeacherAdvance(models.Model):
         self.journal_entry = entry
         self.save(update_fields=['journal_entry'])
         
+        return entry
+
+    def sync_advance_journal_entry(self, user):
+        """Ensure the linked journal entry matches the current advance values."""
+        teacher_name = getattr(self.teacher, 'full_name', None) or getattr(self.teacher, 'name', '') or str(self.teacher)
+
+        if not self.journal_entry:
+            return self.create_advance_journal_entry(user)
+
+        advance_account = get_or_create_teacher_advance_account(self.teacher)
+        cash_account = get_user_cash_account(user, fallback_code='121-1')
+
+        entry = self.journal_entry
+        entry.date = self.date
+        entry.description = f"Teacher advance - {teacher_name}"
+        entry.total_amount = self.amount
+        entry.save(update_fields=['date', 'description', 'total_amount'])
+
+        debit_txn = entry.transactions.filter(is_debit=True).first()
+        credit_txn = entry.transactions.filter(is_debit=False).first()
+
+        if not debit_txn or not credit_txn:
+            entry.transactions.all().delete()
+            self.journal_entry = None
+            self.save(update_fields=['journal_entry'])
+            return self.create_advance_journal_entry(user)
+
+        debit_txn.account = advance_account
+        debit_txn.amount = self.amount
+        debit_txn.description = f"Advance - {teacher_name}"
+        debit_txn.save(update_fields=['account', 'amount', 'description'])
+
+        credit_txn.account = cash_account
+        credit_txn.amount = self.amount
+        credit_txn.description = "Cash advance payment"
+        credit_txn.save(update_fields=['account', 'amount', 'description'])
+
+        entry.is_posted = False
+        entry.posted_at = None
+        entry.posted_by = None
+        entry.save(update_fields=['is_posted', 'posted_at', 'posted_by'])
+
+        entry.post_entry(user)
         return entry
 
 
@@ -1268,7 +2379,8 @@ class StudentAccountLink(models.Model):
         verbose_name_plural = 'روابط حسابات الطلاب / Student Account Links'
 
     def __str__(self):
-        return f"{self.student.full_name} - {self.account.code}"
+        student_name = getattr(self.student, 'full_name', None) or getattr(self.student, 'name', '') or str(self.student)
+        return f"{student_name} - {self.account.code}"
 
 
 # Helper functions for account creation
@@ -1290,8 +2402,8 @@ def get_or_create_teacher_salary_account(teacher):
     account, created = Account.objects.get_or_create(
         code=teacher_code,
         defaults={
-            'name': f"Salary Expense - {teacher.full_name}",
-            'name_ar': f"راتب - {teacher.full_name}",
+            'name': f"Salary Expense - {getattr(teacher, 'full_name', None) or getattr(teacher, 'name', '')}",
+            'name_ar': f"راتب - {getattr(teacher, 'full_name', None) or getattr(teacher, 'name', '')}",
             'account_type': 'EXPENSE',
             'parent': parent_account,
             'is_active': True,
@@ -1318,8 +2430,8 @@ def get_or_create_teacher_dues_account(teacher):
     account, created = Account.objects.get_or_create(
         code=teacher_code,
         defaults={
-            'name': f"Teacher Dues - {teacher.full_name}",
-            'name_ar': f"مستحقات - {teacher.full_name}",
+            'name': f"Teacher Dues - {getattr(teacher, 'full_name', None) or getattr(teacher, 'name', '')}",
+            'name_ar': f"مستحقات - {getattr(teacher, 'full_name', None) or getattr(teacher, 'name', '')}",
             'account_type': 'LIABILITY',
             'parent': parent_account,
             'is_active': True,
@@ -1346,8 +2458,8 @@ def get_or_create_teacher_advance_account(teacher):
     account, created = Account.objects.get_or_create(
         code=teacher_code,
         defaults={
-            'name': f"Teacher Advance - {teacher.full_name}",
-            'name_ar': f"سلفة - {teacher.full_name}",
+            'name': f"Teacher Advance - {getattr(teacher, 'full_name', None) or getattr(teacher, 'name', '')}",
+            'name_ar': f"سلفة - {getattr(teacher, 'full_name', None) or getattr(teacher, 'name', '')}",
             'account_type': 'ASSET',
             'parent': parent_account,
             'is_active': True,
@@ -1374,8 +2486,8 @@ def get_or_create_employee_salary_account(employee):
     account, created = Account.objects.get_or_create(
         code=employee_code,
         defaults={
-            'name': f"Salary Expense - {employee.full_name}",
-            'name_ar': f"راتب - {employee.full_name}",
+            'name': f"Salary Expense - {getattr(employee, 'full_name', None) or getattr(employee, 'name', '')}",
+            'name_ar': f"راتب - {getattr(employee, 'full_name', None) or getattr(employee, 'name', '')}",
             'account_type': 'EXPENSE',
             'parent': parent_account,
             'is_active': True,
@@ -1402,11 +2514,232 @@ def get_or_create_employee_advance_account(employee):
     account, created = Account.objects.get_or_create(
         code=employee_code,
         defaults={
-            'name': f"Employee Advance - {employee.full_name}",
-            'name_ar': f"سلفة - {employee.full_name}",
+            'name': f"Employee Advance - {getattr(employee, 'full_name', None) or getattr(employee, 'name', '')}",
+            'name_ar': f"سلفة - {getattr(employee, 'full_name', None) or getattr(employee, 'name', '')}",
             'account_type': 'ASSET',
             'parent': parent_account,
             'is_active': True,
         }
     )
     return account
+
+
+def get_or_create_employee_cash_account(employee):
+    """Ensure a dedicated cash account exists for an employee."""
+    cash_parent, _ = Account.objects.get_or_create(
+        code='121',
+        defaults={
+            'name': 'Cash',
+            'name_ar': 'النقدية',
+            'account_type': 'ASSET',
+            'is_active': True,
+        }
+    )
+
+    employee_name = employee.full_name or (employee.user.get_full_name() if employee.user_id else '')
+    if not employee_name:
+        employee_name = employee.user.get_username() if employee.user_id else 'Employee'
+
+    employee_code = f"121-{employee.pk:04d}"
+    account, created = Account.objects.get_or_create(
+        code=employee_code,
+        defaults={
+            'name': f'Employee Cash - {employee_name}',
+            'name_ar': f'رصيد صندوق {employee_name}',
+            'account_type': 'ASSET',
+            'parent': cash_parent,
+            'is_active': True,
+        }
+    )
+    return account, created
+# 
+
+
+def get_user_cash_account(user, fallback_code='121', fallback_defaults=None):
+    """Return the cash account associated with the logged-in employee, or fallback to a default."""
+    if fallback_defaults is None:
+        fallback_defaults = {
+            'name': 'Cash',
+            'name_ar': 'النقدية',
+            'account_type': 'ASSET',
+            'is_active': True,
+        }
+
+    if user and getattr(user, 'is_authenticated', False):
+        employee = getattr(user, 'employee_profile', None)
+        if employee:
+            account = employee.get_cash_account()
+            if account:
+                return account
+            account, _ = get_or_create_employee_cash_account(employee)
+            return account
+
+    account, _ = Account.objects.get_or_create(code=fallback_code, defaults=fallback_defaults)
+    return account
+# 
+
+
+
+
+# ==========================
+@classmethod
+def get_or_create_course_revenue_account(cls, course):
+    """إنشاء أو جلب حساب إيرادات لدورة محددة"""
+    # جلب الحساب الرئيسي للإيرادات
+    revenue_parent = cls.objects.filter(code='4110').first() or cls.objects.filter(code='4').first()
+    
+    if not revenue_parent:
+        # إذا ما في حساب رئيسي، أنشئ واحد
+        revenue_parent, _ = cls.objects.get_or_create(
+            code='4',
+            defaults={
+                'name': 'Revenue',
+                'name_ar': 'الإيرادات',
+                'account_type': 'REVENUE',
+                'is_active': True
+            }
+        )
+    
+    # # إنشاء أو جلب حساب الدورة المحددة
+    # account, created = cls.objects.get_or_create(
+    #     code=f'4110-{Student.id:04d}',
+    #     defaults={
+    #         'name': f'Course Revenue - {Student.name}',
+    #         'name_ar': f'إيرادات الدورة - {Student.name}',
+    #         'account_type': 'REVENUE',
+    #         'is_active': True,
+    #         'parent': revenue_parent
+    #     }
+    # )
+    return account
+
+
+
+
+# ====================
+# الطلاب السريعين 
+# ====================
+# accounts/models.py - إضافة النماذج المحاسبية للطلاب السريعين
+
+class QuickStudentAccounting(models.Model):
+    """النموذج المحاسبي للطلاب السريعين"""
+    student = models.OneToOneField('quick.QuickStudent', on_delete=models.CASCADE, verbose_name='الطالب السريع')
+    ar_account = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='حساب الذمم')
+    total_enrollments = models.PositiveIntegerField(default=0, verbose_name='إجمالي التسجيلات')
+    total_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='إجمالي الإيرادات')
+    total_collected = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='إجمالي المحصل')
+    outstanding_balance = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='الرصيد المتبقي')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'محاسبة طالب سريع'
+        verbose_name_plural = 'محاسبة الطلاب السريعين'
+    
+    def __str__(self):
+        return f"محاسبة - {self.student.full_name}"
+
+class QuickCourseAccounting(models.Model):
+    """النموذج المحاسبي للدورات السريعة"""
+    course = models.OneToOneField('quick.QuickCourse', on_delete=models.CASCADE, verbose_name='الدورة السريعة')
+    deferred_account = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='حساب الإيرادات المؤجلة')
+    revenue_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='quick_revenue', verbose_name='حساب الإيرادات')
+    total_enrollments = models.PositiveIntegerField(default=0, verbose_name='إجمالي التسجيلات')
+    total_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='إجمالي الإيرادات')
+    total_collected = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name='إجمالي المحصل')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'محاسبة دورة سريعة'
+        verbose_name_plural = 'محاسبة الدورات السريعة'
+    
+    def __str__(self):
+        return f"محاسبة - {self.course.name}"
+
+from datetime import datetime, timedelta
+
+def comprehensive_site_export(request):
+    # معالجة التواريخ
+    end_date = request.GET.get('end_date')
+    start_date = request.GET.get('start_date')
+    
+    if not end_date:
+        end_date = datetime.now().date()
+    else:
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    
+    if not start_date:
+        start_date = end_date - timedelta(days=30)  # آخر 30 يوم
+    else:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+    
+    # ... باقي الكود
+
+
+    # في accounts/models.py - أضف في نهاية الملف داخل class Account
+# في accounts/models.py - داخل class Account
+@classmethod
+def get_withdrawal_revenue_account(cls, student=None, course=None):
+    """
+    الحصول على حساب إيرادات انسحاب الطلاب (4201) - النسخة المؤكدة
+    """
+    try:
+        print(f"🔍 [DEBUG] جلب حساب 4201 للطالب: {student.full_name if student else 'لا يوجد'}")
+        
+        # التأكد من وجود الحساب الرئيسي 4200
+        parent_account, created = cls.objects.get_or_create(
+            code='4200',
+            defaults={
+                'name': 'Other Operating Revenues',
+                'name_ar': 'إيرادات تشغيل أخرى',
+                'account_type': 'REVENUE',
+                'is_active': True,
+                'description': 'الإيرادات الأخرى من الأنشطة التشغيلية'
+            }
+        )
+        
+        if created:
+            print(f"✅ تم إنشاء الحساب الرئيسي 4200")
+        
+        # إعداد اسم الحساب
+        account_name_ar = 'إيرادات انسحاب طلاب'
+        if student and course:
+            account_name_ar = f'إيرادات سحب - {student.full_name} - {course.name}'
+        
+        # الحصول على أو إنشاء حساب 4201
+        withdrawal_account, created = cls.objects.get_or_create(
+            code='4201',
+            defaults={
+                'name': 'Student Withdrawal Revenues',
+                'name_ar': account_name_ar,
+                'account_type': 'REVENUE',
+                'is_active': True,
+                'parent': parent_account,
+                'description': 'الإيرادات الناتجة عن سحب الطلاب من الدورات الدراسية'
+            }
+        )
+        
+        if created:
+            print(f"✅ تم إنشاء حساب 4201: {withdrawal_account.code} - {withdrawal_account.name_ar}")
+        else:
+            print(f"✅ تم العثور على حساب 4201 موجود: {withdrawal_account.code} - {withdrawal_account.name_ar}")
+            # تحديث الاسم إذا تم تمرير بيانات
+            if student or course:
+                withdrawal_account.name_ar = account_name_ar
+                withdrawal_account.save(update_fields=['name_ar'])
+        
+        return withdrawal_account
+        
+    except Exception as e:
+        print(f"❌ خطأ في get_withdrawal_revenue_account: {e}")
+        # إنشاء حساب احتياطي في حالة الخطأ
+        return cls.objects.filter(code='4201').first() or cls.objects.create(
+            code='4201',
+            name='Student Withdrawal Revenues',
+            name_ar='إيرادات انسحاب طلاب',
+            account_type='REVENUE',
+            is_active=True
+        )

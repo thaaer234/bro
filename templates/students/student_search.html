@@ -1,0 +1,190 @@
+{% extends "students/base_student.html" %}
+
+{% block student_content %}
+<div class="module-header">
+    <h2>بحث عن الطلاب</h2>
+    <div>
+        <a href="{% url 'students:student_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة الرئيسية
+        </a>
+    </div>
+</div>
+
+{% include "partials/_alerts.html" %}
+
+<!-- شريط البحث -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-search me-2"></i>بحث متقدم في الطلاب</h5>
+        <form method="GET" action="{% url 'students:student_search' %}">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" name="q" class="form-control" placeholder="ابحث عن طالب بالاسم أو الرقم أو الهاتف أو البريد..." value="{{ search_query }}">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-search"></i> بحث
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select name="type" class="form-control">
+                        <option value="">جميع الأنواع</option>
+                        <option value="regular" {% if request.GET.type == 'regular' %}selected{% endif %}>نظامي</option>
+                        <option value="quick" {% if request.GET.type == 'quick' %}selected{% endif %}>سريع</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if search_query %}
+<!-- فلاتر الجدول -->
+<div class="filters-container">
+    <div class="filter-row">
+        <div class="filter-group">
+            <label for="id-filter">فلتر حسب الرقم:</label>
+            <input type="text" id="id-filter" placeholder="ابحث برقم الطالب...">
+        </div>
+        <div class="filter-group">
+            <label for="name-filter">فلتر حسب الاسم:</label>
+            <input type="text" id="name-filter" placeholder="ابحث باسم الطالب...">
+        </div>
+        <div class="filter-group">
+            <label for="phone-filter">فلتر حسب رقم الهاتف:</label>
+            <input type="text" id="phone-filter" placeholder="ابحث برقم الهاتف...">
+        </div>
+    </div>
+    <div class="filter-row">
+        <div class="filter-group">
+            <label for="type-filter">فلتر حسب النوع:</label>
+            <select id="type-filter">
+                <option value="">جميع الأنواع</option>
+                <option value="regular">نظامي</option>
+                <option value="quick">سريع</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="branch-filter">فلتر حسب الفرع:</label>
+            <select id="branch-filter">
+                <option value="">جميع الفروع</option>
+                <option value="العلمي">العلمي</option>
+                <option value="الأدبي">الأدبي</option>
+                <option value="الصف التاسع">الصف التاسع</option>
+                <option value="التمهيدي">التمهيدي</option>
+            </select>
+        </div>
+    </div>
+    <div class="filter-actions">
+        <button class="btn btn-secondary" id="reset-filters">
+            <i class="fas fa-redo"></i> إعادة تعيين الفلاتر
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-search me-2"></i>نتائج البحث عن "{{ search_query }}"</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table id="teachersTable">
+                <thead>
+                    <tr>
+                        <th data-sort="index">#</th>
+                        <th data-sort="type">النوع</th>
+                        <th data-sort="name">الاسم</th>
+                        <th data-sort="phone">الهاتف</th>
+                        <th data-sort="branch">الفرع/الفصل</th>
+                        <th data-sort="status">الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            {% if student.is_quick %}
+                            <span class="badge badge-warning student-badge">سريع</span>
+                            {% else %}
+                            <span class="badge badge-regular student-badge">نظامي</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>
+                            {% if student.is_quick %}
+                                <a href="{% url 'quick:student_profile' student.id %}">{{ student.full_name }}</a>
+                            {% else %}
+                                <a href="{% url 'students:student_profile' student.id %}">{{ student.full_name }}</a>
+                            {% endif %}
+                            </strong>
+                        </td>
+                        <td>{{ student.phone|default:student.father_phone|default:"-" }}</td>
+                        <td>
+                            {% if student.is_quick %}
+                                {{ student.academic_year_display }}
+                            {% else %}
+                                {{ student.branch|default:"-" }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if student.is_active %}
+                            <span class="badge badge-success">نشط</span>
+                            {% else %}
+                            <span class="badge badge-secondary">غير نشط</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if student.is_quick %}
+                            <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% else %}
+                            <a href="{% url 'students:student_profile' student.id %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if student.added_by == request.user or request.user.is_superuser %}
+                            <a href="{% url 'students:update_student' student.id %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% endif %}
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="{{ student.id }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-users fa-2x mb-3"></i>
+                            <br>
+                            لا توجد نتائج بحث
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تأكيد الحذف -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>تأكيد الحذف</h3>
+        <p>هل أنت متأكد من رغبتك في حذف هذا الطالب؟</p>
+        <form id="deleteForm" method="post" action="">
+            {% csrf_token %}
+            <input type="hidden" name="student_id" id="deleteStudentId">
+            <button type="submit" class="btn btn-danger">حذف</button>
+            <button type="button" class="btn btn-secondary" id="cancelDelete">إلغاء</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

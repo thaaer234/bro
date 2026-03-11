@@ -1,0 +1,268 @@
+{% extends "students/base_student.html" %}
+{% load static %}
+
+{% block student_content %}
+<div class="module-header">
+    <h2>
+        <i class="fas fa-users me-2"></i>
+        طلاب فرع {{ branch_name }} 
+        {% if academic_year %}
+            - {{ academic_year.name }}
+        {% endif %}
+    </h2>
+    <div class="header-actions">
+        <a href="{% url 'students:student_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right me-1"></i> رجوع
+        </a>
+    </div>
+</div>
+
+{% include "partials/_alerts.html" %}
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>
+            معلومات الفرع
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <strong>اسم الفرع:</strong> {{ branch_name }}
+            </div>
+            <div class="col-md-4">
+                <strong>الفصل الدراسي:</strong> {{ academic_year_name }}
+            </div>
+            <div class="col-md-4">
+                <strong>عدد الطلاب:</strong> {{ students.count }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-container">
+    <table id="teachersTable">
+        <thead>
+            <tr>
+                <th data-sort="index">#</th>
+                <th data-sort="type">النوع</th>
+                <th data-sort="name">الاسم</th>
+                <th data-sort="phone">رقم الاب</th>
+                <th data-sort="branch">الفرع</th>
+                <th data-sort="academic_year">الفصل الدراسي</th>
+                <th data-sort="status">الحالة</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <!-- في جزء الجدول -->
+<!-- في جزء الجدول -->
+<tbody>
+    {% for student in students %}
+    <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>
+            <span class="badge badge-primary student-badge">نظامي</span>
+        </td>
+        <td>
+            <strong>
+                <a href="{% url 'students:student_profile' student.id %}">
+                    {{ student.full_name }}
+                </a>
+            </strong>
+            {% if student.student_number %}
+            <br><small class="text-muted">رقم: {{ student.student_number }}</small>
+            {% endif %}
+        </td>
+        <td>
+            {% if student.get_display_phone != "-" %}
+                {{ student.get_display_phone }}
+            {% else %}
+                -
+            {% endif %}
+        </td>
+        <td>
+            {% if student.branch %}
+                <span class="badge bg-info">{{ student.branch }}</span>
+            {% else %}
+                <span class="badge bg-secondary">غير محدد</span>
+            {% endif %}
+        </td>
+        <td>
+            {% if student.academic_year %}
+                <span class="badge bg-success">{{ student.academic_year.name }}</span>
+            {% else %}
+                <span class="badge bg-warning">غير مرتبط</span>
+            {% endif %}
+        </td>
+        <td>
+            <span class="badge {{ student.get_status_badge_class }}">{{ student.get_status_for_display }}</span>
+        </td>
+        <td>
+            <div class="action-buttons">
+                <a href="{% url 'students:student_profile' student.id %}" class="btn btn-sm btn-info" title="عرض الملف">
+                    <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'students:update_student' student.id %}" class="btn btn-sm btn-warning" title="تعديل">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <button class="btn btn-sm btn-danger delete-student-btn" 
+                        data-student-id="{{ student.id }}"
+                        data-student-name="{{ student.full_name }}"
+                        title="حذف الطالب">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="8" class="text-center text-muted py-4">
+            <i class="fas fa-user-graduate fa-2x mb-3"></i>
+            <br>
+            لا توجد طلاب نظاميين في هذا الفرع والفصل الدراسي المحدد
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
+    </table>
+</div>
+<!-- Modal لحذف الطالب -->
+<div id="deleteStudentModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3><i class="fas fa-trash"></i> تأكيد الحذف</h3>
+            <button type="button" class="close-btn" data-close>
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>تحذير:</strong> هذا الإجراء لا يمكن التراجع عنه!
+            </div>
+            <p>هل أنت متأكد من أنك تريد حذف الطالب <strong id="delete-student-name"></strong>؟</p>
+            <p>سيتم حذف جميع البيانات المرتبطة بالطالب بما في ذلك التسجيلات والإيصالات.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-close>إلغاء</button>
+            <button type="button" id="confirmDeleteStudent" class="btn btn-danger">
+                <i class="fas fa-trash"></i> نعم، احذف الطالب
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// إدارة حذف الطلاب
+document.addEventListener('DOMContentLoaded', function() {
+    let currentStudentToDelete = null;
+    
+    // فتح مودال الحذف
+    document.querySelectorAll('.delete-student-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const studentId = this.getAttribute('data-student-id');
+            const studentName = this.getAttribute('data-student-name');
+            
+            currentStudentToDelete = studentId;
+            document.getElementById('delete-student-name').textContent = studentName;
+            document.getElementById('deleteStudentModal').style.display = 'block';
+        });
+    });
+    
+    // تأكيد الحذف
+    document.getElementById('confirmDeleteStudent').addEventListener('click', function() {
+        if (!currentStudentToDelete) return;
+        
+        const deleteUrl = `/students/delete/${currentStudentToDelete}/`;
+        
+        fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // إعادة تحميل الصفحة بعد الحذف
+            } else {
+                alert('حدث خطأ أثناء الحذف: ' + (data.error || 'غير معروف'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في الشبكة');
+        })
+        .finally(() => {
+            document.getElementById('deleteStudentModal').style.display = 'none';
+        });
+    });
+    
+    // إغلاق المودال
+    document.querySelectorAll('[data-close]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('deleteStudentModal').style.display = 'none';
+        });
+    });
+    
+    // دالة للحصول على CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+<script>
+// تهيئة خاصة بطلاب الفرع
+document.addEventListener('DOMContentLoaded', function() {
+    // تعيين فلتر الفرع تلقائياً
+    const branchFilter = document.getElementById('branch-filter');
+    if (branchFilter && '{{ branch_name }}' !== '0') {
+        branchFilter.value = '{{ branch_name }}';
+        branchFilter.dispatchEvent(new Event('change'));
+    }
+    
+    // تعيين فلتر النوع للطلاب النظاميين فقط
+    const typeFilter = document.getElementById('type-filter');
+    if (typeFilter) {
+        typeFilter.value = 'regular';
+        typeFilter.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+<style>
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.action-buttons .btn {
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.action-buttons .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.btn-sm {
+    font-size: 12px;
+}
+</style>
+{% endblock %}

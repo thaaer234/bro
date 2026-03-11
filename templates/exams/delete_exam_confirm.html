@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف اختبار - {{ exam.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        تأكيد الحذف
+                    </h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
+                        <h5>هل أنت متأكد من حذف هذا الاختبار؟</h5>
+                        <p class="mb-0">
+                            <strong>{{ exam.name }}</strong><br>
+                            الشعبة: {{ exam.classroom.name }}<br>
+                            المادة: {{ exam.subject.name }}
+                        </p>
+                    </div>
+                    
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        سيتم حذف جميع العلامات المرتبطة بهذا الاختبار ولا يمكن التراجع عن هذا الإجراء.
+                    </p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> نعم، احذف الاختبار
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

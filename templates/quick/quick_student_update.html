@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-0">
+                                <i class="fas fa-user-edit me-2"></i>
+                                تعديل بيانات الطالب السريع
+                            </h3>
+                            <p class="mb-0 mt-1 opacity-75">جميع الحقول مطلوبة ما لم يذكر غير ذلك</p>
+                        </div>
+                        <div class="student-avatar">
+                            <div class="avatar-placeholder bg-white text-primary">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- المعلومات الأساسية -->
+                        <div class="section-title mb-4">
+                            <h5 class="text-primary">
+                                <i class="fas fa-id-card me-2"></i>
+                                المعلومات الأساسية
+                            </h5>
+                            <div class="section-divider"></div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.full_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user me-1 text-muted"></i>
+                                    الاسم الكامل
+                                    <span class="text-danger">*</span>
+                                </label>
+                                {{ form.full_name|add_class:"form-control form-control-lg" }}
+                                {% if form.full_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.full_name.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                    <i class="fas fa-phone me-1 text-muted"></i>
+                                    رقم الهاتف
+                                    <span class="text-danger">*</span>
+                                </label>
+                                {{ form.phone|add_class:"form-control form-control-lg" }}
+                                {% if form.phone.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.phone.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.gender.id_for_label }}" class="form-label">
+                                    <i class="fas fa-venus-mars me-1 text-muted"></i>
+                                    الجنس
+                                </label>
+                                {{ form.gender|add_class:"form-select form-select-lg" }}
+                                {% if form.gender.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.gender.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">
+                                    <i class="fas fa-envelope me-1 text-muted"></i>
+                                    البريد الإلكتروني
+                                </label>
+                                {{ form.email|add_class:"form-control form-control-lg" }}
+                                {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.email.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.student_type.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user-tag me-1 text-muted"></i>
+                                    نوع الطالب
+                                    <span class="text-danger">*</span>
+                                </label>
+                                {{ form.student_type|add_class:"form-select form-select-lg" }}
+                                {% if form.student_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.student_type.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.course_track.id_for_label }}" class="form-label">
+                                    <i class="fas fa-filter me-1 text-muted"></i>
+                                    نوع الدورة
+                                </label>
+                                {{ form.course_track|add_class:"form-select form-select-lg" }}
+                                {% if form.course_track.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.course_track.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.academic_year.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calendar-alt me-1 text-muted"></i>
+                                    الفصل الدراسي
+                                    <span class="text-danger">*</span>
+                                </label>
+                                {{ form.academic_year|add_class:"form-select form-select-lg" }}
+                                {% if form.academic_year.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.academic_year.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12 mb-4">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">
+                                    <i class="fas fa-sticky-note me-1 text-muted"></i>
+                                    ملاحظات
+                                </label>
+                                {{ form.notes|add_class:"form-control"|attr:"rows:4"|attr:"placeholder:أدخل أي ملاحظات إضافية عن الطالب..." }}
+                                {% if form.notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.notes.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- معلومات النظام -->
+                        <div class="section-title mb-4 mt-4">
+                            <h5 class="text-primary">
+                                <i class="fas fa-info-circle me-2"></i>
+                                معلومات النظام
+                            </h5>
+                            <div class="section-divider"></div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-item p-3 bg-light rounded mb-3">
+                                    <small class="text-muted">تاريخ الإنشاء</small>
+                                    <div class="fw-bold">{{ student.created_at|date:"Y-m-d H:i" }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-item p-3 bg-light rounded mb-3">
+                                    <small class="text-muted">تم الإنشاء بواسطة</small>
+                                    <div class="fw-bold">{{ student.created_by.get_full_name|default:student.created_by.username }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- أزرار الإجراءات -->
+                        <div class="form-actions mt-5 pt-4 border-top">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <div class="action-buttons">
+                                    <button type="submit" class="btn btn-primary btn-lg px-4">
+                                        <i class="fas fa-save me-2"></i> حفظ التعديلات
+                                    </button>
+                                    <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-outline-secondary btn-lg px-4 ms-2">
+                                        <i class="fas fa-times me-2"></i> إلغاء
+                                    </a>
+                                </div>
+                                <div class="navigation-buttons">
+                                    <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-info me-2">
+                                        <i class="fas fa-user-circle me-2"></i> عرض البروفايل
+                                    </a>
+                                    <a href="{% url 'quick:student_list' %}" class="btn btn-outline-primary">
+                                        <i class="fas fa-list me-2"></i> العودة للقائمة
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.section-title {
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.section-title h5 {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.section-divider {
+    height: 3px;
+    background: linear-gradient(90deg, #007bff, transparent);
+    border-radius: 3px;
+}
+
+.avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.info-item {
+    border-left: 4px solid #007bff;
+}
+
+.btn-lg {
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 12px 30px;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    border-bottom: none;
+}
+
+.invalid-feedback {
+    font-size: 0.875em;
+    margin-top: 5px;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+/* تحسينات للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .form-actions .d-flex {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .action-buttons, .navigation-buttons {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .action-buttons .btn, .navigation-buttons .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
+.gap-3 {
+    gap: 1rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // إضافة تأثيرات للحقول
+    const formControls = document.querySelectorAll('.form-control, .form-select');
+    
+    formControls.forEach(control => {
+        control.addEventListener('focus', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.15)';
+        });
+        
+        control.addEventListener('blur', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = 'none';
+        });
+    });
+    
+    // التحقق من الحقول الإلزامية
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const requiredFields = form.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+                
+                // إضافة رسالة خطأ إذا لم تكن موجودة
+                if (!field.nextElementSibling || !field.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'invalid-feedback d-block';
+                    errorDiv.textContent = 'هذا الحقل مطلوب';
+                    field.parentNode.appendChild(errorDiv);
+                }
+            } else {
+                field.classList.remove('is-invalid');
+                // إزالة رسالة الخطأ إذا كانت موجودة
+                const errorDiv = field.parentNode.querySelector('.invalid-feedback');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            // عرض رسالة تنبيه
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                يرجى ملء جميع الحقول الإلزامية
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // إضافة الرسالة في أعلى النموذج
+            const firstElement = form.firstElementChild;
+            if (firstElement) {
+                form.insertBefore(alertDiv, firstElement);
+            } else {
+                form.prepend(alertDiv);
+            }
+            
+            // التمرير إلى أعلى النموذج
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+});
+</script>
+{% endblock %}

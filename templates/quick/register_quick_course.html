@@ -1,0 +1,758 @@
+﻿{% comment %} {% extends "base.html" %} {% endcomment %}
+
+{% load static %}
+
+{% block content %}
+
+<div class="page register-page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-book-open"></i></div>
+            <div>
+                <h1 class="page-title">تسجيل طلاب سريع</h1>
+                <p class="page-subtitle">اختر الدورات المطلوبة للطالب {{ student.full_name }}</p>
+            </div>
+        </div>
+        <a href="{% url 'quick:student_profile' student.id %}" class="btn btn--ghost">
+            <i class="fas fa-arrow-right"></i>
+            <span>عرض الملف</span>
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="summary-panel">
+                <div class="summary-card">
+                    <div class="summary-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="summary-content">
+                        <p class="summary-label">إجمالي المطلوب</p>
+                        <p class="summary-total">
+                            <span id="selected-total">0</span> ل.س
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="summary-content">
+                        <p class="summary-label">عدد الدورات المختارة</p>
+                        <p class="summary-count"><span id="selected-count">0</span> دورة</p>
+                    </div>
+                </div>
+                
+                <div class="summary-hint">
+                    <i class="fas fa-info-circle"></i>
+                    <div class="hint-content">
+                        <p class="hint-title">معلومة مهمة</p>
+                        <p class="hint-text">اختر الدورات التي سيدفع عنها الطالب أو حدد خيار الدفع الكامل لكل دورة لإنشاء إيصال خاص بها.</p>
+                    </div>
+                </div>
+            </div>
+
+            {% if courses %}
+            <form method="POST" action="{% url 'quick:register_quick_course' student.id %}">
+                {% csrf_token %}
+                <div class="course-grid">
+                    {% for course in courses %}
+                    <div class="course-card">
+                        <input type="checkbox" id="course-{{ course.id }}" name="course_ids" value="{{ course.id }}" class="course-selector" data-price="{{ course.price }}">
+                        <label for="course-{{ course.id }}" class="course-card__body">
+                            <div class="course-card__head">
+                                <div class="course-title-wrapper">
+                                    <h5>{{ course.name }}</h5>
+                                    <span class="course-tag">{{ course.get_course_type_display }}</span>
+                                </div>
+                                <div class="course-checkbox">
+                                    <div class="checkbox-indicator"></div>
+                                </div>
+                            </div>
+                            <ul class="course-meta">
+                                <li>
+                                    <i class="fas fa-tag"></i>
+                                    <span class="meta-label">السعر:</span>
+                                    <span class="meta-value">{{ course.price|floatformat:0 }} ل.س</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-calendar-week"></i>
+                                    <span class="meta-label">المدة:</span>
+                                    <span class="meta-value">{{ course.duration_weeks }} أسابيع</span>
+                                </li>
+                                <li>
+                                    <i class="fas fa-clock"></i>
+                                    <span class="meta-label">ساعات / أسبوع:</span>
+                                    <span class="meta-value">{{ course.hours_per_week }}</span>
+                                </li>
+                            </ul>
+                            {% if course.description %}
+                            <div class="course-description">
+                                <i class="fas fa-align-left"></i>
+                                <p>{{ course.description|truncatewords:16 }}</p>
+                            </div>
+                            {% endif %}
+                        </label>
+                        <div class="form-group pay-full-group">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" name="pay_full_{{ course.id }}" value="1" id="pay-full-{{ course.id }}" class="pay-full-checkbox" disabled>
+                                <label for="pay-full-{{ course.id }}">
+                                    <span class="checkbox-custom"></span>
+                                    <span class="checkbox-label">
+                                        <i class="fas fa-receipt"></i>
+                                        دفع كامل وإنشاء إيصال
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-submit">
+                        <i class="fas fa-save"></i>
+                        <span>حفظ التسجيل وإنشاء القيود</span>
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <div class="empty-icon-bg">
+                        <i class="fas fa-book"></i>
+                    </div>
+                </div>
+                <h4 class="empty-title">لا توجد دورات متاحة</h4>
+                <p class="empty-text">تأكد من إعداد الدورات للعام الدراسي الحالي.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+<style>
+/* Layout Variables */
+:root {
+    --primary-color: #4361ee;
+    --primary-hover: #3a56d4;
+    --success-color: #06d6a0;
+    --warning-color: #ffd166;
+    --danger-color: #ef476f;
+    --dark-color: #2b2d42;
+    --light-color: #f8f9fa;
+    --border-color: #e9ecef;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-light: #adb5bd;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Summary Panel */
+.summary-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+    margin-bottom: 32px;
+    border: 1px solid rgba(67, 97, 238, 0.1);
+    box-shadow: var(--shadow-sm);
+}
+
+.summary-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    border: 1px solid var(--border-color);
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+}
+
+.summary-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary-color), #6a7eff);
+    color: white;
+    font-size: 22px;
+}
+
+.summary-content {
+    flex: 1;
+}
+
+.summary-total {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 4px 0 0;
+    background: linear-gradient(135deg, var(--dark-color), var(--primary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+}
+
+.summary-count {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 4px 0 0;
+    color: var(--primary-color);
+}
+
+.summary-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-hint {
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+    background: linear-gradient(135deg, #fff9db 0%, #fff3bf 100%);
+    border-radius: var(--radius-md);
+    border: 1px solid #ffec99;
+    grid-column: 1 / -1;
+}
+
+.summary-hint i {
+    font-size: 20px;
+    color: #e67700;
+    margin-top: 2px;
+}
+
+.hint-content {
+    flex: 1;
+}
+
+.hint-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e67700;
+    margin: 0 0 6px;
+}
+
+.hint-text {
+    font-size: 14px;
+    color: #8a6d3b;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Course Grid */
+.course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.course-card {
+    position: relative;
+    background: white;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.course-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-color);
+}
+
+.course-card input[type="checkbox"] {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+
+.course-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    cursor: pointer;
+    position: relative;
+    min-height: 240px;
+}
+
+.course-card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.course-title-wrapper {
+    flex: 1;
+}
+
+.course-card__head h5 {
+    margin: 0 0 8px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--dark-color);
+    line-height: 1.4;
+}
+
+.course-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.course-checkbox {
+    position: relative;
+    width: 24px;
+    height: 24px;
+}
+
+.checkbox-indicator {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    transition: var(--transition);
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.course-card input[type="checkbox"]:checked + .course-card__body .checkbox-indicator {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 14px;
+}
+
+.course-meta {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.course-meta li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 14px;
+}
+
+.course-meta i {
+    width: 16px;
+    color: var(--primary-color);
+    font-size: 12px;
+}
+
+.meta-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+    min-width: 85px;
+}
+
+.meta-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.course-description {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: var(--radius-sm);
+    margin-top: 8px;
+}
+
+.course-description i {
+    color: var(--text-light);
+    font-size: 14px;
+    margin-top: 2px;
+}
+
+.course-description p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    flex: 1;
+}
+
+/* Pay Full Group */
+.pay-full-group {
+    padding: 20px 24px;
+    background: #f8f9ff;
+    border-top: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.course-card:hover .pay-full-group {
+    background: #f0f2ff;
+}
+
+.checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox-wrapper label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+    transition: var(--transition);
+}
+
+.checkbox-custom {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    position: relative;
+}
+
+.pay-full-checkbox:checked ~ label .checkbox-custom {
+    background: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.pay-full-checkbox:checked ~ label .checkbox-custom::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: white;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+.checkbox-label i {
+    color: var(--success-color);
+    font-size: 13px;
+}
+
+.pay-full-checkbox:disabled ~ label {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pay-full-checkbox:checked ~ label {
+    color: var(--success-color);
+}
+
+/* Form Actions */
+.form-actions {
+    padding-top: 32px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.btn-submit {
+    padding: 14px 36px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary-color), #6a7eff);
+    border: none;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+    background: linear-gradient(135deg, var(--primary-hover), #5b6cee);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+}
+
+/* Empty State */
+.empty-state {
+    padding: 80px 20px;
+    text-align: center;
+}
+
+.empty-icon {
+    margin-bottom: 24px;
+}
+
+.empty-icon-bg {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.empty-icon-bg i {
+    font-size: 36px;
+    color: var(--text-light);
+}
+
+.empty-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--dark-color);
+    margin: 0 0 12px;
+}
+
+.empty-text {
+    font-size: 15px;
+    color: var(--text-secondary);
+    max-width: 400px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .course-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .summary-panel {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 20px;
+    }
+    
+    .summary-card {
+        padding: 16px;
+    }
+    
+    .course-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .course-card__body {
+        min-height: 220px;
+        padding: 20px;
+    }
+    
+    .summary-total {
+        font-size: 28px;
+    }
+    
+    .summary-count {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .page-header__left {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .summary-hint {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+    
+    .btn-submit {
+        width: 100%;
+        justify-content: center;
+        padding: 16px 20px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.course-card {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+.course-card:nth-child(odd) {
+    animation-delay: 0.1s;
+}
+
+.course-card:nth-child(even) {
+    animation-delay: 0.2s;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const totalEl = document.getElementById('selected-total');
+    const countEl = document.getElementById('selected-count');
+    const summaryHint = document.querySelector('.summary-hint');
+
+    function updateSummary() {
+        let total = 0;
+        let selectedCount = 0;
+
+        const formatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
+        document.querySelectorAll('.course-selector').forEach(checkbox => {
+            const rawPrice = checkbox.dataset.price || '0';
+            const cleanedPrice = rawPrice.replace(/[^0-9,-]/g, '');
+            const price = parseFloat(cleanedPrice) || 0;
+            const payFull = document.getElementById(`pay-full-${checkbox.value}`);
+            const courseCard = checkbox.closest('.course-card');
+
+                if (checkbox.checked) {
+                    selectedCount += 1;
+                    total += price;
+                    if (courseCard) {
+                        courseCard.style.borderColor = 'var(--primary-color)';
+                        courseCard.style.boxShadow = 'var(--shadow-md)';
+                    }
+                    if (payFull) {
+                        payFull.disabled = false;
+                        payFull.removeAttribute('disabled');
+                        payFull.checked = true;
+                    }
+                } else {
+                    if (courseCard) {
+                        courseCard.style.borderColor = '';
+                    courseCard.style.boxShadow = '';
+                }
+                if (payFull) {
+                    payFull.disabled = true;
+                    payFull.setAttribute('disabled', 'disabled');
+                    payFull.checked = false;
+                }
+            }
+        });
+
+        totalEl.textContent = formatter.format(total);
+        countEl.textContent = selectedCount;
+
+        if (selectedCount === 0) {
+            summaryHint.innerHTML = `
+                <i class="fas fa-info-circle"></i>
+                <div class="hint-content">
+                    <p class="hint-title">ابدأ الاختيار</p>
+                    <p class="hint-text">اختر دورة واحدة على الأقل للمتابعة</p>
+                </div>
+            `;
+            summaryHint.style.background = 'linear-gradient(135deg, #f8f9ff 0%, #e9ecef 100%)';
+            summaryHint.style.borderColor = 'var(--border-color)';
+        } else {
+            summaryHint.innerHTML = `
+                <i class="fas fa-lightbulb"></i>
+                <div class="hint-content">
+                    <p class="hint-title">معلومة مهمة</p>
+                    <p class="hint-text">حدد خيار "دفع كامل" لكل دورة لإنشاء إيصال عند الحاجة</p>
+                </div>
+            `;
+            summaryHint.style.background = 'linear-gradient(135deg, #fff9db 0%, #fff3bf 100%)';
+            summaryHint.style.borderColor = '#ffec99';
+        }
+    }
+
+    document.querySelectorAll('.course-selector').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSummary);
+    });
+
+    // Add hover effect for course cards
+    document.querySelectorAll('.course-card').forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            if (!card.querySelector('.course-selector').checked) {
+                card.style.transform = 'translateY(-4px)';
+            }
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            if (!card.querySelector('.course-selector').checked) {
+                card.style.transform = '';
+            }
+        });
+    });
+
+    updateSummary();
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.querySelector('form');
+    if (!form) return;
+    form.addEventListener('submit', () => {
+        const windowName = 'quick_receipt_print';
+        window.open('about:blank', windowName);
+    });
+});
+</script>

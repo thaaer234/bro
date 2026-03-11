@@ -1,0 +1,393 @@
+{% extends 'accounts/base.html' %}
+{% load humanize %}
+
+{% block title %}تفاصيل مركز التكلفة - {{ cost_center.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-building"></i>
+        {{ cost_center.name_ar|default:cost_center.name }}
+        <small class="text-muted">({{ cost_center.code }})</small>
+    </h2>
+    <div class="btn-group">
+        <a href="{% url 'accounts:cost_center_financial_report' cost_center.pk %}" class="btn btn-outline-primary">
+            <i class="fas fa-chart-bar"></i> التقرير المالي
+        </a>
+        <a href="{% url 'accounts:cost_center_detailed_report' cost_center.pk %}" class="btn btn-outline-info">
+            <i class="fas fa-chart-line"></i> التقرير المفصل
+        </a>
+        <a href="{% url 'accounts:cost_center_update' cost_center.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-edit"></i> تعديل
+        </a>
+    </div>
+</div>
+
+<!-- البطاقة الرئيسية -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> المعلومات الأساسية
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>الرمز:</strong> {{ cost_center.code }}<br>
+                        <strong>النوع:</strong> {{ cost_center.get_cost_center_type_display }}<br>
+                        <strong>الحالة:</strong> 
+                        <span class="badge {% if cost_center.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ cost_center.is_active|yesno:"نشط,موقف" }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        {% if cost_center.manager_name %}
+                        <strong>مدير المركز:</strong> {{ cost_center.manager_name }}<br>
+                        {% endif %}
+                        {% if cost_center.manager_phone %}
+                        <strong>هاتف المدير:</strong> {{ cost_center.manager_phone }}<br>
+                        {% endif %}
+                        {% if cost_center.manager_email %}
+                        <strong>بريد المدير:</strong> {{ cost_center.manager_email }}<br>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if cost_center.description %}
+                <hr>
+                <strong>الوصف:</strong><br>
+                {{ cost_center.description|linebreaks }}
+                {% endif %}
+                
+                <!-- الميزانية -->
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>الميزانية الشهرية:</strong> {{ cost_center.monthly_budget|intcomma }} ل.س<br>
+                        <strong>الميزانية السنوية:</strong> {{ cost_center.annual_budget|intcomma }} ل.س
+                    </div>
+                    <div class="col-md-6">
+                        <strong>المصروف الشهري الفعلي:</strong> {{ cost_center.actual_monthly_spent|intcomma }} ل.س<br>
+                        <strong>المصروف السنوي الفعلي:</strong> {{ cost_center.actual_annual_spent|intcomma }} ل.س
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- الإحصائيات الشاملة -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center py-3">
+                <h4>{{ statistics.teachers }}</h4>
+                <small>المدرسين</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center py-3">
+                <h4>{{ statistics.students }}</h4>
+                <small>الطلاب</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center py-3">
+                <h4>{{ statistics.courses }}</h4>
+                <small>الدورات</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center py-3">
+                <h4>{{ statistics.accounts }}</h4>
+                <small>الحسابات</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center py-3">
+                <h4>{{ statistics.enrollments }}</h4>
+                <small>التسجيلات</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-dark text-white">
+            <div class="card-body text-center py-3">
+                <h4>{{ statistics.transactions }}</h4>
+                <small>المعاملات</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- الملخص المالي -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-money-bill-wave"></i> الملخص المالي 
+                    <small class="text-muted">(آخر 30 يوم)</small>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3 {% if financial_summary.total_revenue > 0 %}bg-success text-white{% endif %}">
+                            <h4>{{ financial_summary.total_revenue|intcomma }} ل.س</h4>
+                            <small>إجمالي الإيرادات</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3 {% if financial_summary.total_expenses > 0 %}bg-danger text-white{% endif %}">
+                            <h4>{{ financial_summary.total_expenses|intcomma }} ل.س</h4>
+                            <small>إجمالي المصروفات</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3 {% if financial_summary.net_income > 0 %}bg-primary text-white{% else %}bg-warning{% endif %}">
+                            <h4>{{ financial_summary.net_income|intcomma }} ل.س</h4>
+                            <small>صافي الدخل</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3">
+                            <h4>{{ financial_summary.budget_utilization|floatformat:1 }}%</h4>
+                            <small>استخدام الميزانية</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- تفصيل المصروفات -->
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6>تفصيل المصروفات:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                رواتب المدرسين
+                                <span class="badge bg-primary rounded-pill">{{ financial_summary.teacher_salaries|intcomma }} ل.س</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                مصروفات أخرى
+                                <span class="badge bg-secondary rounded-pill">{{ financial_summary.operational_expenses|intcomma }} ل.س</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>مؤشرات الأداء:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                هامش الربح
+                                <span class="badge {% if financial_summary.profit_margin >= 0 %}bg-success{% else %}bg-danger{% endif %} rounded-pill">
+                                    {{ financial_summary.profit_margin|floatformat:1 }}%
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                عدد الدورات
+                                <span class="badge bg-info rounded-pill">{{ financial_summary.course_count }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- المدرسين -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-chalkboard-teacher"></i> المدرسين
+            <span class="badge bg-primary">{{ teacher_data|length }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if teacher_data %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>اسم المدرس</th>
+                        <th>الرواتب</th>
+                        <th>عدد الدورات</th>
+                        <th>الدورات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in teacher_data %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.teacher.full_name }}</strong>
+                            {% if item.teacher.phone_number %}
+                            <br><small class="text-muted">{{ item.teacher.phone_number }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.salary|intcomma }} ل.س</td>
+                        <td>
+                            <span class="badge bg-info">{{ item.courses_count }}</span>
+                        </td>
+                        <td>
+                            {% for course in item.courses %}
+                            <span class="badge bg-secondary mb-1">{{ course.name_ar|default:course.name }}</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <td><strong>المجموع</strong></td>
+                        <td><strong>{{ financial_summary.teacher_salaries|intcomma }} ل.س</strong></td>
+                        <td><strong>{{ teacher_data|length }}</strong></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center">لا يوجد مدرسين مرتبطين بمركز التكلفة هذا</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- الدورات المرتبطة -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-book"></i> الدورات المرتبطة
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if courses_summary.total_courses > 0 %}
+                <div class="row text-center mb-3">
+                    <div class="col-md-3">
+                        <h4>{{ courses_summary.total_courses }}</h4>
+                        <small>إجمالي الدورات</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4>{{ courses_summary.active_courses }}</h4>
+                        <small>دورات نشطة</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4>{{ courses_summary.total_enrollments }}</h4>
+                        <small>إجمالي التسجيلات</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h4>{{ courses_summary.total_course_revenue|intcomma }} ل.س</h4>
+                        <small>إيرادات الدورات</small>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>اسم الدورة</th>
+                                <th>السعر</th>
+                                <th>عدد التسجيلات</th>
+                                <th>الإيرادات</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for course in cost_center.courses.all %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'accounts:course_detail' course.pk %}">
+                                        {{ course.name_ar|default:course.name }}
+                                    </a>
+                                </td>
+                                <td>{{ course.price|intcomma }} ل.س</td>
+                                <td>{{ course.get_enrollment_count }}</td>
+                                <td>
+                                    {% with course_revenue_account=course.get_revenue_account %}
+                                        {% if course_revenue_account %}
+                                            {{ course_revenue_account.get_net_balance|intcomma }} ل.س
+                                        {% else %}
+                                            0 ل.س
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <span class="badge {% if course.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ course.is_active|yesno:"نشط,موقف" }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">لا توجد دورات مرتبطة بمركز التكلفة هذا</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- آخر المعاملات -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exchange-alt"></i> آخر المعاملات
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if transaction_history %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الحساب</th>
+                                <th>الوصف</th>
+                                <th>المبلغ</th>
+                                <th>نوع القيد</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transaction_history %}
+                            <tr>
+                                <td>{{ transaction.journal_entry.date }}</td>
+                                <td>
+                                    <a href="{% url 'accounts:account_detail' transaction.account.pk %}">
+                                        {{ transaction.account.code }} - {{ transaction.account.name }}
+                                    </a>
+                                </td>
+                                <td>{{ transaction.description|default:"-" }}</td>
+                                <td>
+                                    <span class="{% if transaction.is_debit %}text-success{% else %}text-danger{% endif %}">
+                                        {{ transaction.amount|intcomma }} ل.س
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {% if transaction.is_debit %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ transaction.is_debit|yesno:"مدين,دائن" }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">لا توجد معاملات مسجلة لمركز التكلفة هذا</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

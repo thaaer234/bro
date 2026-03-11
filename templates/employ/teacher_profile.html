@@ -1,421 +1,197 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% load emp_perms %}
-{% load static %}
 
 {% block content %}
-<div class="module-header">
-    <h2>الملف الشخصي للمعلم</h2>
-    <div class="header-actions">
-        <a href="{% url 'employ:teachers' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> الرجوع إلى قائمة المعلمين
-        </a>
-        <a href="{% url 'attendance:teacher_attendance' %}?teacher={{ teacher.id }}" class="btn btn-info">
-            <i class="fas fa-history"></i> سجل الحضور الكامل
-        </a>
-        <a href="{% url 'employ:teacher_advance_create' teacher.id %}" class="btn btn-warning">
-            <i class="fas fa-hand-holding-usd"></i> إنشاء سلفة
-        </a>
-        <a href="{% url 'employ:teacher_advance_list' teacher.id %}" class="btn btn-secondary">
-            <i class="fas fa-list"></i> سجل السلف
-        </a>
+<div class="teacher-profile-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">{{ labels.profile_title }}</h2>
+            <div class="h4 mb-2">{{ teacher.full_name }}</div>
+            <div class="d-flex flex-wrap gap-2">
+                {% for branch in teacher.get_branches_list %}
+                <span class="badge bg-primary">{{ branch }}</span>
+                {% empty %}
+                <span class="badge bg-secondary">{{ teacher.get_branch_display|default:labels.not_set }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'attendance:teacher_attendance' %}?teacher={{ teacher.id }}" class="btn btn-outline-primary">
+                {{ labels.attendance_button }}
+            </a>
+            <a href="{% url 'employ:update_teacher' teacher.id %}" class="btn btn-outline-info">
+                تعديل البيانات
+            </a>
+            <a href="{% url 'employ:teacher_advance_create' teacher.id %}" class="btn btn-outline-warning">
+                {{ labels.advance_button }}
+            </a>
+            <a href="{% url 'employ:add_manual_salary' teacher.pk %}" class="btn btn-outline-success">
+                {{ labels.salary_button }}
+            </a>
+        </div>
     </div>
 
-{% if salary_status %}
-<div class="alert alert-success mt-3">تم دفع راتب شهر {{ salary_period_label }} للمعلم وتم توثيق القيد المحاسبي بنجاح.</div>
-{% elif salary_amount > 0 %}
-<div class="alert alert-warning mt-3">راتب شهر {{ salary_period_label }} ما يزال بانتظار الدفع.</div>
-{% endif %}
-
-</div>
-
-<div class="row g-3">
-    <div class="col-lg-8">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">المعلومات الأساسية</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="small text-muted">الاسم الكامل</div>
-                        <div class="fw-bold">{{ teacher.full_name }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">رقم الهاتف</div>
-                        <div>{{ teacher.phone_number|default:"غير متوفر" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">الفروع</div>
-                        <div class="d-flex flex-wrap gap-2">
-                            {% for branch in teacher.get_branches_list %}
-                                <span class="badge bg-primary">{{ branch }}</span>
-                            {% empty %}
-                                <span class="text-muted">لا توجد معلومات</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">تاريخ التعيين</div>
-                        <div>{{ teacher.hire_date|date:"Y-m-d" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">حساب المستحقات</div>
-                        <div class="fw-bold">{{ teacher.get_teacher_dues_account.code }}</div>
-                        <small class="text-muted">{{ teacher.get_teacher_dues_account.name }}</small>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">حساب السلف</div>
-                        <div class="fw-bold">{{ teacher.get_teacher_advance_account.code }}</div>
-                        <small class="text-muted">{{ teacher.get_teacher_advance_account.name }}</small>
-                    </div>
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ labels.basic_info }}</h5>
                 </div>
-                {% if teacher.notes %}
-                <hr>
-                <div class="small text-muted">ملاحظات</div>
-                <div>{{ teacher.notes }}</div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card shadow-sm mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">إحصائيات الجلسات والراتب والسلف</h5>
-            </div>
-            <div class="card-body">
-                <div class="row row-cols-1 row-cols-md-5 g-3 text-center">
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-info"><i class="fas fa-calendar-day"></i></div>
-                            <div class="stat-card-value">{{ daily_sessions }}</div>
-                            <div class="stat-card-label">جلسات اليوم</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-muted small">{{ labels.phone_number }}</div>
+                            <div class="fw-semibold">{{ teacher.phone_number|default:labels.not_set }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">{{ labels.hire_date }}</div>
+                            <div class="fw-semibold">{{ teacher.hire_date|date:"Y-m-d" }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">{{ labels.salary_type }}</div>
+                            <div class="fw-semibold">{{ teacher.get_salary_type_display }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">{{ labels.hourly_rate_general }}</div>
+                            <div class="fw-semibold">{{ teacher.hourly_rate|floatformat:0 }} {{ labels.currency }}</div>
                         </div>
                     </div>
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-success"><i class="fas fa-calendar-alt"></i></div>
-                            <div class="stat-card-value">{{ monthly_sessions }}</div>
-                            <div class="stat-card-label">جلسات الشهر الحالي</div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-primary"><i class="fas fa-calendar"></i></div>
-                            <div class="stat-card-value">{{ yearly_sessions }}</div>
-                            <div class="stat-card-label">جلسات السنة الحالية</div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-warning"><i class="fas fa-money-bill-wave"></i></div>
-                            <div class="stat-card-value">{{ salary_amount|floatformat:2 }}</div>
-                            <div class="stat-card-label">الراتب الإجمالي</div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-danger"><i class="fas fa-hand-holding-usd"></i></div>
-                            <div class="stat-card-value">{{ teacher.get_total_advances|floatformat:2 }}</div>
-                            <div class="stat-card-label">السلف المستحقة</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="salary-status-section mt-4">
-                    <div class="card {% if salary_status %}bg-success{% else %}bg-danger{% endif %} text-white">
-                        <div class="card-body text-center">
-                            <div class="mb-2"><span class="badge bg-light text-dark">راتب شهر {{ salary_period_label }}</span></div>
-                            {% if not salary_period_is_current %}
-                            <small class="d-block text-warning mb-2">* الفترة المعروضة تخص الشهر السابق.</small>
-                            {% endif %}
-                            {% if salary_status %}
-                                <i class="fas fa-check-circle fa-2x mb-3"></i>
-                                <h5>تم دفع راتب شهر {{ salary_period_label }}</h5>
-                                <p class="mb-0">تم إنشاء القيد المحاسبي لهذا الشهر.</p>
-                            {% else %}
-                                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                                <h5>راتب شهر {{ salary_period_label }} غير مدفوع</h5>
-                                <p class="mb-1">الراتب الإجمالي: {{ salary_amount|floatformat:2 }} ل.س</p>
-                                <p class="mb-1">السلف المستحقة: {{ teacher.get_total_advances|floatformat:2 }} ل.س</p>
-                                <p class="mb-3">الصافي للدفع: {{ teacher.calculate_net_salary|floatformat:2 }} ل.س</p>
-                                
-                                <!-- Show accrual status -->
-                                {% if has_accrual_entry %}
-                                <div class="alert alert-info text-dark mb-3">
-                                    <i class="fas fa-info-circle"></i>
-                                    <strong>تم إنشاء قيد الاستحقاق</strong><br>
-                                    تم تسجيل راتب الشهر في الدفاتر، بانتظار الدفع النقدي
-                                </div>
-                                {% else %}
-                                <div class="alert alert-warning text-dark mb-3">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    <strong>لم يتم إنشاء قيد الاستحقاق بعد</strong><br>
-                                    سيتم إنشاؤه تلقائياً عند تسجيل الحضور
-                                </div>
-                                {% endif %}
-                                
-                                {% if salary_amount > 0 %}
-                                <form method="post" action="{% url 'employ:create_teacher_accrual' teacher.pk %}" class="d-inline me-2">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="year" value="{{ salary_year }}">
-                                    <input type="hidden" name="month" value="{{ salary_month }}">
-                                    <input type="hidden" name="return_to_profile" value="1">
-                                    <button type="submit" class="btn btn-warning" {% if has_accrual_entry %}disabled{% endif %}
-                                            onclick="return confirm('إنشاء قيد استحقاق راتب {{ teacher.full_name }} عن شهر {{ salary_period_label }}؟\nالمبلغ: {{ salary_amount|floatformat:2 }}')">
-                                        <i class="fas fa-file-invoice"></i> إنشاء قيد الاستحقاق
-                                    </button>
-                                </form>
-                                
-                                <form method="post" action="{% url 'employ:pay_teacher_salary' teacher.pk %}" class="d-inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="year" value="{{ salary_year }}">
-                                    <input type="hidden" name="month" value="{{ salary_month }}">
-                                    <input type="hidden" name="return_to_profile" value="1">
-                                    <button type="submit" class="btn btn-light" {% if not has_accrual_entry %}disabled{% endif %}
-                                            onclick="return confirm('تأكيد دفع راتب {{ teacher.full_name }} عن شهر {{ salary_period_label }}؟\nالإجمالي: {{ salary_amount|floatformat:2 }}\nالسلف: {{ teacher.get_total_advances|floatformat:2 }}\nالصافي: {{ teacher.calculate_net_salary|floatformat:2 }}')">
-                                        <i class="fas fa-money-bill-wave"></i> دفع الراتب الآن
-                                    </button>
-                                </form>
-                                
-                                {% if not has_accrual_entry %}
-                                <small class="d-block text-warning mt-2">
-                                    يجب إنشاء قيد الاستحقاق أولاً قبل الدفع
-                                </small>
-                                {% endif %}
-                                {% endif %}
-                            {% endif %}
-                        </div>
-                    </div>
+                    {% if teacher.notes %}
+                    <hr>
+                    <div class="text-muted small mb-1">{{ labels.notes }}</div>
+                    <div>{{ teacher.notes }}</div>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        
-        <!-- Teacher Advances Section -->
-        <div class="card shadow-sm mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">السلف المالية</h5>
-                <a href="{% url 'employ:teacher_advance_list' teacher.id %}" class="btn btn-sm btn-outline-secondary">
-                    عرض الكل
-                </a>
+
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ labels.hourly_rate_by_branch }}</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in branch_hourly_rates %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-secondary">{{ item.branch_title }}</span>
+                        <span class="fw-semibold text-success">{{ item.hourly_rate|floatformat:0 }} {{ labels.currency }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-muted">{{ labels.no_branches }}</div>
+                    {% endfor %}
+                </div>
             </div>
-            <div class="card-body">
-                {% with recent_advances=teacher.advances.all|slice:":5" %}
-                {% if recent_advances %}
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{ labels.daily_attendance }}</h5>
+            <small class="text-muted">{{ daily_attendance_date|date:"Y-m-d" }}</small>
+        </div>
+        <div class="card-body">
+            {% if daily_attendance_entries %}
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>{{ labels.course_or_branch }}</th>
+                            <th>{{ labels.status }}</th>
+                            <th class="text-center">{{ labels.session_count }}</th>
+                            <th class="text-center">{{ labels.half_sessions }}</th>
+                            <th class="text-center">{{ labels.total }}</th>
+                            <th class="text-center">{{ labels.wage }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attendance in daily_attendance_entries %}
+                        <tr>
+                            <td>{{ attendance.get_branch_display }}</td>
+                            <td>
+                                <span class="badge {% if attendance.status == 'present' %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ attendance.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-center">{{ attendance.session_count }}</td>
+                            <td class="text-center">{{ attendance.half_session_count }}</td>
+                            <td class="text-center">{{ attendance.total_sessions|floatformat:1 }}</td>
+                            <td class="text-center">{{ attendance.get_daily_salary_amount|floatformat:0 }} {{ labels.currency }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-muted">{{ labels.no_daily_attendance }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">{{ labels.monthly_attendance_by_branch }}</h5>
+        </div>
+        <div class="card-body">
+            {% if branch_monthly_tables %}
+                {% for table in branch_monthly_tables %}
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">{{ table.branch_title }}</h6>
+                        <div class="text-muted small">{{ labels.hourly_rate }}: {{ table.hourly_rate|floatformat:0 }} {{ labels.currency }}</div>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-sm">
+                        <table class="table table-sm table-hover mb-0">
                             <thead>
                                 <tr>
-                                    <th>التاريخ</th>
-                                    <th>المبلغ</th>
-                                    <th>الغرض</th>
-                                    <th>الحالة</th>
+                                    <th>{{ labels.month }}</th>
+                                    <th class="text-center">{{ labels.session_count }}</th>
+                                    <th class="text-center">{{ labels.due_amount }}</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for advance in recent_advances %}
+                                {% for row in table.rows %}
                                 <tr>
-                                    <td>{{ advance.date|date:"Y-m-d" }}</td>
-                                    <td>{{ advance.amount|floatformat:2 }} ل.س</td>
-                                    <td>{{ advance.purpose|truncatechars:30 }}</td>
-                                    <td>
-                                        {% if advance.is_repaid %}
-                                            <span class="badge bg-success">مسدد</span>
-                                        {% else %}
-                                            <span class="badge bg-warning">معلق</span>
-                                        {% endif %}
-                                    </td>
+                                    <td>{{ row.month_label }}</td>
+                                    <td class="text-center">{{ row.total_sessions|floatformat:1 }}</td>
+                                    <td class="text-center">{{ row.total_salary|floatformat:0 }} {{ labels.currency }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                {% else %}
-                    <div class="text-center text-muted">
-                        <i class="fas fa-hand-holding-usd fa-2x mb-2"></i>
-                        <p>لا توجد سلف مسجلة</p>
-                        <a href="{% url 'employ:teacher_advance_create' teacher.id %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-plus"></i> إنشاء سلفة
-                        </a>
-                    </div>
-                {% endif %}
-                {% endwith %}
-            </div>
+                    <div class="text-muted small mt-2">{{ labels.monthly_formula }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="text-muted">{{ labels.no_monthly_attendance }}</div>
+            {% endif %}
         </div>
     </div>
 
-    <div class="col-lg-4">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header">
-                <h6 class="mb-0">حضور اليوم ({{ today|date:"Y-m-d" }})</h6>
-            </div>
-            <div class="card-body text-center">
-                {% if daily_attendance %}
-                    <div class="status-indicator {% if daily_attendance.status == 'present' %}paid{% else %}unpaid{% endif %} mb-3">
-                        {% if daily_attendance.status == 'present' %}
-                            <i class="fas fa-check-circle"></i> حاضر
-                        {% elif daily_attendance.status == 'absent' %}
-                            <i class="fas fa-times-circle"></i> غائب
-                        {% elif daily_attendance.status == 'late' %}
-                            <i class="fas fa-clock"></i> متأخر
-                        {% else %}
-                            <i class="fas fa-user-clock"></i> غير مسجل
-                        {% endif %}
-                    </div>
-                    <p><strong>عدد الجلسات:</strong> {{ daily_attendance.session_count|default:0 }}</p>
-                    {% if daily_attendance.notes %}
-                        <p class="text-muted">{{ daily_attendance.notes }}</p>
-                    {% endif %}
-                {% else %}
-                    <div class="text-muted">
-                        <i class="fas fa-calendar-times fa-2x mb-2"></i>
-                        <p>لا يوجد حضور مسجل اليوم.</p>
-                    </div>
-                {% endif %}
-            </div>
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">{{ labels.advance_balance_title }}</h5>
         </div>
-
-        <!-- Salary Calculation Details -->
-        <div class="card shadow-sm mb-3">
-            <div class="card-header">
-                <h6 class="mb-0">تفاصيل حساب الراتب</h6>
+        <div class="card-body">
+            {% if advance_account %}
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">{{ labels.account }}</td>
+                            <td class="fw-semibold">{{ advance_account.code }} - {{ advance_account.name }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">{{ labels.balance }}</td>
+                            <td class="fw-semibold text-danger">{{ advance_account_balance|floatformat:0 }} {{ labels.currency }}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-6">
-                        <div class="border rounded p-2 mb-2">
-                            <small class="text-muted">الراتب الإجمالي</small>
-                            <div class="fw-bold text-success">{{ salary_amount|floatformat:2 }}</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="border rounded p-2 mb-2">
-                            <small class="text-muted">السلف المستحقة</small>
-                            <div class="fw-bold text-warning">{{ teacher.get_total_advances|floatformat:2 }}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center">
-                    <div class="border rounded p-2 bg-light">
-                        <small class="text-muted">الصافي للدفع</small>
-                        <div class="fw-bold fs-5 text-primary">{{ teacher.calculate_net_salary|floatformat:2 }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="card shadow-sm mb-3">
-            <div class="card-header">
-                <h6 class="mb-0">إحصائيات الشهر الحالي</h6>
-            </div>
-            <div class="card-body">
-                <div class="row row-cols-1 row-cols-md-2 g-3 text-center">
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-success"><i class="fas fa-check"></i></div>
-                            <div class="stat-card-value">{{ monthly_stats.present_days|default:0 }}</div>
-                            <div class="stat-card-label">أيام حضور</div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-danger"><i class="fas fa-times"></i></div>
-                            <div class="stat-card-value">{{ monthly_stats.absent_days|default:0 }}</div>
-                            <div class="stat-card-label">أيام غياب</div>
-                        </div>
-                    </div>
-                </div>
-                {% if monthly_stats.total_days %}
-                <div class="mt-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="text-muted">نسبة الحضور</span>
-                        <span class="fw-bold">{% widthratio monthly_stats.present_days monthly_stats.total_days 100 %}%</span>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar bg-success" style="width: {% widthratio monthly_stats.present_days monthly_stats.total_days 100 %}%"></div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <h6 class="mb-0">إحصائيات السنة الحالية</h6>
-            </div>
-            <div class="card-body">
-                <div class="row row-cols-1 row-cols-md-2 g-3 text-center">
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-success"><i class="fas fa-calendar-check"></i></div>
-                            <div class="stat-card-value">{{ yearly_stats.present_days|default:0 }}</div>
-                            <div class="stat-card-label">أيام حضور</div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-primary"><i class="fas fa-chalkboard-teacher"></i></div>
-                            <div class="stat-card-value">{{ yearly_stats.total_sessions|default:0 }}</div>
-                            <div class="stat-card-label">إجمالي الجلسات</div>
-                        </div>
-                    </div>
-                </div>
-                {% if yearly_stats.total_days %}
-                <div class="mt-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="text-muted">نسبة الحضور السنوية</span>
-                        <span class="fw-bold">{% widthratio yearly_stats.present_days yearly_stats.total_days 100 %}%</span>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar bg-success" style="width: {% widthratio yearly_stats.present_days yearly_stats.total_days 100 %}%"></div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card shadow-sm mt-4">
-    <div class="card-header">
-        <h5 class="mb-0">إجراءات سريعة</h5>
-    </div>
-    <div class="card-body">
-        <div class="row g-2">
-            <div class="col-md-2">
-                <a href="{% url 'employ:salary_management' %}" class="btn btn-outline-primary w-100">
-                    <i class="fas fa-money-bill-wave"></i>
-                    إدارة الرواتب
-                </a>
-            </div>
-            <div class="col-md-2">
-                <a href="{% url 'attendance:teacher_attendance' %}?teacher={{ teacher.id }}" class="btn btn-outline-info w-100">
-                    <i class="fas fa-calendar-check"></i>
-                    سجل الحضور
-                </a>
-            </div>
-            <div class="col-md-2">
-                <a href="{% url 'accounts:dashboard' %}" class="btn btn-outline-success w-100">
-                    <i class="fas fa-chart-bar"></i>
-                    النظام المحاسبي
-                </a>
-            </div>
-            <div class="col-md-2">
-                <a href="{% url 'courses:subject_list' %}" class="btn btn-outline-secondary w-100">
-                    <i class="fas fa-book"></i>
-                    المواد
-                </a>
-            </div>
-            <div class="col-md-2">
-                <a href="{% url 'employ:teacher_advance_create' teacher.id %}" class="btn btn-outline-warning w-100">
-                    <i class="fas fa-plus"></i>
-                    سلفة جديدة
-                </a>
-            </div>
-            <div class="col-md-2">
-                <a href="{% url 'employ:teacher_advance_list' teacher.id %}" class="btn btn-outline-dark w-100">
-                    <i class="fas fa-list"></i>
-                    سجل السلف
-                </a>
-            </div>
+            {% else %}
+            <div class="text-muted">{{ labels.no_advance_account }}</div>
+            {% endif %}
         </div>
     </div>
 </div>

@@ -1,0 +1,883 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Changa:wght@500;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --ink: #101c20;
+        --muted: #6b7a80;
+        --accent: #0f6b6f;
+        --accent-dark: #0b4f52;
+        --accent-soft: #e3f0f1;
+        --gold: #c9a24f;
+        --surface: #ffffff;
+        --surface-muted: #f6f7f8;
+        --border: #d9e2e6;
+        --shadow: 0 18px 40px rgba(9, 30, 34, 0.12);
+        --success: #157f3d;
+        --danger: #b42318;
+    }
+    body {
+        font-family: "Cairo", sans-serif;
+        background: radial-gradient(circle at 10% 10%, #fff7e4 0%, #f4f1ec 42%, #e8f1f2 100%);
+        color: var(--ink);
+    }
+    .system-report-page {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        gap: 24px;
+        margin: 24px 0 40px;
+    }
+    .report-sidenav {
+        position: sticky;
+        top: 20px;
+        align-self: flex-start;
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(15, 107, 111, 0.12);
+    }
+    .report-sidenav h6 {
+        font-family: "Changa", sans-serif;
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-bottom: 14px;
+        color: var(--ink);
+    }
+    .report-sidenav a {
+        display: block;
+        padding: 9px 12px;
+        border-radius: 12px;
+        color: var(--accent-dark);
+        text-decoration: none;
+        font-weight: 700;
+        margin-bottom: 6px;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+    .report-sidenav a:hover,
+    .report-sidenav a.active {
+        background: rgba(15, 107, 111, 0.12);
+        color: var(--accent-dark);
+    }
+    .report-main {
+        min-width: 0;
+    }
+    .report-hero {
+        background: linear-gradient(135deg, #0c2a30 0%, #0f6b6f 55%, #2b8b89 100%);
+        color: #fff;
+        border-radius: 22px;
+        padding: 26px 28px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 48px rgba(12, 49, 54, 0.28);
+    }
+    .report-hero-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+    .report-hero-logo img {
+        height: 46px;
+        width: auto;
+        filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.2));
+    }
+    .report-hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.2), transparent 45%),
+                    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 40%);
+        pointer-events: none;
+    }
+    .report-hero h1 {
+        font-family: "Changa", sans-serif;
+        font-weight: 700;
+        margin: 0 0 6px;
+        font-size: 1.8rem;
+    }
+    .report-hero .meta {
+        font-size: 0.95rem;
+        opacity: 0.9;
+    }
+    .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+    .hero-actions .btn {
+        border-radius: 12px;
+    }
+    .report-card {
+        background: var(--surface);
+        border-radius: 18px;
+        border: 1px solid rgba(11, 26, 30, 0.08);
+        box-shadow: 0 10px 24px rgba(11, 26, 30, 0.06);
+    }
+    .report-card .card-title {
+        font-family: "Changa", sans-serif;
+        font-weight: 700;
+        color: var(--ink);
+    }
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+    .kpi-widget {
+        background: #fff;
+        border-radius: 16px;
+        padding: 14px 16px;
+        border: 1px solid rgba(15, 107, 111, 0.2);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        position: relative;
+    }
+    .kpi-widget::after {
+        content: "";
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--gold);
+        opacity: 0.8;
+    }
+    .kpi-widget .label {
+        font-size: 0.8rem;
+        color: var(--muted);
+    }
+    .kpi-widget .value {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--ink);
+    }
+    .filter-panel .form-control,
+    .filter-panel .form-select {
+        border-radius: 12px;
+    }
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+    .report-table thead th {
+        background: #f2f5f6;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .comparison-card {
+        border: 1px solid rgba(15, 107, 111, 0.15);
+        border-radius: 16px;
+        padding: 16px;
+        background: #f9fbfc;
+    }
+    .comparison-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 12px;
+    }
+    .comparison-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 12px;
+    }
+    .comparison-item {
+        background: #fff;
+        border: 1px solid rgba(15, 107, 111, 0.18);
+        border-radius: 12px;
+        padding: 12px 14px;
+    }
+    .comparison-item .label {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 4px;
+    }
+    .comparison-item .value {
+        font-size: 1.1rem;
+        font-weight: 800;
+    }
+    .delta {
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .delta.up { color: var(--success); }
+    .delta.down { color: var(--danger); }
+    .delta.flat { color: var(--muted); }
+    .comparison-section {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px dashed rgba(15, 107, 111, 0.2);
+    }
+    .comparison-section h6 {
+        font-family: "Changa", sans-serif;
+        font-weight: 700;
+        color: var(--accent-dark);
+        margin-bottom: 10px;
+    }
+    .theme-toggle {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #fff;
+    }
+    .theme-dark {
+        background: #0a0f12;
+    }
+    .theme-dark .report-card,
+    .theme-dark .report-sidenav {
+        background: #12181d;
+        color: #e6eef0;
+        border-color: rgba(230, 238, 240, 0.15);
+    }
+    .theme-dark .report-table thead th {
+        background: #1a2329;
+    }
+    .theme-dark .kpi-widget {
+        background: #12181d;
+        border-color: rgba(230, 238, 240, 0.15);
+    }
+    @media (max-width: 991px) {
+        .system-report-page {
+            grid-template-columns: 1fr;
+        }
+        .report-sidenav {
+            position: static;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="system-report-page" dir="rtl">
+        <aside class="report-sidenav">
+            <h6>محتويات التقرير</h6>
+            <a href="#section-overview">نظرة عامة</a>
+            <a href="#section-users">ساعات المستخدمين</a>
+            <a href="#section-students">الطلاب</a>
+            <a href="#section-courses">الدورات النظامية</a>
+            <a href="#section-quick-courses">الدورات السريعة</a>
+            <a href="#section-discounts">الخصومات</a>
+            <a href="#section-accounts">الحسابات</a>
+            <a href="#section-expenses">المصاريف</a>
+            <a href="#section-addresses">العناوين</a>
+            <a href="#section-filters">إعداد التقرير</a>
+            <a href="#section-comparison">المقارنة الكاملة</a>
+        </aside>
+
+        <main class="report-main">
+            <div class="report-hero">
+                <div class="report-hero-logo">
+                    <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                </div>
+                <h1>تقرير النظام التنفيذي</h1>
+                <div class="meta">
+                    {% if selected_report %}
+                        الفترة: {{ selected_report.period_start }} - {{ selected_report.period_end }} | تاريخ الإنشاء: {{ selected_report.created_at|date:"Y-m-d H:i" }}
+                    {% else %}
+                        لا يوجد تقرير متاح حالياً، الرجاء إنشاء تقرير جديد.
+                    {% endif %}
+                </div>
+                <div class="hero-actions">
+                    <button class="btn btn-light theme-toggle" type="button" id="theme-toggle">تبديل المظهر</button>
+                    {% if selected_report %}
+                        <a class="btn btn-outline-light" href="{% url 'pages:system_report_print' selected_report.id %}" target="_blank">طباعة A4</a>
+                        <a class="btn btn-warning" href="/api/system-report/?format=pdf&start_date={{ selected_report.period_start }}&end_date={{ selected_report.period_end }}&course_id={{ selected_report.summary.filters.course_id }}&user_id={{ selected_report.summary.filters.user_id }}&type={{ selected_report.summary.filters.scope }}&sections={{ selected_report.summary.filters.sections|join:"," }}" target="_blank">تصدير PDF</a>
+                        <a class="btn btn-warning" href="/api/system-report/?format=excel&start_date={{ selected_report.period_start }}&end_date={{ selected_report.period_end }}&course_id={{ selected_report.summary.filters.course_id }}&user_id={{ selected_report.summary.filters.user_id }}&type={{ selected_report.summary.filters.scope }}&sections={{ selected_report.summary.filters.sections|join:"," }}" target="_blank">تصدير Excel</a>
+                        <a class="btn btn-warning" href="/api/system-report/?format=csv&start_date={{ selected_report.period_start }}&end_date={{ selected_report.period_end }}&course_id={{ selected_report.summary.filters.course_id }}&user_id={{ selected_report.summary.filters.user_id }}&type={{ selected_report.summary.filters.scope }}&sections={{ selected_report.summary.filters.sections|join:"," }}" target="_blank">تصدير CSV</a>
+                        <a class="btn btn-warning" href="/api/system-report/?format=json&start_date={{ selected_report.period_start }}&end_date={{ selected_report.period_end }}&course_id={{ selected_report.summary.filters.course_id }}&user_id={{ selected_report.summary.filters.user_id }}&type={{ selected_report.summary.filters.scope }}&sections={{ selected_report.summary.filters.sections|join:"," }}" target="_blank">تصدير JSON</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-overview">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">نظرة عامة</h5>
+                    </div>
+                    {% if selected_report %}
+                    <div class="kpi-grid">
+                        <div class="kpi-widget">
+                            <div class="label">إجمالي المستخدمين</div>
+                            <div class="value">
+                                {{ selected_report.summary.counts.users_total|intcomma }}
+                                | {{ selected_report.summary.counts.users_new_period|intcomma }}
+                            </div>
+                        </div>
+                        <div class="kpi-widget">
+                            <div class="label">إجمالي الطلاب</div>
+                            <div class="value">
+                                {{ selected_report.summary.counts.students_total|intcomma }}
+                                | {{ selected_report.summary.counts.students_period|intcomma }}
+                            </div>
+                        </div>
+                        <div class="kpi-widget">
+                            <div class="label">إجمالي الدورات</div>
+                            <div class="value">
+                                {{ selected_report.summary.counts.courses_total|intcomma }}
+                                | {{ selected_report.summary.counts.courses_period|intcomma }}
+                            </div>
+                        </div>
+                        <div class="kpi-widget">
+                            <div class="label">إجمالي المقبوضات</div>
+                            <div class="value">{{ selected_report.summary.transactions.credit_total }}</div>
+                        </div>
+                        <div class="kpi-widget">
+                            <div class="label">إجمالي المصروفات</div>
+                            <div class="value">{{ selected_report.summary.transactions.debit_total }}</div>
+                        </div>
+                    </div>
+                    {% else %}
+                        <div class="text-muted">لا توجد بيانات.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-users">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">ساعات عمل المستخدمين</h5>
+                    </div>
+                    {% if selected_report %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm table-striped report-table">
+                            <thead>
+                                <tr>
+                                    <th>اسم المستخدم</th>
+                                    <th>الصلاحيات</th>
+                                    <th>ساعات العمل</th>
+                                    <th>تسجيلات الدخول</th>
+                                    <th>النقرات</th>
+                                    <th>إيصالات نظامي</th>
+                                    <th>إيصالات سريع</th>
+                                    <th>المصروفات</th>
+                                    <th>الاسترداد</th>
+                                    <th>السحب</th>
+                                    <th>الرصيد الصافي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in selected_report.summary.details.users %}
+                                    <tr>
+                                        <td>{{ user.full_name }}</td>
+                                        <td>{{ user.permissions|join:", "|default:"لا يوجد" }}</td>
+                                        <td>{{ user.active_time_label }}</td>
+                                        <td>{{ user.logins|intcomma }}</td>
+                                        <td>{{ user.clicks_count|intcomma }}</td>
+                                        <td>{{ user.receipts_students_count|intcomma }} / {{ user.receipts_students_amount }}</td>
+                                        <td>{{ user.receipts_quick_count|intcomma }} / {{ user.receipts_quick_amount }}</td>
+                                        <td>{{ user.expenses_count|intcomma }} / {{ user.expenses_amount }}</td>
+                                        <td>{{ user.refunds_count|intcomma }} / {{ user.refunds_amount }}</td>
+                                        <td>{{ user.withdrawals_count|intcomma }} / {{ user.withdrawals_amount }}</td>
+                                        <td>{{ user.net_balance }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="11" class="text-muted">لا توجد بيانات.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="text-muted">لا توجد بيانات.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-students">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">الطلاب</h5>
+                    </div>
+                    {% if selected_report %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm table-striped report-table">
+                            <thead>
+                                <tr>
+                                    <th>البند</th>
+                                    <th>الإجمالي</th>
+                                    <th>خلال الفترة</th>
+                                    <th>النسبة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>عدد الطلاب النظاميين</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.regular_students_total|intcomma }}</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.regular_students_period|intcomma }}</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td>عدد الطلاب السريعين</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.quick_students_total|intcomma }}</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.quick_students_period|intcomma }}</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td>الطلاب الخارجيون (نظامي)</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.external_regular_count|intcomma }}</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.external_regular_period_count|intcomma }}</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.external_regular_percent }}%</td>
+                                </tr>
+                                <tr>
+                                    <td>الطلاب الخارجيون (سريع)</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.external_quick_count|intcomma }}</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.external_quick_period_count|intcomma }}</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.external_quick_percent }}%</td>
+                                </tr>
+                                <tr>
+                                    <td>إجمالي الطلاب الخارجيين</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.external_total_count|intcomma }}</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.external_total_period_count|intcomma }}</td>
+                                    <td>{{ selected_report.summary.details.student_comparison.external_total_percent }}%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="text-muted">لا توجد بيانات.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-courses">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">الدورات النظامية</h5>
+                    </div>
+                    {% if selected_report %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm table-striped report-table">
+                            <thead>
+                                <tr>
+                                    <th>الدورة</th>
+                                    <th>الطلاب</th>
+                                    <th>المفترض</th>
+                                    <th>المقبوض</th>
+                                    <th>المتبقي</th>
+                                    <th>مسدد بالكامل</th>
+                                    <th>غير مسدد</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in selected_report.summary.details.regular_outstanding_courses %}
+                                    <tr>
+                                        <td>{{ row.course_name }}</td>
+                                        <td>{{ row.students_count|intcomma }}</td>
+                                        <td>{{ row.net_due_total }}</td>
+                                        <td>{{ row.paid_total }}</td>
+                                        <td>{{ row.outstanding_total }}</td>
+                                        <td>{{ row.fully_paid|intcomma }}</td>
+                                        <td>{{ row.not_fully_paid|intcomma }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="7" class="text-muted">لا توجد بيانات.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="text-muted">لا توجد بيانات.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-quick-courses">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">الدورات السريعة</h5>
+                    </div>
+                    {% if selected_report %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm table-striped report-table">
+                            <thead>
+                                <tr>
+                                    <th>الدورة</th>
+                                    <th>النوع</th>
+                                    <th>إجمالي الطلاب</th>
+                                    <th>طلاب الفترة</th>
+                                    <th>الإيرادات</th>
+                                    <th>المتبقي</th>
+                                    <th>الرصيد</th>
+                                    <th>الخصومات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in selected_report.summary.details.quick_courses %}
+                                    <tr>
+                                        <td>{{ course.course_name }}</td>
+                                        <td>{{ course.course_type_label|default:course.course_type }}</td>
+                                        <td>{{ course.enrollments_total|intcomma }}</td>
+                                        <td>{{ course.enrollments_count|intcomma }}</td>
+                                        <td>{{ course.receipts_amount }}</td>
+                                        <td>{{ course.remaining_amount }}</td>
+                                        <td>{{ course.account_balance }}</td>
+                                        <td>{{ course.discount_note|default:"لا يوجد" }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="8" class="text-muted">لا توجد بيانات.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if selected_report.summary.details.quick_courses %}
+                            <tfoot>
+                                <tr>
+                                    <th colspan="4">الإجمالي</th>
+                                    <th>{{ quick_courses_totals.receipts_total }}</th>
+                                    <th>{{ quick_courses_totals.remaining_total }}</th>
+                                    <th>{{ quick_courses_totals.balance_total }}</th>
+                                    <th>-</th>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm table-striped report-table">
+                            <thead>
+                                <tr>
+                                    <th>الدورة</th>
+                                    <th>الطالب المستفيد</th>
+                                    <th>اسم الخصم</th>
+                                    <th>سبب الخصم</th>
+                                    <th>النسبة</th>
+                                    <th>المبلغ</th>
+                                    <th>المصدر</th>
+                                    <th>الرصيد النهائي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in selected_report.summary.details.quick_course_discounts %}
+                                    <tr>
+                                        <td>{{ row.course_name }}</td>
+                                        <td>{{ row.student_name }}</td>
+                                        <td>{{ row.discount_name|default:"غير متوفر" }}</td>
+                                        <td>{{ row.discount_reason|default:"غير متوفر" }}</td>
+                                        <td>{{ row.discount_percent }}</td>
+                                        <td>{{ row.discount_amount }}</td>
+                                        <td>{{ row.source }}</td>
+                                        <td>{{ row.course_remaining_amount }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="8" class="text-muted">لا توجد خصومات.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="comparison-card mt-3">
+                        <div class="section-header">
+                            <h6 class="card-title mb-0">مقارنة التقرير السابق والحالي</h6>
+                        </div>
+                        <div class="comparison-meta">
+                            <div>التقرير الحالي: {{ selected_report.created_at|date:"Y-m-d H:i" }}</div>
+                            <div>
+                                التقرير السابق:
+                                {% if previous_report %}
+                                    {{ previous_report.created_at|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    غير متوفر
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if quick_courses_comparison %}
+                            <div class="comparison-grid">
+                                {% for item in quick_courses_comparison.items %}
+                                <div class="comparison-item">
+                                    <div class="label">{{ item.label }}</div>
+                                    <div class="value">{{ item.current|floatformat:0 }}</div>
+                                    <div class="delta {% if item.delta > 0 %}up{% elif item.delta < 0 %}down{% else %}flat{% endif %}">
+                                        الفرق: {{ item.delta|floatformat:0 }} ({{ item.trend }})
+                                    </div>
+                                    <div class="text-muted">السابق: {{ item.previous|floatformat:0 }}</div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if quick_courses_comparison.total_tracked %}
+                            <div class="text-muted mt-2">
+                                التحسينات: {{ quick_courses_comparison.improvement_count }} |
+                                التراجعات: {{ quick_courses_comparison.decline_count }}
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="text-muted">لا يوجد تقرير سابق للمقارنة بعد.</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                        <div class="text-muted">لا توجد بيانات.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-discounts">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">الخصومات</h5>
+                    </div>
+                    {% if selected_report %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm table-striped report-table">
+                            <thead>
+                                <tr>
+                                    <th>اسم الخصم</th>
+                                    <th>النوع</th>
+                                    <th>عدد مرات الاستخدام</th>
+                                    <th>مجموع قيمة الخصم</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in selected_report.summary.details.discounts_by_rule %}
+                                    <tr>
+                                        <td>{{ row.rule_name|default:"غير متوفر" }}</td>
+                                        <td>{{ row.type_label|default:"غير متوفر" }}</td>
+                                        <td>{{ row.count|intcomma }}</td>
+                                        <td>{{ row.total_value }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="4" class="text-muted">لا توجد خصومات.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="text-muted">لا توجد بيانات.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-accounts">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">الحسابات والأرصدة</h5>
+                    </div>
+                    {% if selected_report %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm table-striped report-table">
+                            <thead>
+                                <tr>
+                                    <th>الكود</th>
+                                    <th>اسم الحساب</th>
+                                    <th>الرصيد</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in selected_report.summary.details.account_balances %}
+                                    <tr>
+                                        <td>{{ row.code }}</td>
+                                        <td>{{ row.name }}</td>
+                                        <td>{{ row.balance }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="3" class="text-muted">لا توجد بيانات.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="text-muted">لا توجد بيانات.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-expenses">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">المصاريف</h5>
+                    </div>
+                    {% if selected_report %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm table-striped report-table">
+                            <thead>
+                                <tr>
+                                    <th>الحساب</th>
+                                    <th>اسم الحساب</th>
+                                    <th>المبلغ</th>
+                                    <th>عدد العمليات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in selected_report.summary.details.expense_accounts_top %}
+                                    <tr>
+                                        <td>{{ row.code }}</td>
+                                        <td>{{ row.name }}</td>
+                                        <td>{{ row.balance }}</td>
+                                        <td>{{ row.count|intcomma }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="4" class="text-muted">لا توجد بيانات.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="text-muted">لا توجد بيانات.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-addresses">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">العناوين الأكثر تكرارًا</h5>
+                    </div>
+                    {% if selected_report %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm table-striped report-table">
+                            <thead>
+                                <tr>
+                                    <th>العنوان</th>
+                                    <th>عدد التكرار</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in selected_report.summary.details.top_addresses %}
+                                    <tr>
+                                        <td>{{ row.address }}</td>
+                                        <td>{{ row.count|intcomma }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr><td colspan="2" class="text-muted">لا توجد بيانات.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="text-muted">لا توجد بيانات.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-filters">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">إعداد التقرير</h5>
+                    </div>
+                    <form method="post" class="filter-panel mt-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="manual">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">من</label>
+                                <input type="date" name="start_date" class="form-control" value="{{ selected_report.period_start|default:'' }}">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">إلى</label>
+                                <input type="date" name="end_date" class="form-control" value="{{ selected_report.period_end|default:'' }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">الدورة</label>
+                                <select name="course_id" class="form-select">
+                                    <option value="">كل الدورات</option>
+                                    {% for course in courses %}
+                                        <option value="{{ course.id }}">{{ course.name_ar|default:course.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">المستخدم</label>
+                                <select name="user_id" class="form-select">
+                                    <option value="">كل المستخدمين</option>
+                                    {% for user in users %}
+                                        <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">نطاق التقرير</label>
+                                <select name="report_scope" class="form-select">
+                                    <option value="">الكل</option>
+                                    <option value="regular">الدورات النظامية</option>
+                                    <option value="quick">الدورات السريعة</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-primary w-100" type="submit">إنشاء التقرير</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card report-card mt-3" id="section-comparison">
+                <div class="card-body">
+                    <div class="section-header">
+                        <h5 class="card-title">مقارنة كاملة بين التقرير الحالي والسابق</h5>
+                    </div>
+                    <div class="comparison-meta">
+                        <div>التقرير الحالي: {{ selected_report.created_at|date:"Y-m-d H:i" }}</div>
+                        <div>
+                            التقرير السابق:
+                            {% if previous_report %}
+                                {{ previous_report.created_at|date:"Y-m-d H:i" }}
+                            {% else %}
+                                غير متوفر
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if section_comparisons %}
+                        {% for section in section_comparisons %}
+                        <div class="comparison-section">
+                            <h6>{{ section.title }}</h6>
+                            <div class="comparison-grid">
+                                {% for item in section.items %}
+                                <div class="comparison-item">
+                                    <div class="label">{{ item.label }}</div>
+                                    <div class="value">{{ item.current|floatformat:0 }}</div>
+                                    <div class="delta {% if item.delta > 0 %}up{% elif item.delta < 0 %}down{% else %}flat{% endif %}">
+                                        الفرق: {{ item.delta|floatformat:0 }} ({{ item.trend }})
+                                    </div>
+                                    <div class="text-muted">السابق: {{ item.previous|floatformat:0 }}</div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if section.total_tracked %}
+                            <div class="text-muted mt-2">
+                                التحسينات: {{ section.improvement_count }} |
+                                التراجعات: {{ section.decline_count }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-muted">لا يوجد تقرير سابق للمقارنة بعد.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+{% if selected_report %}
+{{ selected_report.summary|json_script:"report-data" }}
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const themeToggle = document.getElementById('theme-toggle');
+    const savedTheme = localStorage.getItem('systemReportTheme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('theme-dark');
+    }
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('theme-dark');
+            localStorage.setItem(
+                'systemReportTheme',
+                document.body.classList.contains('theme-dark') ? 'dark' : 'light'
+            );
+        });
+    }
+</script>
+{% endblock %}

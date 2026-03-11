@@ -1,0 +1,79 @@
+<!-- students/quick_student_form.html -->
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-user-plus"></i></div>
+            <div>
+                <h1 class="page-title">إضافة طالب سريع</h1>
+                <p class="page-subtitle">املأ البيانات أدناه لإضافة طالب سريع</p>
+            </div>
+        </div>
+        <a href="{% url 'students:quick_student_list' %}" class="btn btn--ghost">
+            <i class="fas fa-arrow-right"></i>
+            <span>العودة للقائمة</span>
+        </a>
+    </div>
+
+    <div class="card">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="grid">
+                <div class="field">
+                    <label class="label" for="{{ form.full_name.id_for_label }}">الاسم الكامل</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-user"></i>
+                        {{ form.full_name|add_class:"input" }}
+                    </div>
+                    {% if form.full_name.errors %}
+                    <div class="field__error">{{ form.full_name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.phone.id_for_label }}">رقم الهاتف</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-phone"></i>
+                        {{ form.phone|add_class:"input" }}
+                    </div>
+                    {% if form.phone.errors %}
+                    <div class="field__error">{{ form.phone.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field">
+                    <label class="label" for="{{ form.email.id_for_label }}">البريد الإلكتروني</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-envelope"></i>
+                        {{ form.email|add_class:"input" }}
+                    </div>
+                    {% if form.email.errors %}
+                    <div class="field__error">{{ form.email.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="field field--full">
+                    <label class="label" for="{{ form.notes.id_for_label }}">ملاحظات</label>
+                    <div class="control control--with-icon">
+                        <i class="fas fa-sticky-note"></i>
+                        {{ form.notes|add_class:"input" }}
+                    </div>
+                    {% if form.notes.errors %}
+                    <div class="field__error">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn--primary">
+                    <i class="fas fa-save"></i> حفظ الطالب
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

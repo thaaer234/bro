@@ -1,0 +1,70 @@
+<!-- Quick Receipt Modal -->
+<div id="quickReceiptModal" class="modal">
+  <div class="modal-overlay"></div>
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3><i class="fas fa-receipt"></i> إيصال فوري</h3>
+      <button type="button" class="close-btn" data-close>
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="qr-course">اختر الدورة</label>
+        <select id="qr-course" class="form-control">
+          <option value="">-- اختر الدورة --</option>
+          {% for item in active_enrollments %}
+            {% if item.enrollment.is_completed == False %}
+              <option value="{{ item.enrollment.course.id }}" 
+                      data-price="{{ item.net_amount|default:item.enrollment.course.price }}" 
+                      data-remaining="{{ item.balance_due }}"
+                      data-enrollment-id="{{ item.enrollment.id }}"
+                      data-course-name="{{ item.enrollment.course.name }}">
+                {{ item.enrollment.course.name }} - المتبقي: {{ item.balance_due|floatformat:2 }} ل.س
+                {% if item.balance_due <= 0 %} (مكتمل الدفع){% endif %}
+              </option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        {% if not active_enrollments %}
+          <div class="alert alert-warning mt-2">
+            <i class="fas fa-exclamation-triangle"></i>
+            لا توجد دورات نشطة مسجلة للطالب
+          </div>
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <label for="qr-date">تاريخ الإيصال</label>
+        <input id="qr-date" type="date" class="form-control" value="{% now 'Y-m-d' %}">
+      </div>
+      <div class="form-group">
+        <label for="qr-amount">قيمة الدورة</label>
+        <input id="qr-amount" type="text" class="form-control formatted-input" placeholder="قيمة الدورة" readonly>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="qr-disc-pct">نسبة الخصم %</label>
+          <input id="qr-disc-pct" type="number" class="form-control" step="0.01" min="0" max="100" value="{{ student.discount_percent|default:0 }}">
+        </div>
+        <div class="form-group">
+          <label for="qr-disc-amt">قيمة الخصم</label>
+          <input id="qr-disc-amt" type="text" class="form-control formatted-input" value="{{ student.discount_amount|default:0 }}">
+        </div>
+      </div>
+      <div id="qr-net" class="net-amount" style="display:none">
+        <strong>المبلغ الصافي: <span id="qr-net-value">0</span> ل.س</strong>
+      </div>
+      <div class="form-group">
+        <label for="qr-paid">المبلغ المدفوع</label>
+        <input id="qr-paid" type="text" class="form-control formatted-input" value="0">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="qr-cancel" type="button" class="btn btn-outline" data-close>إلغاء</button>
+      <button id="qr-save" type="button" class="btn btn-primary" {% if not active_enrollments %}disabled{% endif %}>
+        <i class="fas fa-save"></i>
+        حفظ الإيصال
+      </button>
+    </div>
+  </div>
+</div>

@@ -3,6 +3,7 @@ from .models import Attendance , TeacherAttendance
 
 
 
+
 class AttendanceForm(forms.ModelForm):
     class Meta:
         model = Attendance
@@ -23,7 +24,7 @@ class AttendanceForm(forms.ModelForm):
 class TeacherAttendanceForm(forms.ModelForm):
     class Meta:
         model = TeacherAttendance
-        fields = ['teacher', 'date', 'status', 'session_count', 'notes']
+        fields = ['teacher', 'branch', 'date', 'status', 'session_count', 'notes']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'session_count': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
