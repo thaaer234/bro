@@ -21,22 +21,35 @@ class UserProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        print(f"=== بدء حفظ البروفايل ===")
-        print(f"المستخدم: {self.user.username}")
-        print(f"يوجد صورة: {bool(self.profile_picture)}")
-        
+        print("=== profile save start ===")
+        print(f"user: {self.user.username}")
+        print(f"has picture: {bool(self.profile_picture)}")
+
         if self.profile_picture:
-            print(f"اسم الصورة قبل الحفظ: {self.profile_picture.name}")
-            print(f"حجم الصورة: {self.profile_picture.size} bytes")
-        
-        # حفظ بدون ضغط أولاً
+            print(f"picture name (pre-save): {self.profile_picture.name}")
+            size = None
+            try:
+                if hasattr(self.profile_picture, "file") and self.profile_picture.file:
+                    size = self.profile_picture.file.size
+                else:
+                    size = self.profile_picture.size
+            except FileNotFoundError:
+                size = None
+            if size is not None:
+                print(f"image size: {size} bytes")
+            else:
+                print("image size: unavailable")
+
         super().save(*args, **kwargs)
-        
+
         if self.profile_picture:
-            print(f"اسم الصورة بعد الحفظ: {self.profile_picture.name}")
-            print(f"المسار الكامل: {self.profile_picture.path}")
-        
-        print("=== تم الحفظ بنجاح ===")
+            print(f"picture name (post-save): {self.profile_picture.name}")
+            if self.profile_picture.name and self.profile_picture.storage.exists(self.profile_picture.name):
+                print(f"image path: {self.profile_picture.path}")
+            else:
+                print("image path: missing file")
+
+        print("=== profile save done ===")
 
     def get_optimized_picture_url(self):
         if self.profile_picture:

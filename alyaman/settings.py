@@ -23,11 +23,14 @@ ALLOWED_HOSTS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://alyaman-institute.com',
-    'https://www.alyaman-institute.com',
     'http://alyaman-institute.com',
+    'https://alyaman-institute.com',
     'http://www.alyaman-institute.com',
+    'https://www.alyaman-institute.com',
+    'http://187.124.151.249',
+    'https://187.124.151.249',
 ]
+
 
 # ==============================
 # Applications
@@ -266,8 +269,8 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     # Set DJANGO_SSL_REDIRECT=1 after SSL is working.
     SECURE_SSL_REDIRECT = os.getenv("DJANGO_SSL_REDIRECT", "0") == "1"
-    SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
