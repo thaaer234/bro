@@ -2,6 +2,8 @@
 from django.contrib import admin
 from django.urls import path, include, reverse
 from django.contrib.auth.views import LoginView, LogoutView
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from django.shortcuts import redirect
 from django.http import HttpResponseForbidden
 from django.conf.urls import handler404, handler403, handler500
@@ -34,9 +36,13 @@ def catch_all_404(request, unknown_path=None):
 # أضف في الأعلى
 from errors.admin import admin_site
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class SafeLoginView(LoginView):
+    pass
+
 urlpatterns = [
-    path('login/', LoginView.as_view(
-        template_name='registration/login.html',
+    path('login/', SafeLoginView.as_view(
+            template_name='registration/login.html',
         redirect_authenticated_user=True
     ), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
