@@ -50,6 +50,35 @@ import traceback
 from accounts.models import Course, CostCenter
 User = get_user_model()
 
+
+def _parse_post_decimal(value, default='0'):
+    if value is None:
+        return Decimal(default)
+
+    text = str(value).strip()
+    if not text:
+        return Decimal(default)
+
+    text = (
+        text.replace('\u200f', '')
+        .replace('\u200e', '')
+        .replace('\xa0', '')
+        .replace(' ', '')
+        .replace('٬', '')
+        .replace('٫', '.')
+    )
+
+    if ',' in text and '.' not in text:
+        parts = text.split(',')
+        if len(parts) == 2 and len(parts[1]) <= 2:
+            text = '.'.join(parts)
+        else:
+            text = ''.join(parts)
+    else:
+        text = text.replace(',', '')
+
+    return Decimal(text)
+
 class StudentProfileView(LoginRequiredMixin, View):
     template_name = 'students/student_profile.html'
     
@@ -1346,8 +1375,8 @@ def update_student_discount(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     
     try:
-        discount_percent = Decimal(request.POST.get('discount_percent', '0'))
-        discount_amount = Decimal(request.POST.get('discount_amount', '0'))
+        discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
+        discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
         discount_reason = request.POST.get('discount_reason', '')
         
         # حفظ القيم القديمة
@@ -1389,8 +1418,8 @@ def update_student_discount(request, student_id):
         from django.db import transaction as db_transaction
         from accounts.models import Studentenrollment
         
-        discount_percent = Decimal(request.POST.get('discount_percent', '0'))
-        discount_amount = Decimal(request.POST.get('discount_amount', '0'))
+        discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
+        discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
         discount_reason = request.POST.get('discount_reason', '')
         
         print(f"بيانات التحديث: {discount_percent}% / {discount_amount} / {discount_reason}")

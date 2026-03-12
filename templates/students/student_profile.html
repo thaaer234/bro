@@ -3,6 +3,7 @@
 {% load emp_perms %}
 {% load static %}
 {% load student_filters %}
+{% load l10n %}
 
 {% block content %}
 <div class="student-profile" dir="rtl">
@@ -1071,7 +1072,7 @@
             <label for="update_discount_percent">نسبة الخصم %</label>
             <input type="number" id="update_discount_percent" 
                    class="form-control" step="0.01" min="0" max="100"
-                   value="{{ student.discount_percent|default:0 }}">
+                   value="{{ student.discount_percent|unlocalize|default:'0' }}">
           </div>
           <div class="form-group">
             <label for="update_discount_amount">قيمة الخصم</label>
