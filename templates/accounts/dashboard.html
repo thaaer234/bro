@@ -561,6 +561,16 @@ body {
             <div class="quick-action-title">ميزان المراجعة / Trial Balance</div>
             <div class="quick-action-desc">عرض تقرير ميزان المراجعة</div>
         </a>
+
+        {% if user.is_superuser or 'admin_logs' in emp_perms %}
+        <a href="{% url 'security_dashboard' %}" class="quick-action-btn fade-in delay-4">
+            <div class="quick-action-icon" style="background: rgba(230, 57, 70, 0.1); color: #e63946;">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <div class="quick-action-title">مركز الأمن / Security</div>
+            <div class="quick-action-desc">مراقبة الحوادث والحظر والتقارير</div>
+        </a>
+        {% endif %}
     </div>
 </div>
 

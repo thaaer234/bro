@@ -14,6 +14,11 @@ from django.views.generic import FormView, TemplateView, View
 
 from accounts.models import StudentReceipt, Studentenrollment, TeacherAdvance
 from attendance.models import Attendance, TeacherAttendance
+from announcements.services import (
+    count_unread_parent_announcements,
+    get_parent_announcements,
+    get_teacher_announcements,
+)
 from classroom.models import Classroom
 from courses.models import Subject
 from employ.models import ManualTeacherSalary, Teacher
@@ -976,6 +981,7 @@ class TeacherStudentDetailView(MobileSessionRequiredMixin, TemplateView):
         context.update(
             {
                 "teacher": teacher,
+                "teacher_announcements": get_teacher_announcements(teacher, limit=6, mark_read=True),
                 "student": student,
                 "student_classrooms": student_classrooms,
                 "selected_classroom": selected_classroom,
@@ -1095,8 +1101,12 @@ class TeacherStudentDetailView(MobileSessionRequiredMixin, TemplateView):
 class ParentContextMixin(MobileSessionRequiredMixin):
     allowed_roles = ["parent"]
 
+    def _get_login_role(self):
+        return self.request.session.get("mobile_login_role") or ""
+
     def _build_parent_context(self):
         student = self.request.mobile_profile
+        login_role = self._get_login_role()
         classroom_enrollments = student.classroom_enrollments.select_related("classroom")
         classroom_list = [enrollment.classroom for enrollment in classroom_enrollments]
         notifications_qs = MobileNotification.objects.filter(student=student).order_by(
@@ -1121,10 +1131,11 @@ class ParentContextMixin(MobileSessionRequiredMixin):
             "student": student,
             "classrooms": classroom_list,
             "general_info": general_info,
-            "notifications_count": notifications_qs.count(),
+            "notifications_count": notifications_qs.count() + count_unread_parent_announcements(student, login_role),
         }
 
     def _build_recent_parent_activity(self, student, limit=4):
+        login_role = self._get_login_role()
         attendance_qs = (
             Attendance.objects.filter(student=student)
             .select_related("classroom")
@@ -1138,6 +1149,7 @@ class ParentContextMixin(MobileSessionRequiredMixin):
         notifications_qs = MobileNotification.objects.filter(student=student).order_by(
             "-created_at"
         )[:limit]
+        latest_announcements = get_parent_announcements(student, login_role, limit=limit, mark_read=False)
 
         attendance_stats = Attendance.objects.filter(student=student).aggregate(
             total=Count("id"),
@@ -1147,7 +1159,7 @@ class ParentContextMixin(MobileSessionRequiredMixin):
         )
         unread_notifications = MobileNotification.objects.filter(
             student=student, is_read=False
-        ).count()
+        ).count() + count_unread_parent_announcements(student, login_role)
 
         grade_values = [
             grade
@@ -1175,6 +1187,7 @@ class ParentContextMixin(MobileSessionRequiredMixin):
             "latest_attendance": attendance_qs,
             "latest_grades": grades_qs,
             "latest_notifications": notifications_qs,
+            "latest_announcements": latest_announcements,
             "attendance_stats": attendance_stats,
             "grade_summary": grade_summary,
             "unread_notifications": unread_notifications,
@@ -1358,12 +1371,15 @@ class ParentNotificationsView(ParentContextMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         student = self.request.mobile_profile
+        login_role = self._get_login_role()
         notifications = MobileNotification.objects.filter(student=student).order_by(
             "-created_at"
         )[:20]
+        announcements = get_parent_announcements(student, login_role, limit=20, mark_read=True)
 
         context.update(
             {
+                "announcements": announcements,
                 "notifications": notifications,
                 "active_tab": "notifications",
             }

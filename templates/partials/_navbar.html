@@ -68,7 +68,18 @@
             <i class="fas fa-clipboard-list"></i>
             <span>تقرير النظام</span>
         </a>
+        <a href="{% url 'announcements:dashboard' %}" class="menu-item" data-module="announcements-admin">
+            <i class="fas fa-bullhorn"></i>
+            <span>التعاميم</span>
+        </a>
         {% endif %}
+        {% endif %}
+
+        {% if user.is_superuser or 'admin_logs' in emp_perms %}
+        <a href="{% url 'security_dashboard' %}" class="menu-item {% if request.path == '/security/' %}active{% endif %}" data-module="security-center">
+            <i class="fas fa-shield-halved"></i>
+            <span>مركز الأمن</span>
+        </a>
         {% endif %}
 
         <!-- إدارة الطلاب -->

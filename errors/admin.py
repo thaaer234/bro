@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect
 from django.db.models import Count, Q
 import datetime
 import json
-from .models import ErrorLog, SecurityAlert, ErrorAnalytics, UserTracking
+from .models import ErrorLog, SecurityAlert, ErrorAnalytics, UserTracking, SecurityIncident, SecurityArtifact, SecurityBlocklist, SecurityEvent, SecurityBranding
 
 class ErrorLogAdmin(admin.ModelAdmin):
     list_display = [
@@ -324,3 +324,35 @@ admin_site = CustomAdminSite(name='custom_admin')
 # admin.site.register(SecurityAlert, SecurityAlertAdmin)
 # admin.site.register(ErrorAnalytics, ErrorAnalyticsAdmin)
 # admin.site.register(UserTracking, UserTrackingAdmin)
+@admin.register(SecurityIncident)
+class SecurityIncidentAdmin(admin.ModelAdmin):
+    list_display = ['detected_at', 'title', 'severity', 'threat_score', 'ip_address', 'category', 'status']
+    list_filter = ['severity', 'category', 'status', 'source']
+    search_fields = ['title', 'ip_address', 'path', 'fingerprint_hash']
+    readonly_fields = ['detected_at', 'created_at', 'updated_at']
+
+
+@admin.register(SecurityArtifact)
+class SecurityArtifactAdmin(admin.ModelAdmin):
+    list_display = ['created_at', 'incident', 'artifact_type', 'label']
+    list_filter = ['artifact_type', 'created_at']
+    search_fields = ['label', 'incident__title']
+
+
+@admin.register(SecurityBlocklist)
+class SecurityBlocklistAdmin(admin.ModelAdmin):
+    list_display = ['created_at', 'target_type', 'value', 'is_active', 'expires_at', 'last_match_at']
+    list_filter = ['target_type', 'is_active']
+    search_fields = ['value', 'reason', 'notes']
+
+
+@admin.register(SecurityEvent)
+class SecurityEventAdmin(admin.ModelAdmin):
+    list_display = ['created_at', 'event_type', 'ip_address', 'path', 'incident']
+    list_filter = ['event_type', 'created_at']
+    search_fields = ['ip_address', 'path', 'fingerprint_hash']
+
+
+@admin.register(SecurityBranding)
+class SecurityBrandingAdmin(admin.ModelAdmin):
+    list_display = ['brand_name', 'sender_name', 'support_email', 'alert_recipient', 'updated_at']

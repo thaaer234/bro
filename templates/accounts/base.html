@@ -494,6 +494,13 @@ document.addEventListener('keydown', function(e) {
                 <i class="fas fa-hand-holding-usd"></i>
                 <span>المتبقي على الطلاب / الدفعات</span>
             </a>
+
+            {% if user.is_superuser or 'admin_logs' in emp_perms %}
+            <a href="{% url 'security_dashboard' %}" class="menu-item {% if request.path == '/security/' %}active{% endif %}">
+                <i class="fas fa-shield-halved"></i>
+                <span>مركز الأمن</span>
+            </a>
+            {% endif %}
             
             <!-- قسم النظام السريع -->
             <div class="menu-group">

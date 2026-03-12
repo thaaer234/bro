@@ -106,6 +106,29 @@
 
 <div class="card reveal" style="animation-delay: 0.04s;">
   <div class="section-title">
+    <i class="fas fa-bullhorn"></i>
+    التعاميم
+  </div>
+  <div class="list">
+    {% for announcement in teacher_announcements %}
+    <div class="list-item">
+      <h4>{{ announcement.title }}</h4>
+      <p>{{ announcement.message|truncatechars:160 }}</p>
+      {% if announcement.action_label and announcement.action_url %}
+      <p><a href="{{ announcement.action_url }}" target="_blank" rel="noopener">{{ announcement.action_label }}</a></p>
+      {% endif %}
+      <p class="muted">{{ announcement.created_at|date:"d/m/Y - h:i A" }}</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد تعاميم حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card reveal" style="animation-delay: 0.041s;">
+  <div class="section-title">
     <i class="fas fa-table-cells"></i>
     الوصول السريع للأقسام
   </div>

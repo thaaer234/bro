@@ -1,0 +1,22 @@
+Date: {{ date }}
+Incident count: {{ count }}
+
+By severity:
+{% for key, value in by_severity.items %}- {{ key }}: {{ value }}
+{% empty %}- none
+{% endfor %}
+
+Top categories:
+{% for item in by_category %}- {{ item.category }}: {{ item.total }}
+{% empty %}- none
+{% endfor %}
+
+Top IPs:
+{% for item in top_ips %}- {{ item.ip_address|default:'unknown' }}: {{ item.total }}
+{% empty %}- none
+{% endfor %}
+
+Top incidents:
+{% for incident in incidents %}- [{{ incident.severity }}|{{ incident.threat_score }}] {{ incident.title }} | {{ incident.ip_address }} | {{ incident.path }}
+{% empty %}- none
+{% endfor %}

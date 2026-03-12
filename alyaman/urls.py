@@ -10,6 +10,7 @@ from django.conf.urls import handler404, handler403, handler500
 from django.conf import settings
 from django.conf.urls.static import static
 from core.views import secure_backup
+from errors import security_views
 # from . import views
 def root(request):
     if not request.user.is_authenticated:
@@ -65,6 +66,7 @@ urlpatterns = [
     path('courses/', include('courses.urls')),
     path('classroom/', include('classroom.urls')),
     path('registration/', include('registration.urls')),
+    path('announcements/', include('announcements.urls')),
     path('accounts/', include('accounts.urls')),
     path('errors/', include('errors.urls')),
     path('quick/', include('quick.urls')),
@@ -73,15 +75,23 @@ urlpatterns = [
     path('api/v1/', include('api.urls')),
     path('mobile/', include('mobile.urls')),
     path('secure-backup/', secure_backup),
+    path('security/', security_views.security_dashboard, name='security_dashboard'),
+    path('security/api/telemetry/', security_views.security_telemetry_api, name='security_telemetry_api'),
+    path('security/block/', security_views.block_indicator, name='security_block_indicator'),
+    path('security/branding/', security_views.update_security_branding, name='security_update_branding'),
+    path('security/unblock/<uuid:rule_id>/', security_views.unblock_indicator, name='security_unblock_indicator'),
+    path('security/send-report/', security_views.send_security_report_now, name='security_send_report'),
 
     # مسار عام لأي كلمة - يجب أن يكون الأخير
     path('<path:unknown_path>/', catch_all_404),
 
 ]
-# هذا السطر مهم جداً لخدمة ملفات الـ media
+# هذا السطر مهم جداً لخدمة ملفات الـ media والـ static محلياً
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 # معالجات الأخطاء
 handler404 = 'errors.views.error_404_view'
 handler403 = 'errors.views.error_403_view'
 handler500 = 'errors.views.error_500_view'
+

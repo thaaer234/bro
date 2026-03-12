@@ -1,0 +1,12 @@
+Incident: {{ incident.title }}
+Severity: {{ incident.severity }}
+Threat score: {{ incident.threat_score }}
+Category: {{ incident.category }}
+IP: {{ incident.ip_address }}
+Path: {{ incident.path }}
+User: {{ incident.username_snapshot|default:'anonymous' }}
+Country: {{ incident.country }}
+City: {{ incident.city }}
+Blocked: {{ incident.is_blocked }}
+Investigation link: {{ incident.get_absolute_url }}
+Summary: {{ incident.summary }}

@@ -7,6 +7,7 @@ import socket
 import subprocess
 import platform
 import re
+from django.urls import reverse
 
 class ErrorLog(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -299,3 +300,170 @@ class UserTracking(models.Model):
         except:
             pass
         return {'isp': 'غير معروف', 'organization': 'غير معروف'}
+
+class SecurityIncident(models.Model):
+    SEVERITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    ]
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('investigating', 'Investigating'),
+        ('contained', 'Contained'),
+        ('closed', 'Closed'),
+    ]
+    SOURCE_CHOICES = [
+        ('middleware', 'Middleware'),
+        ('frontend', 'Frontend Telemetry'),
+        ('manual', 'Manual'),
+        ('report', 'Report'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    detected_at = models.DateTimeField(default=timezone.now)
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='middleware')
+    category = models.CharField(max_length=64)
+    title = models.CharField(max_length=255)
+    summary = models.TextField(blank=True)
+    severity = models.CharField(max_length=20, choices=SEVERITY_CHOICES, default='medium')
+    threat_score = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    username_snapshot = models.CharField(max_length=150, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    fingerprint_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    user_agent = models.TextField(blank=True)
+    method = models.CharField(max_length=10, blank=True)
+    path = models.CharField(max_length=500, blank=True)
+    referer = models.CharField(max_length=500, blank=True)
+    request_id = models.CharField(max_length=64, blank=True, db_index=True)
+    country = models.CharField(max_length=128, blank=True)
+    city = models.CharField(max_length=128, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    attack_tool = models.CharField(max_length=64, blank=True)
+    is_known_bot = models.BooleanField(default=False)
+    is_new_ip_for_user = models.BooleanField(default=False)
+    is_blocked = models.BooleanField(default=False)
+    html_snapshot = models.TextField(blank=True)
+    request_headers = models.JSONField(default=dict, blank=True)
+    request_query = models.JSONField(default=dict, blank=True)
+    request_post = models.JSONField(default=dict, blank=True)
+    forensic_context = models.JSONField(default=dict, blank=True)
+    first_seen_at = models.DateTimeField(default=timezone.now)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+    event_count = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['-detected_at']
+        indexes = [
+            models.Index(fields=['status', 'severity', 'detected_at']),
+            models.Index(fields=['ip_address', 'detected_at']),
+            models.Index(fields=['category', 'detected_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.category} [{self.severity}] {self.ip_address or '-'}"
+
+    def get_absolute_url(self):
+        return reverse('security_dashboard') + f'?incident={self.pk}'
+
+
+class SecurityArtifact(models.Model):
+    ARTIFACT_CHOICES = [
+        ('html', 'HTML Snapshot'),
+        ('upload_metadata', 'Upload Metadata'),
+        ('frontend_telemetry', 'Frontend Telemetry'),
+        ('screenshot', 'Screenshot'),
+        ('headers', 'Headers'),
+        ('note', 'Note'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    incident = models.ForeignKey(SecurityIncident, on_delete=models.CASCADE, related_name='artifacts')
+    artifact_type = models.CharField(max_length=32, choices=ARTIFACT_CHOICES)
+    label = models.CharField(max_length=255)
+    content = models.JSONField(default=dict, blank=True)
+    text_content = models.TextField(blank=True)
+    file = models.FileField(upload_to='security_artifacts/%Y/%m/%d/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.artifact_type} - {self.label}"
+
+
+class SecurityBlocklist(models.Model):
+    TARGET_CHOICES = [
+        ('ip', 'IP Address'),
+        ('fingerprint', 'Fingerprint'),
+        ('user', 'User'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    target_type = models.CharField(max_length=20, choices=TARGET_CHOICES)
+    value = models.CharField(max_length=255, db_index=True)
+    reason = models.CharField(max_length=255, blank=True)
+    notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_security_blocks')
+    expires_at = models.DateTimeField(null=True, blank=True)
+    last_match_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['target_type', 'value']
+
+    def __str__(self):
+        return f"{self.target_type}:{self.value}"
+
+    @property
+    def is_expired(self):
+        return bool(self.expires_at and self.expires_at <= timezone.now())
+
+
+class SecurityEvent(models.Model):
+    incident = models.ForeignKey(SecurityIncident, on_delete=models.CASCADE, related_name='events', null=True, blank=True)
+    event_type = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    fingerprint_hash = models.CharField(max_length=64, blank=True)
+    path = models.CharField(max_length=500, blank=True)
+    payload = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['event_type', 'created_at']),
+            models.Index(fields=['ip_address', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.event_type} @ {self.created_at:%Y-%m-%d %H:%M}"
+
+
+class SecurityBranding(models.Model):
+    brand_name = models.CharField(max_length=255, default='مركز الأمن - معهد اليمان')
+    brand_short = models.CharField(max_length=120, default='مركز الأمن')
+    sender_name = models.CharField(max_length=255, default='مركز الأمن - معهد اليمان')
+    support_email = models.EmailField(default='mhmadwerc8@gmail.com')
+    alert_recipient = models.EmailField(default='thaaeralmasre98@gmail.com')
+    dashboard_url = models.URLField(blank=True, default='http://127.0.0.1:8000/security/')
+    logo_url = models.URLField(blank=True)
+    subject_prefix = models.CharField(max_length=120, default='[مركز الأمن] ')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'هوية البريد الأمني'
+        verbose_name_plural = 'هويات البريد الأمني'
+
+    def __str__(self):
+        return self.brand_name

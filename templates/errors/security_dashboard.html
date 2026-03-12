@@ -1,0 +1,450 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <title>مركز الأمن</title>
+    <style>
+        :root {
+            --bg: #f6f1e8;
+            --ink: #15202b;
+            --card: rgba(255,255,255,.88);
+            --line: #d8cfc3;
+            --accent: #a61b29;
+            --accent-2: #0f766e;
+            --gold: #b7791f;
+            --muted: #5f6b76;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Tajawal", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(166,27,41,.10), transparent 28%),
+                radial-gradient(circle at bottom left, rgba(15,118,110,.10), transparent 24%),
+                linear-gradient(135deg, #f7f0e4, #ece4d7 55%, #f8f4ed);
+        }
+        .shell {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .hero {
+            background: linear-gradient(135deg, #1f2937, #7f1d1d 68%, #b91c1c);
+            color: #fff;
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: 0 24px 70px rgba(18, 22, 28, .18);
+        }
+        .hero-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .hero h1 { margin: 0 0 8px; font-size: 34px; }
+        .hero p { margin: 0; color: rgba(255,255,255,.84); }
+        .hero-actions { display:flex; gap: 12px; flex-wrap: wrap; }
+        .btn {
+            border: 0;
+            border-radius: 14px;
+            padding: 12px 18px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+        }
+        .btn-primary { background: #fff; color: #7f1d1d; }
+        .btn-secondary { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.18); }
+        .grid {
+            margin-top: 22px;
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 20px;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid rgba(255,255,255,.6);
+            backdrop-filter: blur(14px);
+            border-radius: 22px;
+            padding: 20px;
+            box-shadow: 0 14px 40px rgba(21, 32, 43, .07);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-top: 20px;
+        }
+        .stat {
+            background: rgba(255,255,255,.72);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 16px;
+        }
+        .stat .label { color: var(--muted); font-size: 14px; }
+        .stat .value { font-size: 30px; font-weight: 800; margin-top: 6px; }
+        .section-title { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+        .section-title h2, .section-title h3 { margin:0; font-size: 22px; }
+        .muted { color: var(--muted); }
+        .pill {
+            display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:5px 12px; font-size:12px; font-weight:700; color:#fff;
+        }
+        .low { background:#2f855a; }
+        .medium { background:#b7791f; }
+        .high { background:#c05621; }
+        .critical { background:#9b1c1c; }
+        .list, .timeline { display:flex; flex-direction:column; gap:12px; }
+        .incident-row, .timeline-item {
+            background: rgba(255,255,255,.74);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 14px;
+        }
+        .incident-row a { color: inherit; text-decoration: none; }
+        .incident-head { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+        .incident-meta { font-size:13px; color:var(--muted); margin-top:6px; }
+        .gallery {
+            display:grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 14px;
+        }
+        .shot {
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            box-shadow: 0 10px 24px rgba(21, 32, 43, .08);
+        }
+        .shot button {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+            text-align: right;
+        }
+        .shot img {
+            width: 100%;
+            height: 190px;
+            object-fit: cover;
+            display: block;
+            background: #ece7df;
+        }
+        .shot-body { padding: 12px; }
+        .mini { font-size: 13px; color: var(--muted); }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1.1fr .9fr;
+            gap: 16px;
+        }
+        .artifact-table, .simple-table { width:100%; border-collapse: collapse; }
+        .artifact-table th, .artifact-table td, .simple-table th, .simple-table td {
+            border-bottom: 1px solid var(--line);
+            padding: 10px 8px;
+            text-align: right;
+            vertical-align: top;
+        }
+        .artifact-preview {
+            max-height: 200px;
+            overflow: auto;
+            white-space: pre-wrap;
+            background: #f5efe6;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(12, 18, 24, .78);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 28px;
+            z-index: 9999;
+        }
+        .modal.open { display: flex; }
+        .modal-box {
+            max-width: 1100px;
+            width: 100%;
+            background: #fff;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0,0,0,.34);
+        }
+        .modal-head {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--line);
+        }
+        .modal-head button { border: 0; background: #111827; color: #fff; border-radius: 10px; padding: 8px 12px; cursor:pointer; }
+        .modal img { width: 100%; max-height: 78vh; object-fit: contain; background:#111827; }
+        input, textarea, select {
+            width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: rgba(255,255,255,.92);
+        }
+        textarea { min-height: 100px; }
+        .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .anchor-nav { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+        .anchor-nav a { color:#fff; text-decoration:none; background:rgba(255,255,255,.14); padding:10px 14px; border-radius:999px; }
+        @media (max-width: 1100px) {
+            .grid, .detail-grid { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+            .shell { padding: 14px; }
+            .hero h1 { font-size: 26px; }
+            .stats { grid-template-columns: 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <section class="hero">
+            <div class="hero-top">
+                <div>
+                    <h1>مركز الأمن والتحقيق الجنائي</h1>
+                    <p>لوحة عربية لمراقبة الحوادث، متابعة محاولات الاختراق، مراجعة الأدلة، وإدارة الحظر والتنبيهات.</p>
+                </div>
+                <div class="hero-actions">
+                    <form method="post" action="{% url 'security_send_report' %}">{% csrf_token %}<button class="btn btn-primary" type="submit">إرسال التقرير الآن</button></form>
+                    <a class="btn btn-secondary" href="#screenshots">معرض اللقطات</a>
+                </div>
+            </div>
+            <div class="anchor-nav">
+                <a href="#incidents">الحوادث</a>
+                <a href="#screenshots">لقطات الشاشة</a>
+                <a href="#timeline">الخط الزمني</a>
+                <a href="#blocklist">الحظر</a>
+                <a href="#branding">هوية البريد</a>
+            </div>
+            <div class="stats">
+                <div class="stat"><div class="label">الحوادث المفتوحة</div><div class="value">{{ open_incidents }}</div></div>
+                <div class="stat"><div class="label">الحوادث الحرجة</div><div class="value">{{ critical_incidents }}</div></div>
+                <div class="stat"><div class="label">قواعد الحظر</div><div class="value">{{ blocked_rules }}</div></div>
+                <div class="stat"><div class="label">لقطات الشاشة</div><div class="value">{{ screenshots_count }}</div></div>
+            </div>
+        </section>
+
+        <div class="grid">
+            <aside class="card" id="blocklist">
+                <div class="section-title"><h2>إدارة الحظر</h2></div>
+                <p class="muted">يمكنك حظر IP أو البصمة أو المستخدم. هذا الحظر يعمل فوراً من طبقة الـ middleware.</p>
+                <form method="post" action="{% url 'security_block_indicator' %}">
+                    {% csrf_token %}
+                    <div class="form-grid">
+                        <select name="target_type" required>
+                            <option value="ip">IP</option>
+                            <option value="fingerprint">Fingerprint</option>
+                            <option value="user">User ID</option>
+                        </select>
+                        <input name="value" placeholder="القيمة المطلوبة" required>
+                    </div>
+                    <p><input name="reason" placeholder="سبب الحظر"></p>
+                    <p><textarea name="notes" placeholder="ملاحظات التحقيق"></textarea></p>
+                    <button class="btn btn-primary" type="submit">حفظ قاعدة الحظر</button>
+                </form>
+                <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
+                <div class="section-title"><h3>أحدث قواعد الحظر</h3></div>
+                <div class="list">
+                    {% for rule in recent_blocks %}
+                    <div class="incident-row">
+                        <div><strong>{{ rule.target_type }}:</strong> <code>{{ rule.value }}</code></div>
+                        <div class="mini">{{ rule.reason|default:'بدون سبب' }}</div>
+                        <div style="margin-top:8px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                            <span class="mini">آخر مطابقة: {{ rule.last_match_at|default:'-' }}</span>
+                            {% if rule.is_active %}
+                            <form method="post" action="{% url 'security_unblock_indicator' rule.id %}">{% csrf_token %}<button class="btn btn-secondary" type="submit" style="color:#111">فك الحظر</button></form>
+                            {% else %}
+                            <span class="mini">غير مفعل</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="incident-row">لا توجد قواعد حظر حالياً.</div>
+                    {% endfor %}
+                </div>
+            </aside>
+
+            <section class="card" id="incidents">
+                <div class="section-title">
+                    <h2>الحوادث الأمنية</h2>
+                    <span class="muted">آخر 100 حادث</span>
+                </div>
+                <div class="list">
+                    {% for incident in incidents %}
+                    <div class="incident-row">
+                        <div class="incident-head">
+                            <div>
+                                <a href="?incident={{ incident.id }}#incident-detail"><strong>{{ incident.title }}</strong></a>
+                                <div class="incident-meta">{{ incident.detected_at }} | {{ incident.category }} | {{ incident.ip_address|default:'بدون IP' }}</div>
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                <span class="pill {{ incident.severity }}">{{ incident.severity }}</span>
+                                <strong>{{ incident.threat_score }}/100</strong>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px;">{{ incident.summary|default:incident.path }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="incident-row">لا توجد حوادث مسجلة حالياً.</div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <section class="card" id="branding" style="margin-top:20px;">
+            <div class="section-title">
+                <h2>هوية البريد والتحكم بالشكل</h2>
+                <span class="muted">عدّل الاسم الظاهر، رابط اللوحة، الشعار، والمستلم مباشرة من هنا</span>
+            </div>
+            <form method="post" action="{% url 'security_update_branding' %}">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <input name="brand_name" placeholder="اسم الهوية الكامل" value="{{ branding.brand_name|default:'مركز الأمن - معهد اليمان' }}">
+                    <input name="brand_short" placeholder="الاسم المختصر" value="{{ branding.brand_short|default:'مركز الأمن' }}">
+                    <input name="sender_name" placeholder="الاسم الظاهر في From" value="{{ branding.sender_name|default:'مركز الأمن - معهد اليمان' }}">
+                    <input name="subject_prefix" placeholder="بادئة عنوان الرسالة" value="{{ branding.subject_prefix|default:'[مركز الأمن] ' }}">
+                    <input name="support_email" placeholder="إيميل الدعم / الإرسال" value="{{ branding.support_email|default:'mhmadwerc8@gmail.com' }}">
+                    <input name="alert_recipient" placeholder="إيميل الاستقبال" value="{{ branding.alert_recipient|default:'thaaeralmasre98@gmail.com' }}">
+                    <input name="dashboard_url" placeholder="رابط لوحة التحقيق" value="{{ branding.dashboard_url|default:'http://127.0.0.1:8000/security/' }}">
+                    <input name="logo_url" placeholder="رابط الشعار العام" value="{{ branding.logo_url|default:'' }}">
+                </div>
+                <div style="margin-top:14px;">
+                    <button class="btn btn-primary" type="submit">حفظ الهوية البريدية</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="card" id="screenshots" style="margin-top:20px;">
+            <div class="section-title">
+                <h2>معرض لقطات الشاشة</h2>
+                <span class="muted">اضغط على أي صورة لفتحها بحجم كامل</span>
+            </div>
+            {% if screenshot_artifacts %}
+            <div class="gallery">
+                {% for shot in screenshot_artifacts %}
+                <div class="shot">
+                    <button type="button" data-image="{{ shot.file.url }}" data-title="{{ shot.incident.title }}">
+                        <img src="{{ shot.file.url }}" alt="{{ shot.label }}">
+                        <div class="shot-body">
+                            <strong>{{ shot.incident.title }}</strong>
+                            <div class="mini">{{ shot.incident.ip_address|default:'-' }} | {{ shot.created_at }}</div>
+                        </div>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="incident-row">
+                لا توجد لقطات شاشة محفوظة بعد. الواجهة أصبحت جاهزة لعرضها مباشرة بمجرد حفظ `SecurityArtifact` من نوع `screenshot` مع ملف صورة.
+            </div>
+            {% endif %}
+        </section>
+
+        <div class="detail-grid" style="margin-top:20px;">
+            <section class="card" id="incident-detail">
+                <div class="section-title"><h2>تفاصيل الحادث المحدد</h2></div>
+                {% if selected_incident %}
+                <div class="incident-row" style="margin-bottom:14px;">
+                    <div class="incident-head">
+                        <div>
+                            <strong>{{ selected_incident.title }}</strong>
+                            <div class="incident-meta">{{ selected_incident.detected_at }} | {{ selected_incident.category }} | {{ selected_incident.path }}</div>
+                        </div>
+                        <span class="pill {{ selected_incident.severity }}">{{ selected_incident.severity }}</span>
+                    </div>
+                    <div style="margin-top:8px;">{{ selected_incident.summary }}</div>
+                    <div class="incident-meta" style="margin-top:10px;">IP: {{ selected_incident.ip_address|default:'-' }} | المدينة: {{ selected_incident.city|default:'-' }} | البلد: {{ selected_incident.country|default:'-' }} | عدد الأحداث: {{ selected_incident.event_count }}</div>
+                </div>
+                <table class="artifact-table">
+                    <tr><th>النوع</th><th>الوصف</th><th>المحتوى</th></tr>
+                    {% for artifact in selected_incident.artifacts.all %}
+                    <tr>
+                        <td>{{ artifact.artifact_type }}</td>
+                        <td>{{ artifact.label }}</td>
+                        <td>
+                            {% if artifact.file %}
+                            <button class="btn btn-secondary" type="button" data-image="{{ artifact.file.url }}" data-title="{{ artifact.label }}">فتح الصورة</button>
+                            {% elif artifact.text_content %}
+                            <div class="artifact-preview">{{ artifact.text_content }}</div>
+                            {% else %}
+                            <div class="artifact-preview">{{ artifact.content }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3">لا توجد أدلة مرتبطة بهذا الحادث.</td></tr>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <div class="incident-row">اختر حادثاً من الأعلى لعرض التفاصيل والأدلة.</div>
+                {% endif %}
+            </section>
+
+            <section class="card" id="timeline">
+                <div class="section-title"><h2>الخط الزمني</h2></div>
+                <div class="timeline">
+                    {% for item in recent_timeline %}
+                    <div class="timeline-item">
+                        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
+                            <strong>{{ item.title }}</strong>
+                            <span class="pill {{ item.severity }}">{{ item.severity }}</span>
+                        </div>
+                        <div class="mini" style="margin-top:6px;">{{ item.detected_at }} | {{ item.ip_address|default:'-' }} | {{ item.category }}</div>
+                        <div style="margin-top:6px;">{{ item.summary|default:item.path }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="timeline-item">لا يوجد نشاط زمني بعد.</div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="modal" id="imageModal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <strong id="imageTitle">عرض الصورة</strong>
+                <button type="button" id="closeModal">إغلاق</button>
+            </div>
+            <img id="modalImage" src="" alt="preview">
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const imageTitle = document.getElementById('imageTitle');
+            const closeModal = document.getElementById('closeModal');
+
+            document.querySelectorAll('[data-image]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    modalImage.src = this.getAttribute('data-image');
+                    imageTitle.textContent = this.getAttribute('data-title') || 'عرض الصورة';
+                    modal.classList.add('open');
+                });
+            });
+
+            closeModal.addEventListener('click', function () {
+                modal.classList.remove('open');
+                modalImage.src = '';
+            });
+
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    modal.classList.remove('open');
+                    modalImage.src = '';
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

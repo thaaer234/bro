@@ -96,7 +96,86 @@
                             <i class="fas fa-id-card"></i>
                             المعلومات الشخصية
                         </h3>
+                        <p class="field-hint">يمكنك تعديل اسم المستخدم والبريد الإلكتروني من القسم العلوي ثم حفظ التغييرات.</p>
                         
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="{{ form.username.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user-circle"></i>
+                                    اسم المستخدم
+                                </label>
+                                <div class="input-with-icon">
+                                    {{ form.username }}
+                                    <i class="input-icon fas fa-user"></i>
+                                </div>
+                                {% if form.username.errors %}
+                                <div class="field-errors">
+                                    {% for error in form.username.errors %}
+                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user"></i>
+                                    الاسم الأول
+                                </label>
+                                <div class="input-with-icon">
+                                    {{ form.first_name }}
+                                    <i class="input-icon fas fa-id-badge"></i>
+                                </div>
+                                {% if form.first_name.errors %}
+                                <div class="field-errors">
+                                    {% for error in form.first_name.errors %}
+                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="form-group">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user-tag"></i>
+                                    اسم العائلة
+                                </label>
+                                <div class="input-with-icon">
+                                    {{ form.last_name }}
+                                    <i class="input-icon fas fa-address-card"></i>
+                                </div>
+                                {% if form.last_name.errors %}
+                                <div class="field-errors">
+                                    {% for error in form.last_name.errors %}
+                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">
+                                    <i class="fas fa-envelope"></i>
+                                    البريد الإلكتروني
+                                </label>
+                                <div class="input-with-icon">
+                                    {{ form.email }}
+                                    <i class="input-icon fas fa-at"></i>
+                                </div>
+                                {% if form.email.errors %}
+                                <div class="field-errors">
+                                    {% for error in form.email.errors %}
+                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
                         <div class="form-row">
                             <div class="form-group full-width">
                                 <label for="{{ form.phone.id_for_label }}" class="form-label">
@@ -153,9 +232,9 @@
                                 </label>
                                 <div class="readonly-field">
                                     <span class="field-value">{{ user.username }}</span>
-                                    <i class="fas fa-lock readonly-icon"></i>
+                                    <i class="fas fa-pen readonly-icon"></i>
                                 </div>
-                                <span class="field-hint">لا يمكن تعديل اسم المستخدم</span>
+                                <span class="field-hint">يمكنك تعديل اسم المستخدم من القسم العلوي ثم حفظ التغييرات</span>
                             </div>
                             
                             <div class="form-group">
@@ -165,9 +244,9 @@
                                 </label>
                                 <div class="readonly-field">
                                     <span class="field-value">{{ user.email|default:'غير محدد' }}</span>
-                                    <i class="fas fa-lock readonly-icon"></i>
+                                    <i class="fas fa-pen readonly-icon"></i>
                                 </div>
-                                <span class="field-hint">لا يمكن تعديل البريد الإلكتروني</span>
+                                <span class="field-hint">يمكنك تعديل البريد الإلكتروني من القسم العلوي ثم حفظ التغييرات</span>
                             </div>
                         </div>
                     </div>

@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#efe7db;font-family:'Segoe UI',Tahoma,sans-serif;color:#18212b;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#efe7db;padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:860px;background:#fffaf3;border-radius:24px;overflow:hidden;border:1px solid #e5d9c8;box-shadow:0 20px 60px rgba(24,33,43,.10);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#0f172a,#7c2d12 70%,#b45309);padding:28px;color:#fff;">
+              <table role="presentation" width="100%"><tr>
+                <td>
+                  <div style="font-size:13px;letter-spacing:.12em;opacity:.8;">{{ brand_short }}</div>
+                  <h1 style="margin:8px 0 10px;font-size:28px;">التقرير الأمني اليومي</h1>
+                  <div style="font-size:15px;opacity:.92;">ملخص الحوادث الأمنية ليوم {{ date }}</div>
+                </td>
+                {% if logo_url %}
+                <td style="width:96px;text-align:left;vertical-align:top;">
+                  <img src="{{ logo_url }}" alt="{{ brand_name }}" style="max-width:72px;border-radius:14px;background:#fff;padding:6px;">
+                </td>
+                {% endif %}
+              </tr></table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 28px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:18px;">
+                <tr>
+                  <td width="33.33%" style="padding:14px;background:#f8f1e7;border:1px solid #eadcca;border-radius:16px;text-align:center;">
+                    <div style="font-size:13px;color:#6b7280;">عدد الحوادث</div>
+                    <div style="font-size:28px;font-weight:800;margin-top:6px;">{{ count }}</div>
+                  </td>
+                  <td width="33.33%" style="padding:14px 8px;"></td>
+                  <td width="33.33%" style="padding:14px;background:#f8f1e7;border:1px solid #eadcca;border-radius:16px;text-align:center;">
+                    <div style="font-size:13px;color:#6b7280;">لوحة التحقيق</div>
+                    <div style="margin-top:10px;"><a href="{{ dashboard_url }}" style="display:inline-block;padding:10px 18px;border-radius:12px;background:#1f2937;color:#fff;text-decoration:none;font-weight:700;">فتح المركز</a></div>
+                  </td>
+                </tr>
+              </table>
+
+              <h2 style="font-size:18px;margin:0 0 10px;">حسب مستوى الخطورة</h2>
+              <ul style="margin:0 0 18px;padding-right:18px;line-height:1.9;">
+                {% for key, value in by_severity.items %}<li>{{ key }}: {{ value }}</li>{% empty %}<li>لا يوجد</li>{% endfor %}
+              </ul>
+
+              <h2 style="font-size:18px;margin:0 0 10px;">أكثر التصنيفات</h2>
+              <ul style="margin:0 0 18px;padding-right:18px;line-height:1.9;">
+                {% for item in by_category %}<li>{{ item.category }}: {{ item.total }}</li>{% empty %}<li>لا يوجد</li>{% endfor %}
+              </ul>
+
+              <h2 style="font-size:18px;margin:0 0 10px;">أكثر عناوين IP</h2>
+              <ul style="margin:0 0 18px;padding-right:18px;line-height:1.9;">
+                {% for item in top_ips %}<li>{{ item.ip_address|default:'unknown' }}: {{ item.total }}</li>{% empty %}<li>لا يوجد</li>{% endfor %}
+              </ul>
+
+              <h2 style="font-size:18px;margin:0 0 12px;">أهم الحوادث</h2>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #eadcca;border-radius:16px;overflow:hidden;">
+                <thead>
+                  <tr style="background:#f8f1e7;">
+                    <th style="text-align:right;padding:12px;border-bottom:1px solid #eadcca;">العنوان</th>
+                    <th style="text-align:right;padding:12px;border-bottom:1px solid #eadcca;">الخطورة</th>
+                    <th style="text-align:right;padding:12px;border-bottom:1px solid #eadcca;">IP</th>
+                    <th style="text-align:right;padding:12px;border-bottom:1px solid #eadcca;">المسار</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for incident in incidents %}
+                  <tr>
+                    <td style="padding:12px;border-bottom:1px solid #f0e6da;">{{ incident.title }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #f0e6da;">{{ incident.severity }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #f0e6da;">{{ incident.ip_address }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #f0e6da;">{{ incident.path }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="4" style="padding:12px;">لا توجد حوادث.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 28px;background:#f5ecdf;border-top:1px solid #eadcca;color:#6b7280;font-size:13px;">
+              <strong>{{ brand_name }}</strong>
+              {% if support_email %}<span style="display:block;margin-top:6px;">للدعم: {{ support_email }}</span>{% endif %}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

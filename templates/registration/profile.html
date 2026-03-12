@@ -191,6 +191,16 @@
                                             <span class="field-value">{{ user.username }}</span>
                                         </div>
                                     </div>
+
+                                    <div class="info-field">
+                                        <div class="field-icon">
+                                            <i class="fas fa-id-card"></i>
+                                        </div>
+                                        <div class="field-content">
+                                            <label>الاسم الكامل</label>
+                                            <span class="field-value">{{ user.get_full_name|default:"غير محدد" }}</span>
+                                        </div>
+                                    </div>
                                     
                                     <div class="info-field">
                                         <div class="field-icon">

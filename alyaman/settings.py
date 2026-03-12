@@ -4,6 +4,7 @@ Django settings for alyaman project.
 
 from pathlib import Path
 import os
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -12,7 +13,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ==============================
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-me-in-production!")
 BACKUP_KEY = os.getenv("BACKUP_KEY", "MY_SUPER_BACKUP_KEY_123")
-DEBUG = False
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+RUNNING_LOCAL_SERVER = 'runserver' in sys.argv
+DEBUG = env_bool("DJANGO_DEBUG", RUNNING_LOCAL_SERVER)
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -60,6 +71,7 @@ INSTALLED_APPS = [
     "courses",
     "classroom",
     "registration",
+    "announcements.apps.AnnouncementsConfig",
     "api.apps.ApiConfig",
     "accounts",
     "mobile.apps.MobileConfig",
@@ -130,6 +142,7 @@ MIDDLEWARE = [
     # Custom middleware (temporarily disabled for debugging)
     # 'alyaman.middleware.RecursionProtectionMiddleware',
     
+    'errors.security_middleware.SecurityIntelligenceMiddleware',
     'errors.middleware.SecurityHeadersMiddleware',
     'errors.middleware.Universal404Middleware',
     
@@ -164,6 +177,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 'employ.context_processors.employee_permissions',
+                'announcements.context_processors.web_announcements',
                 'django.template.context_processors.media',
             ],
             "libraries": {
@@ -347,10 +361,39 @@ LOGGING = {
 # ==============================
 # Email Settings
 # ==============================
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'webmaster@alyaman.com'
-EMAIL_HOST = 'localhost'
-EMAIL_PORT = 25
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.smtp.EmailBackend'
+)
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', f"مركز الأمن - معهد اليمان <{os.getenv('EMAIL_HOST_USER', 'mhmadwerc8@gmail.com')}>")
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'mhmadwerc8@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'eyft acyj dccx qjvl')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', '1') == '1'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', '0') == '1'
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
+EMAIL_SSL_CERTFILE = os.getenv('EMAIL_SSL_CERTFILE') or None
+EMAIL_SSL_KEYFILE = os.getenv('EMAIL_SSL_KEYFILE') or None
+EMAIL_SUBJECT_PREFIX = os.getenv('EMAIL_SUBJECT_PREFIX', '[مركز الأمن] ')
+SECURITY_ALERT_EMAILS = [item.strip() for item in os.getenv('SECURITY_ALERT_EMAILS', 'thaaeralmasre98@gmail.com').split(',') if item.strip()]
+SECURITY_REPORT_EMAILS = [item.strip() for item in os.getenv('SECURITY_REPORT_EMAILS', 'thaaeralmasre98@gmail.com').split(',') if item.strip()]
+
+SECURITY_BRAND_NAME = os.getenv('SECURITY_BRAND_NAME', 'مركز الأمن - معهد اليمان')
+SECURITY_BRAND_SHORT = os.getenv('SECURITY_BRAND_SHORT', 'مركز الأمن')
+SECURITY_SUPPORT_EMAIL = os.getenv('SECURITY_SUPPORT_EMAIL', 'mhmadwerc8@gmail.com')
+SECURITY_DASHBOARD_URL = os.getenv('SECURITY_DASHBOARD_URL', 'http://127.0.0.1:8000/security/')
+SECURITY_LOGO_URL = os.getenv('SECURITY_LOGO_URL', '')
+PASSWORD_RESET_APPROVAL_EMAILS = [item.strip() for item in os.getenv('PASSWORD_RESET_APPROVAL_EMAILS', ','.join(SECURITY_ALERT_EMAILS) if SECURITY_ALERT_EMAILS else EMAIL_HOST_USER).split(',') if item.strip()]
+PASSWORD_RESET_APPROVAL_MAX_AGE_SECONDS = int(os.getenv('PASSWORD_RESET_APPROVAL_MAX_AGE_SECONDS', '172800'))
+PASSWORD_RESET_BASE_URL = os.getenv('PASSWORD_RESET_BASE_URL', '')
+WHATSAPP_ENABLED = os.getenv('WHATSAPP_ENABLED', '0') == '1'
+WHATSAPP_PROVIDER = os.getenv('WHATSAPP_PROVIDER', 'meta_cloud').strip().lower()
+WHATSAPP_API_URL = os.getenv('WHATSAPP_API_URL', 'https://graph.facebook.com/v22.0')
+WHATSAPP_PHONE_NUMBER_ID = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '')
+WHATSAPP_ACCESS_TOKEN = os.getenv('WHATSAPP_ACCESS_TOKEN', '')
+WHATSAPP_DEFAULT_COUNTRY_CODE = os.getenv('WHATSAPP_DEFAULT_COUNTRY_CODE', '963')
 
 # ==============================
 # Custom Application Settings
@@ -458,3 +501,15 @@ if DEBUG:
         INTERNAL_IPS = ['127.0.0.1', 'localhost']
     except ImportError:
         pass
+
+SECURITY_MONITORING = {
+    'ENABLED': True,
+    'ALERT_EMAILS': SECURITY_ALERT_EMAILS,
+    'DAILY_REPORT_EMAILS': SECURITY_REPORT_EMAILS or SECURITY_ALERT_EMAILS,
+    'MAX_HTML_CAPTURE': 20000,
+    'MAX_BODY_CAPTURE': 2000,
+    'BRUTE_FORCE_WINDOW_SECONDS': 900,
+    'BRUTE_FORCE_THRESHOLD': 8,
+    'REPORT_INCLUDE_ARTIFACTS': True,
+}
+

@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4 announcement-detail-page">
+    <div class="detail-shell">
+        <div class="detail-head">
+            <div>
+                <a href="{% url 'announcements:dashboard' %}" class="back-link">الرجوع إلى التعاميم</a>
+                <h1>{{ announcement.title }}</h1>
+                <div class="head-meta">
+                    <span>{{ announcement.get_audience_type_display }}</span>
+                    <span>{{ announcement.created_at|date:"Y/m/d H:i" }}</span>
+                    {% if announcement.is_active %}
+                    <span class="pill pill-on">مفعل</span>
+                    {% else %}
+                    <span class="pill pill-off">موقوف</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-5">
+                <div class="detail-card">
+                    <h3>نص التعميم</h3>
+                    <div class="message-box">
+                        <h4>{{ announcement.title }}</h4>
+                        <p>{{ announcement.message }}</p>
+                        {% if announcement.action_label and announcement.action_url %}
+                        <a href="{{ announcement.action_url }}" class="action-link" target="_blank" rel="noopener">{{ announcement.action_label }}</a>
+                        {% endif %}
+                    </div>
+                    <div class="summary-grid">
+                        <div class="summary-box">
+                            <strong>{{ targeted_count }}</strong>
+                            <span>مستهدفون</span>
+                        </div>
+                        <div class="summary-box">
+                            <strong>{{ announcement.read_count }}</strong>
+                            <span>تمت قراءته</span>
+                        </div>
+                        <div class="summary-box">
+                            <strong>{{ announcement.dismiss_count }}</strong>
+                            <span>تم إغلاقه</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-card">
+                    <h3>معاينة التخصيص</h3>
+                    {% for preview in previews %}
+                    <div class="preview-box">
+                        <strong>{{ preview.label }}</strong>
+                        <h4>{{ preview.title }}</h4>
+                        <p>{{ preview.message }}</p>
+                        {% if preview.action_label and preview.action_url %}
+                        <a href="{{ preview.action_url }}" class="action-link" target="_blank" rel="noopener">{{ preview.action_label }}</a>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="empty-state">لا يوجد سجل مناسب للمعاينة حالياً.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="detail-card">
+                    <div class="receipts-head">
+                        <h3>سجل القراءة</h3>
+                        <span>{{ receipts|length }} سجل</span>
+                    </div>
+                    <div class="receipts-list">
+                        {% for receipt in receipts %}
+                        <div class="receipt-item">
+                            <div class="receipt-top">
+                                <strong>{{ receipt.recipient_label }}</strong>
+                                <span>{{ receipt.updated_at|date:"Y/m/d H:i" }}</span>
+                            </div>
+                            <div class="receipt-meta">
+                                <span>أول ظهور: {{ receipt.first_seen_at|date:"Y/m/d H:i"|default:"-" }}</span>
+                                <span>قراءة: {{ receipt.read_at|date:"Y/m/d H:i"|default:"-" }}</span>
+                                <span>إغلاق: {{ receipt.dismissed_at|date:"Y/m/d H:i"|default:"-" }}</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state">لم يقرأ أحد هذا التعميم بعد.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.announcement-detail-page {
+    font-family: 'Cairo', 'Tajawal', sans-serif;
+}
+
+.detail-shell {
+    max-width: 1400px;
+}
+
+.detail-head {
+    background: linear-gradient(135deg, #111827, #1d4ed8);
+    color: #fff;
+    border-radius: 26px;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+}
+
+.back-link {
+    color: rgba(255,255,255,.8);
+    text-decoration: none;
+}
+
+.detail-head h1 {
+    margin: 10px 0 0;
+    font-size: 2rem;
+}
+
+.head-meta {
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pill {
+    padding: 5px 10px;
+    border-radius: 999px;
+}
+
+.pill-on {
+    background: rgba(34,197,94,.18);
+    color: #bbf7d0;
+}
+
+.pill-off {
+    background: rgba(248,113,113,.18);
+    color: #fecaca;
+}
+
+.detail-card {
+    background: #fff;
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+    margin-bottom: 20px;
+}
+
+.message-box {
+    background: #f8fafc;
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.message-box h4 {
+    margin: 0 0 12px;
+}
+
+.message-box p,
+.preview-box p {
+    margin: 0;
+    white-space: pre-line;
+}
+
+.action-link {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #1d4ed8;
+    color: #fff;
+    text-decoration: none;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.summary-box {
+    background: #eff6ff;
+    border-radius: 16px;
+    padding: 14px;
+    text-align: center;
+}
+
+.summary-box strong {
+    display: block;
+    font-size: 1.5rem;
+    color: #1d4ed8;
+}
+
+.preview-box,
+.receipt-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 14px 16px;
+}
+
+.preview-box + .preview-box,
+.receipt-item + .receipt-item {
+    margin-top: 12px;
+}
+
+.preview-box strong {
+    color: #0f766e;
+}
+
+.preview-box h4 {
+    margin: 6px 0 8px;
+}
+
+.receipts-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.receipt-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.receipt-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: #64748b;
+    font-size: .92rem;
+}
+
+.empty-state {
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 22px;
+    text-align: center;
+    color: #64748b;
+}
+
+@media (max-width: 768px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
