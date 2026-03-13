@@ -77,14 +77,19 @@ class SecurityIntelligenceMiddleware:
 
         login_paths = ['/login/', '/accounts/login/']
         if any(request.path.startswith(path) for path in login_paths) and request.method == 'POST':
-            key = f"security:login:{get_client_ip(request)}"
-            window = get_monitoring_settings()['BRUTE_FORCE_WINDOW_SECONDS']
-            attempts = cache.get(key, 0) + 1
-            cache.set(key, attempts, timeout=window)
-            if attempts >= get_monitoring_settings()['BRUTE_FORCE_THRESHOLD']:
-                return 'brute_force', {
-                    'title': 'Repeated failed or risky login traffic',
-                    'summary': f'Login attempts reached {attempts} within {window} seconds',
-                }
+            login_succeeded = (
+                response.status_code in {301, 302}
+                or bool(getattr(request, 'user', None) and request.user.is_authenticated)
+            )
+            if not login_succeeded:
+                key = f"security:login:{get_client_ip(request)}"
+                window = get_monitoring_settings()['BRUTE_FORCE_WINDOW_SECONDS']
+                attempts = cache.get(key, 0) + 1
+                cache.set(key, attempts, timeout=window)
+                if attempts >= get_monitoring_settings()['BRUTE_FORCE_THRESHOLD']:
+                    return 'brute_force', {
+                        'title': 'Repeated failed or risky login traffic',
+                        'summary': f'Failed login attempts reached {attempts} within {window} seconds',
+                    }
 
         return None, None

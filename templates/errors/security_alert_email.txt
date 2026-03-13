@@ -1,12 +1,14 @@
-Incident: {{ incident.title }}
-Severity: {{ incident.severity }}
-Threat score: {{ incident.threat_score }}
-Category: {{ incident.category }}
-IP: {{ incident.ip_address }}
-Path: {{ incident.path }}
-User: {{ incident.username_snapshot|default:'anonymous' }}
-Country: {{ incident.country }}
-City: {{ incident.city }}
-Blocked: {{ incident.is_blocked }}
-Investigation link: {{ incident.get_absolute_url }}
-Summary: {{ incident.summary }}
+تنبيه أمني فوري
+
+العنوان: {{ incident.title }}
+مستوى الخطورة: {{ incident.severity }}
+درجة التهديد: {{ incident.threat_score }}
+التصنيف: {{ incident.category }}
+عنوان IP: {{ incident.ip_address }}
+المسار: {{ incident.path }}
+المستخدم: {{ incident.username_snapshot|default:'مجهول' }}
+الدولة: {{ incident.country|default:'غير محدد' }}
+المدينة: {{ incident.city|default:'غير محدد' }}
+تم الحظر: {% if incident.is_blocked %}نعم{% else %}لا{% endif %}
+رابط التحقيق: {{ dashboard_url }}
+الملخص: {{ incident.summary }}

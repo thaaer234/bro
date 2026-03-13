@@ -7,3 +7,5 @@ class PagesConfig(AppConfig):
     
     def ready(self):
         import pages.signals
+        from .scheduler import start_background_scheduler
+        start_background_scheduler()

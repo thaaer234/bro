@@ -337,6 +337,75 @@ document.addEventListener('keydown', function(e) {
     })();
     </script>
 
+    <script>
+    (function () {
+        var isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+        if (!isAuthenticated) {
+            return;
+        }
+
+        var idleLimitMs = 30 * 60 * 1000;
+        var storageKey = 'shared-last-activity-at';
+        var logoutInProgress = false;
+
+        function getCookie(name) {
+            var value = '; ' + document.cookie;
+            var parts = value.split('; ' + name + '=');
+            if (parts.length === 2) {
+                return parts.pop().split(';').shift();
+            }
+            return '';
+        }
+
+        function stampActivity() {
+            localStorage.setItem(storageKey, String(Date.now()));
+        }
+
+        function lastActivityAt() {
+            var raw = localStorage.getItem(storageKey);
+            var parsed = parseInt(raw || '0', 10);
+            return Number.isFinite(parsed) && parsed > 0 ? parsed : Date.now();
+        }
+
+        function forceLogout() {
+            if (logoutInProgress) {
+                return;
+            }
+            logoutInProgress = true;
+
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = "{% url 'logout' %}";
+            form.style.display = 'none';
+
+            var csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrfmiddlewaretoken';
+            csrf.value = getCookie('csrftoken');
+            form.appendChild(csrf);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(function (eventName) {
+            document.addEventListener(eventName, stampActivity, { passive: true });
+        });
+        window.addEventListener('storage', function (event) {
+            if (event.key === storageKey && event.newValue) {
+                logoutInProgress = false;
+            }
+        });
+
+        stampActivity();
+        setInterval(function () {
+            if ((Date.now() - lastActivityAt()) >= idleLimitMs) {
+                forceLogout();
+            }
+        }, 60000);
+    })();
+    </script>
+
     {% if web_announcements %}
     <script>
     (function () {

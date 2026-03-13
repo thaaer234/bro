@@ -1,0 +1,45 @@
+التقرير اليومي لعمليات المستخدمين
+التاريخ: {{ date }}
+وقت الإنشاء: {{ generated_at|date:"Y-m-d H:i" }}
+رقم التقرير: {{ report.id }}
+
+ملخص عام
+- عدد المستخدمين الظاهرين بالتقرير: {{ users|length }}
+- إجمالي النشاطات: {{ summary.activity.total }}
+- حضور الطلاب: {{ summary.attendance.students_records }}
+- حضور المدرسين: {{ summary.attendance.teachers_records }}
+- إجمالي المقبوضات: {{ summary.transactions.credit_total }}
+- إجمالي المصروفات: {{ summary.transactions.debit_total }}
+
+تفاصيل المستخدمين
+{% for user in users %}
+- {{ user.full_name }} ({{ user.username }})
+  الدخول: {% if user.logins %}{{ user.logins|join:", " }}{% else %}لا يوجد{% endif %}
+  الخروج: {% if user.logouts %}{{ user.logouts|join:", " }}{% else %}لا يوجد{% endif %}
+  مدة النشاط: {{ user.active_time_label|default:"0" }}
+  إجمالي النشاطات: {{ user.activity_total }}
+  حضور الطلاب: {{ user.attendance_students_count }}
+  عدد الشعب المأخوذ حضورها: {{ user.attendance_classrooms_count }}
+  حضور المدرسين: {{ user.attendance_teachers_count }}
+  الجلسات: {{ user.teacher_sessions_count }}
+  الإيصالات النظامية: {{ user.receipts_students_count }} | المبلغ: {{ user.receipts_students_amount }}
+  الإيصالات السريعة: {{ user.receipts_quick_count }} | المبلغ: {{ user.receipts_quick_amount }}
+  المصروفات: {{ user.expenses_count }} | المبلغ: {{ user.expenses_amount }}
+  {% if user.cash_box %}رصيد الصندوق: {{ user.cash_box.balance }} ({{ user.cash_box.code }}){% else %}رصيد الصندوق: لا يوجد{% endif %}
+  {% if user.student_attendance_summary %}
+  الشعب التي سُجّل لها حضور:
+  {% for item in user.student_attendance_summary %}
+    - {{ item.classroom_name }}: {{ item.records_count }}
+  {% endfor %}
+  {% endif %}
+  {% if user.operations %}
+  آخر العمليات:
+  {% for operation in user.operations %}
+    - {{ operation.time }} | {{ operation.action }} | {{ operation.content_type }}{% if operation.object_repr %} | {{ operation.object_repr }}{% endif %}
+  {% endfor %}
+  {% endif %}
+{% empty %}
+- لا يوجد نشاط مسجل لهذا اليوم.
+{% endfor %}
+
+هذه نسخة مختصرة من التقرير اليومي. البيانات الكاملة محفوظة داخل النظام.

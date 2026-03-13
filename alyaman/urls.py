@@ -11,6 +11,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from core.views import secure_backup
 from errors import security_views
+from errors.security import capture_login_event
 # from . import views
 def root(request):
     if not request.user.is_authenticated:
@@ -39,7 +40,31 @@ from errors.admin import admin_site
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class SafeLoginView(LoginView):
-    pass
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        try:
+            capture_login_event(
+                self.request,
+                success=True,
+                username=form.get_user().get_username(),
+            )
+        except Exception:
+            pass
+        return response
+
+    def form_invalid(self, form):
+        try:
+            username = self.request.POST.get('username', '')
+            error_text = ' | '.join(form.errors.get('__all__', [])) if hasattr(form, 'errors') else ''
+            capture_login_event(
+                self.request,
+                success=False,
+                username=username,
+                failure_reason=error_text or 'اسم المستخدم أو كلمة المرور غير صحيحة',
+            )
+        except Exception:
+            pass
+        return super().form_invalid(form)
 
 urlpatterns = [
     path('login/', SafeLoginView.as_view(

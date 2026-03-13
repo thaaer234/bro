@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -514,6 +515,7 @@
             
             <form id="loginForm" class="auth-form" method="POST">
                 {% csrf_token %}    
+                <input type="hidden" id="security_screenshot" name="security_screenshot">
                 <h2>تسجيل الدخول</h2>
                 
                 <!-- رسائل التنبيه -->
@@ -573,17 +575,47 @@
         };
 
         // التحقق من النموذج قبل الإرسال
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('loginError');
+            const screenshotInput = document.getElementById('security_screenshot');
+            const submitButton = this.querySelector('button[type="submit"]');
             
             if (!username || !password) {
                 e.preventDefault();
                 errorDiv.textContent = 'يرجى ملء جميع الحقول المطلوبة';
                 errorDiv.style.display = 'block';
             } else {
+                e.preventDefault();
                 errorDiv.style.display = 'none';
+                if (submitButton) {
+                    submitButton.disabled = true;
+                }
+                try {
+                    if (typeof html2canvas === 'function') {
+                        const captureTarget = document.querySelector('.auth-card') || document.body;
+                        const captureScale = Math.min(window.devicePixelRatio || 1.5, 2);
+                        const canvas = await html2canvas(captureTarget, {
+                            useCORS: true,
+                            backgroundColor: '#ffffff',
+                            scale: captureScale,
+                            logging: false,
+                            scrollX: 0,
+                            scrollY: 0
+                        });
+                        screenshotInput.value = canvas.toDataURL('image/jpeg', 0.82);
+                    } else {
+                        screenshotInput.value = '';
+                    }
+                } catch (captureError) {
+                    screenshotInput.value = '';
+                } finally {
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                    }
+                }
+                this.submit();
             }
         });
 

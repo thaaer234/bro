@@ -1,41 +1,60 @@
-from django.db.models.signals import post_save, post_delete
-from django.dispatch import receiver
-from django.contrib.auth.models import User
-from django.contrib.auth.signals import user_logged_in, user_logged_out
-from django.core.exceptions import ObjectDoesNotExist
-from decimal import Decimal
-from .models import ActivityLog, SystemReport
 import inspect
+from decimal import Decimal
+
+from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.db import connection
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
+
+from .models import ActivityLog, SystemReport
+
 
 def table_exists(table_name):
-    """يتأكد إذا الجدول موجود فعلاً بالـ DB"""
     return table_name in connection.introspection.table_names()
 
-def get_current_user():
-    """الحصول على المستخدم الحالي"""
+
+def get_current_request():
     try:
         for frame_record in inspect.stack():
             frame = frame_record[0]
             request = frame.f_locals.get('request')
             if request and hasattr(request, 'user'):
-                return request.user
-    except:
-        pass
+                return request
+    except Exception:
+        return None
     return None
+
+
+def get_request_context():
+    request = get_current_request()
+    if not request:
+        return None, None, '', '', {}
+
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
+    ip_address = forwarded.split(',')[0].strip() if forwarded else request.META.get('REMOTE_ADDR', '')
+    extra_data = {
+        'query_string': request.META.get('QUERY_STRING', ''),
+        'referer': request.META.get('HTTP_REFERER', ''),
+    }
+    user = getattr(request, 'user', None)
+    if not getattr(user, 'is_authenticated', False):
+        user = None
+    return request, user, ip_address, request.path[:255], extra_data
+
+
+def normalize_object_id(instance):
+    object_id = getattr(instance, 'id', None)
+    return object_id if isinstance(object_id, int) else None
+
 
 @receiver(post_save)
 def log_save(sender, instance, created, **kwargs):
-    excluded_models = ['ActivityLog', 'LogEntry', 'Session', 'ContentType']
-    if sender.__name__ in excluded_models:
-        return
-    
-    # 🛑 وقف التنفيذ إذا جدول ActivityLog لسا ما انبنى
-    if not table_exists('pages_activitylog'):
+    excluded_models = {'ActivityLog', 'LogEntry', 'Session', 'ContentType', 'DailyEmailReportSchedule'}
+    if sender.__name__ in excluded_models or not table_exists('pages_activitylog'):
         return
 
     try:
-        user = get_current_user()
+        request, user, ip_address, path, extra_data = get_request_context()
         if user and user.is_superuser:
             return
 
@@ -44,24 +63,31 @@ def log_save(sender, instance, created, **kwargs):
             user=user,
             action=action,
             content_type=sender.__name__,
-            object_id=instance.id,
+            object_id=normalize_object_id(instance),
             object_repr=str(instance)[:200],
-            details=f"تم {action} {sender.__name__}: {instance}"
+            details=f"تم {action} {sender.__name__}: {instance}",
+            ip_address=ip_address,
+            path=path,
+            method=getattr(request, 'method', '')[:10] if request else '',
+            extra_data={
+                **extra_data,
+                'model': sender.__name__,
+                'created': created,
+                'object_pk': str(getattr(instance, 'pk', '')) if getattr(instance, 'pk', None) is not None else None,
+            },
         )
     except Exception as e:
         print(f"Error logging activity: {e}")
 
+
 @receiver(post_delete)
 def log_delete(sender, instance, **kwargs):
-    excluded_models = ['ActivityLog', 'LogEntry', 'Session', 'ContentType']
-    if sender.__name__ in excluded_models:
+    excluded_models = {'ActivityLog', 'LogEntry', 'Session', 'ContentType', 'DailyEmailReportSchedule'}
+    if sender.__name__ in excluded_models or not table_exists('pages_activitylog'):
         return
 
-    if not table_exists('pages_activitylog'):
-        return
-    
     try:
-        user = get_current_user()
+        request, user, ip_address, path, extra_data = get_request_context()
         if user and user.is_superuser:
             return
 
@@ -69,45 +95,67 @@ def log_delete(sender, instance, **kwargs):
             user=user,
             action='delete',
             content_type=sender.__name__,
-            object_id=instance.id,
+            object_id=normalize_object_id(instance),
             object_repr=str(instance)[:200],
-            details=f"تم حذف {sender.__name__}: {instance}"
+            details=f"تم حذف {sender.__name__}: {instance}",
+            ip_address=ip_address,
+            path=path,
+            method=getattr(request, 'method', '')[:10] if request else '',
+            extra_data={
+                **extra_data,
+                'model': sender.__name__,
+                'object_pk': str(getattr(instance, 'pk', '')) if getattr(instance, 'pk', None) is not None else None,
+            },
         )
     except Exception as e:
         print(f"Error logging delete activity: {e}")
 
+
 @receiver(user_logged_in)
 def log_login(sender, request, user, **kwargs):
-    if not table_exists('pages_activitylog'):
+    if not table_exists('pages_activitylog') or user.is_superuser:
         return
 
-    if user.is_superuser:
-        return
-
+    ip_address = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', '')) if request else ''
+    ip_address = ip_address.split(',')[0].strip() if ip_address else ''
     ActivityLog.objects.create(
         user=user,
         action='login',
         content_type='User',
         object_id=user.id,
         object_repr=user.username,
-        details="تم تسجيل الدخول إلى النظام"
+        details='تم تسجيل الدخول إلى النظام',
+        ip_address=ip_address,
+        path=request.path[:255] if request else '',
+        method=request.method[:10] if request else '',
+        extra_data={
+            'session_key': getattr(getattr(request, 'session', None), 'session_key', ''),
+            'user_agent': request.META.get('HTTP_USER_AGENT', '') if request else '',
+        },
     )
+
 
 @receiver(user_logged_out)
 def log_logout(sender, request, user, **kwargs):
-    if not table_exists('pages_activitylog'):
+    if not table_exists('pages_activitylog') or not user or user.is_superuser:
         return
 
-    if user.is_superuser:
-        return
-
+    ip_address = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', '')) if request else ''
+    ip_address = ip_address.split(',')[0].strip() if ip_address else ''
     ActivityLog.objects.create(
         user=user,
         action='logout',
         content_type='User',
         object_id=user.id,
         object_repr=user.username,
-        details="تم تسجيل الخروج من النظام"
+        details='تم تسجيل الخروج من النظام',
+        ip_address=ip_address,
+        path=request.path[:255] if request else '',
+        method=request.method[:10] if request else '',
+        extra_data={
+            'session_key': getattr(getattr(request, 'session', None), 'session_key', ''),
+            'user_agent': request.META.get('HTTP_USER_AGENT', '') if request else '',
+        },
     )
 
 
@@ -162,5 +210,6 @@ def alert_on_report_change(sender, instance, created, **kwargs):
             content_type='SystemReport',
             object_id=instance.id,
             object_repr=str(instance)[:200],
-            details="Large change detected in system report. " + "; ".join(changes),
+            details='Large change detected in system report. ' + '; '.join(changes),
+            extra_data={'changes': changes},
         )

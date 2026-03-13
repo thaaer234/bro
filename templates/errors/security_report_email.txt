@@ -1,22 +1,23 @@
-Date: {{ date }}
-Incident count: {{ count }}
+التقرير الأمني اليومي
+التاريخ: {{ date }}
+عدد الحوادث: {{ count }}
 
-By severity:
+حسب مستوى الخطورة:
 {% for key, value in by_severity.items %}- {{ key }}: {{ value }}
-{% empty %}- none
+{% empty %}- لا يوجد
 {% endfor %}
 
-Top categories:
+أكثر التصنيفات:
 {% for item in by_category %}- {{ item.category }}: {{ item.total }}
-{% empty %}- none
+{% empty %}- لا يوجد
 {% endfor %}
 
-Top IPs:
-{% for item in top_ips %}- {{ item.ip_address|default:'unknown' }}: {{ item.total }}
-{% empty %}- none
+أكثر عناوين IP:
+{% for item in top_ips %}- {{ item.ip_address|default:'غير معروف' }}: {{ item.total }}
+{% empty %}- لا يوجد
 {% endfor %}
 
-Top incidents:
-{% for incident in incidents %}- [{{ incident.severity }}|{{ incident.threat_score }}] {{ incident.title }} | {{ incident.ip_address }} | {{ incident.path }}
-{% empty %}- none
+أهم الحوادث:
+{% for incident in incidents %}- [{{ incident.severity }} | {{ incident.threat_score }}] {{ incident.title }} | {{ incident.ip_address }} | {{ incident.path }}
+{% empty %}- لا يوجد
 {% endfor %}

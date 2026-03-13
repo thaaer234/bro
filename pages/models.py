@@ -22,6 +22,10 @@ class ActivityLog(models.Model):
     object_repr = models.CharField(max_length=200)  # وصف العنصر
     timestamp = models.DateTimeField(default=timezone.now)
     details = models.TextField(blank=True)  # تفاصيل إضافية
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    path = models.CharField(max_length=255, blank=True)
+    method = models.CharField(max_length=10, blank=True)
+    extra_data = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ['-timestamp']
@@ -277,4 +281,35 @@ class ReportSchedule(models.Model):
         if candidate_dt <= base:
             candidate_dt += timedelta(days=7)
 
+        return candidate_dt
+
+
+class DailyEmailReportSchedule(models.Model):
+    is_enabled = models.BooleanField(default=False)
+    time_of_day = models.TimeField(default=time(19, 0))
+    recipient_emails = models.TextField(blank=True)
+    last_run = models.DateTimeField(null=True, blank=True)
+    next_run = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Daily Email Report Schedule'
+        verbose_name_plural = 'Daily Email Report Schedules'
+
+    def __str__(self):
+        status = 'enabled' if self.is_enabled else 'disabled'
+        return f"Daily email schedule ({status})"
+
+    @classmethod
+    def get_solo(cls):
+        return cls.objects.get_or_create(pk=1)[0]
+
+    def get_recipient_list(self):
+        return [item.strip() for item in (self.recipient_emails or '').split(',') if item.strip()]
+
+    def compute_next_run(self, from_dt=None):
+        base = timezone.localtime(from_dt or timezone.now())
+        candidate_dt = datetime.combine(base.date(), self.time_of_day)
+        candidate_dt = timezone.make_aware(candidate_dt, timezone.get_current_timezone())
+        if candidate_dt <= base:
+            candidate_dt += timedelta(days=1)
         return candidate_dt

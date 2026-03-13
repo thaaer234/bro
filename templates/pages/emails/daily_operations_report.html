@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f3efe7;font-family:'Segoe UI',Tahoma,sans-serif;color:#1c2430;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3efe7;padding:26px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:980px;background:#fffdf9;border:1px solid #e7dccd;border-radius:26px;overflow:hidden;box-shadow:0 18px 55px rgba(28,36,48,.08);">
+          <tr>
+            <td style="padding:30px 30px 24px;background:linear-gradient(135deg,#183446,#25636d 55%,#c79444);color:#ffffff;">
+              <div style="font-size:13px;opacity:.82;letter-spacing:.08em;">التقرير اليومي</div>
+              <h1 style="margin:10px 0 10px;font-size:30px;line-height:1.35;">ملخص عمليات المستخدمين</h1>
+              <div style="font-size:15px;line-height:1.9;">
+                التاريخ: {{ date }}<br>
+                وقت إنشاء التقرير: {{ generated_at|date:"Y-m-d H:i" }}<br>
+                رقم التقرير: {{ report.id }}
+              </div>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:24px 30px 10px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding:0 0 14px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="width:33.33%;padding:0 6px 0 0;">
+                          <div style="background:#f6f1e8;border:1px solid #e7dccd;border-radius:18px;padding:16px;text-align:center;">
+                            <div style="font-size:13px;color:#69727d;">المستخدمون الظاهرون بالتقرير</div>
+                            <div style="font-size:28px;font-weight:800;margin-top:8px;">{{ users|length }}</div>
+                          </div>
+                        </td>
+                        <td style="width:33.33%;padding:0 3px;">
+                          <div style="background:#f6f1e8;border:1px solid #e7dccd;border-radius:18px;padding:16px;text-align:center;">
+                            <div style="font-size:13px;color:#69727d;">إجمالي النشاطات</div>
+                            <div style="font-size:28px;font-weight:800;margin-top:8px;">{{ summary.activity.total }}</div>
+                          </div>
+                        </td>
+                        <td style="width:33.33%;padding:0 0 0 6px;">
+                          <div style="background:#f6f1e8;border:1px solid #e7dccd;border-radius:18px;padding:16px;text-align:center;">
+                            <div style="font-size:13px;color:#69727d;">المقبوضات / المصروفات</div>
+                            <div style="font-size:19px;font-weight:800;margin-top:8px;">{{ summary.transactions.credit_total }} / {{ summary.transactions.debit_total }}</div>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="background:#fbf8f2;border:1px solid #eadfce;border-radius:18px;padding:16px 18px;margin-bottom:18px;">
+                <div style="font-size:18px;font-weight:800;margin-bottom:10px;">ملخص سريع</div>
+                <div style="font-size:14px;line-height:2;color:#41505f;">
+                  حضور الطلاب: {{ summary.attendance.students_records }}<br>
+                  حضور المدرسين: {{ summary.attendance.teachers_records }}<br>
+                  هذا البريد يعرض نسخة مختصرة وواضحة من التقرير اليومي لتسهيل المراجعة السريعة.
+                </div>
+              </div>
+
+              {% for user in users %}
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:18px;border:1px solid #e7dccd;border-radius:20px;overflow:hidden;">
+                <tr>
+                  <td style="padding:18px 20px;background:#f8f3ea;border-bottom:1px solid #eadfce;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="vertical-align:top;">
+                          <div style="font-size:22px;font-weight:800;">{{ user.full_name }}</div>
+                          <div style="font-size:13px;color:#6c7480;margin-top:4px;">{{ user.username }}</div>
+                        </td>
+                        <td style="text-align:left;vertical-align:top;">
+                          <span style="display:inline-block;background:#183446;color:#fff;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;">{{ user.activity_total }} نشاط</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:18px 20px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12px;">
+                      <tr>
+                        <td style="width:50%;padding:0 0 10px 8px;vertical-align:top;">
+                          <div style="background:#ffffff;border:1px solid #efe5d8;border-radius:16px;padding:14px;min-height:112px;">
+                            <div style="font-size:14px;font-weight:800;margin-bottom:8px;">الحركة الزمنية</div>
+                            <div style="font-size:14px;line-height:2;color:#41505f;">
+                              الدخول: {% if user.logins %}{{ user.logins|join:", " }}{% else %}لا يوجد{% endif %}<br>
+                              الخروج: {% if user.logouts %}{{ user.logouts|join:", " }}{% else %}لا يوجد{% endif %}<br>
+                              مدة النشاط: {{ user.active_time_label|default:"0" }}
+                            </div>
+                          </div>
+                        </td>
+                        <td style="width:50%;padding:0 0 10px 8px;vertical-align:top;">
+                          <div style="background:#ffffff;border:1px solid #efe5d8;border-radius:16px;padding:14px;min-height:112px;">
+                            <div style="font-size:14px;font-weight:800;margin-bottom:8px;">المالية</div>
+                            <div style="font-size:14px;line-height:2;color:#41505f;">
+                              إيصالات نظامية: {{ user.receipts_students_count }} | {{ user.receipts_students_amount }}<br>
+                              إيصالات سريعة: {{ user.receipts_quick_count }} | {{ user.receipts_quick_amount }}<br>
+                              مصروفات: {{ user.expenses_count }} | {{ user.expenses_amount }}<br>
+                              {% if user.cash_box %}رصيد الصندوق: {{ user.cash_box.balance }} ({{ user.cash_box.code }}){% else %}رصيد الصندوق: لا يوجد{% endif %}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12px;">
+                      <tr>
+                        <td style="width:50%;padding:0 8px 10px 0;vertical-align:top;">
+                          <div style="background:#ffffff;border:1px solid #efe5d8;border-radius:16px;padding:14px;min-height:110px;">
+                            <div style="font-size:14px;font-weight:800;margin-bottom:8px;">الحضور</div>
+                            <div style="font-size:14px;line-height:2;color:#41505f;">
+                              حضور الطلاب: {{ user.attendance_students_count }}<br>
+                              عدد الشعب المأخوذ حضورها: {{ user.attendance_classrooms_count }}<br>
+                              حضور المدرسين: {{ user.attendance_teachers_count }}<br>
+                              الجلسات: {{ user.teacher_sessions_count }}
+                            </div>
+                            {% if user.student_attendance_summary %}
+                            <div style="margin-top:8px;font-size:13px;line-height:1.9;color:#5e6977;">
+                              {% for item in user.student_attendance_summary %}
+                              {{ item.classroom_name }}: {{ item.records_count }}{% if not forloop.last %}<br>{% endif %}
+                              {% endfor %}
+                            </div>
+                            {% endif %}
+                          </div>
+                        </td>
+                        <td style="width:50%;padding:0 0 10px 8px;vertical-align:top;">
+                          <div style="background:#ffffff;border:1px solid #efe5d8;border-radius:16px;padding:14px;min-height:110px;">
+                            <div style="font-size:14px;font-weight:800;margin-bottom:8px;">أحدث العمليات</div>
+                            {% if user.operations %}
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                              {% for operation in user.operations %}
+                              <tr>
+                                <td style="padding:8px 0;border-bottom:1px solid #f3ebdf;font-size:13px;color:#34404d;vertical-align:top;width:34%;">{{ operation.time }}</td>
+                                <td style="padding:8px 0;border-bottom:1px solid #f3ebdf;font-size:13px;color:#34404d;vertical-align:top;">
+                                  <strong>{{ operation.action }}</strong><br>
+                                  {{ operation.content_type }}{% if operation.object_repr %} | {{ operation.object_repr }}{% endif %}
+                                </td>
+                              </tr>
+                              {% endfor %}
+                            </table>
+                            {% else %}
+                            <div style="font-size:14px;line-height:2;color:#5e6977;">لا توجد عمليات تفصيلية معروضة.</div>
+                            {% endif %}
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+
+                    {% if user.regular_receipts or user.quick_receipts %}
+                    <div style="background:#ffffff;border:1px solid #efe5d8;border-radius:16px;padding:14px;">
+                      <div style="font-size:14px;font-weight:800;margin-bottom:8px;">ملخص الإيصالات</div>
+                      <div style="font-size:13px;line-height:2;color:#41505f;">
+                        {% for item in user.regular_receipts %}
+                        نظامي: {{ item.student_name }} | {{ item.course_name }} | {{ item.amount }}{% if not forloop.last or user.quick_receipts %}<br>{% endif %}
+                        {% endfor %}
+                        {% for item in user.quick_receipts %}
+                        سريع: {{ item.student_name }} | {{ item.course_name }} | {{ item.amount }}{% if not forloop.last %}<br>{% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+              {% empty %}
+              <div style="padding:16px 18px;background:#f8f3ea;border:1px solid #eadfce;border-radius:18px;font-size:14px;color:#4b5563;">
+                لا يوجد نشاط مسجل لهذا اليوم.
+              </div>
+              {% endfor %}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:18px 30px;background:#f8f3ea;border-top:1px solid #eadfce;color:#69727d;font-size:13px;line-height:1.8;">
+              تم تنسيق هذا البريد لعرض النسخة المختصرة فقط. البيانات الكاملة ما زالت محفوظة داخل النظام.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

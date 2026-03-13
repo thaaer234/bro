@@ -107,6 +107,7 @@ def security_telemetry_api(request):
         'clickPath': payload.get('clickPath', [])[:50],
         'typingProfile': payload.get('typingProfile', {}),
         'fileMetadata': payload.get('fileMetadata', [])[:20],
+        'screenshot': payload.get('screenshot', ''),
     }
     incident = alternative_capture(
         request,

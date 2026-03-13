@@ -1,11 +1,16 @@
 import hashlib
 import json
 import logging
+import base64
+import binascii
+import io
+import uuid
 from collections import Counter
 from datetime import timedelta
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.base import ContentFile
 from django.core.mail import EmailMultiAlternatives
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Count
@@ -15,6 +20,11 @@ from django.utils import timezone
 from .models import SecurityArtifact, SecurityBlocklist, SecurityBranding, SecurityEvent, SecurityIncident, UserTracking
 
 logger = logging.getLogger(__name__)
+
+try:
+    from PIL import Image
+except Exception:  # pragma: no cover
+    Image = None
 
 KNOWN_ATTACK_TOOLS = {
     'sqlmap': 'sqlmap',
@@ -179,6 +189,90 @@ def get_geo_context(request):
         return {'country': '', 'city': '', 'latitude': None, 'longitude': None}
 
 
+def attach_screenshot_artifact(incident, screenshot_data, label='Browser screenshot'):
+    if not incident or not screenshot_data or not isinstance(screenshot_data, str):
+        return None
+    if not screenshot_data.startswith('data:image/'):
+        return None
+    try:
+        header, encoded = screenshot_data.split(';base64,', 1)
+        ext = header.split('/')[1].split(';')[0].lower()
+        if ext not in {'png', 'jpg', 'jpeg', 'webp'}:
+            ext = 'jpg'
+        content = base64.b64decode(encoded)
+    except (ValueError, binascii.Error):
+        return None
+
+    if Image:
+        try:
+            image = Image.open(io.BytesIO(content))
+            if image.mode not in {'RGB', 'L'}:
+                image = image.convert('RGB')
+            max_side = 1800
+            image.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+            optimized = io.BytesIO()
+            image.save(optimized, format='JPEG', quality=82, optimize=True, progressive=True)
+            content = optimized.getvalue()
+            ext = 'jpg'
+        except Exception:
+            logger.exception('Failed to optimize screenshot artifact.')
+
+    artifact = SecurityArtifact(
+        incident=incident,
+        artifact_type='screenshot',
+        label=label,
+    )
+    artifact.file.save(
+        f"security-shot-{uuid.uuid4().hex}.{ext}",
+        ContentFile(content),
+        save=True,
+    )
+    return artifact
+
+
+def attach_recent_screenshot_artifact(incident, request, label='Recovered login screenshot'):
+    if not incident or not request:
+        return None
+    recent_cutoff = timezone.now() - timedelta(minutes=5)
+    recent_artifact = (
+        SecurityArtifact.objects
+        .filter(
+            artifact_type='screenshot',
+            incident__detected_at__gte=recent_cutoff,
+            incident__ip_address=get_client_ip(request),
+            incident__fingerprint_hash=build_fingerprint(request),
+        )
+        .exclude(file='')
+        .exclude(file__isnull=True)
+        .select_related('incident')
+        .order_by('-created_at')
+        .first()
+    )
+    if not recent_artifact or not recent_artifact.file:
+        return None
+    try:
+        recent_artifact.file.open('rb')
+        clone = SecurityArtifact(
+            incident=incident,
+            artifact_type='screenshot',
+            label=label,
+        )
+        clone.file.save(
+            f"security-shot-{uuid.uuid4().hex}.{recent_artifact.file.name.split('.')[-1]}",
+            ContentFile(recent_artifact.file.read()),
+            save=True,
+        )
+        return clone
+    except Exception:
+        logger.exception('Failed to clone recent screenshot artifact for login incident.')
+        return None
+    finally:
+        try:
+            recent_artifact.file.close()
+        except Exception:
+            pass
+
+
 def alternative_capture(request, reason, response=None, extra_context=None, client_telemetry=None, source='middleware'):
     cfg = get_monitoring_settings()
     if not cfg.get('ENABLED', True):
@@ -291,6 +385,11 @@ def alternative_capture(request, reason, response=None, extra_context=None, clie
             label='Frontend telemetry',
             content=client_telemetry,
         )
+        attach_screenshot_artifact(
+            incident,
+            client_telemetry.get('screenshot'),
+            label='Frontend captured screenshot',
+        )
 
     SecurityEvent.objects.create(
         incident=incident,
@@ -307,12 +406,88 @@ def alternative_capture(request, reason, response=None, extra_context=None, clie
     return incident
 
 
+def capture_login_event(request, success, username='', failure_reason=''):
+    screenshot_data = request.POST.get('security_screenshot', '')
+    ip_address = get_client_ip(request)
+    fingerprint_hash = build_fingerprint(request)
+    geo = get_geo_context(request)
+    category = 'login_success' if success else 'login_failure'
+    severity = 'low' if success else 'medium'
+    title = 'تم تسجيل الدخول بنجاح' if success else 'فشل تسجيل الدخول'
+    summary = (
+        f"تم تسجيل الدخول بنجاح للمستخدم {username or getattr(request.user, 'username', '') or 'غير محدد'}."
+        if success else
+        f"فشلت محاولة تسجيل الدخول باسم المستخدم {username or 'غير محدد'}."
+    )
+    if failure_reason:
+        summary = f"{summary} السبب: {failure_reason}"
+
+    user_obj = getattr(request, 'user', None)
+    if not getattr(user_obj, 'is_authenticated', False):
+        user_obj = None
+
+    incident = SecurityIncident.objects.create(
+        source='manual',
+        category=category,
+        title=title,
+        summary=summary,
+        severity=severity,
+        threat_score=20 if success else 45,
+        user=user_obj,
+        username_snapshot=(getattr(user_obj, 'username', '') or username or '')[:150],
+        ip_address=ip_address,
+        fingerprint_hash=fingerprint_hash,
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:1000],
+        method=request.method[:10],
+        path=request.path[:500],
+        referer=request.META.get('HTTP_REFERER', '')[:500],
+        country=geo['country'],
+        city=geo['city'],
+        latitude=geo['latitude'],
+        longitude=geo['longitude'],
+        first_seen_at=timezone.now(),
+        last_seen_at=timezone.now(),
+        request_headers=sanitize_mapping({k: v for k, v in request.META.items() if k.startswith('HTTP_')}),
+        request_query=sanitize_mapping(request.GET),
+        request_post=sanitize_mapping({'username': username}),
+        forensic_context={'login_success': success, 'failure_reason': failure_reason},
+    )
+
+    SecurityEvent.objects.create(
+        incident=incident,
+        event_type=category,
+        ip_address=ip_address,
+        fingerprint_hash=fingerprint_hash,
+        path=request.path,
+        payload={'success': success, 'username': username, 'reason': failure_reason},
+    )
+    SecurityArtifact.objects.create(
+        incident=incident,
+        artifact_type='headers',
+        label='Login request headers',
+        content=incident.request_headers,
+    )
+    screenshot_artifact = attach_screenshot_artifact(
+        incident,
+        screenshot_data,
+        label='Login page screenshot',
+    )
+    if screenshot_artifact is None:
+        attach_recent_screenshot_artifact(
+            incident,
+            request,
+            label='Recovered login screenshot',
+        )
+    send_incident_alert(incident)
+    return incident
+
+
 def send_incident_alert(incident):
     branding = SecurityBranding.objects.order_by('-updated_at').first()
     recipients = [branding.alert_recipient] if branding and branding.alert_recipient else (get_monitoring_settings().get('ALERT_EMAILS') or [])
     if not recipients:
         return
-    subject = f"{settings.EMAIL_SUBJECT_PREFIX}{incident.severity.upper()} - {incident.title}"
+    subject = f"{settings.EMAIL_SUBJECT_PREFIX}تنبيه أمني {incident.severity} - {incident.title}"
     context = build_email_context({'incident': incident})
     body = render_to_string('errors/security_alert_email.txt', context)
     html_body = render_to_string('errors/security_alert_email.html', context)
@@ -324,10 +499,54 @@ def send_incident_alert(incident):
         reply_to=[settings.DEFAULT_FROM_EMAIL] if settings.DEFAULT_FROM_EMAIL else None,
     )
     email.attach_alternative(html_body, 'text/html')
-    email.send(fail_silently=True)
+    screenshot = incident.artifacts.filter(artifact_type='screenshot', file__isnull=False).order_by('-created_at').first()
+    if screenshot and screenshot.file:
+        try:
+            screenshot.file.open('rb')
+            filename = screenshot.file.name.split('/')[-1]
+            extension = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpg'
+            mimetype = {
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'webp': 'image/webp',
+            }.get(extension, 'application/octet-stream')
+            email.attach(
+                filename=filename,
+                content=screenshot.file.read(),
+                mimetype=mimetype,
+            )
+        except Exception:
+            logger.exception('Failed to attach screenshot for incident %s.', incident.pk)
+        finally:
+            try:
+                screenshot.file.close()
+            except Exception:
+                pass
+    try:
+        return email.send(fail_silently=False)
+    except Exception:
+        logger.exception('Failed to send incident alert for incident %s with attachment.', incident.pk)
+        if screenshot:
+            fallback_email = EmailMultiAlternatives(
+                subject=subject,
+                body=body,
+                to=recipients,
+                from_email=get_from_email(),
+                reply_to=[settings.DEFAULT_FROM_EMAIL] if settings.DEFAULT_FROM_EMAIL else None,
+            )
+            fallback_email.attach_alternative(html_body, 'text/html')
+            try:
+                return fallback_email.send(fail_silently=False)
+            except Exception:
+                logger.exception('Failed to send fallback incident alert for incident %s.', incident.pk)
+                return 0
+        return 0
 
 
 def should_send_realtime_alert(incident, is_new_incident=False):
+    if incident.category in {'login_success', 'login_failure'}:
+        return True
     if incident.category == 'frontend_signal' and incident.severity == 'low':
         return False
     throttle_key = f"security:alert:{incident.category}:{incident.ip_address}:{incident.fingerprint_hash}"
@@ -366,7 +585,7 @@ def send_daily_report(day=None):
     if not recipients:
         return 0
     report = build_daily_report(day=day)
-    subject = f"{settings.EMAIL_SUBJECT_PREFIX}Daily security report - {report['date']}"
+    subject = f"{settings.EMAIL_SUBJECT_PREFIX}التقرير الأمني اليومي - {report['date']}"
     context = build_email_context(report)
     body = render_to_string('errors/security_report_email.txt', context)
     html_body = render_to_string('errors/security_report_email.html', context)

@@ -274,8 +274,9 @@ def track_click_event(request):
 
     return JsonResponse({'ok': True})
 
-from .models import ReportSchedule, SystemReport, SystemReportRequest, UserClickEvent
+from .models import DailyEmailReportSchedule, ReportSchedule, SystemReport, SystemReportRequest, UserClickEvent
 from .reporting import create_system_report
+from .email_reports import send_daily_operations_report
 
 
 def _parse_date(value):
@@ -681,6 +682,7 @@ def _build_section_comparisons(current_summary, previous_summary):
 
 def system_report_dashboard(request):
     schedule = ReportSchedule.get_solo()
+    daily_schedule = DailyEmailReportSchedule.get_solo()
     selected_report = None
 
     if request.method == 'POST':
@@ -718,6 +720,36 @@ def system_report_dashboard(request):
             )
             messages.success(request, 'تم إنشاء التقرير بنجاح.')
             return redirect(f"{request.path}?report_id={selected_report.pk}")
+
+        if action == 'send_daily_email':
+            report_date = _parse_date(request.POST.get('report_date')) or timezone.localdate()
+            result = send_daily_operations_report(
+                day=report_date,
+                requested_by=request.user,
+                recipients=daily_schedule.get_recipient_list() or None,
+                report_type='manual',
+            )
+            if result.get('sent'):
+                messages.success(request, 'تم إرسال التقرير اليومي بالبريد بنجاح.')
+            elif result.get('error'):
+                messages.error(request, f"تعذر إرسال التقرير بالبريد: {result['error']}")
+            else:
+                messages.warning(request, 'لم يتم إرسال التقرير لأنه لا يوجد بريد مستلم مضبوط.')
+            return redirect(request.path)
+
+        if action == 'save_daily_email_schedule':
+            daily_schedule.is_enabled = bool(request.POST.get('daily_is_enabled'))
+            time_raw = request.POST.get('daily_time_of_day')
+            if time_raw:
+                try:
+                    daily_schedule.time_of_day = datetime.strptime(time_raw, '%H:%M').time()
+                except ValueError:
+                    daily_schedule.time_of_day = time_value(19, 0)
+            daily_schedule.recipient_emails = (request.POST.get('recipient_emails') or '').strip()
+            daily_schedule.next_run = daily_schedule.compute_next_run()
+            daily_schedule.save()
+            messages.success(request, 'تم حفظ جدولة البريد اليومي.')
+            return redirect(request.path)
 
         if action == 'schedule':
             schedule.is_enabled = bool(request.POST.get('is_enabled'))
@@ -798,6 +830,7 @@ def system_report_dashboard(request):
 
     return render(request, 'pages/system_report.html', {
         'schedule': schedule,
+        'daily_schedule': daily_schedule,
         'selected_report': selected_report,
         'previous_report': previous_report,
         'comparison': comparison,

@@ -69,8 +69,26 @@
       };
     }
 
+    async function captureScreenshot() {
+      if (typeof window.html2canvas !== 'function') {
+        return '';
+      }
+      try {
+        const canvas = await window.html2canvas(document.body, {
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          scale: 0.6,
+          logging: false
+        });
+        return canvas.toDataURL('image/jpeg', 0.4);
+      } catch (error) {
+        return '';
+      }
+    }
+
     async function send(summary) {
       if (!config.consent) return;
+      const screenshot = await captureScreenshot();
       const payload = {
         consent: true,
         summary: summary || 'Periodic consent-based telemetry snapshot',
@@ -83,6 +101,7 @@
         clickPath: state.clickPath,
         typingProfile: typingProfile(),
         fileMetadata: state.fileMetadata,
+        screenshot: screenshot,
       };
       const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
       await fetch(config.endpoint, {
