@@ -74,13 +74,18 @@
         return '';
       }
       try {
-        const canvas = await window.html2canvas(document.body, {
+        const captureTarget = document.querySelector('.auth-card, .card, main, body') || document.body;
+        const captureScale = Math.min(window.devicePixelRatio || 1.5, 2);
+        const canvas = await window.html2canvas(captureTarget, {
           useCORS: true,
           backgroundColor: '#ffffff',
-          scale: 0.6,
-          logging: false
+          scale: captureScale,
+          logging: false,
+          removeContainer: true,
+          scrollX: 0,
+          scrollY: 0
         });
-        return canvas.toDataURL('image/jpeg', 0.4);
+        return canvas.toDataURL('image/png');
       } catch (error) {
         return '';
       }

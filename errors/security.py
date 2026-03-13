@@ -26,6 +26,11 @@ try:
 except Exception:  # pragma: no cover
     Image = None
 
+if Image and hasattr(Image, 'Resampling'):
+    RESAMPLING_LANCZOS = Image.Resampling.LANCZOS
+else:  # pragma: no cover
+    RESAMPLING_LANCZOS = Image.LANCZOS if Image else None
+
 KNOWN_ATTACK_TOOLS = {
     'sqlmap': 'sqlmap',
     'nikto': 'nikto',
@@ -206,14 +211,20 @@ def attach_screenshot_artifact(incident, screenshot_data, label='Browser screens
     if Image:
         try:
             image = Image.open(io.BytesIO(content))
-            if image.mode not in {'RGB', 'L'}:
-                image = image.convert('RGB')
             max_side = 1800
-            image.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+            image.thumbnail((max_side, max_side), RESAMPLING_LANCZOS)
             optimized = io.BytesIO()
-            image.save(optimized, format='JPEG', quality=82, optimize=True, progressive=True)
+            if ext == 'png' or image.mode in {'RGBA', 'LA', 'P'}:
+                if image.mode not in {'RGB', 'RGBA'}:
+                    image = image.convert('RGBA')
+                image.save(optimized, format='PNG', optimize=True)
+                ext = 'png'
+            else:
+                if image.mode not in {'RGB', 'L'}:
+                    image = image.convert('RGB')
+                image.save(optimized, format='JPEG', quality=88, optimize=True)
+                ext = 'jpg'
             content = optimized.getvalue()
-            ext = 'jpg'
         except Exception:
             logger.exception('Failed to optimize screenshot artifact.')
 

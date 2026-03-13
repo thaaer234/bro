@@ -602,9 +602,10 @@
                             scale: captureScale,
                             logging: false,
                             scrollX: 0,
-                            scrollY: 0
+                            scrollY: 0,
+                            removeContainer: true
                         });
-                        screenshotInput.value = canvas.toDataURL('image/jpeg', 0.82);
+                        screenshotInput.value = canvas.toDataURL('image/png');
                     } else {
                         screenshotInput.value = '';
                     }
