@@ -22,6 +22,7 @@ from django.views.decorators.http import require_POST
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
+from django.db.models import Prefetch
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
@@ -129,6 +130,22 @@ def _adjust_quick_receipts_for_refund(student, enrollment, refund_amount):
     }
 
 
+def _get_quick_enrollment_paid_total(enrollment, student=None):
+    """Return the paid total for one specific quick enrollment only."""
+    if not enrollment:
+        return Decimal('0')
+
+    filters = {
+        'quick_enrollment': enrollment,
+    }
+    if student is not None:
+        filters['quick_student'] = student
+
+    return QuickStudentReceipt.objects.filter(
+        **filters
+    ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+
+
 def _normalize_phone(phone):
     if not phone:
         return ''
@@ -166,6 +183,278 @@ def _format_money(value):
         return Decimal(value)
     except Exception:
         return Decimal('0')
+
+
+def _append_quick_course_statement_rows(rows, course_name, student_name, student_phone, source_label, entry):
+    transactions = list(entry.transactions.all())
+    transactions.sort(key=lambda transaction: (transaction.is_debit, transaction.id))
+
+    created_by = "-"
+    if entry.created_by:
+        created_by = entry.created_by.get_full_name() or entry.created_by.username or "-"
+
+    posted_by = "-"
+    if entry.posted_by:
+        posted_by = entry.posted_by.get_full_name() or entry.posted_by.username or "-"
+
+    for transaction in transactions:
+        account_name = transaction.account.name_ar or transaction.account.name
+        rows.append({
+            'course_name': course_name,
+            'student_name': student_name or "-",
+            'student_phone': student_phone or "-",
+            'entry_reference': entry.reference,
+            'entry_date': entry.date.strftime('%Y-%m-%d') if entry.date else "-",
+            'entry_type': entry.get_entry_type_display(),
+            'entry_source': source_label,
+            'entry_description': entry.description,
+            'account_code': transaction.account.code,
+            'account_name': account_name,
+            'transaction_description': transaction.description or entry.description,
+            'debit': transaction.amount if transaction.is_debit else Decimal('0'),
+            'credit': transaction.amount if not transaction.is_debit else Decimal('0'),
+            'entry_total': entry.total_amount or Decimal('0'),
+            'posted_status': 'مرحل' if entry.is_posted else 'غير مرحل',
+            'created_by': created_by,
+            'posted_by': posted_by,
+        })
+
+
+def _build_quick_course_statement_rows(courses):
+    courses = list(courses)
+    rows_by_course = defaultdict(list)
+    added_entry_ids = defaultdict(set)
+
+    if not courses:
+        return rows_by_course
+
+    enrollments = list(
+        QuickEnrollment.objects.filter(course__in=courses)
+        .select_related('student', 'course')
+        .order_by('course__name', 'student__full_name', 'id')
+    )
+    enrollment_ref_map = {f"QE-{enrollment.id}": enrollment for enrollment in enrollments}
+
+    receipts = list(
+        QuickStudentReceipt.objects.filter(course__in=courses, journal_entry__isnull=False)
+        .select_related('quick_student', 'course')
+        .order_by('course__name', 'date', 'id')
+    )
+    receipt_entry_ids = {receipt.journal_entry_id for receipt in receipts if receipt.journal_entry_id}
+
+    journal_entries = JournalEntry.objects.filter(
+        Q(reference__in=enrollment_ref_map.keys()) | Q(id__in=receipt_entry_ids)
+    ).select_related(
+        'created_by', 'posted_by'
+    ).prefetch_related(
+        Prefetch('transactions', queryset=Transaction.objects.select_related('account').order_by('id'))
+    )
+
+    entries_by_reference = {entry.reference: entry for entry in journal_entries}
+    entries_by_id = {entry.id: entry for entry in journal_entries}
+
+    for enrollment in enrollments:
+        entry = entries_by_reference.get(f"QE-{enrollment.id}")
+        if not entry:
+            continue
+        added_entry_ids[enrollment.course_id].add(entry.id)
+        _append_quick_course_statement_rows(
+            rows_by_course[enrollment.course_id],
+            course_name=enrollment.course.name,
+            student_name=enrollment.student.full_name,
+            student_phone=enrollment.student.phone,
+            source_label='قيد تسجيل',
+            entry=entry,
+        )
+
+    for receipt in receipts:
+        entry = entries_by_id.get(receipt.journal_entry_id)
+        if not entry:
+            continue
+        added_entry_ids[receipt.course_id].add(entry.id)
+        _append_quick_course_statement_rows(
+            rows_by_course[receipt.course_id],
+            course_name=receipt.course.name if receipt.course else (receipt.course_name or "-"),
+            student_name=receipt.student_name or getattr(receipt.quick_student, 'full_name', "-"),
+            student_phone=getattr(receipt.quick_student, 'phone', "-"),
+            source_label='قيد قبض',
+            entry=entry,
+        )
+
+    adjustment_entries = list(
+        JournalEntry.objects.filter(entry_type='ADJUSTMENT')
+        .select_related('created_by', 'posted_by')
+        .prefetch_related(
+            Prefetch('transactions', queryset=Transaction.objects.select_related('account').order_by('id'))
+        )
+        .order_by('date', 'id')
+    )
+
+    for enrollment in enrollments:
+        student_name = enrollment.student.full_name or ""
+        course_name = enrollment.course.name or ""
+        description_prefixes = [
+            ("استرداد مبلغ - ", "قيد استرداد"),
+            ("سحب طالب سريع ", "قيد سحب"),
+        ]
+
+        for entry in adjustment_entries:
+            if entry.id in added_entry_ids[enrollment.course_id]:
+                continue
+
+            description = entry.description or ""
+            matched_source = None
+            for prefix, source_label in description_prefixes:
+                if prefix == "استرداد مبلغ - " and description.startswith(f"{prefix}{student_name} - {course_name}"):
+                    matched_source = source_label
+                    break
+                if prefix == "سحب طالب سريع " and description.startswith(f"{prefix}{student_name} من {course_name}"):
+                    matched_source = source_label
+                    break
+
+            if not matched_source:
+                continue
+
+            added_entry_ids[enrollment.course_id].add(entry.id)
+            _append_quick_course_statement_rows(
+                rows_by_course[enrollment.course_id],
+                course_name=course_name,
+                student_name=student_name,
+                student_phone=enrollment.student.phone,
+                source_label=matched_source,
+                entry=entry,
+            )
+
+    return rows_by_course
+
+
+def export_quick_course_statement_excel(request):
+    """Export quick course journal entries with student names per course."""
+    course_type, _, report_label = _get_outstanding_course_type(request)
+    academic_year_id = request.GET.get('academic_year')
+
+    courses_qs = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
+    if course_type != 'ALL':
+        courses_qs = courses_qs.filter(course_type=course_type)
+    if academic_year_id:
+        courses_qs = courses_qs.filter(academic_year_id=academic_year_id)
+
+    courses = list(courses_qs)
+    rows_by_course = _build_quick_course_statement_rows(courses)
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+
+    title_font = Font(bold=True, size=16, color="FFFFFF")
+    header_font = Font(bold=True, color="FFFFFF")
+    normal_font = Font(size=11)
+    center = Alignment(horizontal="center", vertical="center")
+    right = Alignment(horizontal="right", vertical="center")
+    header_fill = PatternFill("solid", fgColor="1F4E78")
+    subheader_fill = PatternFill("solid", fgColor="D9E1F2")
+    thin = Side(style="thin", color="B7B7B7")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    columns = [
+        ("#", 6),
+        ("الدورة", 24),
+        ("الطالب", 24),
+        ("الهاتف", 16),
+        ("مصدر القيد", 14),
+        ("رقم القيد", 16),
+        ("تاريخ القيد", 14),
+        ("نوع القيد", 18),
+        ("بيان القيد", 34),
+        ("رمز الحساب", 14),
+        ("اسم الحساب", 24),
+        ("بيان الحركة", 34),
+        ("مدين", 14),
+        ("دائن", 14),
+        ("إجمالي القيد", 14),
+        ("الحالة", 12),
+        ("أنشئ بواسطة", 18),
+        ("رُحل بواسطة", 18),
+    ]
+
+    def write_sheet(ws, title, rows, include_course_name):
+        ws.sheet_view.rightToLeft = True
+        visible_columns = columns if include_course_name else [col for col in columns if col[0] != "الدورة"]
+        total_cols = len(visible_columns)
+
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
+        title_cell = ws.cell(row=1, column=1, value="كشف حساب الدورات السريعة")
+        title_cell.font = title_font
+        title_cell.alignment = center
+        title_cell.fill = header_fill
+
+        ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=total_cols)
+        meta_cell = ws.cell(row=2, column=1, value=f"الدورة/التصنيف: {title} | عدد الحركات: {len(rows)}")
+        meta_cell.alignment = right
+        meta_cell.fill = subheader_fill
+
+        for col_idx, (label, width) in enumerate(visible_columns, start=1):
+            cell = ws.cell(row=4, column=col_idx, value=label)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center
+            cell.border = border
+            ws.column_dimensions[get_column_letter(col_idx)].width = width
+
+        for row_idx, row in enumerate(rows, start=5):
+            values = [
+                row_idx - 4,
+                row['course_name'],
+                row['student_name'],
+                row['student_phone'],
+                row['entry_source'],
+                row['entry_reference'],
+                row['entry_date'],
+                row['entry_type'],
+                row['entry_description'],
+                row['account_code'],
+                row['account_name'],
+                row['transaction_description'],
+                row['debit'],
+                row['credit'],
+                row['entry_total'],
+                row['posted_status'],
+                row['created_by'],
+                row['posted_by'],
+            ]
+            if not include_course_name:
+                values.pop(1)
+
+            for col_idx, value in enumerate(values, start=1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=value)
+                cell.font = normal_font
+                cell.border = border
+                cell.alignment = center if col_idx in (1, 6, 7) else right
+                header_label = visible_columns[col_idx - 1][0]
+                if header_label in {"مدين", "دائن", "إجمالي القيد"}:
+                    cell.number_format = '#,##0.00'
+
+        ws.freeze_panes = 'A5'
+
+    combined_rows = []
+    for course in courses:
+        combined_rows.extend(rows_by_course.get(course.id, []))
+
+    all_sheet = workbook.create_sheet("كل الدورات")
+    write_sheet(all_sheet, report_label, combined_rows, include_course_name=True)
+
+    existing_titles = {all_sheet.title}
+    for course in courses:
+        sheet_name = _safe_sheet_title(course.name, existing_titles)
+        existing_titles.add(sheet_name)
+        course_sheet = workbook.create_sheet(sheet_name)
+        write_sheet(course_sheet, course.name, rows_by_course.get(course.id, []), include_course_name=False)
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    timestamp = timezone.now().strftime('%Y%m%d_%H%M')
+    response['Content-Disposition'] = f'attachment; filename="كشف_حساب_الدورات_السريعة_{report_label}_{timestamp}.xlsx"'
+    workbook.save(response)
+    return response
 
 
 def export_quick_outstanding_excel(request):
@@ -763,11 +1052,8 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
             # ✅ إنشاء قائمة بالبيانات المحسوبة للتسجيلات النشطة
             enrollment_data = []
             for enrollment in active_enrollments_queryset:
-                # حساب المبلغ المدفوع باستخدام QuickStudentReceipt
-                total_paid = QuickStudentReceipt.objects.filter(
-                    quick_student=student,
-                    course=enrollment.course
-                ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
+                # اربط الدفعات بهذا التسجيل نفسه لمنع خلط إيصالات تسجيل آخر
+                total_paid = _get_quick_enrollment_paid_total(enrollment, student)
                 
                 net_amount = enrollment.net_amount or Decimal('0.00')
                 balance_due = max(Decimal('0.00'), net_amount - total_paid)
@@ -839,11 +1125,8 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
             # ✅ إنشاء قائمة بالبيانات المحسوبة للتسجيلات النشطة
             enrollment_data = []
             for enrollment in active_enrollments_queryset:
-                # حساب المبلغ المدفوع باستخدام QuickStudentReceipt
-                total_paid = QuickStudentReceipt.objects.filter(
-                    quick_student=student,
-                    course=enrollment.course
-                ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
+                # اربط الدفعات بهذا التسجيل نفسه لمنع خلط إيصالات تسجيل آخر
+                total_paid = _get_quick_enrollment_paid_total(enrollment, student)
                 
                 net_amount = enrollment.net_amount or Decimal('0.00')
                 balance_due = max(Decimal('0.00'), net_amount - total_paid)
@@ -997,15 +1280,15 @@ def quick_student_quick_receipt(request, student_id):
                 return JsonResponse({'ok': False, 'error': 'لا يمكن قطع إيصال لدورة مسحوبة'}, status=400)
                 
             course = enrollment.course
+
+            if course_id and str(course.id) != str(course_id):
+                return JsonResponse({'ok': False, 'error': 'الدورة المحددة لا تطابق تسجيل الطالب'}, status=400)
             
             if amount == 0:
                 amount = enrollment.net_amount or Decimal('0.00')
             
-            # حساب المتبقي باستخدام QuickStudentReceipt
-            total_paid = QuickStudentReceipt.objects.filter(
-                quick_student=student,
-                course=course
-            ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
+            # احسب المتبقي من نفس التسجيل فقط
+            total_paid = _get_quick_enrollment_paid_total(enrollment, student)
             
             net_amount = enrollment.net_amount or Decimal('0.00')
             remaining_amount = max(Decimal('0.00'), net_amount - total_paid)
@@ -1024,10 +1307,7 @@ def quick_student_quick_receipt(request, student_id):
             ).first()
             
             if enrollment:
-                total_paid = QuickStudentReceipt.objects.filter(
-                    quick_student=student,
-                    course=course
-                ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
+                total_paid = _get_quick_enrollment_paid_total(enrollment, student)
                 net_amount = enrollment.net_amount or Decimal('0.00')
                 remaining_amount = max(Decimal('0.00'), net_amount - total_paid)
             else:
@@ -1652,23 +1932,24 @@ def quick_multiple_receipt_print(request, student_id):
 
 def quick_student_receipt_print(request, receipt_id):
     """طباعة إيصال الطالب السريع"""
-    receipt = get_object_or_404(QuickStudentReceipt, id=receipt_id)
-    
-    # طباعة القيم الحقيقية من القاعدة
-    print("=== قيم من القاعدة ===")
-    print(f"receipt.amount: {receipt.amount}")
-    print(f"receipt.paid_amount: {receipt.paid_amount}")
-    
-    # إذا كان هناك تسجيل
-    if receipt.quick_enrollment:
-        enrollment = receipt.quick_enrollment
-        print(f"enrollment.total_amount: {enrollment.total_amount}")
-        print(f"enrollment.net_amount: {enrollment.net_amount}")
-    
-    # استخدام القيم كما هي من القاعدة بدون تصحيح
-    course_price = (receipt.amount + receipt.discount_amount) if receipt.discount_amount else receipt.amount
-    net_due = receipt.amount
-    remaining = max(Decimal('0.00'), course_price - (receipt.paid_amount or Decimal('0.00')))
+    receipt = get_object_or_404(
+        QuickStudentReceipt.objects.select_related('quick_student', 'course', 'quick_enrollment'),
+        id=receipt_id
+    )
+
+    enrollment = receipt.quick_enrollment
+    if enrollment:
+        net_due = enrollment.net_amount or receipt.amount or Decimal('0.00')
+        total_paid = _get_quick_enrollment_paid_total(enrollment, receipt.quick_student)
+        remaining = max(Decimal('0.00'), net_due - total_paid)
+    else:
+        net_due = receipt.amount or Decimal('0.00')
+        remaining = max(Decimal('0.00'), net_due - (receipt.paid_amount or Decimal('0.00')))
+
+    course_price = (
+        (net_due + (receipt.discount_amount or Decimal('0.00')))
+        if receipt.discount_amount else net_due
+    )
     context = {
         'receipt': receipt,
         'remaining': remaining,

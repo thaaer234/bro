@@ -814,7 +814,29 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // تهيئة تحديث الخصم
     initDiscountUpdate();
+    autoOpenBatchReceiptPrint();
 });
+
+function autoOpenBatchReceiptPrint() {
+    const params = new URLSearchParams(window.location.search);
+    const receiptIds = params.get('print_receipts');
+    if (!receiptIds) {
+        return;
+    }
+
+    const printUrl = '{% url "quick:quick_multiple_receipt_print" student.id %}?ids=' + encodeURIComponent(receiptIds);
+    const printWindow = window.open(printUrl, 'quick_receipt_print');
+
+    if (!printWindow) {
+        alert('تم إنشاء الإيصالات، لكن المتصفح منع فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم أعد المحاولة.');
+        return;
+    }
+
+    params.delete('print_receipts');
+    const cleanQuery = params.toString();
+    const cleanUrl = cleanQuery ? `${window.location.pathname}?${cleanQuery}` : window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+}
 
 // ✅ دالة محسنة لتنسيق الأرقام مع فواصل كل 3 خانات كـ "ملايين"
 function formatNumber(number) {

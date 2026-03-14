@@ -43,6 +43,11 @@ urlpatterns = [
         name='export_quick_outstanding_excel'
     ),
     path(
+        'reports/statements/export/quick-courses/',
+        require_employee_perm('accounting_outstanding')(views.export_quick_course_statement_excel),
+        name='export_quick_course_statement_excel'
+    ),
+    path(
         'reports/outstanding/print/quick-courses/',
         require_employee_perm('accounting_outstanding')(views.QuickOutstandingCoursesPrintView.as_view()),
         name='outstanding_courses_print'

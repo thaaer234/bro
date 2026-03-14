@@ -56,9 +56,28 @@
             {% if courses %}
             <form method="POST" action="{% url 'quick:register_quick_course' student.id %}">
                 {% csrf_token %}
+                <div class="course-filters">
+                    <div class="filter-group filter-group--search">
+                        <label for="course-search">بحث</label>
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="search" id="course-search" class="filter-input" placeholder="ابحث باسم الدورة أو الوصف">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label for="course-type-filter">فلتر النوع</label>
+                        <select id="course-type-filter" class="filter-input">
+                            <option value="all">كل الأنواع</option>
+                        </select>
+                    </div>
+                    <div class="filter-group filter-group--summary">
+                        <span class="filter-result-label">المعروض حالياً</span>
+                        <strong id="visible-courses-count">{{ courses|length }}</strong>
+                    </div>
+                </div>
                 <div class="course-grid">
                     {% for course in courses %}
-                    <div class="course-card">
+                    <div class="course-card" data-course-name="{{ course.name|lower }}" data-course-type="{{ course.course_type }}" data-course-description="{{ course.description|default:''|lower }}">
                         <input type="checkbox" id="course-{{ course.id }}" name="course_ids" value="{{ course.id }}" class="course-selector" data-price="{{ course.price }}">
                         <label for="course-{{ course.id }}" class="course-card__body">
                             <div class="course-card__head">
@@ -270,6 +289,75 @@
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 24px;
     margin-bottom: 32px;
+}
+
+.course-filters {
+    display: grid;
+    grid-template-columns: minmax(280px, 1.6fr) minmax(180px, 1fr) auto;
+    gap: 16px;
+    margin-bottom: 24px;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group label,
+.filter-result-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.filter-input {
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0 14px;
+    background: white;
+    color: var(--text-primary);
+    transition: var(--transition);
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.12);
+}
+
+.search-input-wrapper {
+    position: relative;
+}
+
+.search-input-wrapper i {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    color: var(--text-light);
+}
+
+.search-input-wrapper .filter-input {
+    padding-right: 40px;
+}
+
+.filter-group--summary {
+    min-width: 120px;
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 12px;
+    background: #f8f9ff;
+    border: 1px solid rgba(67, 97, 238, 0.12);
+    justify-content: center;
+}
+
+#visible-courses-count {
+    font-size: 20px;
+    color: var(--primary-color);
 }
 
 .course-card {
@@ -576,6 +664,10 @@
 }
 
 @media (max-width: 768px) {
+    .course-filters {
+        grid-template-columns: 1fr;
+    }
+
     .summary-panel {
         grid-template-columns: 1fr;
         gap: 16px;
@@ -660,6 +752,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalEl = document.getElementById('selected-total');
     const countEl = document.getElementById('selected-count');
     const summaryHint = document.querySelector('.summary-hint');
+    const searchInput = document.getElementById('course-search');
+    const typeFilter = document.getElementById('course-type-filter');
+    const visibleCoursesCount = document.getElementById('visible-courses-count');
+    const courseCards = Array.from(document.querySelectorAll('.course-card'));
+
+    if (typeFilter) {
+        const existingTypes = new Set();
+        courseCards.forEach(card => {
+            const type = card.dataset.courseType;
+            const typeLabel = card.querySelector('.course-tag')?.textContent?.trim();
+            if (type && typeLabel && !existingTypes.has(type)) {
+                existingTypes.add(type);
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = typeLabel;
+                typeFilter.appendChild(option);
+            }
+        });
+    }
+
+    function applyFilters() {
+        const query = (searchInput?.value || '').trim().toLowerCase();
+        const selectedType = typeFilter?.value || 'all';
+        let visibleCount = 0;
+
+        courseCards.forEach(card => {
+            const matchesQuery = !query
+                || card.dataset.courseName.includes(query)
+                || card.dataset.courseDescription.includes(query);
+            const matchesType = selectedType === 'all' || card.dataset.courseType === selectedType;
+            const isVisible = matchesQuery && matchesType;
+            card.style.display = isVisible ? '' : 'none';
+            if (isVisible) {
+                visibleCount += 1;
+            }
+        });
+
+        if (visibleCoursesCount) {
+            visibleCoursesCount.textContent = visibleCount;
+        }
+    }
 
     function updateSummary() {
         let total = 0;
@@ -728,6 +861,9 @@ document.addEventListener('DOMContentLoaded', () => {
         checkbox.addEventListener('change', updateSummary);
     });
 
+    searchInput?.addEventListener('input', applyFilters);
+    typeFilter?.addEventListener('change', applyFilters);
+
     // Add hover effect for course cards
     document.querySelectorAll('.course-card').forEach(card => {
         card.addEventListener('mouseenter', () => {
@@ -743,6 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    applyFilters();
     updateSummary();
 });
 </script>
