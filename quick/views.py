@@ -2145,9 +2145,67 @@ def quick_multiple_receipt_print(request, student_id):
         'receipts': receipt_items,
         'student': student,
         'return_url': reverse('quick:student_profile', args=[student_id]),
+        'local_agent_url': settings.QUICK_LOCAL_AGENT_URL,
         'server_printer_enabled': (
             settings.QUICK_RECEIPT_PRINTER_ENABLED or settings.QUICK_RECEIPT_PRINTER_DUMMY
         ),
+    })
+
+
+def _build_quick_receipt_payload(receipts, student_id):
+    items = []
+    for receipt in receipts:
+        course_name = receipt.course.name if receipt.course else (receipt.course_name or '-')
+        student_name = receipt.quick_student.full_name if receipt.quick_student else (receipt.student_name or '-')
+        net_due = receipt.quick_enrollment.net_amount if receipt.quick_enrollment else (receipt.amount or Decimal('0'))
+        paid_amount = receipt.paid_amount or Decimal('0')
+        remaining = max(Decimal('0'), net_due - paid_amount)
+        items.append({
+            'id': receipt.id,
+            'number': receipt.receipt_number or str(receipt.id),
+            'date': receipt.date.strftime('%Y-%m-%d') if receipt.date else '',
+            'student': student_name,
+            'course': course_name,
+            'net_due': str(net_due),
+            'paid_amount': str(paid_amount),
+            'remaining': str(remaining),
+            'discount_percent': str(receipt.discount_percent or Decimal('0')),
+            'payment_method': receipt.get_payment_method_display(),
+            'notes': receipt.notes or '',
+        })
+
+    return {
+        'student_id': student_id,
+        'count': len(items),
+        'title': settings.QUICK_RECEIPT_PRINTER_TITLE,
+        'receipts': items,
+    }
+
+
+@login_required
+@require_POST
+def quick_multiple_receipt_payload(request, student_id):
+    ids_param = request.POST.get('ids', '')
+    if not ids_param:
+        return JsonResponse({'ok': False, 'error': 'لم يتم تحديد الإيصالات'}, status=400)
+
+    try:
+        receipt_ids = [int(pk.strip()) for pk in ids_param.split(',') if pk.strip()]
+    except ValueError:
+        return JsonResponse({'ok': False, 'error': 'معرّفات الإيصالات غير صحيحة'}, status=400)
+
+    receipts = list(
+        QuickStudentReceipt.objects.filter(
+            id__in=receipt_ids,
+            quick_student_id=student_id
+        ).select_related('quick_student', 'course', 'quick_enrollment').order_by('id')
+    )
+    if not receipts:
+        return JsonResponse({'ok': False, 'error': 'لا توجد إيصالات للطباعة'}, status=404)
+
+    return JsonResponse({
+        'ok': True,
+        'payload': _build_quick_receipt_payload(receipts, student_id),
     })
 
 

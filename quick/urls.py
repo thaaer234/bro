@@ -87,6 +87,7 @@ urlpatterns = [
     path('student-receipt/<int:receipt_id>/print/', require_employee_perm('students_receipt')(views.quick_student_receipt_print), name='student_receipt_print'),
     path('receipt/<int:receipt_id>/print/', require_employee_perm('students_receipt')(views.quick_student_receipt_print), name='quick_student_receipt_print'),
     path('students/<int:student_id>/receipts/print-multiple/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_print), name='quick_multiple_receipt_print'),
+    path('students/<int:student_id>/receipts/payload/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_payload), name='quick_multiple_receipt_payload'),
     path('students/<int:student_id>/receipts/print-server/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_server_print), name='quick_multiple_receipt_server_print'),
     path('students/<int:student_id>/quick-receipt/', require_employee_perm('students_receipt')(views.quick_student_quick_receipt), name='student_quick_receipt'),
     path('students/<int:student_id>/update-discount/', require_employee_perm('students_edit')(views.update_quick_student_discount), name='update_student_discount'),

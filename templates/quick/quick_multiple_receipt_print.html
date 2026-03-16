@@ -285,6 +285,9 @@
         <a href="{{ return_url }}" class="btn" style="margin-bottom:6px; display:inline-block;">
           <i class="fas fa-arrow-right"></i> العودة لملف الطالب
         </a>
+        <button type="button" id="local-agent-print-btn" class="btn" style="display:inline-block; margin-inline-start:8px;">
+          <i class="fas fa-print"></i> طباعة من برنامج اللابتوب
+        </button>
         {% if server_printer_enabled %}
         <button type="button" id="server-print-btn" class="btn" style="display:inline-block; margin-inline-start:8px;">
           <i class="fas fa-print"></i> طباعة مباشرة من طابعة السيرفر
@@ -407,6 +410,55 @@
         window.print();
 
         const serverPrintBtn = document.getElementById('server-print-btn');
+        const localAgentPrintBtn = document.getElementById('local-agent-print-btn');
+        const receiptIds = '{{ request.GET.ids|default:"" }}';
+
+        if (localAgentPrintBtn) {
+          localAgentPrintBtn.addEventListener('click', async function () {
+            const originalText = localAgentPrintBtn.innerHTML;
+            localAgentPrintBtn.disabled = true;
+            localAgentPrintBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> تجهيز الإرسال...';
+
+            try {
+              const payloadFormData = new FormData();
+              payloadFormData.append('ids', receiptIds);
+
+              const payloadResponse = await fetch('{% url "quick:quick_multiple_receipt_payload" student.id %}', {
+                method: 'POST',
+                headers: {
+                  'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: payloadFormData,
+              });
+              const payloadData = await payloadResponse.json();
+              if (!payloadResponse.ok || !payloadData.ok) {
+                throw new Error(payloadData.error || 'تعذر تجهيز بيانات الطباعة');
+              }
+
+              localAgentPrintBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> إرسال إلى اللابتوب...';
+              const agentResponse = await fetch('{{ local_agent_url }}', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payloadData.payload),
+              });
+
+              const agentData = await agentResponse.json();
+              if (!agentResponse.ok || !agentData.ok) {
+                throw new Error(agentData.error || 'فشل برنامج الطباعة المحلي');
+              }
+
+              alert(agentData.message || 'تم إرسال الإيصالات إلى برنامج الطباعة المحلي');
+            } catch (error) {
+              alert(error.message || 'تعذر الاتصال ببرنامج الطباعة المحلي على اللابتوب');
+            } finally {
+              localAgentPrintBtn.disabled = false;
+              localAgentPrintBtn.innerHTML = originalText;
+            }
+          });
+        }
+
         if (!serverPrintBtn) {
           return;
         }
