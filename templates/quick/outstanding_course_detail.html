@@ -2,63 +2,152 @@
 {% load static %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>الطلاب غير المسددين - {{ course.name }}</h2>
-        <div>
-            <a href="{% url 'quick:outstanding_courses' %}?course_type={{ course_type }}" class="btn btn-secondary me-2">
-                <i class="fas fa-arrow-left me-1"></i> رجوع
-            </a>
-            <a href="{% url 'quick:course_students' course.id %}?course_type={{ course_type }}" class="btn btn-info">
-                <i class="fas fa-users me-1"></i> جميع الطلاب
-            </a>
+<style>
+.quick-detail-page {
+    background:
+        radial-gradient(circle at top left, rgba(31, 122, 140, 0.14), transparent 28%),
+        #f6f8fc;
+    border-radius: 24px;
+    padding: 24px;
+}
+
+.quick-detail-card {
+    background: #fff;
+    border: 0;
+    border-radius: 22px;
+    box-shadow: 0 24px 50px -32px rgba(15, 23, 42, 0.42);
+}
+
+.quick-detail-header {
+    background: linear-gradient(135deg, #0f3d5e 0%, #1f7a8c 100%);
+    color: #fff;
+    border-radius: 22px;
+}
+
+.quick-detail-header .card-body {
+    padding: 22px 24px;
+}
+
+.quick-detail-header h2 {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+}
+
+.quick-soft-stat .card-body {
+    text-align: center;
+    padding: 18px;
+}
+
+.quick-soft-stat .label {
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.quick-soft-stat .value {
+    font-size: 1.65rem;
+    font-weight: 800;
+}
+
+.quick-soft-stat {
+    border-top: 4px solid #0f3d5e;
+}
+
+.quick-detail-table thead th {
+    background: #123d5d;
+    color: #fff;
+    border: 0;
+    padding: 14px 12px;
+}
+
+.quick-detail-table tbody td,
+.quick-detail-table tfoot td {
+    padding: 14px 12px;
+    vertical-align: middle;
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+.quick-detail-table tbody tr:hover {
+    background: rgba(15, 61, 94, 0.04);
+}
+
+.quick-detail-empty {
+    text-align: center;
+    padding: 54px 20px;
+    color: #64748b;
+}
+
+@media (max-width: 767px) {
+    .quick-detail-page {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .quick-detail-header .card-body {
+        padding: 16px;
+    }
+}
+</style>
+
+<div class="container-fluid quick-detail-page">
+    <div class="card quick-detail-header mb-4">
+        <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h2>الطلاب غير المسددين - {{ course.name }}</h2>
+                <div class="opacity-75 mt-1">عرض تفصيلي للطلاب الذين لديهم مبالغ متبقية في هذه الدورة.</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'quick:outstanding_courses' %}?course_type={{ course_type }}" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    رجوع
+                </a>
+                <a href="{% url 'quick:course_students' course.id %}?course_type={{ course_type }}" class="btn btn-light">
+                    <i class="fas fa-users me-1"></i>
+                    جميع الطلاب
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- إحصائيات -->
     <div class="row mb-4">
         <div class="col-md-4 mb-3">
-            <div class="card text-white bg-warning stats-card">
-                <div class="card-body text-center">
-                    <i class="fas fa-users fa-lg mb-2 opacity-75"></i>
-                    <h5 class="card-title">طلاب غير مسددين</h5>
-                    <h3 class="card-text">{{ total_students }}</h3>
+            <div class="card quick-detail-card quick-soft-stat">
+                <div class="card-body">
+                    <div class="label">عدد الطلاب غير المسددين</div>
+                    <div class="value">{{ total_students }}</div>
                 </div>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card text-white bg-danger stats-card">
-                <div class="card-body text-center">
-                    <i class="fas fa-money-bill-wave fa-lg mb-2 opacity-75"></i>
-                    <h5 class="card-title">إجمالي المتبقي</h5>
-                    <h3 class="card-text">{{ total_outstanding|floatformat:0 }} ل.س</h3>
+            <div class="card quick-detail-card quick-soft-stat">
+                <div class="card-body">
+                    <div class="label">إجمالي المتبقي</div>
+                    <div class="value text-danger">{{ total_outstanding|floatformat:0 }} ل.س</div>
                 </div>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card text-white bg-info stats-card">
-                <div class="card-body text-center">
-                    <i class="fas fa-calculator fa-lg mb-2 opacity-75"></i>
-                    <h5 class="card-title">المتوسط للطالب</h5>
-                    <h3 class="card-text">
+            <div class="card quick-detail-card quick-soft-stat">
+                <div class="card-body">
+                    <div class="label">متوسط المتبقي لكل طالب</div>
+                    <div class="value">
                         {% if total_students > 0 %}
-                            {{ total_outstanding|floatformat:0 }}
+                        {{ total_outstanding|floatformat:0 }} ل.س
                         {% else %}
-                            0
-                        {% endif %} ل.س
-                    </h3>
+                        0
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- جدول الطلاب -->
-    <div class="card report-card">
-        <div class="card-body">
+    <div class="card quick-detail-card">
+        <div class="card-body p-0">
             {% if rows %}
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead class="table-dark">
+                <table class="table quick-detail-table align-middle mb-0">
+                    <thead>
                         <tr>
                             <th>الطالب</th>
                             <th>الهاتف</th>
@@ -71,22 +160,18 @@
                         {% for r in rows %}
                         <tr>
                             <td>
-                                <a href="{% url 'quick:student_detail' r.student_id %}" class="fw-bold text-decoration-none">
-                                    {{ r.student_name }}
-                                </a>
+                                <a href="{% url 'quick:student_detail' r.student_id %}" class="fw-bold text-decoration-none">{{ r.student_name }}</a>
                             </td>
                             <td>{{ r.phone }}</td>
-                            <td class="text-end amount-cell">{{ r.net_amount|floatformat:0 }} ل.س</td>
-                            <td class="text-end amount-cell">{{ r.paid_amount|floatformat:0 }} ل.س</td>
-                            <td class="text-end amount-cell fw-bold text-danger">
-                                {{ r.remaining|floatformat:0 }} ل.س
-                            </td>
+                            <td class="text-end">{{ r.net_amount|floatformat:0 }} ل.س</td>
+                            <td class="text-end">{{ r.paid_amount|floatformat:0 }} ل.س</td>
+                            <td class="text-end fw-bold text-danger">{{ r.remaining|floatformat:0 }} ل.س</td>
                         </tr>
                         {% endfor %}
                     </tbody>
-                    <tfoot class="table-secondary fw-bold">
+                    <tfoot class="table-light fw-bold">
                         <tr>
-                            <td colspan="2" class="text-start">الإجمالي</td>
+                            <td colspan="2">الإجمالي</td>
                             <td class="text-end">{{ total_net_amount|floatformat:0 }} ل.س</td>
                             <td class="text-end">{{ total_paid_amount|floatformat:0 }} ل.س</td>
                             <td class="text-end">{{ total_outstanding|floatformat:0 }} ل.س</td>
@@ -95,10 +180,10 @@
                 </table>
             </div>
             {% else %}
-            <div class="text-center text-muted py-5">
-                <i class="fas fa-check-circle fa-4x mb-3 opacity-50"></i>
-                <h4 class="fw-light">لا يوجد طلاب غير مسددين في هذه الدورة</h4>
-                <p class="text-muted">جميع الطلاب مسددين بالكامل</p>
+            <div class="quick-detail-empty">
+                <i class="fas fa-check-circle fa-3x mb-3 d-block opacity-50"></i>
+                <h4 class="mb-2">لا يوجد طلاب غير مسددين في هذه الدورة</h4>
+                <p class="mb-0">جميع الطلاب في هذه الدورة مسددون بالكامل.</p>
             </div>
             {% endif %}
         </div>

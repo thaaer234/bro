@@ -52,6 +52,26 @@ urlpatterns = [
         require_employee_perm('accounting_outstanding')(views.QuickOutstandingCoursesPrintView.as_view()),
         name='outstanding_courses_print'
     ),
+    path(
+        'reports/late-payments/',
+        require_employee_perm('accounting_outstanding')(views.QuickLatePaymentCoursesView.as_view()),
+        name='late_payment_courses'
+    ),
+    path(
+        'reports/late-payments/<int:course_id>/',
+        require_employee_perm('accounting_outstanding')(views.QuickLatePaymentCourseDetailView.as_view()),
+        name='late_payment_course_detail'
+    ),
+    path(
+        'reports/late-payments/<int:course_id>/bulk-withdraw/',
+        require_employee_perm('students_withdraw')(views.bulk_withdraw_quick_students),
+        name='bulk_withdraw_quick_students'
+    ),
+    path(
+        'reports/late-payments/print/',
+        require_employee_perm('accounting_outstanding')(views.QuickLatePaymentCoursesPrintView.as_view()),
+        name='late_payment_courses_print'
+    ),
     
     # بروفايل الطالب السريع
     path('student/<int:student_id>/profile/', require_employee_perm('students_profile')(views.QuickStudentProfileView.as_view()), name='student_profile'),
@@ -67,6 +87,7 @@ urlpatterns = [
     path('student-receipt/<int:receipt_id>/print/', require_employee_perm('students_receipt')(views.quick_student_receipt_print), name='student_receipt_print'),
     path('receipt/<int:receipt_id>/print/', require_employee_perm('students_receipt')(views.quick_student_receipt_print), name='quick_student_receipt_print'),
     path('students/<int:student_id>/receipts/print-multiple/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_print), name='quick_multiple_receipt_print'),
+    path('students/<int:student_id>/receipts/print-server/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_server_print), name='quick_multiple_receipt_server_print'),
     path('students/<int:student_id>/quick-receipt/', require_employee_perm('students_receipt')(views.quick_student_quick_receipt), name='student_quick_receipt'),
     path('students/<int:student_id>/update-discount/', require_employee_perm('students_edit')(views.update_quick_student_discount), name='update_student_discount'),
     path('students/<int:student_id>/withdraw/', require_employee_perm('students_withdraw')(views.withdraw_quick_student), name='withdraw_student'),

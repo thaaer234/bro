@@ -144,10 +144,11 @@
                                     الراتب الإجمالي (ل.س) *
                                 </label>
                                 <div class="input-group input-group-lg">
-                                    <input type="hidden" name="auto_salary" value="1">
                                     <input type="text" name="gross_salary" id="gross_salary" 
                                            class="form-control text-end" required 
-                                           placeholder="0" pattern="[0-9]*" value="{{ auto_gross_salary|floatformat:0 }}" readonly>
+                                           placeholder="0" pattern="[0-9]*" value="{{ auto_gross_salary|floatformat:0 }}"
+                                           data-total-advances="{{ total_advances|floatformat:2 }}"
+                                           data-max-deduction="{{ max_advance_deduction|floatformat:2 }}">
                                     <span class="input-group-text bg-light">ل.س</span>
                                     <div class="invalid-feedback">
                                         يرجى إدخال الراتب الإجمالي
@@ -155,6 +156,16 @@
                                 </div>
                                 <small class="form-text text-muted">
                                     الراتب الإجمالي قبل الخصومات
+                                    {% if total_advances > 0 %}
+                                    <span class="d-block mt-1">السلف المستحقة لهذه الفترة: {{ total_advances|floatformat:0 }} ل.س، والحد الأعلى للخصم: {{ max_advance_deduction|floatformat:0 }} ل.س</span>
+                                    {% else %}
+                                    <span class="d-block mt-1">لا توجد سلف مستحقة لهذه الفترة.</span>
+                                    {% endif %}
+                                    {% if total_advances > 0 %}
+                                    <span class="d-block mt-1">السلف المستحقة لهذه الفترة: {{ total_advances|floatformat:0 }} ل.س، والحد الأعلى للخصم: {{ max_advance_deduction|floatformat:0 }} ل.س</span>
+                                    {% else %}
+                                    <span class="d-block mt-1">لا توجد سلف مستحقة لهذه الفترة.</span>
+                                    {% endif %}
                                 </small>
                             </div>
                             
@@ -165,7 +176,7 @@
                                 </label>
                                 <div class="input-group input-group-lg">
                                     <input type="text" name="advance_deduction" id="advance_deduction" 
-                                           class="form-control text-end" 
+                                           class="form-control text-end" inputmode="numeric"
                                            placeholder="0" pattern="[0-9]*" value="0">
                                     <span class="input-group-text bg-light">ل.س</span>
                                     <div class="invalid-feedback">
@@ -419,15 +430,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewNet = document.getElementById('preview-net');
     const yearSelect = document.getElementById('year');
     const monthSelect = document.getElementById('month');
+    const totalAdvances = parseFloat(grossInput.dataset.totalAdvances || '0') || 0;
     
     function formatNumber(num) {
         return new Intl.NumberFormat().format(num);
     }
+
+    function parseNumber(value) {
+        return parseFloat(String(value || '').replace(/,/g, '').trim()) || 0;
+    }
     
     function updatePreview() {
-        let gross = parseFloat(grossInput.value) || 0;
-        let deduction = parseFloat(deductionInput.value) || 0;
-        let net = gross - deduction;
+        const gross = parseNumber(grossInput.value);
+        const maxDeduction = Math.min(gross, totalAdvances);
+        const requestedDeduction = parseNumber(deductionInput.value);
+        let deduction = requestedDeduction;
+
+        if (deduction < 0) {
+            deduction = 0;
+        }
+        if (deduction > maxDeduction) {
+            deduction = maxDeduction;
+            deductionInput.value = deduction ? deduction.toFixed(0) : '0';
+        }
+
+        deductionInput.setCustomValidity('');
+        if (totalAdvances <= 0 && requestedDeduction > 0) {
+            deductionInput.setCustomValidity('لا توجد سلف مستحقة لهذه الفترة');
+        } else if (requestedDeduction > maxDeduction) {
+            deductionInput.setCustomValidity('قيمة الخصم تتجاوز الحد المسموح');
+        }
+
+        const net = Math.max(0, gross - deduction);
         
         // تحديث المعاينة
         previewGross.textContent = formatNumber(gross) + ' ل.س';

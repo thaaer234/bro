@@ -1,11 +1,12 @@
-from django import forms 
+﻿from django import forms 
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView
 from django.views.generic.edit import FormView
 from django.urls import reverse, reverse_lazy
 from django.db.models import Q, Sum
+from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-from django.contrib.auth.decorators import login_required  # ← أضف هذا السطر
+from django.contrib.auth.decorators import login_required  # â†گ ط£ط¶ظپ ظ‡ط°ط§ ط§ظ„ط³ط·ط±
 from attendance.models import Attendance
 from classroom.models import Classroomenrollment
 from django.http import JsonResponse, Http404, HttpResponse
@@ -23,12 +24,14 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
 from django.db.models import Prefetch
+from django.conf import settings
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from accounts.models import Transaction, JournalEntry, Account, get_user_cash_account
 from .models import QuickStudent, QuickEnrollment, QuickCourse, AcademicYear, QuickStudentReceipt
 from accounts.models import Course, CostCenter
+from .services.receipt_printer import QuickReceiptPrinterError, print_many_receipts
 User = get_user_model()
 
 
@@ -45,16 +48,16 @@ def _get_employee_cash_account(user):
 def _process_quick_refund(student, enrollment, refund_amount, refund_reason, user):
     """Apply a refund for a quick student enrollment and create the journal entry."""
     if refund_amount <= 0:
-        raise ValueError('المبلغ المسترد يجب أن يكون أكبر من الصفر')
+        raise ValueError('ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط³طھط±ط¯ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط£ظƒط¨ط± ظ…ظ† ط§ظ„طµظپط±')
 
     receipts_data = _adjust_quick_receipts_for_refund(student, enrollment, refund_amount)
     actual_refund = receipts_data['refunded_amount']
 
     if actual_refund <= 0:
-        raise ValueError('لا يوجد مبالغ مدفوعة كافية ليتم استردادها')
+        raise ValueError('ظ„ط§ ظٹظˆط¬ط¯ ظ…ط¨ط§ظ„ط؛ ظ…ط¯ظپظˆط¹ط© ظƒط§ظپظٹط© ظ„ظٹطھظ… ط§ط³طھط±ط¯ط§ط¯ظ‡ط§')
 
     cash_account = _get_employee_cash_account(user)
-    description = f"استرداد مبلغ - {student.full_name} - {enrollment.course.name}"
+    description = f"ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - {student.full_name} - {enrollment.course.name}"
     if refund_reason:
         description += f" - {refund_reason}"
 
@@ -71,7 +74,7 @@ def _process_quick_refund(student, enrollment, refund_amount, refund_reason, use
         account=student.ar_account,
         amount=actual_refund,
         is_debit=True,
-        description=f"استرداد مبلغ - {enrollment.course.name}"
+        description=f"ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - {enrollment.course.name}"
     )
 
     Transaction.objects.create(
@@ -79,7 +82,7 @@ def _process_quick_refund(student, enrollment, refund_amount, refund_reason, use
         account=cash_account,
         amount=actual_refund,
         is_debit=False,
-        description=f"استرداد نقدي - {student.full_name}"
+        description=f"ط§ط³طھط±ط¯ط§ط¯ ظ†ظ‚ط¯ظٹ - {student.full_name}"
     )
 
     refund_entry.post_entry(user)
@@ -214,7 +217,7 @@ def _append_quick_course_statement_rows(rows, course_name, student_name, student
             'debit': transaction.amount if transaction.is_debit else Decimal('0'),
             'credit': transaction.amount if not transaction.is_debit else Decimal('0'),
             'entry_total': entry.total_amount or Decimal('0'),
-            'posted_status': 'مرحل' if entry.is_posted else 'غير مرحل',
+            'posted_status': 'ظ…ط±ط­ظ„' if entry.is_posted else 'ط؛ظٹط± ظ…ط±ط­ظ„',
             'created_by': created_by,
             'posted_by': posted_by,
         })
@@ -263,7 +266,7 @@ def _build_quick_course_statement_rows(courses):
             course_name=enrollment.course.name,
             student_name=enrollment.student.full_name,
             student_phone=enrollment.student.phone,
-            source_label='قيد تسجيل',
+            source_label='ظ‚ظٹط¯ طھط³ط¬ظٹظ„',
             entry=entry,
         )
 
@@ -277,7 +280,7 @@ def _build_quick_course_statement_rows(courses):
             course_name=receipt.course.name if receipt.course else (receipt.course_name or "-"),
             student_name=receipt.student_name or getattr(receipt.quick_student, 'full_name', "-"),
             student_phone=getattr(receipt.quick_student, 'phone', "-"),
-            source_label='قيد قبض',
+            source_label='ظ‚ظٹط¯ ظ‚ط¨ط¶',
             entry=entry,
         )
 
@@ -294,8 +297,8 @@ def _build_quick_course_statement_rows(courses):
         student_name = enrollment.student.full_name or ""
         course_name = enrollment.course.name or ""
         description_prefixes = [
-            ("استرداد مبلغ - ", "قيد استرداد"),
-            ("سحب طالب سريع ", "قيد سحب"),
+            ("ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - ", "ظ‚ظٹط¯ ط§ط³طھط±ط¯ط§ط¯"),
+            ("ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ ", "ظ‚ظٹط¯ ط³ط­ط¨"),
         ]
 
         for entry in adjustment_entries:
@@ -305,10 +308,10 @@ def _build_quick_course_statement_rows(courses):
             description = entry.description or ""
             matched_source = None
             for prefix, source_label in description_prefixes:
-                if prefix == "استرداد مبلغ - " and description.startswith(f"{prefix}{student_name} - {course_name}"):
+                if prefix == "ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - " and description.startswith(f"{prefix}{student_name} - {course_name}"):
                     matched_source = source_label
                     break
-                if prefix == "سحب طالب سريع " and description.startswith(f"{prefix}{student_name} من {course_name}"):
+                if prefix == "ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ " and description.startswith(f"{prefix}{student_name} ظ…ظ† {course_name}"):
                     matched_source = source_label
                     break
 
@@ -356,38 +359,38 @@ def export_quick_course_statement_excel(request):
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
     columns = [
         ("#", 6),
-        ("الدورة", 24),
-        ("الطالب", 24),
-        ("الهاتف", 16),
-        ("مصدر القيد", 14),
-        ("رقم القيد", 16),
-        ("تاريخ القيد", 14),
-        ("نوع القيد", 18),
-        ("بيان القيد", 34),
-        ("رمز الحساب", 14),
-        ("اسم الحساب", 24),
-        ("بيان الحركة", 34),
-        ("مدين", 14),
-        ("دائن", 14),
-        ("إجمالي القيد", 14),
-        ("الحالة", 12),
-        ("أنشئ بواسطة", 18),
-        ("رُحل بواسطة", 18),
+        ("ط§ظ„ط¯ظˆط±ط©", 24),
+        ("ط§ظ„ط·ط§ظ„ط¨", 24),
+        ("ط§ظ„ظ‡ط§طھظپ", 16),
+        ("ظ…طµط¯ط± ط§ظ„ظ‚ظٹط¯", 14),
+        ("ط±ظ‚ظ… ط§ظ„ظ‚ظٹط¯", 16),
+        ("طھط§ط±ظٹط® ط§ظ„ظ‚ظٹط¯", 14),
+        ("ظ†ظˆط¹ ط§ظ„ظ‚ظٹط¯", 18),
+        ("ط¨ظٹط§ظ† ط§ظ„ظ‚ظٹط¯", 34),
+        ("ط±ظ…ط² ط§ظ„ط­ط³ط§ط¨", 14),
+        ("ط§ط³ظ… ط§ظ„ط­ط³ط§ط¨", 24),
+        ("ط¨ظٹط§ظ† ط§ظ„ط­ط±ظƒط©", 34),
+        ("ظ…ط¯ظٹظ†", 14),
+        ("ط¯ط§ط¦ظ†", 14),
+        ("ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ‚ظٹط¯", 14),
+        ("ط§ظ„ط­ط§ظ„ط©", 12),
+        ("ط£ظ†ط´ط¦ ط¨ظˆط§ط³ط·ط©", 18),
+        ("ط±ظڈط­ظ„ ط¨ظˆط§ط³ط·ط©", 18),
     ]
 
     def write_sheet(ws, title, rows, include_course_name):
         ws.sheet_view.rightToLeft = True
-        visible_columns = columns if include_course_name else [col for col in columns if col[0] != "الدورة"]
+        visible_columns = columns if include_course_name else [col for col in columns if col[0] != "ط§ظ„ط¯ظˆط±ط©"]
         total_cols = len(visible_columns)
 
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
-        title_cell = ws.cell(row=1, column=1, value="كشف حساب الدورات السريعة")
+        title_cell = ws.cell(row=1, column=1, value="ظƒط´ظپ ط­ط³ط§ط¨ ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„ط³ط±ظٹط¹ط©")
         title_cell.font = title_font
         title_cell.alignment = center
         title_cell.fill = header_fill
 
         ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=total_cols)
-        meta_cell = ws.cell(row=2, column=1, value=f"الدورة/التصنيف: {title} | عدد الحركات: {len(rows)}")
+        meta_cell = ws.cell(row=2, column=1, value=f"ط§ظ„ط¯ظˆط±ط©/ط§ظ„طھطµظ†ظٹظپ: {title} | ط¹ط¯ط¯ ط§ظ„ط­ط±ظƒط§طھ: {len(rows)}")
         meta_cell.alignment = right
         meta_cell.fill = subheader_fill
 
@@ -429,7 +432,7 @@ def export_quick_course_statement_excel(request):
                 cell.border = border
                 cell.alignment = center if col_idx in (1, 6, 7) else right
                 header_label = visible_columns[col_idx - 1][0]
-                if header_label in {"مدين", "دائن", "إجمالي القيد"}:
+                if header_label in {"ظ…ط¯ظٹظ†", "ط¯ط§ط¦ظ†", "ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ‚ظٹط¯"}:
                     cell.number_format = '#,##0.00'
 
         ws.freeze_panes = 'A5'
@@ -438,7 +441,7 @@ def export_quick_course_statement_excel(request):
     for course in courses:
         combined_rows.extend(rows_by_course.get(course.id, []))
 
-    all_sheet = workbook.create_sheet("كل الدورات")
+    all_sheet = workbook.create_sheet("ظƒظ„ ط§ظ„ط¯ظˆط±ط§طھ")
     write_sheet(all_sheet, report_label, combined_rows, include_course_name=True)
 
     existing_titles = {all_sheet.title}
@@ -452,7 +455,7 @@ def export_quick_course_statement_excel(request):
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     timestamp = timezone.now().strftime('%Y%m%d_%H%M')
-    response['Content-Disposition'] = f'attachment; filename="كشف_حساب_الدورات_السريعة_{report_label}_{timestamp}.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="ظƒط´ظپ_ط­ط³ط§ط¨_ط§ظ„ط¯ظˆط±ط§طھ_ط§ظ„ط³ط±ظٹط¹ط©_{report_label}_{timestamp}.xlsx"'
     workbook.save(response)
     return response
 
@@ -486,7 +489,7 @@ def export_quick_outstanding_excel(request):
 
     def student_type_label(quick_student):
         phone = _normalize_phone(quick_student.phone)
-        return "طالب معهد" if phone and phone in regular_phone_set else "خارجي"
+        return "ط·ط§ظ„ط¨ ظ…ط¹ظ‡ط¯" if phone and phone in regular_phone_set else "ط®ط§ط±ط¬ظٹ"
 
     def registered_by_label(quick_student):
         user = quick_student.created_by
@@ -511,28 +514,28 @@ def export_quick_outstanding_excel(request):
         ws.sheet_view.rightToLeft = True
         columns = [
             ("#", 6),
-            ("اسم الطالب", 28),
-            ("رقم الهاتف", 16),
-            ("نوع الطالب", 14),
-            ("المسجل", 18),
-            ("تاريخ التسجيل", 14),
+            ("ط§ط³ظ… ط§ظ„ط·ط§ظ„ط¨", 28),
+            ("ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ", 16),
+            ("ظ†ظˆط¹ ط§ظ„ط·ط§ظ„ط¨", 14),
+            ("ط§ظ„ظ…ط³ط¬ظ„", 18),
+            ("طھط§ط±ظٹط® ط§ظ„طھط³ط¬ظٹظ„", 14),
         ]
         if include_course_col:
-            columns.insert(1, ("الدورة", 26))
+            columns.insert(1, ("ط§ظ„ط¯ظˆط±ط©", 26))
         columns.extend([
-            ("إجمالي الدورة", 16),
-            ("المدفوع", 14),
-            ("المتبقي", 14),
+            ("ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¯ظˆط±ط©", 16),
+            ("ط§ظ„ظ…ط¯ظپظˆط¹", 14),
+            ("ط§ظ„ظ…طھط¨ظ‚ظٹ", 14),
         ])
 
         total_cols = len(columns)
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
-        ws.cell(row=1, column=1, value="تقرير المتبقي - الدورات السريعة").font = title_font
+        ws.cell(row=1, column=1, value="طھظ‚ط±ظٹط± ط§ظ„ظ…طھط¨ظ‚ظٹ - ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„ط³ط±ظٹط¹ط©").font = title_font
         ws.cell(row=1, column=1).alignment = center
         ws.cell(row=1, column=1).fill = header_fill
 
-        internal_count = sum(1 for r in rows if r['student_type'] == "طالب معهد")
-        external_count = sum(1 for r in rows if r['student_type'] == "خارجي")
+        internal_count = sum(1 for r in rows if r['student_type'] == "ط·ط§ظ„ط¨ ظ…ط¹ظ‡ط¯")
+        external_count = sum(1 for r in rows if r['student_type'] == "ط®ط§ط±ط¬ظٹ")
         total_paid = sum(r['paid'] for r in rows)
         total_remaining = sum(r['remaining'] for r in rows)
 
@@ -540,7 +543,7 @@ def export_quick_outstanding_excel(request):
         ws.cell(
             row=2,
             column=1,
-            value=f"الدورة: {course_label} | احصائية: طالب معهد {internal_count} | خارجي {external_count}"
+            value=f"ط§ظ„ط¯ظˆط±ط©: {course_label} | ط§ط­طµط§ط¦ظٹط©: ط·ط§ظ„ط¨ ظ…ط¹ظ‡ط¯ {internal_count} | ط®ط§ط±ط¬ظٹ {external_count}"
         ).alignment = right
         ws.cell(row=2, column=1).fill = subheader_fill
 
@@ -548,7 +551,7 @@ def export_quick_outstanding_excel(request):
         ws.cell(
             row=3,
             column=1,
-            value=f"إجمالي الطلاب: {len(rows)} | إجمالي المدفوع: {total_paid} | إجمالي المتبقي: {total_remaining}"
+            value=f"ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط§ط¨: {len(rows)} | ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¯ظپظˆط¹: {total_paid} | ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…طھط¨ظ‚ظٹ: {total_remaining}"
         ).alignment = right
         ws.cell(row=3, column=1).fill = subheader_fill
 
@@ -607,8 +610,8 @@ def export_quick_outstanding_excel(request):
         return rows
 
     all_rows = build_rows(enrollments)
-    all_sheet = workbook.create_sheet("كل الدورات")
-    write_sheet(all_sheet, "كل الدورات", all_rows, include_course_col=True)
+    all_sheet = workbook.create_sheet("ظƒظ„ ط§ظ„ط¯ظˆط±ط§طھ")
+    write_sheet(all_sheet, "ظƒظ„ ط§ظ„ط¯ظˆط±ط§طھ", all_rows, include_course_col=True)
 
     existing_titles = {all_sheet.title}
     for course in courses:
@@ -622,7 +625,7 @@ def export_quick_outstanding_excel(request):
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     timestamp = timezone.now().strftime('%Y%m%d_%H%M')
-    response['Content-Disposition'] = f'attachment; filename="تقرير_الدورات_السريعة_{report_label}_{timestamp}.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="طھظ‚ط±ظٹط±_ط§ظ„ط¯ظˆط±ط§طھ_ط§ظ„ط³ط±ظٹط¹ط©_{report_label}_{timestamp}.xlsx"'
     workbook.save(response)
     return response
 
@@ -652,6 +655,16 @@ def _get_outstanding_course_type(request):
     return course_type, label, report_label
 
 
+def _get_outstanding_date_range(request):
+    start_date = parse_date(request.GET.get('start_date') or '')
+    end_date = parse_date(request.GET.get('end_date') or '')
+
+    if start_date and end_date and start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    return start_date, end_date
+
+
 def _get_course_type_options():
     options = [{'value': 'ALL', 'label': 'كل الدورات'}]
     for value, label in QuickCourse.COURSE_TYPE_CHOICES:
@@ -659,7 +672,7 @@ def _get_course_type_options():
     return options
 
 
-def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=False):
+def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=False, start_date=None, end_date=None):
     courses = list(courses)
     course_map = {
         course.id: {
@@ -676,10 +689,13 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
         for course in courses
     }
 
-    enrollments = list(
-        QuickEnrollment.objects.filter(course__in=courses, is_completed=False)
-        .select_related('course', 'student__student')
-    )
+    enrollments_qs = QuickEnrollment.objects.filter(course__in=courses, is_completed=False)
+    if start_date:
+        enrollments_qs = enrollments_qs.filter(enrollment_date__gte=start_date)
+    if end_date:
+        enrollments_qs = enrollments_qs.filter(enrollment_date__lte=end_date)
+
+    enrollments = list(enrollments_qs.select_related('course', 'student__student'))
     if enrollments:
         receipt_totals = QuickStudentReceipt.objects.filter(
             quick_enrollment_id__in=[enrollment.id for enrollment in enrollments]
@@ -734,6 +750,207 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
     return course_data, totals
 
 
+def _build_quick_outstanding_rows(courses, start_date=None, end_date=None):
+    courses = list(courses)
+    if not courses:
+        return [], {'grouped_courses': [], 'totals': {'total_students': 0, 'total_courses': 0, 'total_outstanding': Decimal('0')}}
+
+    enrollments_qs = QuickEnrollment.objects.filter(course__in=courses, is_completed=False)
+    if start_date:
+        enrollments_qs = enrollments_qs.filter(enrollment_date__gte=start_date)
+    if end_date:
+        enrollments_qs = enrollments_qs.filter(enrollment_date__lte=end_date)
+
+    enrollments = list(
+        enrollments_qs.select_related('course', 'student').order_by(
+            'enrollment_date', 'course__name', 'student__full_name', 'id'
+        )
+    )
+
+    paid_map = {}
+    if enrollments:
+        paid_rows = QuickStudentReceipt.objects.filter(
+            quick_enrollment_id__in=[enrollment.id for enrollment in enrollments]
+        ).values('quick_enrollment_id').annotate(total=Sum('paid_amount'))
+        paid_map = {
+            row['quick_enrollment_id']: (row['total'] or Decimal('0'))
+            for row in paid_rows
+        }
+
+    today = timezone.localdate()
+    rows = []
+    grouped_map = {}
+
+    for enrollment in enrollments:
+        net_amount = enrollment.net_amount or Decimal('0')
+        paid_total = paid_map.get(enrollment.id, Decimal('0'))
+        remaining = max(Decimal('0'), net_amount - paid_total)
+        if remaining <= 0:
+            continue
+
+        enrollment_date = enrollment.enrollment_date
+        days_since = (today - enrollment_date).days if enrollment_date else 0
+        row = {
+            'enrollment_id': enrollment.id,
+            'course_id': enrollment.course_id,
+            'course_name': enrollment.course.name,
+            'student_id': enrollment.student_id,
+            'student_name': enrollment.student.full_name,
+            'phone': enrollment.student.phone,
+            'enrollment_date': enrollment_date,
+            'days_since_enrollment': max(days_since, 0),
+            'net_amount': net_amount,
+            'paid_amount': paid_total,
+            'remaining': remaining,
+        }
+        rows.append(row)
+
+        course_bucket = grouped_map.setdefault(enrollment.course_id, {
+            'course': enrollment.course,
+            'date_groups': {},
+            'total_students': 0,
+            'total_outstanding': Decimal('0'),
+        })
+        date_bucket = course_bucket['date_groups'].setdefault(enrollment_date, {
+            'date': enrollment_date,
+            'students': [],
+            'total_students': 0,
+            'total_outstanding': Decimal('0'),
+            'max_days_since_enrollment': 0,
+        })
+        date_bucket['students'].append(row)
+        date_bucket['total_students'] += 1
+        date_bucket['total_outstanding'] += remaining
+        date_bucket['max_days_since_enrollment'] = max(date_bucket['max_days_since_enrollment'], row['days_since_enrollment'])
+        course_bucket['total_students'] += 1
+        course_bucket['total_outstanding'] += remaining
+
+    grouped_courses = []
+    for course_bucket in grouped_map.values():
+        grouped_courses.append({
+            'course': course_bucket['course'],
+            'date_groups': sorted(course_bucket['date_groups'].values(), key=lambda item: item['date']),
+            'total_students': course_bucket['total_students'],
+            'total_outstanding': course_bucket['total_outstanding'],
+        })
+
+    grouped_courses.sort(key=lambda item: item['course'].name)
+    return rows, {
+        'grouped_courses': grouped_courses,
+        'totals': {
+            'total_students': len(rows),
+            'total_courses': len(grouped_courses),
+            'total_outstanding': sum(row['remaining'] for row in rows),
+        }
+    }
+
+
+def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_amount=None):
+    student = enrollment.student
+    if enrollment.is_completed:
+        raise ValueError('ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط© ظ…ط³ط­ظˆط¨ط© ظ…ط³ط¨ظ‚ط§ظ‹')
+
+    paid_total = QuickStudentReceipt.objects.filter(
+        quick_student=student,
+        quick_enrollment=enrollment,
+        course=enrollment.course
+    ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+
+    if refund_amount is None:
+        refund_amount = paid_total
+    refund_amount = max(Decimal('0'), refund_amount)
+    if refund_amount <= 0 and paid_total > 0:
+        refund_amount = paid_total
+
+    refund_result = _adjust_quick_receipts_for_refund(student, enrollment, refund_amount)
+    actual_refund = refund_result['refunded_amount']
+
+    if getattr(enrollment, 'enrollment_journal_entry_id', None):
+        try:
+            enrollment.enrollment_journal_entry.reverse_entry(
+                user,
+                description=(
+                    f"ط¥ظ„ط؛ط§ط، طھط³ط¬ظٹظ„ ط³ط±ظٹط¹ - {withdrawal_reason}"
+                    if withdrawal_reason else "ط¥ظ„ط؛ط§ط، طھط³ط¬ظٹظ„ ط³ط±ظٹط¹"
+                )
+            )
+        except Exception:
+            pass
+
+    returns_account, _ = Account.objects.get_or_create(
+        code='4201',
+        defaults={
+            'name': 'Withdrawal Revenue - Students',
+            'name_ar': 'ط¥ظٹط±ط§ط¯ط§طھ ط§ظ†ط³ط­ط§ط¨ ط·ظ„ط§ط¨',
+            'account_type': 'REVENUE',
+            'is_active': True,
+        }
+    )
+
+    student_ar = student.ar_account
+    previous_paid = refund_result['previous_paid']
+    due = max(Decimal('0.00'), (enrollment.net_amount or Decimal('0.00')) - previous_paid)
+
+    entry = JournalEntry.objects.create(
+        reference="",
+        date=timezone.now().date(),
+        description=(
+            f"ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ {student.full_name} ظ…ظ† {enrollment.course.name}"
+            + (f" - {withdrawal_reason}" if withdrawal_reason else "")
+        ),
+        entry_type='ADJUSTMENT',
+        total_amount=actual_refund + due,
+        created_by=user
+    )
+
+    if actual_refund > 0:
+        cash_account = _get_employee_cash_account(user)
+        Transaction.objects.create(
+            journal_entry=entry,
+            account=returns_account,
+            amount=actual_refund,
+            is_debit=True,
+            description=f"ط§ط³طھط±ط¯ط§ط¯ - {withdrawal_reason}" if withdrawal_reason else "ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ ظ…ط¯ظپظˆط¹"
+        )
+        Transaction.objects.create(
+            journal_entry=entry,
+            account=cash_account,
+            amount=actual_refund,
+            is_debit=False,
+            description=f"ط¯ظپط¹ ط§ط³طھط±ط¯ط§ط¯ ظ„ظ„ط·ط§ظ„ط¨ {student.full_name}"
+        )
+
+    if due > 0:
+        deferred_account = Account.get_or_create_quick_course_deferred_account(enrollment.course)
+        if deferred_account and student_ar:
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=deferred_account,
+                amount=due,
+                is_debit=True,
+                description="ط¹ظƒط³ ط¥ظٹط±ط§ط¯ط§طھ ظ…ط¤ط¬ظ„ط©"
+            )
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=student_ar,
+                amount=due,
+                is_debit=False,
+                description="ط¹ظƒط³ ط°ظ…ظ… ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ظ…ط¯ظٹظ†ط©"
+            )
+
+    entry.post_entry(user)
+
+    enrollment.is_completed = True
+    enrollment.completion_date = timezone.now().date()
+    enrollment.save(update_fields=['is_completed', 'completion_date'])
+
+    return {
+        'actual_refund': actual_refund,
+        'student_name': student.full_name,
+        'course_name': enrollment.course.name,
+    }
+
+
 def _snapshot_outstanding_totals(totals):
     return {
         'total_courses': int(totals.get('total_courses', 0) or 0),
@@ -754,11 +971,11 @@ def _build_outstanding_comparison(current_totals, previous_totals):
         previous_value = previous_totals.get(key, 0)
         delta = current_value - previous_value
         if delta > 0:
-            trend = 'زيادة'
+            trend = 'ط²ظٹط§ط¯ط©'
         elif delta < 0:
-            trend = 'نقصان'
+            trend = 'ظ†ظ‚طµط§ظ†'
         else:
-            trend = 'ثبات'
+            trend = 'ط«ط¨ط§طھ'
 
         if improve_when == 'up':
             improved = delta > 0
@@ -777,11 +994,11 @@ def _build_outstanding_comparison(current_totals, previous_totals):
         }
 
     items = [
-        make_item('إجمالي الطلاب', 'total_students', None),
-        make_item('الطلاب المسددين', 'total_paid_students', 'up'),
-        make_item('الطلاب غير المسددين', 'total_outstanding_students', 'down'),
-        make_item('إجمالي المدفوع', 'total_paid_amount', 'up'),
-        make_item('إجمالي المتبقي', 'total_outstanding_amount', 'down'),
+        make_item('ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط§ط¨', 'total_students', None),
+        make_item('ط§ظ„ط·ظ„ط§ط¨ ط§ظ„ظ…ط³ط¯ط¯ظٹظ†', 'total_paid_students', 'up'),
+        make_item('ط§ظ„ط·ظ„ط§ط¨ ط؛ظٹط± ط§ظ„ظ…ط³ط¯ط¯ظٹظ†', 'total_outstanding_students', 'down'),
+        make_item('ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¯ظپظˆط¹', 'total_paid_amount', 'up'),
+        make_item('ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…طھط¨ظ‚ظٹ', 'total_outstanding_amount', 'down'),
     ]
 
     improvement_count = sum(1 for item in items if item['improved'] is True)
@@ -830,7 +1047,7 @@ class QuickOutstandingCoursesPrintView(LoginRequiredMixin, TemplateView):
         return context
 
     
- # الفصول الدراسية
+ # ط§ظ„ظپطµظˆظ„ ط§ظ„ط¯ط±ط§ط³ظٹط©
 class AcademicYearListView(LoginRequiredMixin, ListView):
     model = AcademicYear
     template_name = 'quick/academic_year_list.html'
@@ -846,7 +1063,7 @@ class AcademicYearCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('quick:academic_year_list')
     
     def form_valid(self, form):
-        messages.success(self.request, 'تم إضافة الفصل الدراسي بنجاح')
+        messages.success(self.request, 'طھظ… ط¥ط¶ط§ظپط© ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط¨ظ†ط¬ط§ط­')
         return super().form_valid(form)
 
 class CloseAcademicYearView(LoginRequiredMixin, DetailView):
@@ -857,9 +1074,9 @@ class CloseAcademicYearView(LoginRequiredMixin, DetailView):
         academic_year = self.get_object()
         password = request.POST.get('password')
         
-        # التحقق من كلمة المرور
+        # ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±
         if not request.user.check_password(password):
-            messages.error(request, 'كلمة المرور غير صحيحة')
+            messages.error(request, 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­ط©')
             return render(request, self.template_name, {'academic_year': academic_year})
         
         academic_year.is_closed = True
@@ -867,10 +1084,10 @@ class CloseAcademicYearView(LoginRequiredMixin, DetailView):
         academic_year.closed_at = timezone.now()
         academic_year.save()
         
-        messages.success(request, 'تم إغلاق الفصل الدراسي بنجاح')
+        messages.success(request, 'طھظ… ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط¨ظ†ط¬ط§ط­')
         return redirect('quick:academic_year_list')
 
-# الدورات السريعة
+# ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„ط³ط±ظٹط¹ط©
 class QuickCourseListView(LoginRequiredMixin, ListView):
     model = QuickCourse
     template_name = 'quick/quick_course_list.html'
@@ -887,10 +1104,10 @@ class QuickCourseCreateView(LoginRequiredMixin, CreateView):
     
     def form_valid(self, form):
         form.instance.created_by = self.request.user
-        messages.success(self.request, 'تم إضافة الدورة السريعة بنجاح')
+        messages.success(self.request, 'طھظ… ط¥ط¶ط§ظپط© ط§ظ„ط¯ظˆط±ط© ط§ظ„ط³ط±ظٹط¹ط© ط¨ظ†ط¬ط§ط­')
         return super().form_valid(form)
 
-# الطلاب السريعين
+# ط§ظ„ط·ظ„ط§ط¨ ط§ظ„ط³ط±ظٹط¹ظٹظ†
 class QuickStudentListView(LoginRequiredMixin, ListView):
     model = QuickStudent
     template_name = 'quick/quick_student_list.html'
@@ -914,11 +1131,11 @@ class QuickStudentListView(LoginRequiredMixin, ListView):
         next_url = request.POST.get('next') or reverse('quick:student_list')
 
         if not student_ids:
-            messages.warning(request, 'يرجى اختيار طلاب أولاً.')
+            messages.warning(request, 'ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ط·ظ„ط§ط¨ ط£ظˆظ„ط§ظ‹.')
             return redirect(next_url)
 
         if gender not in ('male', 'female', 'unknown'):
-            messages.error(request, 'قيمة الجنس غير صحيحة.')
+            messages.error(request, 'ظ‚ظٹظ…ط© ط§ظ„ط¬ظ†ط³ ط؛ظٹط± طµط­ظٹط­ط©.')
             return redirect(next_url)
 
         gender_value = '' if gender == 'unknown' else gender
@@ -932,15 +1149,15 @@ class QuickStudentListView(LoginRequiredMixin, ListView):
                 updated_count += 1
 
         if gender_value:
-            messages.success(request, f'تم تحديث الجنس لـ {updated_count} طالب/طالبة.')
+            messages.success(request, f'طھظ… طھط­ط¯ظٹط« ط§ظ„ط¬ظ†ط³ ظ„ظ€ {updated_count} ط·ط§ظ„ط¨/ط·ط§ظ„ط¨ط©.')
         else:
-            messages.success(request, f'تم إزالة تحديد الجنس لـ {updated_count} طالب/طالبة.')
+            messages.success(request, f'طھظ… ط¥ط²ط§ظ„ط© طھط­ط¯ظٹط¯ ط§ظ„ط¬ظ†ط³ ظ„ظ€ {updated_count} ط·ط§ظ„ط¨/ط·ط§ظ„ط¨ط©.')
         return redirect(next_url)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # إحصائيات الربط التلقائي
+        # ط¥ط­طµط§ط¦ظٹط§طھ ط§ظ„ط±ط¨ط· ط§ظ„طھظ„ظ‚ط§ط¦ظٹ
         students = context['students']
         auto_assigned = students.filter(academic_year__isnull=False)
         unassigned = students.filter(academic_year__isnull=True)
@@ -965,7 +1182,7 @@ class QuickStudentCreateView(LoginRequiredMixin, CreateView):
         return initial
 
     def form_valid(self, form):
-        # إنشاء طالب نظامي أولاً
+        # ط¥ظ†ط´ط§ط، ط·ط§ظ„ط¨ ظ†ط¸ط§ظ…ظٹ ط£ظˆظ„ط§ظ‹
         from students.models import Student
         student = Student.objects.create(
             full_name=form.cleaned_data['full_name'],
@@ -978,7 +1195,7 @@ class QuickStudentCreateView(LoginRequiredMixin, CreateView):
         
         form.instance.student = student
         form.instance.created_by = self.request.user
-        messages.success(self.request, 'تم إضافة الطالب السريع بنجاح')
+        messages.success(self.request, 'طھظ… ط¥ط¶ط§ظپط© ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط³ط±ظٹط¹ ط¨ظ†ط¬ط§ط­')
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -996,7 +1213,7 @@ class QuickStudentDetailView(LoginRequiredMixin, DetailView):
         ).select_related('course')
         return context
 
-# التسجيلات السريعة
+# ط§ظ„طھط³ط¬ظٹظ„ط§طھ ط§ظ„ط³ط±ظٹط¹ط©
 class QuickEnrollmentCreateView(LoginRequiredMixin, CreateView):
     model = QuickEnrollment
     form_class = QuickEnrollmentForm
@@ -1018,18 +1235,18 @@ class QuickEnrollmentCreateView(LoginRequiredMixin, CreateView):
     
     def form_valid(self, form):
         response = super().form_valid(form)
-        # إنشاء القيد المحاسبي
+        # ط¥ظ†ط´ط§ط، ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ
         try:
             self.object.create_accrual_enrollment_entry(self.request.user)
-            messages.success(self.request, 'تم تسجيل الطالب وإنشاء القيد المحاسبي بنجاح')
+            messages.success(self.request, 'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط·ط§ظ„ط¨ ظˆط¥ظ†ط´ط§ط، ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ ط¨ظ†ط¬ط§ط­')
         except Exception as e:
-            messages.warning(self.request, f'تم التسجيل ولكن حدث خطأ في القيد المحاسبي: {str(e)}')
+            messages.warning(self.request, f'طھظ… ط§ظ„طھط³ط¬ظٹظ„ ظˆظ„ظƒظ† ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ: {str(e)}')
         return response
     
     def get_success_url(self):
         return reverse_lazy('quick:student_detail', kwargs={'pk': self.object.student.pk})
 
-# بروفايل الطالب السريع
+# ط¨ط±ظˆظپط§ظٹظ„ ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط³ط±ظٹط¹
 class QuickStudentProfileView(LoginRequiredMixin, DetailView):
     model = QuickStudent
     template_name = 'quick/quick_student_profile.html'
@@ -1043,16 +1260,16 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
         student = self.get_object()
         
         try:
-            # ✅ جلب التسجيلات النشطة فقط
+            # âœ… ط¬ظ„ط¨ ط§ظ„طھط³ط¬ظٹظ„ط§طھ ط§ظ„ظ†ط´ط·ط© ظپظ‚ط·
             active_enrollments_queryset = QuickEnrollment.objects.filter(
                 student=student, 
                 is_completed=False
             ).select_related('course')
             
-            # ✅ إنشاء قائمة بالبيانات المحسوبة للتسجيلات النشطة
+            # âœ… ط¥ظ†ط´ط§ط، ظ‚ط§ط¦ظ…ط© ط¨ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط­ط³ظˆط¨ط© ظ„ظ„طھط³ط¬ظٹظ„ط§طھ ط§ظ„ظ†ط´ط·ط©
             enrollment_data = []
             for enrollment in active_enrollments_queryset:
-                # اربط الدفعات بهذا التسجيل نفسه لمنع خلط إيصالات تسجيل آخر
+                # ط§ط±ط¨ط· ط§ظ„ط¯ظپط¹ط§طھ ط¨ظ‡ط°ط§ ط§ظ„طھط³ط¬ظٹظ„ ظ†ظپط³ظ‡ ظ„ظ…ظ†ط¹ ط®ظ„ط· ط¥ظٹطµط§ظ„ط§طھ طھط³ط¬ظٹظ„ ط¢ط®ط±
                 total_paid = _get_quick_enrollment_paid_total(enrollment, student)
                 
                 net_amount = enrollment.net_amount or Decimal('0.00')
@@ -1066,17 +1283,17 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
                     'is_active': not enrollment.is_completed
                 })
             
-            # ✅ حساب الإجماليات
+            # âœ… ط­ط³ط§ط¨ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹط§طھ
             total_paid = sum(item['total_paid'] for item in enrollment_data)
             total_due = sum(item['net_amount'] for item in enrollment_data)
             total_remaining = total_due - total_paid
             
-            # ✅ جلب جميع الإيصالات السريعة
+            # âœ… ط¬ظ„ط¨ ط¬ظ…ظٹط¹ ط§ظ„ط¥ظٹطµط§ظ„ط§طھ ط§ظ„ط³ط±ظٹط¹ط©
             receipts = QuickStudentReceipt.objects.filter(
                 quick_student=student
             ).select_related('course').order_by('-date', '-id')
             
-            # ✅ التحقق من وجود تسجيلات نشطة
+            # âœ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ طھط³ط¬ظٹظ„ط§طھ ظ†ط´ط·ط©
             has_active_enrollments = len(enrollment_data) > 0
             
             context.update({
@@ -1090,7 +1307,7 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
             })
             
         except Exception as e:
-            messages.error(self.request, f'حدث خطأ في تحميل البيانات: {str(e)}')
+            messages.error(self.request, f'ط­ط¯ط« ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ: {str(e)}')
             context.update({
                 'enrollment_data': [],
                 'active_enrollments': [],
@@ -1102,7 +1319,7 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
             })
         
         return context
-# كشف حساب الطالب السريع
+# ظƒط´ظپ ط­ط³ط§ط¨ ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط³ط±ظٹط¹
 class QuickStudentStatementView(LoginRequiredMixin, DetailView):
     model = QuickStudent
     template_name = 'quick/quick_student_statement.html'
@@ -1116,16 +1333,16 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
         student = self.get_object()
         
         try:
-            # ✅ جلب التسجيلات النشطة فقط
+            # âœ… ط¬ظ„ط¨ ط§ظ„طھط³ط¬ظٹظ„ط§طھ ط§ظ„ظ†ط´ط·ط© ظپظ‚ط·
             active_enrollments_queryset = QuickEnrollment.objects.filter(
                 student=student, 
                 is_completed=False
             ).select_related('course')
             
-            # ✅ إنشاء قائمة بالبيانات المحسوبة للتسجيلات النشطة
+            # âœ… ط¥ظ†ط´ط§ط، ظ‚ط§ط¦ظ…ط© ط¨ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط­ط³ظˆط¨ط© ظ„ظ„طھط³ط¬ظٹظ„ط§طھ ط§ظ„ظ†ط´ط·ط©
             enrollment_data = []
             for enrollment in active_enrollments_queryset:
-                # اربط الدفعات بهذا التسجيل نفسه لمنع خلط إيصالات تسجيل آخر
+                # ط§ط±ط¨ط· ط§ظ„ط¯ظپط¹ط§طھ ط¨ظ‡ط°ط§ ط§ظ„طھط³ط¬ظٹظ„ ظ†ظپط³ظ‡ ظ„ظ…ظ†ط¹ ط®ظ„ط· ط¥ظٹطµط§ظ„ط§طھ طھط³ط¬ظٹظ„ ط¢ط®ط±
                 total_paid = _get_quick_enrollment_paid_total(enrollment, student)
                 
                 net_amount = enrollment.net_amount or Decimal('0.00')
@@ -1139,17 +1356,17 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
                     'is_active': not enrollment.is_completed
                 })
             
-            # ✅ حساب الإجماليات
+            # âœ… ط­ط³ط§ط¨ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹط§طھ
             total_paid = sum(item['total_paid'] for item in enrollment_data)
             total_due = sum(item['net_amount'] for item in enrollment_data)
             total_remaining = total_due - total_paid
             
-            # ✅ جلب جميع الإيصالات السريعة
+            # âœ… ط¬ظ„ط¨ ط¬ظ…ظٹط¹ ط§ظ„ط¥ظٹطµط§ظ„ط§طھ ط§ظ„ط³ط±ظٹط¹ط©
             receipts = QuickStudentReceipt.objects.filter(
                 quick_student=student
             ).select_related('course').order_by('-date', '-id')
             
-            # ✅ التحقق من وجود تسجيلات نشطة
+            # âœ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ طھط³ط¬ظٹظ„ط§طھ ظ†ط´ط·ط©
             has_active_enrollments = len(enrollment_data) > 0
             
             context.update({
@@ -1163,7 +1380,7 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
             })
             
         except Exception as e:
-            messages.error(self.request, f'حدث خطأ في تحميل البيانات: {str(e)}')
+            messages.error(self.request, f'ط­ط¯ط« ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ: {str(e)}')
             context.update({
                 'enrollment_data': [],
                 'active_enrollments': [],
@@ -1178,9 +1395,9 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
 
 @require_POST
 def update_quick_student_discount(request, student_id):
-    """تحديث حسم الطالب السريع وتعديل القيود المرتبطة"""
+    """طھط­ط¯ظٹط« ط­ط³ظ… ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط³ط±ظٹط¹ ظˆطھط¹ط¯ظٹظ„ ط§ظ„ظ‚ظٹظˆط¯ ط§ظ„ظ…ط±طھط¨ط·ط©"""
     if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'يجب تسجيل الدخول'})
+        return JsonResponse({'success': False, 'error': 'ظٹط¬ط¨ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„'})
     
     student = get_object_or_404(QuickStudent, id=student_id)
     
@@ -1192,7 +1409,7 @@ def update_quick_student_discount(request, student_id):
         discount_amount = Decimal(request.POST.get('discount_amount', '0'))
         discount_reason = request.POST.get('discount_reason', '')
         
-        # التحقق من وجود تسجيلات نشطة
+        # ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ طھط³ط¬ظٹظ„ط§طھ ظ†ط´ط·ط©
         active_enrollments = QuickEnrollment.objects.filter(
             student=student, 
             is_completed=False
@@ -1201,11 +1418,11 @@ def update_quick_student_discount(request, student_id):
         if not active_enrollments.exists():
             return JsonResponse({
                 'success': False,
-                'error': 'لا توجد تسجيلات نشطة للطالب'
+                'error': 'ظ„ط§ طھظˆط¬ط¯ طھط³ط¬ظٹظ„ط§طھ ظ†ط´ط·ط© ظ„ظ„ط·ط§ظ„ط¨'
             })
         
         with db_transaction.atomic():
-            # تحديث التسجيلات النشطة بالخصم الجديد
+            # طھط­ط¯ظٹط« ط§ظ„طھط³ط¬ظٹظ„ط§طھ ط§ظ„ظ†ط´ط·ط© ط¨ط§ظ„ط®طµظ… ط§ظ„ط¬ط¯ظٹط¯
             updated_count = 0
             for enrollment in active_enrollments:
                 enrollment.discount_percent = discount_percent
@@ -1213,33 +1430,33 @@ def update_quick_student_discount(request, student_id):
                 enrollment.save()
                 updated_count += 1
             
-            # إذا تغير الخصم، قم بتحديث القيود
+            # ط¥ط°ط§ طھط؛ظٹط± ط§ظ„ط®طµظ…طŒ ظ‚ظ… ط¨طھط­ط¯ظٹط« ط§ظ„ظ‚ظٹظˆط¯
             student.update_enrollment_discounts(request.user)
         
         return JsonResponse({
             'success': True,
-            'message': f'تم تحديث الحسم والقيود المحاسبية لـ {updated_count} تسجيل نشط'
+            'message': f'طھظ… طھط­ط¯ظٹط« ط§ظ„ط­ط³ظ… ظˆط§ظ„ظ‚ظٹظˆط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹط© ظ„ظ€ {updated_count} طھط³ط¬ظٹظ„ ظ†ط´ط·'
         })
         
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        print(f"حدث خطأ في update_quick_student_discount: {str(e)}")
+        print(f"ط­ط¯ط« ط®ط·ط£ ظپظٹ update_quick_student_discount: {str(e)}")
         
         return JsonResponse({
             'success': False,
-            'error': f'حدث خطأ: {str(e)}'
+            'error': f'ط­ط¯ط« ط®ط·ط£: {str(e)}'
         })
 
 @require_POST
 def quick_student_quick_receipt(request, student_id):
-    """إنشاء إيصال فوري للطالب السريع"""
+    """ط¥ظ†ط´ط§ط، ط¥ظٹطµط§ظ„ ظپظˆط±ظٹ ظ„ظ„ط·ط§ظ„ط¨ ط§ظ„ط³ط±ظٹط¹"""
     from decimal import Decimal
     from django.db.models import Sum
     from .models import QuickStudentReceipt
     
     if not request.user.is_authenticated:
-        return JsonResponse({'ok': False, 'error': 'يجب تسجيل الدخول'}, status=401)
+        return JsonResponse({'ok': False, 'error': 'ظٹط¬ط¨ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„'}, status=401)
     
     student = get_object_or_404(QuickStudent, id=student_id)
     try:
@@ -1252,21 +1469,21 @@ def quick_student_quick_receipt(request, student_id):
         discount_amount = Decimal(request.POST.get('discount_amount', '0'))
         receipt_date_str = request.POST.get('receipt_date')
         
-        # ✅ التصحيح: إذا كان amount صغيراً (أقل من 1000) نعتبره يحتاج أصفار
+        # âœ… ط§ظ„طھطµط­ظٹط­: ط¥ط°ط§ ظƒط§ظ† amount طµط؛ظٹط±ط§ظ‹ (ط£ظ‚ظ„ ظ…ظ† 1000) ظ†ط¹طھط¨ط±ظ‡ ظٹط­طھط§ط¬ ط£طµظپط§ط±
         if amount < 1000 and amount > 0:
-            # نضرب في 1000 لإضافة الأصفار المفقودة
+            # ظ†ط¶ط±ط¨ ظپظٹ 1000 ظ„ط¥ط¶ط§ظپط© ط§ظ„ط£طµظپط§ط± ط§ظ„ظ…ظپظ‚ظˆط¯ط©
             amount = amount * 1000
         
-        # معالجة تاريخ الإيصال
+        # ظ…ط¹ط§ظ„ط¬ط© طھط§ط±ظٹط® ط§ظ„ط¥ظٹطµط§ظ„
         if receipt_date_str:
             receipt_date = parse_date(receipt_date_str)
             if not receipt_date:
-                return JsonResponse({'ok': False, 'error': 'صيغة التاريخ غير صحيحة'}, status=400)
+                return JsonResponse({'ok': False, 'error': 'طµظٹط؛ط© ط§ظ„طھط§ط±ظٹط® ط؛ظٹط± طµط­ظٹط­ط©'}, status=400)
         else:
             receipt_date = timezone.now().date()
             
     except (ValueError, TypeError, InvalidOperation) as e:
-        return JsonResponse({'ok': False, 'error': f'خطأ في تنسيق الأرقام: {str(e)}'}, status=400)
+        return JsonResponse({'ok': False, 'error': f'ط®ط·ط£ ظپظٹ طھظ†ط³ظٹظ‚ ط§ظ„ط£ط±ظ‚ط§ظ…: {str(e)}'}, status=400)
     
     course = None
     remaining_amount = Decimal('0.00')
@@ -1277,17 +1494,17 @@ def quick_student_quick_receipt(request, student_id):
             enrollment = QuickEnrollment.objects.get(pk=enrollment_id, student=student)
             
             if enrollment.is_completed:
-                return JsonResponse({'ok': False, 'error': 'لا يمكن قطع إيصال لدورة مسحوبة'}, status=400)
+                return JsonResponse({'ok': False, 'error': 'ظ„ط§ ظٹظ…ظƒظ† ظ‚ط·ط¹ ط¥ظٹطµط§ظ„ ظ„ط¯ظˆط±ط© ظ…ط³ط­ظˆط¨ط©'}, status=400)
                 
             course = enrollment.course
 
             if course_id and str(course.id) != str(course_id):
-                return JsonResponse({'ok': False, 'error': 'الدورة المحددة لا تطابق تسجيل الطالب'}, status=400)
+                return JsonResponse({'ok': False, 'error': 'ط§ظ„ط¯ظˆط±ط© ط§ظ„ظ…ط­ط¯ط¯ط© ظ„ط§ طھط·ط§ط¨ظ‚ طھط³ط¬ظٹظ„ ط§ظ„ط·ط§ظ„ط¨'}, status=400)
             
             if amount == 0:
                 amount = enrollment.net_amount or Decimal('0.00')
             
-            # احسب المتبقي من نفس التسجيل فقط
+            # ط§ط­ط³ط¨ ط§ظ„ظ…طھط¨ظ‚ظٹ ظ…ظ† ظ†ظپط³ ط§ظ„طھط³ط¬ظٹظ„ ظپظ‚ط·
             total_paid = _get_quick_enrollment_paid_total(enrollment, student)
             
             net_amount = enrollment.net_amount or Decimal('0.00')
@@ -1299,7 +1516,7 @@ def quick_student_quick_receipt(request, student_id):
             if amount == 0:
                 amount = course.price or Decimal('0.00')
                 
-            # البحث عن enrollment لهذه الدورة
+            # ط§ظ„ط¨ط­ط« ط¹ظ† enrollment ظ„ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط©
             enrollment = QuickEnrollment.objects.filter(
                 student=student, 
                 course=course,
@@ -1314,15 +1531,15 @@ def quick_student_quick_receipt(request, student_id):
                 remaining_amount = course.price or Decimal('0.00')
                 
     except (QuickEnrollment.DoesNotExist, QuickCourse.DoesNotExist) as e:
-        return JsonResponse({'ok': False, 'error': 'الدورة أو التسجيل غير موجود'}, status=404)
+        return JsonResponse({'ok': False, 'error': 'ط§ظ„ط¯ظˆط±ط© ط£ظˆ ط§ظ„طھط³ط¬ظٹظ„ ط؛ظٹط± ظ…ظˆط¬ظˆط¯'}, status=404)
     
     if paid_amount < 0:
-        return JsonResponse({'ok': False, 'error': 'المبلغ المدفوع غير صالح'}, status=400)
+        return JsonResponse({'ok': False, 'error': 'ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط¯ظپظˆط¹ ط؛ظٹط± طµط§ظ„ط­'}, status=400)
     
     if paid_amount > remaining_amount:
-        return JsonResponse({'ok': False, 'error': f'المبلغ المدفوع ({paid_amount}) يتجاوز المبلغ المتبقي ({remaining_amount})'}, status=400)
+        return JsonResponse({'ok': False, 'error': f'ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط¯ظپظˆط¹ ({paid_amount}) ظٹطھط¬ط§ظˆط² ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…طھط¨ظ‚ظٹ ({remaining_amount})'}, status=400)
     
-    # Create receipt - استخدام QuickStudentReceipt الجديد
+    # Create receipt - ط§ط³طھط®ط¯ط§ظ… QuickStudentReceipt ط§ظ„ط¬ط¯ظٹط¯
     try:
         receipt = QuickStudentReceipt.objects.create(
             date=receipt_date,
@@ -1339,14 +1556,14 @@ def quick_student_quick_receipt(request, student_id):
             created_by=request.user,
         )
     except Exception as e:
-        return JsonResponse({'ok': False, 'error': f'فشل في إنشاء الإيصال: {str(e)}'}, status=500)
+        return JsonResponse({'ok': False, 'error': f'ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ط¥ظٹطµط§ظ„: {str(e)}'}, status=500)
     
     journal_warning = None
     try:
-        # إنشاء القيد المحاسبي
+        # ط¥ظ†ط´ط§ط، ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ
         receipt.create_accrual_journal_entry(request.user)
     except Exception as e:
-        journal_warning = f"خطأ في القيد المحاسبي: {e}"
+        journal_warning = f"ط®ط·ط£ ظپظٹ ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ: {e}"
     
     new_remaining_amount = max(Decimal('0.00'), remaining_amount - paid_amount)
     
@@ -1362,7 +1579,7 @@ def quick_student_quick_receipt(request, student_id):
 
 @require_POST
 def withdraw_quick_student(request, student_id):
-    """سحب الطالب السريع من الدورة"""
+    """ط³ط­ط¨ ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط³ط±ظٹط¹ ظ…ظ† ط§ظ„ط¯ظˆط±ط©"""
     student = get_object_or_404(QuickStudent, pk=student_id)
     
     if request.method == 'POST':
@@ -1371,14 +1588,14 @@ def withdraw_quick_student(request, student_id):
         refund_amount_raw = request.POST.get('refund_amount', '0')
 
         if not enrollment_id:
-            messages.error(request, 'لم يتم تحديد تسجيل الدورة')
+            messages.error(request, 'ظ„ظ… ظٹطھظ… طھط­ط¯ظٹط¯ طھط³ط¬ظٹظ„ ط§ظ„ط¯ظˆط±ط©')
             return redirect('quick:student_profile', student_id=student.id)
 
         try:
             enrollment = get_object_or_404(QuickEnrollment, pk=enrollment_id, student=student)
 
             if enrollment.is_completed:
-                messages.error(request, 'هذه الدورة مسحوبة مسبقاً')
+                messages.error(request, 'ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط© ظ…ط³ط­ظˆط¨ط© ظ…ط³ط¨ظ‚ط§ظ‹')
                 return redirect('quick:student_profile', student_id=student.id)
 
             paid_total = QuickStudentReceipt.objects.filter(
@@ -1397,13 +1614,13 @@ def withdraw_quick_student(request, student_id):
 
             refund_result = _adjust_quick_receipts_for_refund(student, enrollment, refund_amount)
             actual_refund = refund_result['refunded_amount']
-            refund_note = f' واسترد {actual_refund:,.0f} ل.س' if actual_refund > 0 else ''
+            refund_note = f' ظˆط§ط³طھط±ط¯ {actual_refund:,.0f} ظ„.ط³' if actual_refund > 0 else ''
 
             if getattr(enrollment, 'enrollment_journal_entry_id', None):
                 try:
                     enrollment.enrollment_journal_entry.reverse_entry(
                         request.user,
-                        description=f"إلغاء تسجيل سريع - {withdrawal_reason}" if withdrawal_reason else "إلغاء تسجيل سريع"
+                        description=f"ط¥ظ„ط؛ط§ط، طھط³ط¬ظٹظ„ ط³ط±ظٹط¹ - {withdrawal_reason}" if withdrawal_reason else "ط¥ظ„ط؛ط§ط، طھط³ط¬ظٹظ„ ط³ط±ظٹط¹"
                     )
                 except Exception:
                     pass
@@ -1412,7 +1629,7 @@ def withdraw_quick_student(request, student_id):
                 code='4201',
                 defaults={
                     'name': 'Withdrawal Revenue - Students',
-                    'name_ar': 'إيرادات انسحاب طلاب',
+                    'name_ar': 'ط¥ظٹط±ط§ط¯ط§طھ ط§ظ†ط³ط­ط§ط¨ ط·ظ„ط§ط¨',
                     'account_type': 'REVENUE',
                     'is_active': True,
                 }
@@ -1428,7 +1645,7 @@ def withdraw_quick_student(request, student_id):
             entry = JournalEntry.objects.create(
                 reference="",
                 date=timezone.now().date(),
-                description=f"سحب طالب سريع {student.full_name} من {enrollment.course.name}" + 
+                description=f"ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ {student.full_name} ظ…ظ† {enrollment.course.name}" + 
                            (f" - {withdrawal_reason}" if withdrawal_reason else ""),
                 entry_type='ADJUSTMENT',
                 total_amount=entry_total,
@@ -1442,14 +1659,14 @@ def withdraw_quick_student(request, student_id):
                     account=returns_account,
                     amount=actual_refund,
                     is_debit=True,
-                    description=f"استرداد - {withdrawal_reason}" if withdrawal_reason else "استرداد مبلغ مدفوع"
+                    description=f"ط§ط³طھط±ط¯ط§ط¯ - {withdrawal_reason}" if withdrawal_reason else "ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ ظ…ط¯ظپظˆط¹"
                 )
                 Transaction.objects.create(
                     journal_entry=entry,
                     account=cash_account,
                     amount=actual_refund,
                     is_debit=False,
-                    description=f"دفع استرداد للطالب {student.full_name}"
+                    description=f"ط¯ظپط¹ ط§ط³طھط±ط¯ط§ط¯ ظ„ظ„ط·ط§ظ„ط¨ {student.full_name}"
                 )
 
             if due > 0:
@@ -1460,14 +1677,14 @@ def withdraw_quick_student(request, student_id):
                         account=deferred_account,
                         amount=due,
                         is_debit=True,
-                        description="عكس إيرادات مؤجلة"
+                        description="ط¹ظƒط³ ط¥ظٹط±ط§ط¯ط§طھ ظ…ط¤ط¬ظ„ط©"
                     )
                     Transaction.objects.create(
                         journal_entry=entry,
                         account=student_ar,
                         amount=due,
                         is_debit=False,
-                        description="عكس ذمم الطالب المدينة"
+                        description="ط¹ظƒط³ ط°ظ…ظ… ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ظ…ط¯ظٹظ†ط©"
                     )
 
             entry.post_entry(request.user)
@@ -1476,19 +1693,19 @@ def withdraw_quick_student(request, student_id):
             enrollment.completion_date = timezone.now().date()
             enrollment.save(update_fields=['is_completed', 'completion_date'])
 
-            messages.success(request, f'تم سحب الطالب من دورة {enrollment.course.name}{refund_note} بنجاح')
+            messages.success(request, f'طھظ… ط³ط­ط¨ ط§ظ„ط·ط§ظ„ط¨ ظ…ظ† ط¯ظˆط±ط© {enrollment.course.name}{refund_note} ط¨ظ†ط¬ط§ط­')
             return redirect('quick:student_profile', student_id=student.id)
 
         except Exception as e:
             print(f"ERROR in withdraw_quick_student: {str(e)}")
-            messages.error(request, f'حدث خطأ أثناء السحب: {str(e)}')
+            messages.error(request, f'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط³ط­ط¨: {str(e)}')
             return redirect('quick:student_profile', student_id=student.id)
 
 @require_POST
 def refund_quick_student(request, student_id):
-    """استرداد مبلغ للطالب السريع"""
+    """ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ ظ„ظ„ط·ط§ظ„ط¨ ط§ظ„ط³ط±ظٹط¹"""
     if not request.user.is_authenticated:
-        return JsonResponse({'ok': False, 'error': 'يجب تسجيل الدخول'}, status=401)
+        return JsonResponse({'ok': False, 'error': 'ظٹط¬ط¨ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„'}, status=401)
     
     student = get_object_or_404(QuickStudent, pk=student_id)
     
@@ -1498,12 +1715,12 @@ def refund_quick_student(request, student_id):
         refund_reason = request.POST.get('refund_reason', '')
         
         if not enrollment_id:
-            return JsonResponse({'ok': False, 'error': 'لم يتم تحديد التسجيل'}, status=400)
+            return JsonResponse({'ok': False, 'error': 'ظ„ظ… ظٹطھظ… طھط­ط¯ظٹط¯ ط§ظ„طھط³ط¬ظٹظ„'}, status=400)
         
         enrollment = get_object_or_404(QuickEnrollment, pk=enrollment_id, student=student)
         
         if enrollment.is_completed:
-            return JsonResponse({'ok': False, 'error': 'لا يمكن استرداد مبلغ لدورة مسحوبة'}, status=400)
+            return JsonResponse({'ok': False, 'error': 'ظ„ط§ ظٹظ…ظƒظ† ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ ظ„ط¯ظˆط±ط© ظ…ط³ط­ظˆط¨ط©'}, status=400)
         
         try:
             result = _process_quick_refund(
@@ -1517,13 +1734,13 @@ def refund_quick_student(request, student_id):
             return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
         except Exception as exc:
             import traceback
-            print(f"خطأ في الاسترداد: {str(exc)}")
+            print(f"ط®ط·ط£ ظپظٹ ط§ظ„ط§ط³طھط±ط¯ط§ط¯: {str(exc)}")
             print(traceback.format_exc())
-            return JsonResponse({'ok': False, 'error': f'خطأ في الاسترداد: {str(exc)}'}, status=500)
+            return JsonResponse({'ok': False, 'error': f'ط®ط·ط£ ظپظٹ ط§ظ„ط§ط³طھط±ط¯ط§ط¯: {str(exc)}'}, status=500)
 
         return JsonResponse({
             'ok': True,
-            'message': f'تم استرداد {result["refund_amount"]:,.0f} ل.س بنجاح',
+            'message': f'طھظ… ط§ط³طھط±ط¯ط§ط¯ {result["refund_amount"]:,.0f} ظ„.ط³ ط¨ظ†ط¬ط§ط­',
             'new_balance': float(result['new_balance']),
             'previous_balance': float(result['previous_balance']),
             'new_paid': float(result['new_total_paid']),
@@ -1532,10 +1749,10 @@ def refund_quick_student(request, student_id):
 
     except Exception as e:
         import traceback
-        print(f"خطأ في الاسترداد: {str(e)}")
+        print(f"ط®ط·ط£ ظپظٹ ط§ظ„ط§ط³طھط±ط¯ط§ط¯: {str(e)}")
         print(traceback.format_exc())
-        return JsonResponse({'ok': False, 'error': f'حدث خطأ في الاسترداد: {str(e)}'}, status=500)
-# التقارير
+        return JsonResponse({'ok': False, 'error': f'ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§ط³طھط±ط¯ط§ط¯: {str(e)}'}, status=500)
+# ط§ظ„طھظ‚ط§ط±ظٹط±
 class QuickOutstandingCoursesView(LoginRequiredMixin, ListView):
     template_name = 'quick/outstanding_course_list.html'
     context_object_name = 'courses'
@@ -1561,8 +1778,8 @@ class QuickOutstandingCoursesView(LoginRequiredMixin, ListView):
             'total_outstanding_amount': totals.get('total_outstanding_amount', Decimal('0')),
             'total_paid_amount': totals.get('total_paid_amount', Decimal('0')),
             'course_type': getattr(self, '_course_type', 'INTENSIVE'),
-            'course_type_label': getattr(self, '_course_type_label', 'مكثفة'),
-            'course_type_report_label': getattr(self, '_course_type_report_label', 'المكثفات'),
+            'course_type_label': getattr(self, '_course_type_label', 'ظ…ظƒط«ظپط©'),
+            'course_type_report_label': getattr(self, '_course_type_report_label', 'ط§ظ„ظ…ظƒط«ظپط§طھ'),
             'course_type_options': _get_course_type_options(),
         })
         total_courses = totals.get('total_courses', 0) or 0
@@ -1799,14 +2016,14 @@ class QuickCourseStudentsView(LoginRequiredMixin, TemplateView):
 
 @login_required
 def register_quick_course(request, student_id):
-    """تسجيل طالب سريع في دورة"""
+    """طھط³ط¬ظٹظ„ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ ظپظٹ ط¯ظˆط±ط©"""
     student = get_object_or_404(QuickStudent, id=student_id)
     courses = QuickCourse.objects.filter(is_active=True, academic_year=student.academic_year)
     
     if request.method == 'POST':
         course_ids = request.POST.getlist('course_ids')
         if not course_ids:
-            messages.error(request, 'يرجى اختيار دورة واحدة على الأقل')
+            messages.error(request, 'ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ط¯ظˆط±ط© ظˆط§ط­ط¯ط© ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„')
             return redirect('quick:register_quick_course', student_id=student_id)
 
         seen = []
@@ -1832,7 +2049,7 @@ def register_quick_course(request, student_id):
 
             existing = QuickEnrollment.objects.filter(student=student, course=course).exists()
             if existing:
-                warnings.append(f'التسجيل للدورة "{course.name}" موجود مسبقاً، تم تجاهلها.')
+                warnings.append(f'ط§ظ„طھط³ط¬ظٹظ„ ظ„ظ„ط¯ظˆط±ط© "{course.name}" ظ…ظˆط¬ظˆط¯ ظ…ط³ط¨ظ‚ط§ظ‹طŒ طھظ… طھط¬ط§ظ‡ظ„ظ‡ط§.')
                 continue
 
             enrollment = QuickEnrollment.objects.create(
@@ -1847,7 +2064,7 @@ def register_quick_course(request, student_id):
             try:
                 enrollment.create_accrual_enrollment_entry(request.user)
             except Exception as exc:
-                warnings.append(f'القيد المحاسبي لدورة {course.name} لم يُنجز: {exc}')
+                warnings.append(f'ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ ظ„ط¯ظˆط±ط© {course.name} ظ„ظ… ظٹظڈظ†ط¬ط²: {exc}')
 
             pay_full = request.POST.get(f'pay_full_{course.id}')
             if pay_full:
@@ -1867,10 +2084,10 @@ def register_quick_course(request, student_id):
                     receipt.create_accrual_journal_entry(request.user)
                     created_receipts.append(receipt.id)
                 except Exception as exc:
-                    warnings.append(f'إنشاء إيصال لدورة {course.name} فشل: {exc}')
+                    warnings.append(f'ط¥ظ†ط´ط§ط، ط¥ظٹطµط§ظ„ ظ„ط¯ظˆط±ط© {course.name} ظپط´ظ„: {exc}')
 
         if created_enrollments:
-            messages.success(request, f'تم تسجيل الطالب في {created_enrollments} دورة')
+            messages.success(request, f'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط·ط§ظ„ط¨ ظپظٹ {created_enrollments} ط¯ظˆط±ط©')
         if warnings:
             for warning in warnings:
                 messages.warning(request, warning)
@@ -1891,7 +2108,7 @@ def register_quick_course(request, student_id):
     })
 @login_required
 def quick_multiple_receipt_print(request, student_id):
-    """طباعة مجموعة إيصالات دفعة واحدة"""
+    """ط·ط¨ط§ط¹ط© ظ…ط¬ظ…ظˆط¹ط© ط¥ظٹطµط§ظ„ط§طھ ط¯ظپط¹ط© ظˆط§ط­ط¯ط©"""
     ids_param = request.GET.get('ids', '')
     if not ids_param:
         raise Http404('Missing receipt identifiers')
@@ -1927,11 +2144,50 @@ def quick_multiple_receipt_print(request, student_id):
     return render(request, 'quick/quick_multiple_receipt_print.html', {
         'receipts': receipt_items,
         'student': student,
-        'return_url': reverse('quick:student_profile', args=[student_id])
+        'return_url': reverse('quick:student_profile', args=[student_id]),
+        'server_printer_enabled': (
+            settings.QUICK_RECEIPT_PRINTER_ENABLED or settings.QUICK_RECEIPT_PRINTER_DUMMY
+        ),
     })
 
+
+@login_required
+@require_POST
+def quick_multiple_receipt_server_print(request, student_id):
+    ids_param = request.POST.get('ids', '')
+    if not ids_param:
+        return JsonResponse({'ok': False, 'error': 'ظ„ظ… ظٹطھظ… طھط­ط¯ظٹط¯ ط§ظ„ط¥ظٹطµط§ظ„ط§طھ'}, status=400)
+
+    try:
+        receipt_ids = [int(pk.strip()) for pk in ids_param.split(',') if pk.strip()]
+    except ValueError:
+        return JsonResponse({'ok': False, 'error': 'ظ…ط¹ط±ظ‘ظپط§طھ ط§ظ„ط¥ظٹطµط§ظ„ط§طھ ط؛ظٹط± طµط­ظٹط­ط©'}, status=400)
+
+    receipts = list(
+        QuickStudentReceipt.objects.filter(
+            id__in=receipt_ids,
+            quick_student_id=student_id
+        ).select_related('quick_student', 'course', 'quick_enrollment').order_by('id')
+    )
+    if not receipts:
+        return JsonResponse({'ok': False, 'error': 'ظ„ط§ طھظˆط¬ط¯ ط¥ظٹطµط§ظ„ط§طھ ظ„ظ„ط·ط¨ط§ط¹ط©'}, status=404)
+
+    try:
+        dummy_output = print_many_receipts(receipts)
+    except QuickReceiptPrinterError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+
+    response = {
+        'ok': True,
+        'printed_count': len(receipts),
+        'message': f'طھظ… ط¥ط±ط³ط§ظ„ {len(receipts)} ط¥ظٹطµط§ظ„ ط¥ظ„ظ‰ ط·ط§ط¨ط¹ط© ط§ظ„ط³ظٹط±ظپط±',
+    }
+    if settings.QUICK_RECEIPT_PRINTER_DUMMY and dummy_output:
+        response['dummy_preview'] = dummy_output.decode('utf-8', errors='ignore')[:4000]
+    return JsonResponse(response)
+
 def quick_student_receipt_print(request, receipt_id):
-    """طباعة إيصال الطالب السريع"""
+    """ط·ط¨ط§ط¹ط© ط¥ظٹطµط§ظ„ ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ط³ط±ظٹط¹"""
     receipt = get_object_or_404(
         QuickStudentReceipt.objects.select_related('quick_student', 'course', 'quick_enrollment'),
         id=receipt_id
@@ -1962,15 +2218,15 @@ def quick_student_receipt_print(request, receipt_id):
     return render(request, 'quick/quick_student_receipt_print.html', context)
 
 
-# في quick/views.py - أضف هذه الدالة في النهاية
+# ظپظٹ quick/views.py - ط£ط¶ظپ ظ‡ط°ظ‡ ط§ظ„ط¯ط§ظ„ط© ظپظٹ ط§ظ„ظ†ظ‡ط§ظٹط©
 
 @login_required
 def auto_assign_academic_years(request):
-    """ربط جميع الطلاب بفصولهم الدراسية تلقائياً"""
+    """ط±ط¨ط· ط¬ظ…ظٹط¹ ط§ظ„ط·ظ„ط§ط¨ ط¨ظپطµظˆظ„ظ‡ظ… ط§ظ„ط¯ط±ط§ط³ظٹط© طھظ„ظ‚ط§ط¦ظٹط§ظ‹"""
     from students.models import Student
     from quick.models import QuickStudent, AcademicYear
     
-    # ربط الطلاب السريعين
+    # ط±ط¨ط· ط§ظ„ط·ظ„ط§ط¨ ط§ظ„ط³ط±ظٹط¹ظٹظ†
     quick_students = QuickStudent.objects.filter(academic_year__isnull=True)
     updated_count = 0
     
@@ -1986,11 +2242,11 @@ def auto_assign_academic_years(request):
             student.save()
             updated_count += 1
     
-    messages.success(request, f'تم ربط {updated_count} طالب سريع تلقائياً بالفصول الدراسية')
+    messages.success(request, f'طھظ… ط±ط¨ط· {updated_count} ط·ط§ظ„ط¨ ط³ط±ظٹط¹ طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ط¨ط§ظ„ظپطµظˆظ„ ط§ظ„ط¯ط±ط§ط³ظٹط©')
     return redirect('quick:student_list')
 
 
-# في ملف views.py - تحديث دالة التعديل
+# ظپظٹ ظ…ظ„ظپ views.py - طھط­ط¯ظٹط« ط¯ط§ظ„ط© ط§ظ„طھط¹ط¯ظٹظ„
 
 class QuickStudentUpdateView(LoginRequiredMixin, UpdateView):
     model = QuickStudent
@@ -1999,22 +2255,22 @@ class QuickStudentUpdateView(LoginRequiredMixin, UpdateView):
     context_object_name = 'student'
     
     def get_success_url(self):
-        # ✅ التوجيه إلى بروفايل الطالب بدلاً من التفاصيل البسيطة
+        # âœ… ط§ظ„طھظˆط¬ظٹظ‡ ط¥ظ„ظ‰ ط¨ط±ظˆظپط§ظٹظ„ ط§ظ„ط·ط§ظ„ط¨ ط¨ط¯ظ„ط§ظ‹ ظ…ظ† ط§ظ„طھظپط§طµظٹظ„ ط§ظ„ط¨ط³ظٹط·ط©
         return reverse_lazy('quick:student_profile', kwargs={'student_id': self.object.pk})
     
     def form_valid(self, form):
-        messages.success(self.request, 'تم تحديث بيانات الطالب بنجاح')
+        messages.success(self.request, 'طھظ… طھط­ط¯ظٹط« ط¨ظٹط§ظ†ط§طھ ط§ظ„ط·ط§ظ„ط¨ ط¨ظ†ط¬ط§ط­')
         return super().form_valid(form)
 
 
 
 
-        # أضف هذه الكلاس في قسم "الدورات السريعة" بعد QuickCourseCreateView
+        # ط£ط¶ظپ ظ‡ط°ظ‡ ط§ظ„ظƒظ„ط§ط³ ظپظٹ ظ‚ط³ظ… "ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„ط³ط±ظٹط¹ط©" ط¨ط¹ط¯ QuickCourseCreateView
 
 class QuickCourseUpdateView(LoginRequiredMixin, UpdateView):
     model = QuickCourse
     form_class = QuickCourseForm
-    template_name = 'quick/quick_course_form.html'  # نفس قالب الإنشاء
+    template_name = 'quick/quick_course_form.html'  # ظ†ظپط³ ظ‚ط§ظ„ط¨ ط§ظ„ط¥ظ†ط´ط§ط،
     context_object_name = 'course'
     
     def get_success_url(self):
@@ -2022,9 +2278,230 @@ class QuickCourseUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['is_update'] = True  # للتمييز بين التعديل والإضافة
+        context['is_update'] = True  # ظ„ظ„طھظ…ظٹظٹط² ط¨ظٹظ† ط§ظ„طھط¹ط¯ظٹظ„ ظˆط§ظ„ط¥ط¶ط§ظپط©
         return context
     
     def form_valid(self, form):
-        messages.success(self.request, 'تم تحديث بيانات الدورة بنجاح')
+        messages.success(self.request, 'طھظ… طھط­ط¯ظٹط« ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­')
         return super().form_valid(form)
+
+@require_POST
+
+@require_POST
+def withdraw_quick_student(request, student_id):
+    """Withdraw quick student from course."""
+    student = get_object_or_404(QuickStudent, pk=student_id)
+    enrollment_id = request.POST.get('enrollment_id')
+    withdrawal_reason = request.POST.get('withdrawal_reason', '')
+    refund_amount_raw = request.POST.get('refund_amount', '0')
+
+    if not enrollment_id:
+        messages.error(request, 'Enrollment was not selected')
+        return redirect('quick:student_profile', student_id=student.id)
+
+    try:
+        enrollment = get_object_or_404(QuickEnrollment, pk=enrollment_id, student=student)
+        try:
+            refund_amount = Decimal(refund_amount_raw or '0')
+        except InvalidOperation:
+            refund_amount = Decimal('0')
+
+        result = _withdraw_quick_enrollment(
+            enrollment=enrollment,
+            user=request.user,
+            withdrawal_reason=withdrawal_reason,
+            refund_amount=refund_amount,
+        )
+        actual_refund = result['actual_refund']
+        refund_note = f' and refunded {actual_refund:,.0f} SYP' if actual_refund > 0 else ''
+        messages.success(request, f'Student withdrawn from course {enrollment.course.name}{refund_note} successfully')
+    except Exception as exc:
+        print(f"ERROR in withdraw_quick_student override: {exc}")
+        messages.error(request, f'Withdrawal error: {exc}')
+
+    return redirect('quick:student_profile', student_id=student.id)
+
+
+@login_required
+@require_POST
+def bulk_withdraw_quick_students(request, course_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    enrollment_ids = request.POST.getlist('enrollment_ids')
+    withdrawal_reason = (request.POST.get('withdrawal_reason') or '').strip()
+
+    if not enrollment_ids:
+        messages.error(request, 'No students were selected for bulk withdrawal.')
+        return redirect(reverse('quick:late_payment_course_detail', args=[course.id]))
+
+    enrollments = list(
+        QuickEnrollment.objects.filter(
+            id__in=enrollment_ids,
+            course=course,
+            is_completed=False
+        ).select_related('student', 'course')
+    )
+
+    if not enrollments:
+        messages.error(request, 'No valid enrollments found for bulk withdrawal.')
+        return redirect(reverse('quick:late_payment_course_detail', args=[course.id]))
+
+    withdrawn = 0
+    errors = []
+    for enrollment in enrollments:
+        try:
+            with transaction.atomic():
+                _withdraw_quick_enrollment(
+                    enrollment=enrollment,
+                    user=request.user,
+                    withdrawal_reason=withdrawal_reason or 'Bulk withdrawal from outstanding page',
+                    refund_amount=Decimal('0'),
+                )
+            withdrawn += 1
+        except Exception as exc:
+            errors.append(f'{enrollment.student.full_name}: {exc}')
+
+    if withdrawn:
+        messages.success(request, f'Withdrew {withdrawn} students from course {course.name}.')
+    for error in errors[:5]:
+        messages.error(request, error)
+
+    query_string = urlencode({
+        key: value for key, value in {
+            'course_type': request.POST.get('course_type') or '',
+            'start_date': request.POST.get('start_date') or '',
+            'end_date': request.POST.get('end_date') or '',
+        }.items() if value
+    })
+    redirect_url = reverse('quick:late_payment_course_detail', args=[course.id])
+    if query_string:
+        redirect_url = f'{redirect_url}?{query_string}'
+    return redirect(redirect_url)
+
+
+class QuickLatePaymentCoursesView(LoginRequiredMixin, ListView):
+    template_name = 'quick/late_payment_course_list.html'
+    context_object_name = 'courses'
+
+    def get_queryset(self):
+        course_type, course_type_label, report_label = _get_outstanding_course_type(self.request)
+        start_date, end_date = _get_outstanding_date_range(self.request)
+        self._course_type = course_type
+        self._course_type_label = course_type_label
+        self._course_type_report_label = report_label
+        self._start_date = start_date
+        self._end_date = end_date
+
+        courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
+        if course_type != 'ALL':
+            courses = courses.filter(course_type=course_type)
+
+        course_data, totals = _build_quick_outstanding_course_summary(
+            courses,
+            include_zero_outstanding=False,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        self._totals = totals
+        return course_data
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        totals = getattr(self, '_totals', {})
+        total_courses = totals.get('total_courses', 0) or 0
+        total_paid_amount = totals.get('total_paid_amount', Decimal('0'))
+        context.update({
+            'total_courses': total_courses,
+            'total_outstanding_students': totals.get('total_outstanding_students', 0),
+            'total_outstanding_amount': totals.get('total_outstanding_amount', Decimal('0')),
+            'total_paid_amount': total_paid_amount,
+            'course_type': getattr(self, '_course_type', 'INTENSIVE'),
+            'course_type_label': getattr(self, '_course_type_label', ''),
+            'course_type_report_label': getattr(self, '_course_type_report_label', ''),
+            'course_type_options': _get_course_type_options(),
+            'start_date': getattr(self, '_start_date', None),
+            'end_date': getattr(self, '_end_date', None),
+            'average_paid_per_course': (total_paid_amount / total_courses) if total_courses else Decimal('0'),
+        })
+        return context
+
+
+class QuickLatePaymentCourseDetailView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/late_payment_course_detail.html'
+
+    def get_context_data(self, course_id=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course_type, course_type_label, report_label = _get_outstanding_course_type(self.request)
+        start_date, end_date = _get_outstanding_date_range(self.request)
+        course = get_object_or_404(QuickCourse, pk=course_id)
+
+        rows, detail_data = _build_quick_outstanding_rows([course], start_date=start_date, end_date=end_date)
+        grouped_course = detail_data['grouped_courses'][0] if detail_data['grouped_courses'] else {
+            'date_groups': [],
+            'total_students': 0,
+            'total_outstanding': Decimal('0'),
+        }
+
+        context.update({
+            'course': course,
+            'rows': rows,
+            'date_groups': grouped_course['date_groups'],
+            'total_students': grouped_course['total_students'],
+            'total_outstanding': grouped_course['total_outstanding'],
+            'total_net_amount': sum(r['net_amount'] for r in rows),
+            'total_paid_amount': sum(r['paid_amount'] for r in rows),
+            'course_type': course_type,
+            'course_type_label': course_type_label,
+            'course_type_report_label': report_label,
+            'start_date': start_date,
+            'end_date': end_date,
+        })
+        return context
+
+
+class QuickLatePaymentCoursesPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/late_payment_course_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course_type, course_type_label, report_label = _get_outstanding_course_type(self.request)
+        start_date, end_date = _get_outstanding_date_range(self.request)
+
+        courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
+        if course_type != 'ALL':
+            courses = courses.filter(course_type=course_type)
+
+        course_data, totals = _build_quick_outstanding_course_summary(
+            courses,
+            include_zero_outstanding=False,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        course_data = sorted(course_data, key=lambda row: (-row['outstanding_students'], row['course'].name))
+        _, detail_data = _build_quick_outstanding_rows(
+            [row['course'] for row in course_data],
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        current_snapshot = _snapshot_outstanding_totals(totals)
+        previous_snapshot = self.request.session.get('quick_outstanding_report_snapshot')
+        previous_time = self.request.session.get('quick_outstanding_report_timestamp')
+        comparison = _build_outstanding_comparison(current_snapshot, previous_snapshot)
+
+        context.update({
+            'courses': course_data,
+            'totals': totals,
+            'detail_groups': detail_data['grouped_courses'],
+            'print_date': timezone.now().strftime('%Y-%m-%d %H:%M'),
+            'comparison': comparison,
+            'previous_report_time': previous_time,
+            'course_type': course_type,
+            'course_type_label': course_type_label,
+            'course_type_report_label': report_label,
+            'start_date': start_date,
+            'end_date': end_date,
+        })
+
+        self.request.session['quick_outstanding_report_snapshot'] = current_snapshot
+        self.request.session['quick_outstanding_report_timestamp'] = timezone.now().strftime('%Y-%m-%d %H:%M')
+        return context

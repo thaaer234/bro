@@ -1395,6 +1395,10 @@ class AddManualSalaryView(LoginRequiredMixin, View):
     """إضافة راتب يدوي للمدرس"""
     
     template_name = 'employ/add_manual_salary.html'
+
+    def _redirect_with_period(self, teacher_pk, year, month):
+        url = reverse('employ:add_manual_salary', kwargs={'pk': teacher_pk})
+        return redirect(f'{url}?year={year}&month={month}')
     
     def get(self, request, pk):
         teacher = get_object_or_404(Teacher, pk=pk)
@@ -1417,7 +1421,9 @@ class AddManualSalaryView(LoginRequiredMixin, View):
             selected_month = date.today().month
         if selected_month < 1 or selected_month > 12:
             selected_month = date.today().month
+        total_advances = teacher.get_total_advances(selected_year, selected_month)
         auto_gross_salary = teacher.calculate_monthly_salary(selected_year, selected_month)
+        max_advance_deduction = min(auto_gross_salary, total_advances)
         
         context = {
             'teacher': teacher,
@@ -1427,6 +1433,7 @@ class AddManualSalaryView(LoginRequiredMixin, View):
             'selected_year': selected_year,
             'selected_month': selected_month,
             'auto_gross_salary': auto_gross_salary,
+            'max_advance_deduction': max_advance_deduction,
         }
         return render(request, self.template_name, context)
     
@@ -1463,7 +1470,6 @@ class AddManualSalaryView(LoginRequiredMixin, View):
         gross_salary_str = request.POST.get('gross_salary', '').strip()
         advance_deduction_str = request.POST.get('advance_deduction', '0').strip()
         notes = request.POST.get('notes', '')
-        auto_salary = request.POST.get('auto_salary') == '1'
         
         # **3. التحقق من وجود راتب لنفس الشهر**
         existing = ManualTeacherSalary.objects.filter(
@@ -1472,16 +1478,13 @@ class AddManualSalaryView(LoginRequiredMixin, View):
         
         if existing:
             messages.error(request, f'❌ تم إضافة راتب لهذا الشهر مسبقاً!')
-            return redirect('employ:add_manual_salary', pk=teacher.pk)
+            return self._redirect_with_period(teacher.pk, year, month)
         
         # **4. التحقق من الراتب الإجمالي**
-        if auto_salary:
-            gross_salary = teacher.calculate_monthly_salary(year, month)
-        elif not gross_salary_str:
+        if not gross_salary_str:
             messages.error(request, '❌ يجب إدخال قيمة للراتب الإجمالي')
-            return redirect('employ:add_manual_salary', pk=teacher.pk)
-        else:
-            gross_salary = None
+            return self._redirect_with_period(teacher.pk, year, month)
+        gross_salary = None
         
         # **5. محاولة تحويل الراتب إلى رقم**
         try:
@@ -1496,14 +1499,31 @@ class AddManualSalaryView(LoginRequiredMixin, View):
             
         except:
             messages.error(request, '❌ قيمة الراتب غير صحيحة. استخدم أرقاماً فقط')
-            return redirect('employ:add_manual_salary', pk=teacher.pk)
+            return self._redirect_with_period(teacher.pk, year, month)
         
         # **6. التحقق من أن الراتب أكبر من الصفر**
         if gross_salary <= 0:
             messages.error(request, '❌ يجب أن يكون الراتب أكبر من صفر')
-            return redirect('employ:add_manual_salary', pk=teacher.pk)
+            return self._redirect_with_period(teacher.pk, year, month)
         
         # **7. حساب الصافي وإنشاء الراتب**
+        if advance_deduction < 0:
+            messages.error(request, 'â‌Œ لا يمكن أن يكون خصم السلف قيمة سالبة')
+            return self._redirect_with_period(teacher.pk, year, month)
+
+        total_advances = teacher.get_total_advances(year, month)
+
+        if advance_deduction > gross_salary:
+            messages.error(request, 'â‌Œ لا يمكن أن يتجاوز خصم السلف قيمة الراتب الإجمالي')
+            return self._redirect_with_period(teacher.pk, year, month)
+
+        if advance_deduction > total_advances:
+            messages.error(
+                request,
+                f'â‌Œ لا يمكن أن يتجاوز خصم السلف السلف المستحقة لهذه الفترة ({total_advances})'
+            )
+            return self._redirect_with_period(teacher.pk, year, month)
+
         net_salary = gross_salary - advance_deduction
         
         try:
@@ -1523,7 +1543,7 @@ class AddManualSalaryView(LoginRequiredMixin, View):
             
         except Exception as e:
             messages.error(request, f'❌ خطأ في الحفظ: {str(e)}')
-            return redirect('employ:add_manual_salary', pk=teacher.pk)
+            return self._redirect_with_period(teacher.pk, year, month)
         
 class EditManualSalaryView(LoginRequiredMixin, View):
     """تعديل راتب يدوي"""

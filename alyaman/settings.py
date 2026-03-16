@@ -22,6 +22,16 @@ def env_bool(name, default=False):
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def env_int(name, default=0):
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    try:
+        return int(value, 0)
+    except (TypeError, ValueError):
+        return default
+
+
 RUNNING_LOCAL_SERVER = 'runserver' in sys.argv
 DEBUG = env_bool("DJANGO_DEBUG", RUNNING_LOCAL_SERVER)
 
@@ -256,6 +266,25 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 50000
 
 IMAGE_COMPRESSION_QUALITY = 80
 IMAGE_MAX_SIZE = (800, 800)
+
+# ==============================
+# Quick Receipt Printer
+# ==============================
+QUICK_RECEIPT_PRINTER_ENABLED = env_bool("QUICK_RECEIPT_PRINTER_ENABLED", False)
+QUICK_RECEIPT_PRINTER_BACKEND = os.getenv("QUICK_RECEIPT_PRINTER_BACKEND", "usb").strip().lower()
+QUICK_RECEIPT_PRINTER_VENDOR_ID = env_int("QUICK_RECEIPT_PRINTER_VENDOR_ID", 0)
+QUICK_RECEIPT_PRINTER_PRODUCT_ID = env_int("QUICK_RECEIPT_PRINTER_PRODUCT_ID", 0)
+QUICK_RECEIPT_PRINTER_USB_INTERFACE = env_int("QUICK_RECEIPT_PRINTER_USB_INTERFACE", 0)
+QUICK_RECEIPT_PRINTER_IN_EP = env_int("QUICK_RECEIPT_PRINTER_IN_EP", 0x82)
+QUICK_RECEIPT_PRINTER_OUT_EP = env_int("QUICK_RECEIPT_PRINTER_OUT_EP", 0x01)
+QUICK_RECEIPT_PRINTER_TIMEOUT = env_int("QUICK_RECEIPT_PRINTER_TIMEOUT", 0)
+QUICK_RECEIPT_PRINTER_PROFILE = os.getenv("QUICK_RECEIPT_PRINTER_PROFILE", "").strip()
+QUICK_RECEIPT_PRINTER_NETWORK_HOST = os.getenv("QUICK_RECEIPT_PRINTER_NETWORK_HOST", "").strip()
+QUICK_RECEIPT_PRINTER_NETWORK_PORT = env_int("QUICK_RECEIPT_PRINTER_NETWORK_PORT", 9100)
+QUICK_RECEIPT_PRINTER_DUMMY = env_bool("QUICK_RECEIPT_PRINTER_DUMMY", False)
+QUICK_RECEIPT_PRINTER_CHARS_PER_LINE = env_int("QUICK_RECEIPT_PRINTER_CHARS_PER_LINE", 32)
+QUICK_RECEIPT_PRINTER_FEED_LINES = env_int("QUICK_RECEIPT_PRINTER_FEED_LINES", 3)
+QUICK_RECEIPT_PRINTER_TITLE = os.getenv("QUICK_RECEIPT_PRINTER_TITLE", "معهد اليمان").strip()
 
 # ==============================
 # Crispy Forms  

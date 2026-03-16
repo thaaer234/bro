@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+.late-page {
+    background:
+        radial-gradient(circle at top right, rgba(31, 122, 140, 0.14), transparent 30%),
+        radial-gradient(circle at left bottom, rgba(244, 162, 97, 0.14), transparent 24%),
+        #f6f8fc;
+    border-radius: 24px;
+    padding: 24px;
+}
+
+.late-card,
+.late-stat {
+    border: 0;
+    border-radius: 22px;
+    box-shadow: 0 24px 50px -32px rgba(15, 23, 42, 0.42);
+}
+
+.late-hero {
+    background: linear-gradient(135deg, #0f3d5e 0%, #1f7a8c 100%);
+    color: #fff;
+}
+
+.late-hero .card-body,
+.late-card .card-body,
+.late-card .card-header {
+    padding: 20px 22px;
+}
+
+.late-card .card-header {
+    background: transparent;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.late-filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 16px;
+    align-items: end;
+}
+
+.late-filter-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.late-stat .card-body {
+    text-align: center;
+}
+
+.late-stat .label {
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.late-stat .value {
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.late-date-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 0.88rem;
+}
+
+.late-table thead th {
+    background: #123d5d;
+    color: #fff;
+    border: 0;
+    padding: 14px 12px;
+}
+
+.late-table tbody td {
+    padding: 15px 12px;
+    vertical-align: middle;
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+.late-table tbody tr:hover {
+    background: rgba(15, 61, 94, 0.04);
+}
+
+.late-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: rgba(244, 162, 97, 0.16);
+    color: #b45309;
+    font-weight: 800;
+    font-size: 0.82rem;
+}
+
+.late-empty {
+    text-align: center;
+    padding: 54px 20px;
+    color: #64748b;
+}
+
+@media (max-width: 991px) {
+    .late-filter-grid,
+    .late-filter-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .late-page {
+        padding: 16px;
+        border-radius: 18px;
+    }
+}
+</style>
+
+<div class="container-fluid late-page">
+    <div class="card late-card late-hero mb-4">
+        <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2 class="mb-2">المتأخرون عن السداد للدورات السريعة</h2>
+                <div class="opacity-75">عرض الدورات التي فيها طلاب غير مسددين مع تجميع لاحق حسب تاريخ التسجيل.</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                {% if start_date or end_date %}
+                <span class="late-date-chip">
+                    <i class="fas fa-calendar-alt"></i>
+                    من {{ start_date|default:"البداية" }} إلى {{ end_date|default:"اليوم" }}
+                </span>
+                {% endif %}
+                <a href="{% url 'quick:late_payment_courses_print' %}?course_type={{ course_type }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" target="_blank" class="btn btn-light">
+                    <i class="fas fa-print me-1"></i>
+                    تقرير مفصل
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card late-card mb-4">
+        <div class="card-body late-filter-grid">
+            <div>
+                <h5 class="mb-1">فلاتر المتأخرين</h5>
+                <div class="text-muted">يمكنك تحديد نوع الدورة وفترة التسجيل قبل استخراج التقرير.</div>
+            </div>
+            <form method="get" class="late-filter-form">
+                <div>
+                    <label class="form-label">نوع الدورة</label>
+                    <select name="course_type" class="form-select">
+                        {% for option in course_type_options %}
+                        <option value="{{ option.value }}" {% if option.value == course_type %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">من تاريخ التسجيل</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}">
+                </div>
+                <div>
+                    <label class="form-label">إلى تاريخ التسجيل</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+                <div class="d-flex gap-2 align-items-end">
+                    <button type="submit" class="btn btn-primary flex-fill">تطبيق</button>
+                    <a href="{% url 'quick:late_payment_courses' %}?course_type={{ course_type }}" class="btn btn-outline-secondary">إعادة</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card late-stat">
+                <div class="card-body">
+                    <div class="label">الدورات المتأخرة</div>
+                    <div class="value">{{ total_courses }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card late-stat">
+                <div class="card-body">
+                    <div class="label">الطلاب غير المسددين</div>
+                    <div class="value">{{ total_outstanding_students }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card late-stat">
+                <div class="card-body">
+                    <div class="label">إجمالي المتبقي</div>
+                    <div class="value text-danger">{{ total_outstanding_amount|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card late-card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-user-clock me-2"></i>الدورات التي فيها طلاب غير مسددين</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if courses %}
+            <div class="table-responsive">
+                <table class="table late-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>الدورة</th>
+                            <th class="text-center">غير المسددين</th>
+                            <th class="text-center">إجمالي الطلاب</th>
+                            <th class="text-end">المتبقي</th>
+                            <th class="text-center">الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in courses %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold">{{ item.course.name }}</div>
+                                <div class="text-muted small">{{ item.course.academic_year }}</div>
+                            </td>
+                            <td class="text-center"><span class="late-pill">{{ item.outstanding_students }} طالب</span></td>
+                            <td class="text-center">{{ item.total_students }}</td>
+                            <td class="text-end fw-bold text-danger">{{ item.total_outstanding|floatformat:0 }} ل.س</td>
+                            <td class="text-center">
+                                <a href="{% url 'quick:late_payment_course_detail' item.course.id %}?course_type={{ course_type }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>
+                                    فتح الدورة
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="late-empty">
+                <i class="fas fa-check-circle fa-3x mb-3 d-block opacity-50"></i>
+                <h4 class="mb-2">لا توجد دورات متأخرة ضمن الفلترة الحالية</h4>
+                <p class="mb-0">جرّب توسيع الفترة أو تغيير نوع الدورة.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

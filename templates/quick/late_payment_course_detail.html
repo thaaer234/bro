@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.late-detail-page {
+    background:
+        radial-gradient(circle at top left, rgba(31, 122, 140, 0.14), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(244, 162, 97, 0.12), transparent 22%),
+        #f6f8fc;
+    border-radius: 24px;
+    padding: 24px;
+}
+
+.late-detail-card {
+    border: 0;
+    border-radius: 22px;
+    box-shadow: 0 24px 50px -32px rgba(15, 23, 42, 0.42);
+    background: #fff;
+}
+
+.late-detail-hero {
+    background: linear-gradient(135deg, #0f3d5e 0%, #1f7a8c 100%);
+    color: #fff;
+}
+
+.late-detail-hero .card-body,
+.late-detail-card .card-body {
+    padding: 22px;
+}
+
+.late-date-group {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    padding: 18px;
+    background: #fff;
+}
+
+.late-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.late-meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(15, 61, 94, 0.08);
+    color: #0f3d5e;
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.late-detail-table thead th {
+    background: #123d5d;
+    color: #fff;
+    border: 0;
+    padding: 13px 12px;
+}
+
+.late-detail-table tbody td {
+    padding: 14px 12px;
+    vertical-align: middle;
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+.late-detail-table tbody tr:hover {
+    background: rgba(15, 61, 94, 0.04);
+}
+
+.late-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.late-empty {
+    text-align: center;
+    color: #64748b;
+    padding: 54px 20px;
+}
+
+@media (max-width: 767px) {
+    .late-detail-page {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .late-group-header,
+    .late-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+</style>
+
+<div class="container-fluid late-detail-page">
+    <div class="card late-detail-card late-detail-hero mb-4">
+        <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2 class="mb-2">المتأخرون عن السداد - {{ course.name }}</h2>
+                <div class="opacity-75">تجميع حسب تاريخ التسجيل مع إمكانية سحب الطلاب المحددين دفعة واحدة.</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{% url 'quick:late_payment_courses' %}?course_type={{ course_type }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}" class="btn btn-outline-light">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    رجوع
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card late-detail-card">
+                <div class="card-body text-center">
+                    <div class="text-muted mb-2">عدد الطلاب</div>
+                    <div class="h3 mb-0">{{ total_students }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card late-detail-card">
+                <div class="card-body text-center">
+                    <div class="text-muted mb-2">إجمالي المتبقي</div>
+                    <div class="h3 mb-0 text-danger">{{ total_outstanding|floatformat:0 }} ل.س</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card late-detail-card">
+                <div class="card-body text-center">
+                    <div class="text-muted mb-2">الفترة المعروضة</div>
+                    <div class="fw-bold">{{ start_date|default:"البداية" }} - {{ end_date|default:"اليوم" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card late-detail-card">
+        <div class="card-body">
+            {% if date_groups %}
+            <form method="post" action="{% url 'quick:bulk_withdraw_quick_students' course.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="course_type" value="{{ course_type }}">
+                <input type="hidden" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                <input type="hidden" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+
+                <div class="late-toolbar mb-4">
+                    <div style="min-width: 280px; flex: 1 1 280px;">
+                        <label class="form-label mb-1">سبب السحب الجماعي</label>
+                        <input type="text" name="withdrawal_reason" class="form-control" placeholder="اختياري">
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary" id="select-all-btn">تحديد الكل</button>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('سيتم سحب الطلاب المحددين من الدورة. هل تريد المتابعة؟');">
+                            <i class="fas fa-user-minus me-1"></i>
+                            سحب المحددين
+                        </button>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-3">
+                    {% for group in date_groups %}
+                    <div class="late-date-group">
+                        <div class="late-group-header">
+                            <div>
+                                <div class="h5 mb-1">تاريخ التسجيل: {{ group.date|date:"Y-m-d" }}</div>
+                                <div class="text-muted">عدد غير المسددين: {{ group.total_students }} طالب</div>
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <span class="late-meta-pill">أقدم تأخير: {{ group.max_days_since_enrollment }} يوم</span>
+                                <span class="late-meta-pill">المتبقي: {{ group.total_outstanding|floatformat:0 }} ل.س</span>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table late-detail-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th width="48"><input type="checkbox" class="group-toggle"></th>
+                                        <th>الطالب</th>
+                                        <th>الهاتف</th>
+                                        <th class="text-center">منذ كم يوم</th>
+                                        <th class="text-end">المتبقي</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in group.students %}
+                                    <tr>
+                                        <td><input type="checkbox" name="enrollment_ids" value="{{ row.enrollment_id }}" class="student-check"></td>
+                                        <td><a href="{% url 'quick:student_detail' row.student_id %}" class="fw-bold text-decoration-none">{{ row.student_name }}</a></td>
+                                        <td>{{ row.phone }}</td>
+                                        <td class="text-center">{{ row.days_since_enrollment }} يوم</td>
+                                        <td class="text-end fw-bold text-danger">{{ row.remaining|floatformat:0 }} ل.س</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </form>
+            {% else %}
+            <div class="late-empty">
+                <i class="fas fa-check-circle fa-3x mb-3 d-block opacity-50"></i>
+                <h4 class="mb-2">لا يوجد طلاب غير مسددين ضمن هذه الفلترة</h4>
+                <p class="mb-0">يمكنك تعديل فترة التسجيل أو نوع الدورة لتوسيع النتائج.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const selectAllBtn = document.getElementById('select-all-btn');
+    const checks = Array.from(document.querySelectorAll('.student-check'));
+    const groupToggles = Array.from(document.querySelectorAll('.group-toggle'));
+
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function () {
+            const shouldCheck = checks.some((check) => !check.checked);
+            checks.forEach((check) => { check.checked = shouldCheck; });
+            groupToggles.forEach((check) => { check.checked = shouldCheck; });
+        });
+    }
+
+    groupToggles.forEach((toggle) => {
+        toggle.addEventListener('change', function () {
+            const table = toggle.closest('table');
+            if (!table) return;
+            table.querySelectorAll('.student-check').forEach((check) => {
+                check.checked = toggle.checked;
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

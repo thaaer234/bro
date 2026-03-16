@@ -285,6 +285,11 @@
         <a href="{{ return_url }}" class="btn" style="margin-bottom:6px; display:inline-block;">
           <i class="fas fa-arrow-right"></i> العودة لملف الطالب
         </a>
+        {% if server_printer_enabled %}
+        <button type="button" id="server-print-btn" class="btn" style="display:inline-block; margin-inline-start:8px;">
+          <i class="fas fa-print"></i> طباعة مباشرة من طابعة السيرفر
+        </button>
+        {% endif %}
         <div style="font-size:11px; color:#6b7280; margin-top:8px;">
           تم ضبط الصفحة لرول 80mm. إذا كانت الطابعة تدعم القص التلقائي ستقص بين الإيصالات عند الطباعة.
         </div>
@@ -400,6 +405,43 @@
     <script>
       window.addEventListener('DOMContentLoaded', function () {
         window.print();
+
+        const serverPrintBtn = document.getElementById('server-print-btn');
+        if (!serverPrintBtn) {
+          return;
+        }
+
+        serverPrintBtn.addEventListener('click', async function () {
+          const originalText = serverPrintBtn.innerHTML;
+          serverPrintBtn.disabled = true;
+          serverPrintBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+
+          try {
+            const formData = new FormData();
+            formData.append('ids', '{{ request.GET.ids|default:"" }}');
+
+            const response = await fetch('{% url "quick:quick_multiple_receipt_server_print" student.id %}', {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+              },
+              body: formData,
+            });
+            const data = await response.json();
+            if (!response.ok || !data.ok) {
+              throw new Error(data.error || 'فشلت الطباعة');
+            }
+            alert(data.message || 'تم إرسال الإيصالات للطابعة');
+            if (data.dummy_preview) {
+              console.log(data.dummy_preview);
+            }
+          } catch (error) {
+            alert(error.message || 'فشلت الطباعة');
+          } finally {
+            serverPrintBtn.disabled = false;
+            serverPrintBtn.innerHTML = originalText;
+          }
+        });
       });
     </script>
   </body>

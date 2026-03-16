@@ -52,7 +52,6 @@
         }
         .btn-print { background: var(--accent); color: #fff; }
         .btn-back { background: #f3f4f6; color: var(--ink); text-decoration: none; }
-
         .hero {
             display: flex;
             justify-content: space-between;
@@ -70,7 +69,6 @@
         .hero img { width: 84px; height: 84px; object-fit: contain; }
         .hero h1 { margin: 0; font-size: 1.5rem; }
         .hero p { margin: 4px 0 0; color: rgba(255,255,255,0.85); font-size: 0.92rem; }
-
         .summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -87,7 +85,6 @@
         }
         .summary-card .label { color: var(--muted); font-size: 12px; }
         .summary-card .value { font-size: 18px; font-weight: 700; margin-top: 4px; }
-
         .table-wrap {
             border: 1px solid var(--border);
             border-radius: 14px;
@@ -206,19 +203,13 @@
             table {
                 font-size: 12.5px;
             }
-            thead {
-                display: table-header-group;
-            }
-            tfoot {
-                display: table-footer-group;
-            }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
             tr, td, th {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
             }
-            .summary-card {
-                break-inside: avoid;
-            }
+            .summary-card,
             .comparison {
                 break-inside: avoid;
             }
@@ -245,30 +236,12 @@
         </div>
 
         <div class="summary">
-            <div class="summary-card">
-                <div class="label">إجمالي الدورات</div>
-                <div class="value">{{ totals.total_courses }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">إجمالي الطلاب</div>
-                <div class="value">{{ totals.total_students }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">الطلاب المسددين</div>
-                <div class="value">{{ totals.total_paid_students }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">الطلاب غير المسددين</div>
-                <div class="value">{{ totals.total_outstanding_students }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">إجمالي المدفوع</div>
-                <div class="value">{{ totals.total_paid_amount|floatformat:0 }} ل.س</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">إجمالي المتبقي</div>
-                <div class="value">{{ totals.total_outstanding_amount|floatformat:0 }} ل.س</div>
-            </div>
+            <div class="summary-card"><div class="label">إجمالي الدورات</div><div class="value">{{ totals.total_courses }}</div></div>
+            <div class="summary-card"><div class="label">إجمالي الطلاب</div><div class="value">{{ totals.total_students }}</div></div>
+            <div class="summary-card"><div class="label">الطلاب المسددين</div><div class="value">{{ totals.total_paid_students }}</div></div>
+            <div class="summary-card"><div class="label">الطلاب غير المسددين</div><div class="value">{{ totals.total_outstanding_students }}</div></div>
+            <div class="summary-card"><div class="label">إجمالي المدفوع</div><div class="value">{{ totals.total_paid_amount|floatformat:0 }} ل.س</div></div>
+            <div class="summary-card"><div class="label">إجمالي المتبقي</div><div class="value">{{ totals.total_outstanding_amount|floatformat:0 }} ل.س</div></div>
         </div>
 
         <div class="table-wrap">
@@ -301,9 +274,7 @@
                         <td class="text-end">{{ row.total_paid|floatformat:0 }} ل.س</td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center">لا توجد بيانات لعرضها</td>
-                    </tr>
+                    <tr><td colspan="7" class="text-center">لا توجد بيانات لعرضها</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -336,16 +307,15 @@
                         <td class="text-center">{{ row.total_students }}</td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center">لا توجد بيانات لعرضها</td>
-                    </tr>
+                    <tr><td colspan="5" class="text-center">لا توجد بيانات لعرضها</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
         {% if totals.total_unknown_students %}
         <div class="muted" style="margin-top: 6px;">
-            ملاحظة: {{ totals.total_unknown_students }} طالب/طالبة بدون تحديد الجنس، لذلك قد لا يساوي مجموع الذكور والإناث الإجمالي.
+            ملاحظة: {{ totals.total_unknown_students }} طالب أو طالبة بدون تحديد الجنس، لذلك قد لا يساوي مجموع الذكور والإناث الإجمالي.
         </div>
         {% endif %}
 
@@ -353,41 +323,27 @@
             <h2>مقارنة التقرير الحالي مع التقرير السابق</h2>
             <div class="comparison-meta">
                 <div>تاريخ التقرير الحالي: {{ print_date }}</div>
-                <div>
-                    تاريخ التقرير السابق:
-                    {% if previous_report_time %}
-                        {{ previous_report_time }}
-                    {% else %}
-                        غير متوفر
-                    {% endif %}
-                </div>
+                <div>تاريخ التقرير السابق: {% if previous_report_time %}{{ previous_report_time }}{% else %}غير متوفر{% endif %}</div>
             </div>
 
             {% if comparison %}
-                <div class="comparison-grid">
-                    {% for item in comparison.items %}
-                    <div class="comparison-item">
-                        <div class="label">{{ item.label }}</div>
-                        <div class="value">
-                            {{ item.current|floatformat:0 }}
-                        </div>
-                        <div class="delta {% if item.delta > 0 %}up{% elif item.delta < 0 %}down{% else %}flat{% endif %}">
-                            الفرق: {{ item.delta|floatformat:0 }} ({{ item.trend }})
-                        </div>
-                        <div class="muted">السابق: {{ item.previous|floatformat:0 }}</div>
+            <div class="comparison-grid">
+                {% for item in comparison.items %}
+                <div class="comparison-item">
+                    <div class="label">{{ item.label }}</div>
+                    <div class="value">{{ item.current|floatformat:0 }}</div>
+                    <div class="delta {% if item.delta > 0 %}up{% elif item.delta < 0 %}down{% else %}flat{% endif %}">
+                        الفرق: {{ item.delta|floatformat:0 }} ({{ item.trend }})
                     </div>
-                    {% endfor %}
+                    <div class="muted">السابق: {{ item.previous|floatformat:0 }}</div>
                 </div>
-
-                {% if comparison.total_tracked %}
-                <div class="muted" style="margin-top: 10px;">
-                    التحسينات: {{ comparison.improvement_count }} | التراجعات: {{ comparison.decline_count }}
-                </div>
-                {% endif %}
+                {% endfor %}
+            </div>
+            {% if comparison.total_tracked %}
+            <div class="muted" style="margin-top: 10px;">التحسينات: {{ comparison.improvement_count }} | التراجعات: {{ comparison.decline_count }}</div>
+            {% endif %}
             {% else %}
-                <div class="muted">
-                    لا يوجد تقرير سابق للمقارنة بعد. اطبع التقرير مرة أخرى لإظهار الفروقات والتحسينات.
-                </div>
+            <div class="muted">لا يوجد تقرير سابق للمقارنة بعد. اطبع التقرير مرة أخرى لإظهار الفروقات والتحسينات.</div>
             {% endif %}
         </div>
     </div>
@@ -395,12 +351,8 @@
     <script>
         (function () {
             var originalTitle = document.title;
-            window.addEventListener('beforeprint', function () {
-                document.title = '';
-            });
-            window.addEventListener('afterprint', function () {
-                document.title = originalTitle;
-            });
+            window.addEventListener('beforeprint', function () { document.title = ''; });
+            window.addEventListener('afterprint', function () { document.title = originalTitle; });
         })();
     </script>
 </body>
