@@ -17,6 +17,7 @@ urlpatterns = [
     path('<int:student_id>/profile/', require_employee_perm('students_profile')(views.StudentProfileView.as_view()), name='student_profile'),
     path('<int:student_id>/warnings/add/', require_employee_perm('students_edit')(views.add_student_warning), name='add_student_warning'),
     path('<int:student_id>/statement/', require_employee_perm('students_statement')(views.StudentStatementView.as_view()), name='student_statement'),
+    path('fix-arabic-mojibake/', views.fix_arabic_mojibake_records, name='fix_arabic_mojibake'),
     
     # إجراءات الطلاب
     path('<int:student_id>/register-course/', require_employee_perm('students_register_course')(views.register_course), name='register_course'),

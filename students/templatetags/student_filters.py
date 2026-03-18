@@ -4,6 +4,32 @@ from django import template
 
 register = template.Library()
 
+
+def _arabic_score(text):
+    return sum(1 for char in text if "\u0600" <= char <= "\u06FF")
+
+
+@register.filter
+def fix_arabic_text(value):
+    """Repair common mojibake where UTF-8 Arabic was decoded incorrectly."""
+    if value in (None, ""):
+        return value
+
+    text = str(value)
+    if not any(char in text for char in ("ط", "ظ", "Ø", "Ù")):
+        return text
+
+    for wrong_encoding in ("cp1256", "latin1"):
+        try:
+            repaired = text.encode(wrong_encoding).decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            continue
+
+        if repaired != text and _arabic_score(repaired) > _arabic_score(text):
+            return repaired
+
+    return text
+
 @register.filter
 def get_dict_value(dictionary, key):
     """الحصول على قيمة من القاموس باستخدام مفتاح"""

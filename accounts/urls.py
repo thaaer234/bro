@@ -28,6 +28,8 @@ urlpatterns = [
     path('journal/<int:pk>/update/', require_employee_perm('accounting_entries')(views.JournalEntryUpdateView.as_view()), name='journal_entry_update'),
     path('journal/<int:pk>/post/', require_employee_perm('accounting_entries_post')(views.PostJournalEntryView.as_view()), name='journal_entry_post'),
     path('journal/<int:pk>/reverse/', require_employee_perm('accounting_entries')(views.ReverseJournalEntryView.as_view()), name='journal_entry_reverse'),
+    path('journal/fix-mojibake/', require_employee_perm('accounting_entries')(views.fix_journal_mojibake_records), name='fix_journal_mojibake'),
+    path('journal/<int:pk>/fix-mojibake/', require_employee_perm('accounting_entries')(views.fix_single_journal_mojibake), name='fix_single_journal_mojibake'),
     
     # Reports
     path('reports/', require_employee_perm('accounting_reports')(views.ReportsView.as_view()), name='reports'),

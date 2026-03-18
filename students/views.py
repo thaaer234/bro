@@ -1,8 +1,9 @@
 from django import forms 
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView
 from django.views.generic.edit import FormView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum
+from django.db import transaction as db_transaction
 from django.contrib.auth import get_user_model
 from attendance.models import Attendance
 from classroom.models import Classroomenrollment
@@ -78,6 +79,69 @@ def _parse_post_decimal(value, default='0'):
         text = text.replace(',', '')
 
     return Decimal(text)
+
+
+def _arabic_score(text):
+    return sum(1 for char in text if "\u0600" <= char <= "\u06FF")
+
+
+def _repair_mojibake_text(value):
+    if value in (None, ""):
+        return value
+
+    text = str(value)
+    if not any(char in text for char in ("ط", "ظ", "Ø", "Ù")):
+        return text
+
+    for wrong_encoding in ("cp1256", "latin1"):
+        try:
+            repaired = text.encode(wrong_encoding).decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            continue
+
+        if repaired != text and _arabic_score(repaired) > _arabic_score(text):
+            return repaired
+
+    return text
+
+
+def _fix_mojibake_queryset(queryset, field_name):
+    updated_count = 0
+
+    for obj in queryset.only("id", field_name).iterator():
+        original_value = getattr(obj, field_name, None)
+        repaired_value = _repair_mojibake_text(original_value)
+
+        if repaired_value != original_value:
+            setattr(obj, field_name, repaired_value)
+            obj.save(update_fields=[field_name])
+            updated_count += 1
+
+    return updated_count
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@require_POST
+def fix_arabic_mojibake_records(request):
+    next_url = request.POST.get('next') or reverse('students:student_list')
+
+    with db_transaction.atomic():
+        fixed_transactions = _fix_mojibake_queryset(Transaction.objects.all(), 'description')
+        fixed_entries = _fix_mojibake_queryset(JournalEntry.objects.all(), 'description')
+        fixed_accounts = _fix_mojibake_queryset(Account.objects.exclude(name_ar__isnull=True), 'name_ar')
+
+    total_fixed = fixed_transactions + fixed_entries + fixed_accounts
+
+    if total_fixed:
+        messages.success(
+            request,
+            f'تم إصلاح {total_fixed} سجل بنجاح. المعاملات: {fixed_transactions}، القيود: {fixed_entries}، الحسابات: {fixed_accounts}.'
+        )
+    else:
+        messages.info(request, 'لم يتم العثور على نصوص عربية معطوبة تحتاج إلى إصلاح.')
+
+    return redirect(next_url)
 
 class StudentProfileView(LoginRequiredMixin, View):
     template_name = 'students/student_profile.html'

@@ -4,14 +4,15 @@ from django.views.generic import (
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
+from django.db import transaction as db_transaction
 from django.db.models import Sum, Q, Count
 from django.http import JsonResponse, HttpResponse
 from datetime import datetime, date
 from decimal import Decimal
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from django.utils.decorators import method_decorator
 
 from .models import (
@@ -26,6 +27,97 @@ from .forms import (
 )
 
 from students.models import Student as SProfile
+
+
+def _arabic_score(text):
+    return sum(1 for char in text if "\u0600" <= char <= "\u06FF")
+
+
+def _repair_mojibake_text(value):
+    if value in (None, ""):
+        return value
+
+    text = str(value)
+    if not any(char in text for char in ("ط", "ظ", "Ø", "Ù")):
+        return text
+
+    for wrong_encoding in ("cp1256", "latin1"):
+        try:
+            repaired = text.encode(wrong_encoding).decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            continue
+
+        if repaired != text and _arabic_score(repaired) > _arabic_score(text):
+            return repaired
+
+    return text
+
+
+def _fix_mojibake_queryset(queryset, field_name):
+    updated_count = 0
+
+    for obj in queryset.only("id", field_name).iterator():
+        original_value = getattr(obj, field_name, None)
+        repaired_value = _repair_mojibake_text(original_value)
+
+        if repaired_value != original_value:
+            setattr(obj, field_name, repaired_value)
+            obj.save(update_fields=[field_name])
+            updated_count += 1
+
+    return updated_count
+
+
+@login_required
+@require_POST
+def fix_journal_mojibake_records(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'هذا الإجراء متاح للسوبر يوزر فقط.')
+        return redirect('accounts:journal_entry_list')
+
+    next_url = request.POST.get('next') or reverse('accounts:journal_entry_list')
+
+    with db_transaction.atomic():
+        fixed_entries = _fix_mojibake_queryset(JournalEntry.objects.all(), 'description')
+        fixed_transactions = _fix_mojibake_queryset(Transaction.objects.all(), 'description')
+
+    total_fixed = fixed_entries + fixed_transactions
+
+    if total_fixed:
+        messages.success(
+            request,
+            f'تم إصلاح {total_fixed} سجل من القيود. القيود: {fixed_entries}، المعاملات: {fixed_transactions}.'
+        )
+    else:
+        messages.info(request, 'لم يتم العثور على نصوص معطوبة داخل القيود أو المعاملات.')
+
+    return redirect(next_url)
+
+
+@login_required
+@require_POST
+def fix_single_journal_mojibake(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'هذا الإجراء متاح للسوبر يوزر فقط.')
+        return redirect('accounts:journal_entry_list')
+
+    journal_entry = get_object_or_404(JournalEntry, pk=pk)
+
+    with db_transaction.atomic():
+        fixed_entry = _fix_mojibake_queryset(JournalEntry.objects.filter(pk=journal_entry.pk), 'description')
+        fixed_transactions = _fix_mojibake_queryset(
+            Transaction.objects.filter(journal_entry=journal_entry),
+            'description'
+        )
+
+    total_fixed = fixed_entry + fixed_transactions
+
+    if total_fixed:
+        messages.success(request, f'تم إصلاح {total_fixed} سجل في القيد {journal_entry.reference}.')
+    else:
+        messages.info(request, f'لم يتم العثور على نصوص معطوبة في القيد {journal_entry.reference}.')
+
+    return redirect('accounts:journal_entry_detail', pk=journal_entry.pk)
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):

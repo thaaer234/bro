@@ -68,7 +68,7 @@ def _process_quick_refund(student, enrollment, refund_amount, refund_reason, use
         raise ValueError('ظ„ط§ ظٹظˆط¬ط¯ ظ…ط¨ط§ظ„ط؛ ظ…ط¯ظپظˆط¹ط© ظƒط§ظپظٹط© ظ„ظٹطھظ… ط§ط³طھط±ط¯ط§ط¯ظ‡ط§')
 
     cash_account = _get_employee_cash_account(user)
-    description = f"ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - {student.full_name} - {enrollment.course.name}"
+    description = f"استرداد مبلغ - {student.full_name} - {enrollment.course.name}"
     if refund_reason:
         description += f" - {refund_reason}"
 
@@ -85,7 +85,7 @@ def _process_quick_refund(student, enrollment, refund_amount, refund_reason, use
         account=student.ar_account,
         amount=actual_refund,
         is_debit=True,
-        description=f"ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - {enrollment.course.name}"
+        description=f"استرداد مبلغ - {enrollment.course.name}"
     )
 
     Transaction.objects.create(
@@ -93,7 +93,7 @@ def _process_quick_refund(student, enrollment, refund_amount, refund_reason, use
         account=cash_account,
         amount=actual_refund,
         is_debit=False,
-        description=f"ط§ط³طھط±ط¯ط§ط¯ ظ†ظ‚ط¯ظٹ - {student.full_name}"
+        description=f"استرداد نقدي - {student.full_name}"
     )
 
     refund_entry.post_entry(user)
@@ -723,8 +723,10 @@ def _build_quick_course_statement_rows(courses):
         student_name = enrollment.student.full_name or ""
         course_name = enrollment.course.name or ""
         description_prefixes = [
-            ("ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - ", "ظ‚ظٹط¯ ط§ط³طھط±ط¯ط§ط¯"),
-            ("ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ ", "ظ‚ظٹط¯ ط³ط­ط¨"),
+            ("استرداد مبلغ - ", "قيد استرداد"),
+            ("سحب طالب سريع ", "قيد سحب"),
+            ("ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - ", "قيد استرداد"),
+            ("ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ ", "قيد سحب"),
         ]
 
         for entry in adjustment_entries:
@@ -734,7 +736,10 @@ def _build_quick_course_statement_rows(courses):
             description = entry.description or ""
             matched_source = None
             for prefix, source_label in description_prefixes:
-                if prefix == "ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - " and description.startswith(f"{prefix}{student_name} - {course_name}"):
+                if prefix in {"استرداد مبلغ - ", "ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - "} and description.startswith(f"{prefix}{student_name} - {course_name}"):
+                    matched_source = source_label
+                    break
+                if prefix in {"سحب طالب سريع ", "ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ "} and description.startswith(f"{prefix}{student_name} من {course_name}"):
                     matched_source = source_label
                     break
                 if prefix == "ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ " and description.startswith(f"{prefix}{student_name} ظ…ظ† {course_name}"):
@@ -1307,7 +1312,7 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
         code='4201',
         defaults={
             'name': 'Withdrawal Revenue - Students',
-            'name_ar': 'ط¥ظٹط±ط§ط¯ط§طھ ط§ظ†ط³ط­ط§ط¨ ط·ظ„ط§ط¨',
+            'name_ar': 'إيرادات انسحاب طلاب',
             'account_type': 'REVENUE',
             'is_active': True,
         }
@@ -1321,7 +1326,7 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
         reference="",
         date=timezone.now().date(),
         description=(
-            f"ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ {student.full_name} ظ…ظ† {enrollment.course.name}"
+            f"سحب طالب سريع {student.full_name} من {enrollment.course.name}"
             + (f" - {withdrawal_reason}" if withdrawal_reason else "")
         ),
         entry_type='ADJUSTMENT',
@@ -1336,14 +1341,14 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
             account=returns_account,
             amount=actual_refund,
             is_debit=True,
-            description=f"ط§ط³طھط±ط¯ط§ط¯ - {withdrawal_reason}" if withdrawal_reason else "ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ ظ…ط¯ظپظˆط¹"
+            description=f"استرداد - {withdrawal_reason}" if withdrawal_reason else "استرداد مبلغ مدفوع"
         )
         Transaction.objects.create(
             journal_entry=entry,
             account=cash_account,
             amount=actual_refund,
             is_debit=False,
-            description=f"ط¯ظپط¹ ط§ط³طھط±ط¯ط§ط¯ ظ„ظ„ط·ط§ظ„ط¨ {student.full_name}"
+            description=f"دفع استرداد للطالب {student.full_name}"
         )
 
     if due > 0:
@@ -1354,14 +1359,14 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
                 account=deferred_account,
                 amount=due,
                 is_debit=True,
-                description="ط¹ظƒط³ ط¥ظٹط±ط§ط¯ط§طھ ظ…ط¤ط¬ظ„ط©"
+                description="عكس إيرادات مؤجلة"
             )
             Transaction.objects.create(
                 journal_entry=entry,
                 account=student_ar,
                 amount=due,
                 is_debit=False,
-                description="ط¹ظƒط³ ط°ظ…ظ… ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ظ…ط¯ظٹظ†ط©"
+                description="عكس ذمم الطالب المدينة"
             )
 
     entry.post_entry(user)
@@ -2358,7 +2363,7 @@ def withdraw_quick_student(request, student_id):
                 code='4201',
                 defaults={
                     'name': 'Withdrawal Revenue - Students',
-                    'name_ar': 'ط¥ظٹط±ط§ط¯ط§طھ ط§ظ†ط³ط­ط§ط¨ ط·ظ„ط§ط¨',
+                    'name_ar': 'إيرادات انسحاب طلاب',
                     'account_type': 'REVENUE',
                     'is_active': True,
                 }
@@ -2374,7 +2379,7 @@ def withdraw_quick_student(request, student_id):
             entry = JournalEntry.objects.create(
                 reference="",
                 date=timezone.now().date(),
-                description=f"ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ {student.full_name} ظ…ظ† {enrollment.course.name}" + 
+                description=f"سحب طالب سريع {student.full_name} من {enrollment.course.name}" + 
                            (f" - {withdrawal_reason}" if withdrawal_reason else ""),
                 entry_type='ADJUSTMENT',
                 total_amount=entry_total,
@@ -2388,14 +2393,14 @@ def withdraw_quick_student(request, student_id):
                     account=returns_account,
                     amount=actual_refund,
                     is_debit=True,
-                    description=f"ط§ط³طھط±ط¯ط§ط¯ - {withdrawal_reason}" if withdrawal_reason else "ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ ظ…ط¯ظپظˆط¹"
+                    description=f"استرداد - {withdrawal_reason}" if withdrawal_reason else "استرداد مبلغ مدفوع"
                 )
                 Transaction.objects.create(
                     journal_entry=entry,
                     account=cash_account,
                     amount=actual_refund,
                     is_debit=False,
-                    description=f"ط¯ظپط¹ ط§ط³طھط±ط¯ط§ط¯ ظ„ظ„ط·ط§ظ„ط¨ {student.full_name}"
+                    description=f"دفع استرداد للطالب {student.full_name}"
                 )
 
             if due > 0:
@@ -2406,14 +2411,14 @@ def withdraw_quick_student(request, student_id):
                         account=deferred_account,
                         amount=due,
                         is_debit=True,
-                        description="ط¹ظƒط³ ط¥ظٹط±ط§ط¯ط§طھ ظ…ط¤ط¬ظ„ط©"
+                        description="عكس إيرادات مؤجلة"
                     )
                     Transaction.objects.create(
                         journal_entry=entry,
                         account=student_ar,
                         amount=due,
                         is_debit=False,
-                        description="ط¹ظƒط³ ط°ظ…ظ… ط§ظ„ط·ط§ظ„ط¨ ط§ظ„ظ…ط¯ظٹظ†ط©"
+                        description="عكس ذمم الطالب المدينة"
                     )
 
             entry.post_entry(request.user)

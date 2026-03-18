@@ -2,6 +2,7 @@
 
 {% load emp_perms %}
 {% load static %}
+{% load student_filters %}
 
 {% block title %}كشف حساب الطالب - {{ student.full_name }}{% endblock %}
 
@@ -20,6 +21,16 @@
                             <i class="fas fa-arrow-left me-1"></i>
                             العودة لملف الطالب / Back to Profile
                         </a>
+                        {% if request.user.is_superuser %}
+                        <form method="post" action="{% url 'students:fix_arabic_mojibake' %}" class="ms-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('سيتم إصلاح النصوص العربية المعطوبة القديمة من قاعدة البيانات. هل تريد المتابعة؟');">
+                                <i class="fas fa-language me-1"></i>
+                                إصلاح السجلات القديمة
+                            </button>
+                        </form>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="card-body">
@@ -158,7 +169,7 @@
                                             <td>
                                                 <small class="text-primary">{{ row.ref }}</small>
                                             </td>
-                                            <td>{{ row.desc }}</td>
+                                            <td>{{ row.desc|fix_arabic_text }}</td>
                                             <td class="text-success">
                                                 {% if row.debit > 0 %}{{ row.debit|floatformat:2 }}{% else %}-{% endif %}
                                             </td>
