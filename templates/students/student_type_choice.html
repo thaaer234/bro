@@ -2,109 +2,316 @@
 {% load static %}
 
 {% block content %}
-<div class="container-fluid py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="text-center mb-5">
-                <h1 class="display-4 text-primary mb-3">
-                    <i class="fas fa-user-graduate"></i>
-                </h1>
-                <h2 class="mb-3">اختر نوع الطالب</h2>
-                <p class="lead text-muted">اختر نوع الطالب الذي تريد إضافته إلى النظام</p>
+<section class="student-choice-page">
+    <div class="student-choice-hero">
+        <div class="student-choice-hero__content">
+            <span class="student-choice-hero__eyebrow">إضافة طالب جديد</span>
+            <h1>اختر مسار التسجيل المناسب</h1>
+            <p>
+                حدد نوع الطالب أولاً ليأخذ النظامك إلى نموذج الإدخال المناسب:
+                تسجيل نظامي كامل أو تسجيل سريع للدورات المكثفة.
+            </p>
+        </div>
+        <div class="student-choice-hero__stats">
+            <div class="hero-stat-card">
+                <strong>مساران</strong>
+                <span>تسجيل حسب الحاجة الفعلية</span>
             </div>
-
-            <div class="row">
-                <!-- طالب نظامي -->
-                <div class="col-md-6 mb-4">
-                    <div class="card choice-card system h-100">
-                        <div class="card-body text-center p-5">
-                            <div class="choice-icon mb-4">
-                                <i class="fas fa-user-graduate fa-4x text-primary"></i>
-                            </div>
-                            <h3 class="card-title mb-3">طالب نظامي</h3>
-                            <p class="card-text text-muted mb-4">
-                                تسجيل طالب نظامي كامل البيانات مع جميع التفاصيل الأكاديمية والشخصية
-                            </p>
-                            <ul class="list-unstyled text-start mb-4">
-                                <li><i class="fas fa-check text-success me-2"></i>بيانات شخصية كاملة</li>
-                                <li><i class="fas fa-check text-success me-2"></i>معلومات الأهل</li>
-                                <li><i class="fas fa-check text-success me-2"></i>بيانات أكاديمية مفصلة</li>
-                                <li><i class="fas fa-check text-success me-2"></i>جميع الدورات النظامية</li>
-                            </ul>
-                            <a href="{% url 'students:create_student' %}" class="btn btn-primary btn-lg">
-                                <i class="fas fa-plus me-2"></i>إضافة طالب نظامي
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- طالب سريع -->
-                <div class="col-md-6 mb-4">
-                    <div class="card choice-card quick h-100">
-                        <div class="card-body text-center p-5">
-                            <div class="choice-icon mb-4">
-                                <i class="fas fa-bolt fa-4x text-warning"></i>
-                            </div>
-                            <h3 class="card-title mb-3">طالب سريع</h3>
-                            <p class="card-text text-muted mb-4">
-                                تسجيل طالب سريع بالبيانات الأساسية فقط للدورات المكثفة والسريعة
-                            </p>
-                            <ul class="list-unstyled text-start mb-4">
-                                <li><i class="fas fa-check text-success me-2"></i>بيانات أساسية فقط</li>
-                                <li><i class="fas fa-check text-success me-2"></i>تسجيل سريع</li>
-                                <li><i class="fas fa-check text-success me-2"></i>دورات مكثفة وسريعة</li>
-                                <li><i class="fas fa-check text-success me-2"></i>نظام محاسبي متكامل</li>
-                            </ul>
-                            <a href="{% url 'quick:student_create' %}" class="btn btn-warning btn-lg">
-                                <i class="fas fa-bolt me-2"></i>إضافة طالب سريع
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="text-center mt-4">
-                <a href="{% url 'students:student' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-right me-2"></i>العودة لقائمة الطلاب
-                </a>
+            <div class="hero-stat-card">
+                <strong>تنقل أسرع</strong>
+                <span>وصول مباشر للنموذج المناسب</span>
             </div>
         </div>
     </div>
-</div>
+
+    <div class="student-choice-grid">
+        <article class="student-choice-card student-choice-card--regular">
+            <div class="student-choice-card__badge">
+                <i class="fas fa-user-graduate"></i>
+                <span>تسجيل نظامي</span>
+            </div>
+            <h2>طالب نظامي</h2>
+            <p class="student-choice-card__summary">
+                مناسب للطلاب الذين يحتاجون ملفًا كاملًا ببيانات شخصية وأكاديمية وتفاصيل ولي الأمر.
+            </p>
+            <ul class="student-choice-card__features">
+                <li>البيانات الشخصية الكاملة</li>
+                <li>معلومات الأب والأم ووسائل التواصل</li>
+                <li>بيانات أكاديمية مفصلة</li>
+                <li>مناسب للتسجيلات النظامية الكاملة</li>
+            </ul>
+            <div class="student-choice-card__footer">
+                <a href="{% url 'students:create_student' %}" class="btn student-choice-btn student-choice-btn--primary">
+                    <i class="fas fa-plus"></i>
+                    <span>إضافة طالب نظامي</span>
+                </a>
+            </div>
+        </article>
+
+        <article class="student-choice-card student-choice-card--quick">
+            <div class="student-choice-card__badge">
+                <i class="fas fa-bolt"></i>
+                <span>تسجيل سريع</span>
+            </div>
+            <h2>طالب سريع</h2>
+            <p class="student-choice-card__summary">
+                مناسب للدورات المكثفة والسريعة عندما تحتاج أقل عدد ممكن من الحقول مع إنجاز أسرع.
+            </p>
+            <ul class="student-choice-card__features">
+                <li>اسم ورقم هاتف وبيانات أساسية فقط</li>
+                <li>مهيأ للدورات السريعة والمكثفة</li>
+                <li>ربط سريع مع التسجيلات المالية</li>
+                <li>تقليل وقت الإدخال عند الازدحام</li>
+            </ul>
+            <div class="student-choice-card__footer">
+                <a href="{% url 'quick:student_create' %}" class="btn student-choice-btn student-choice-btn--quick">
+                    <i class="fas fa-bolt"></i>
+                    <span>إضافة طالب سريع</span>
+                </a>
+            </div>
+        </article>
+    </div>
+
+    <div class="student-choice-back">
+        <a href="{% url 'students:student' %}" class="btn btn--ghost">
+            <i class="fas fa-arrow-right"></i>
+            <span>العودة إلى قائمة الطلاب</span>
+        </a>
+    </div>
+</section>
 
 <style>
-.choice-card {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
+.student-choice-page {
+    display: grid;
+    gap: 28px;
 }
 
-.choice-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+.student-choice-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+    gap: 20px;
+    padding: 28px;
+    border-radius: 30px;
+    background:
+        radial-gradient(circle at top right, rgba(11, 95, 255, 0.16), transparent 32%),
+        radial-gradient(circle at bottom left, rgba(255, 175, 0, 0.18), transparent 30%),
+        linear-gradient(135deg, #ffffff 0%, #f7f9fc 100%);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 22px 50px rgba(15, 23, 42, 0.08);
 }
 
-.choice-card.system {
-    border-top: 4px solid #007bff;
+.student-choice-hero__content h1 {
+    margin: 0 0 10px;
+    font-size: clamp(1.9rem, 3vw, 2.8rem);
+    color: #122033;
+    font-weight: 800;
 }
 
-.choice-card.quick {
-    border-top: 4px solid #ffc107;
+.student-choice-hero__content p {
+    margin: 0;
+    color: #5b6578;
+    line-height: 1.9;
+    font-size: 1rem;
+    max-width: 700px;
 }
 
-.choice-icon {
+.student-choice-hero__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #eef4ff;
+    color: #1f57d6;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.student-choice-hero__stats {
+    display: grid;
+    gap: 14px;
+}
+
+.hero-stat-card {
+    padding: 20px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.hero-stat-card strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #122033;
+    font-size: 1.15rem;
+}
+
+.hero-stat-card span {
+    color: #687387;
+    line-height: 1.7;
+}
+
+.student-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.student-choice-card {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    gap: 18px;
+    padding: 28px;
+    border-radius: 28px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.student-choice-card::before {
+    content: "";
+    position: absolute;
+    inset: auto -30px -70px auto;
+    width: 170px;
+    height: 170px;
+    border-radius: 50%;
+    opacity: 0.16;
+}
+
+.student-choice-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 26px 50px rgba(15, 23, 42, 0.14);
+}
+
+.student-choice-card--regular::before {
+    background: #1f57d6;
+}
+
+.student-choice-card--quick::before {
+    background: #f0a400;
+}
+
+.student-choice-card--regular {
+    border-top: 5px solid #1f57d6;
+}
+
+.student-choice-card--quick {
+    border-top: 5px solid #f0a400;
+}
+
+.student-choice-card__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    padding: 10px 14px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.92rem;
+}
+
+.student-choice-card--regular .student-choice-card__badge {
+    background: #eef4ff;
+    color: #1f57d6;
+}
+
+.student-choice-card--quick .student-choice-card__badge {
+    background: #fff5d9;
+    color: #c28100;
+}
+
+.student-choice-card h2 {
+    margin: 0;
+    font-size: 1.7rem;
+    color: #122033;
+    font-weight: 800;
+}
+
+.student-choice-card__summary {
+    margin: 0;
+    color: #5b6578;
+    line-height: 1.9;
+}
+
+.student-choice-card__features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 11px;
+}
+
+.student-choice-card__features li {
+    position: relative;
+    padding-right: 26px;
+    color: #233044;
+    line-height: 1.75;
+}
+
+.student-choice-card__features li::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
     opacity: 0.8;
 }
 
-.card-title {
-    font-weight: 600;
-    color: #2c3e50;
+.student-choice-card__footer {
+    margin-top: auto;
 }
 
-.btn-lg {
-    padding: 12px 30px;
-    font-weight: 600;
+.student-choice-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 52px;
+    border-radius: 18px;
+    font-weight: 800;
+    border: none;
+}
+
+.student-choice-btn--primary {
+    background: linear-gradient(135deg, #1f57d6 0%, #0a84ff 100%);
+    color: #fff;
+}
+
+.student-choice-btn--quick {
+    background: linear-gradient(135deg, #e49a00 0%, #ffbf2f 100%);
+    color: #1f1a0b;
+}
+
+.student-choice-back {
+    display: flex;
+    justify-content: center;
+}
+
+@media (max-width: 991.98px) {
+    .student-choice-hero,
+    .student-choice-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .student-choice-hero,
+    .student-choice-card {
+        padding: 20px;
+        border-radius: 22px;
+    }
+
+    .student-choice-card h2 {
+        font-size: 1.45rem;
+    }
 }
 </style>
 {% endblock %}

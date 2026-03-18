@@ -2,7 +2,8 @@
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView
 from django.views.generic.edit import FormView
 from django.urls import reverse, reverse_lazy
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Value, DecimalField
+from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
@@ -16,22 +17,32 @@ from django.views.generic import View, TemplateView, ListView, DetailView
 # from .models import QuickStudent, QuickEnrollment, QuickCourse, AcademicYear
 from django.contrib import messages
 from django.utils.dateparse import parse_date
-from .forms import AcademicYearForm, QuickCourseForm, QuickStudentForm, QuickEnrollmentForm
+from .forms import (
+    AcademicYearForm,
+    QuickCourseForm,
+    QuickStudentForm,
+    QuickEnrollmentForm,
+    _normalize_quick_name,
+    _normalize_quick_phone,
+)
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
 from django.db.models import Prefetch
 from django.conf import settings
+from django.db import transaction
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from accounts.models import Transaction, JournalEntry, Account, get_user_cash_account
-from .models import QuickStudent, QuickEnrollment, QuickCourse, AcademicYear, QuickStudentReceipt
+from .models import QuickStudent, QuickEnrollment, QuickCourse, AcademicYear, QuickStudentReceipt, QuickReceiptPrintJob
 from accounts.models import Course, CostCenter
 from .services.receipt_printer import QuickReceiptPrinterError, print_many_receipts
+from employ.decorators import require_superuser
 User = get_user_model()
 
 
@@ -186,6 +197,421 @@ def _format_money(value):
         return Decimal(value)
     except Exception:
         return Decimal('0')
+
+
+def _normalize_quick_student_name(name):
+    return ' '.join((name or '').split()).casefold()
+
+
+def _get_quick_enrollment_entry(enrollment):
+    if not enrollment:
+        return None
+    return JournalEntry.objects.filter(reference=f'QE-{enrollment.id}').first()
+
+
+def _retarget_journal_account(entry, old_account, new_account):
+    if not entry or not old_account or not new_account or old_account == new_account:
+        return False
+
+    updated = False
+    for tx in entry.transactions.select_related('account').all():
+        if tx.account_id != old_account.id:
+            continue
+        tx.account = new_account
+        tx.save(update_fields=['account'])
+        updated = True
+
+    if updated:
+        old_account.recalculate_tree_balances()
+        new_account.recalculate_tree_balances()
+    return updated
+
+
+def _retarget_all_account_transactions(old_account, new_account):
+    if not old_account or not new_account or old_account == new_account:
+        return 0
+
+    updated = 0
+    for tx in Transaction.objects.filter(account=old_account).select_related('journal_entry'):
+        tx.account = new_account
+        tx.save(update_fields=['account'])
+        updated += 1
+
+    if updated:
+        old_account.recalculate_tree_balances()
+        new_account.recalculate_tree_balances()
+    return updated
+
+
+def _reverse_quick_enrollment_entry(enrollment, student_account, user, note=''):
+    entry = _get_quick_enrollment_entry(enrollment)
+    if not entry:
+        return None
+
+    deferred_account = Account.get_or_create_quick_course_deferred_account(enrollment.course)
+    description = f'إلغاء تسجيل مكرر لطالب سريع - {enrollment.student.full_name} - {enrollment.course.name}'
+    if note:
+        description = f'{description} - {note}'
+
+    reversing_entry = JournalEntry.objects.create(
+        date=timezone.now().date(),
+        description=description,
+        entry_type='ADJUSTMENT',
+        total_amount=enrollment.net_amount or Decimal('0'),
+        created_by=user,
+    )
+    Transaction.objects.create(
+        journal_entry=reversing_entry,
+        account=deferred_account,
+        amount=enrollment.net_amount or Decimal('0'),
+        is_debit=True,
+        description=f'عكس إيراد مؤجل - {enrollment.course.name}',
+    )
+    Transaction.objects.create(
+        journal_entry=reversing_entry,
+        account=student_account,
+        amount=enrollment.net_amount or Decimal('0'),
+        is_debit=False,
+        description=f'عكس ذمة تسجيل مكرر - {enrollment.student.full_name}',
+    )
+    reversing_entry.post_entry(user)
+    return reversing_entry
+
+
+def _pick_merge_target(students):
+    return sorted(
+        students,
+        key=lambda student: (
+            not student.is_active,
+            student.created_at or timezone.now(),
+            student.id,
+        )
+    )[0]
+
+
+def _merge_quick_students_by_name(normalized_name, user):
+    students = list(
+        QuickStudent.objects.select_related('student', 'academic_year', 'created_by')
+        .filter(full_name__isnull=False)
+        .order_by('created_at', 'id')
+    )
+    matched_students = [
+        student for student in students
+        if _normalize_quick_student_name(student.full_name) == normalized_name
+    ]
+    if len(matched_students) < 2:
+        raise ValueError('لم يعد يوجد سجلات مكررة لهذا الاسم.')
+
+    target = _pick_merge_target(matched_students)
+    sources = [student for student in matched_students if student.id != target.id]
+    target_ar = Account.get_or_create_quick_student_ar_account(target)
+
+    touched_accounts = {target_ar.id: target_ar}
+    target_enrollments = {
+        enrollment.course_id: enrollment
+        for enrollment in QuickEnrollment.objects.select_related('course').filter(student=target)
+    }
+
+    merged_enrollments = 0
+    merged_receipts = 0
+    reversed_duplicates = 0
+    deactivated_sources = []
+
+    with transaction.atomic():
+        for source in sources:
+            source_ar = Account.get_or_create_quick_student_ar_account(source)
+            touched_accounts[source_ar.id] = source_ar
+
+            source_receipts = list(
+                QuickStudentReceipt.objects.select_related('course', 'quick_enrollment', 'journal_entry')
+                .filter(quick_student=source)
+                .order_by('date', 'id')
+            )
+            source_receipts_by_enrollment = defaultdict(list)
+            source_orphan_receipts = []
+            for receipt in source_receipts:
+                if receipt.quick_enrollment_id:
+                    source_receipts_by_enrollment[receipt.quick_enrollment_id].append(receipt)
+                else:
+                    source_orphan_receipts.append(receipt)
+
+            enrollment_map = {}
+            source_enrollments = list(
+                QuickEnrollment.objects.select_related('course')
+                .filter(student=source)
+                .order_by('enrollment_date', 'id')
+            )
+            for enrollment in source_enrollments:
+                existing = target_enrollments.get(enrollment.course_id)
+                source_receipt_total = sum(
+                    (receipt.paid_amount or Decimal('0')) for receipt in source_receipts_by_enrollment.get(enrollment.id, [])
+                )
+
+                if existing:
+                    existing_paid_total = _get_quick_enrollment_paid_total(existing, target)
+                    existing_orphans_total = sum(
+                        (receipt.paid_amount or Decimal('0'))
+                        for receipt in source_orphan_receipts
+                        if receipt.course_id == enrollment.course_id
+                    )
+                    combined_paid = existing_paid_total + source_receipt_total + existing_orphans_total
+                    if combined_paid > (existing.net_amount or Decimal('0')):
+                        raise ValueError(
+                            f'تعذر دمج "{target.full_name}" لأن دورة "{enrollment.course.name}" ستتجاوز قيمة التسجيل بعد الدمج '
+                            f'({combined_paid:,.0f} > {(existing.net_amount or Decimal("0")):,.0f}).'
+                        )
+
+                    _reverse_quick_enrollment_entry(
+                        enrollment=enrollment,
+                        student_account=source_ar,
+                        user=user,
+                        note='دمج حسابات الطلاب السريعين',
+                    )
+                    reversed_duplicates += 1
+                    enrollment_map[enrollment.id] = existing
+                    continue
+
+                enrollment.student = target
+                enrollment.save(update_fields=['student'])
+                entry = _get_quick_enrollment_entry(enrollment)
+                _retarget_journal_account(entry, source_ar, target_ar)
+                target_enrollments[enrollment.course_id] = enrollment
+                enrollment_map[enrollment.id] = enrollment
+                merged_enrollments += 1
+
+            for receipt in source_receipts:
+                target_enrollment = None
+                if receipt.quick_enrollment_id:
+                    target_enrollment = enrollment_map.get(receipt.quick_enrollment_id)
+                elif receipt.course_id:
+                    target_enrollment = target_enrollments.get(receipt.course_id)
+
+                receipt.quick_student = target
+                receipt.student_name = target.full_name
+                receipt.quick_enrollment = target_enrollment
+                receipt.save(update_fields=['quick_student', 'student_name', 'quick_enrollment'])
+                _retarget_journal_account(receipt.journal_entry, source_ar, target_ar)
+                merged_receipts += 1
+
+            _retarget_all_account_transactions(source_ar, target_ar)
+            QuickReceiptPrintJob.objects.filter(quick_student=source).update(quick_student=target)
+
+            source.is_active = False
+            source.notes = ((source.notes or '').strip() + f'\n[MERGED_INTO #{target.id}]').strip()
+            source.save(update_fields=['is_active', 'notes', 'updated_at'])
+
+            if getattr(source, 'student', None):
+                source.student.is_active = False
+                source.student.notes = ((source.student.notes or '').strip() + f'\nQuick merged into #{target.id}').strip()
+                source.student.save(update_fields=['is_active', 'notes', 'updated_at'])
+
+            source.delete()
+            deactivated_sources.append(source.id)
+
+        if getattr(target, 'student', None):
+            updated_fields = []
+            if not target.student.phone and target.phone:
+                target.student.phone = target.phone
+                updated_fields.append('phone')
+            if not target.student.full_name and target.full_name:
+                target.student.full_name = target.full_name
+                updated_fields.append('full_name')
+            if updated_fields:
+                target.student.save(update_fields=updated_fields)
+
+    for account in touched_accounts.values():
+        try:
+            account.recalculate_tree_balances()
+        except Exception:
+            continue
+
+    return {
+        'target': target,
+        'sources': deactivated_sources,
+        'merged_enrollments': merged_enrollments,
+        'merged_receipts': merged_receipts,
+        'reversed_duplicates': reversed_duplicates,
+    }
+
+
+def _get_duplicate_groups(search_query='', scope='active'):
+    include_inactive = scope == 'all'
+
+    enrollment_queryset = (
+        QuickEnrollment.objects.select_related('course')
+        .prefetch_related(
+            Prefetch(
+                'quickstudentreceipt_set',
+                queryset=QuickStudentReceipt.objects.select_related('created_by', 'journal_entry').order_by('date', 'id')
+            )
+        )
+        .annotate(
+            paid_total=Coalesce(
+                Sum('quickstudentreceipt__paid_amount'),
+                Value(Decimal('0')),
+                output_field=DecimalField(max_digits=10, decimal_places=2),
+            )
+        )
+        .order_by('course__name', 'id')
+    )
+
+    students_queryset = (
+        QuickStudent.objects.select_related('student', 'academic_year', 'created_by')
+        .prefetch_related(
+            Prefetch('enrollments', queryset=enrollment_queryset),
+            Prefetch(
+                'quickstudentreceipt_set',
+                queryset=QuickStudentReceipt.objects.select_related(
+                    'created_by', 'journal_entry', 'course', 'quick_enrollment'
+                ).order_by('date', 'id')
+            )
+        )
+        .order_by('full_name', 'id')
+    )
+    if not include_inactive:
+        students_queryset = students_queryset.filter(is_active=True)
+
+    grouped_students = defaultdict(list)
+    for quick_student in students_queryset:
+        normalized_name = _normalize_quick_student_name(quick_student.full_name)
+        if normalized_name:
+            grouped_students[normalized_name].append(quick_student)
+
+    duplicate_groups = []
+    normalized_search = _normalize_quick_student_name(search_query)
+
+    for normalized_name, students in grouped_students.items():
+        if len(students) < 2:
+            continue
+        if normalized_search and normalized_search not in normalized_name:
+            continue
+
+        members = []
+        group_balance = Decimal('0')
+        group_remaining = Decimal('0')
+        group_enrollments = 0
+
+        for quick_student in students:
+            enrollments_data = []
+            student_remaining = Decimal('0')
+            account_created_by = '-'
+            if quick_student.created_by:
+                account_created_by = quick_student.created_by.get_full_name() or quick_student.created_by.username or '-'
+            all_student_receipts = list(quick_student.quickstudentreceipt_set.all())
+            used_receipt_ids = set()
+            enrollments = list(quick_student.enrollments.all())
+            enrollment_entry_refs = {f'QE-{enrollment.id}': enrollment for enrollment in enrollments}
+            journal_entries = {
+                entry.reference: entry
+                for entry in JournalEntry.objects.filter(reference__in=enrollment_entry_refs.keys()).select_related('created_by')
+            }
+
+            for enrollment in enrollments:
+                net_amount = enrollment.net_amount or Decimal('0')
+                paid_amount = enrollment.paid_total or Decimal('0')
+                remaining_amount = max(Decimal('0'), net_amount - paid_amount)
+                student_remaining += remaining_amount
+                group_enrollments += 1
+                enrollment_created_by = '-'
+                receipt_rows = []
+
+                enrollment_entry = journal_entries.get(f'QE-{enrollment.id}')
+                if enrollment_entry and enrollment_entry.created_by:
+                    enrollment_created_by = (
+                        enrollment_entry.created_by.get_full_name()
+                        or enrollment_entry.created_by.username
+                        or '-'
+                    )
+
+                receipts = [
+                    receipt for receipt in all_student_receipts
+                    if receipt.quick_enrollment_id == enrollment.id
+                    or (
+                        receipt.quick_enrollment_id is None
+                        and receipt.course_id == enrollment.course_id
+                    )
+                ]
+                if enrollment_created_by == '-' and receipts:
+                    first_receipt_creator = receipts[0].created_by
+                    if first_receipt_creator:
+                        enrollment_created_by = (
+                            first_receipt_creator.get_full_name()
+                            or first_receipt_creator.username
+                            or '-'
+                        )
+
+                for receipt in receipts:
+                    receipt_created_by = '-'
+                    if receipt.created_by:
+                        receipt_created_by = receipt.created_by.get_full_name() or receipt.created_by.username or '-'
+                    used_receipt_ids.add(receipt.id)
+                    receipt_rows.append({
+                        'receipt_number': receipt.receipt_number or '-',
+                        'date': receipt.date,
+                        'paid_amount': receipt.paid_amount or Decimal('0'),
+                        'amount': receipt.amount or Decimal('0'),
+                        'is_printed': receipt.is_printed,
+                        'created_by': receipt_created_by,
+                    })
+
+                enrollments_data.append({
+                    'course_name': enrollment.course.name if enrollment.course else '-',
+                    'enrollment_date': enrollment.enrollment_date,
+                    'net_amount': net_amount,
+                    'paid_amount': paid_amount,
+                    'remaining_amount': remaining_amount,
+                    'is_completed': enrollment.is_completed,
+                    'registered_by': enrollment_created_by,
+                    'receipts': receipt_rows,
+                    'has_receipts': bool(receipt_rows),
+                    'receipts_count': len(receipt_rows),
+                })
+
+            orphan_receipts = []
+            for receipt in all_student_receipts:
+                if receipt.id in used_receipt_ids:
+                    continue
+                receipt_created_by = '-'
+                if receipt.created_by:
+                    receipt_created_by = receipt.created_by.get_full_name() or receipt.created_by.username or '-'
+                orphan_receipts.append({
+                    'receipt_number': receipt.receipt_number or '-',
+                    'date': receipt.date,
+                    'course_name': receipt.course_name or (receipt.course.name if receipt.course else '-'),
+                    'paid_amount': receipt.paid_amount or Decimal('0'),
+                    'amount': receipt.amount or Decimal('0'),
+                    'is_printed': receipt.is_printed,
+                    'created_by': receipt_created_by,
+                })
+
+            account_balance = quick_student.balance
+            group_balance += account_balance
+            group_remaining += student_remaining
+
+            members.append({
+                'student': quick_student,
+                'account_created_by': account_created_by,
+                'account_balance': account_balance,
+                'remaining_total': student_remaining,
+                'enrollments': enrollments_data,
+                'enrollments_count': len(enrollments_data),
+                'orphan_receipts': orphan_receipts,
+                'has_orphan_receipts': bool(orphan_receipts),
+            })
+
+        members.sort(key=lambda item: item['student'].id)
+        duplicate_groups.append({
+            'display_name': students[0].full_name,
+            'normalized_name': normalized_name,
+            'students': members,
+            'duplicate_count': len(members),
+            'group_balance': group_balance,
+            'group_remaining': group_remaining,
+            'group_enrollments': group_enrollments,
+        })
+
+    duplicate_groups.sort(key=lambda item: (-item['duplicate_count'], item['display_name']))
+    return duplicate_groups
 
 
 def _append_quick_course_statement_rows(rows, course_name, student_name, student_phone, source_label, entry):
@@ -1169,6 +1595,275 @@ class QuickStudentListView(LoginRequiredMixin, ListView):
         })
         return context
 
+
+@require_superuser
+def quick_duplicate_students_report(request):
+    if request.method == 'POST':
+        group_key = _normalize_quick_student_name(request.POST.get('group_name'))
+        search_query = (request.POST.get('q') or '').strip()
+        scope = request.POST.get('scope') or 'active'
+
+        if not group_key:
+            messages.error(request, 'لم يتم تحديد الاسم المطلوب دمجه.')
+            return redirect(f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'scope': scope})}")
+
+        try:
+            merge_result = _merge_quick_students_by_name(group_key, request.user)
+        except Exception as exc:
+            messages.error(request, f'فشل دمج السجلات المكررة: {exc}')
+        else:
+            messages.success(
+                request,
+                'تم الدمج بنجاح إلى السجل '
+                f'#{merge_result["target"].id}، '
+                f'ونُقل {merge_result["merged_enrollments"]} تسجيل و{merge_result["merged_receipts"]} إيصال، '
+                f'مع عكس {merge_result["reversed_duplicates"]} تسجيل مكرر على نفس الدورة.'
+            )
+
+        return redirect(f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'scope': scope})}")
+
+    search_query = (request.GET.get('q') or '').strip()
+    scope = request.GET.get('scope') or 'active'
+    include_inactive = scope == 'all'
+
+    enrollment_queryset = (
+        QuickEnrollment.objects.select_related('course')
+        .prefetch_related(
+            Prefetch(
+                'quickstudentreceipt_set',
+                queryset=QuickStudentReceipt.objects.select_related('created_by', 'journal_entry').order_by('date', 'id')
+            )
+        )
+        .annotate(
+            paid_total=Coalesce(
+                Sum('quickstudentreceipt__paid_amount'),
+                Value(Decimal('0')),
+                output_field=DecimalField(max_digits=10, decimal_places=2),
+            )
+        )
+        .order_by('course__name', 'id')
+    )
+
+    students_queryset = (
+        QuickStudent.objects.select_related('student', 'academic_year', 'created_by')
+        .prefetch_related(
+            Prefetch('enrollments', queryset=enrollment_queryset),
+            Prefetch(
+                'quickstudentreceipt_set',
+                queryset=QuickStudentReceipt.objects.select_related(
+                    'created_by', 'journal_entry', 'course', 'quick_enrollment'
+                ).order_by('date', 'id')
+            )
+        )
+        .order_by('full_name', 'id')
+    )
+    if not include_inactive:
+        students_queryset = students_queryset.filter(is_active=True)
+
+    grouped_students = defaultdict(list)
+    for quick_student in students_queryset:
+        normalized_name = _normalize_quick_student_name(quick_student.full_name)
+        if normalized_name:
+            grouped_students[normalized_name].append(quick_student)
+
+    duplicate_groups = []
+    duplicate_records_count = 0
+    total_balance = Decimal('0')
+    total_remaining = Decimal('0')
+    total_enrollments = 0
+    normalized_search = _normalize_quick_student_name(search_query)
+
+    for normalized_name, students in grouped_students.items():
+        if len(students) < 2:
+            continue
+        if normalized_search and normalized_search not in normalized_name:
+            continue
+
+        members = []
+        group_balance = Decimal('0')
+        group_remaining = Decimal('0')
+        group_enrollments = 0
+
+        for quick_student in students:
+            enrollments_data = []
+            student_remaining = Decimal('0')
+            account_created_by = '-'
+            if quick_student.created_by:
+                account_created_by = quick_student.created_by.get_full_name() or quick_student.created_by.username or '-'
+            all_student_receipts = list(quick_student.quickstudentreceipt_set.all())
+            used_receipt_ids = set()
+            enrollments = list(quick_student.enrollments.all())
+            enrollment_entry_refs = {f'QE-{enrollment.id}': enrollment for enrollment in enrollments}
+            journal_entries = {
+                entry.reference: entry
+                for entry in JournalEntry.objects.filter(reference__in=enrollment_entry_refs.keys()).select_related('created_by')
+            }
+
+            for enrollment in enrollments:
+                net_amount = enrollment.net_amount or Decimal('0')
+                paid_amount = enrollment.paid_total or Decimal('0')
+                remaining_amount = max(Decimal('0'), net_amount - paid_amount)
+                student_remaining += remaining_amount
+                group_enrollments += 1
+                enrollment_created_by = '-'
+                receipt_rows = []
+
+                enrollment_entry = journal_entries.get(f'QE-{enrollment.id}')
+                if enrollment_entry and enrollment_entry.created_by:
+                    enrollment_created_by = (
+                        enrollment_entry.created_by.get_full_name()
+                        or enrollment_entry.created_by.username
+                        or '-'
+                    )
+
+                receipts = [
+                    receipt for receipt in all_student_receipts
+                    if receipt.quick_enrollment_id == enrollment.id
+                    or (
+                        receipt.quick_enrollment_id is None
+                        and receipt.course_id == enrollment.course_id
+                    )
+                ]
+                if enrollment_created_by == '-' and receipts:
+                    first_receipt_creator = receipts[0].created_by
+                    if first_receipt_creator:
+                        enrollment_created_by = (
+                            first_receipt_creator.get_full_name()
+                            or first_receipt_creator.username
+                            or '-'
+                        )
+
+                for receipt in receipts:
+                    receipt_created_by = '-'
+                    if receipt.created_by:
+                        receipt_created_by = receipt.created_by.get_full_name() or receipt.created_by.username or '-'
+                    used_receipt_ids.add(receipt.id)
+                    receipt_rows.append({
+                        'id': receipt.id,
+                        'receipt_number': receipt.receipt_number or '-',
+                        'date': receipt.date,
+                        'paid_amount': receipt.paid_amount or Decimal('0'),
+                        'amount': receipt.amount or Decimal('0'),
+                        'is_printed': receipt.is_printed,
+                        'created_by': receipt_created_by,
+                    })
+
+                enrollments_data.append({
+                    'course_name': enrollment.course.name if enrollment.course else '-',
+                    'enrollment_date': enrollment.enrollment_date,
+                    'net_amount': net_amount,
+                    'paid_amount': paid_amount,
+                    'remaining_amount': remaining_amount,
+                    'is_completed': enrollment.is_completed,
+                    'registered_by': enrollment_created_by,
+                    'receipts': receipt_rows,
+                    'has_receipts': bool(receipt_rows),
+                    'receipts_count': len(receipt_rows),
+                })
+
+            orphan_receipts = []
+            for receipt in all_student_receipts:
+                if receipt.id in used_receipt_ids:
+                    continue
+                receipt_created_by = '-'
+                if receipt.created_by:
+                    receipt_created_by = receipt.created_by.get_full_name() or receipt.created_by.username or '-'
+                orphan_receipts.append({
+                    'id': receipt.id,
+                    'receipt_number': receipt.receipt_number or '-',
+                    'date': receipt.date,
+                    'course_name': receipt.course_name or (receipt.course.name if receipt.course else '-'),
+                    'paid_amount': receipt.paid_amount or Decimal('0'),
+                    'amount': receipt.amount or Decimal('0'),
+                    'is_printed': receipt.is_printed,
+                    'created_by': receipt_created_by,
+                })
+
+            account_balance = quick_student.balance
+            group_balance += account_balance
+            group_remaining += student_remaining
+
+            members.append({
+                'student': quick_student,
+                'account_created_by': account_created_by,
+                'account_balance': account_balance,
+                'remaining_total': student_remaining,
+                'enrollments': enrollments_data,
+                'enrollments_count': len(enrollments_data),
+                'orphan_receipts': orphan_receipts,
+                'has_orphan_receipts': bool(orphan_receipts),
+            })
+
+        members.sort(key=lambda item: item['student'].id)
+        duplicate_groups.append({
+            'display_name': students[0].full_name,
+            'normalized_name': normalized_name,
+            'students': members,
+            'duplicate_count': len(members),
+            'group_balance': group_balance,
+            'group_remaining': group_remaining,
+            'group_enrollments': group_enrollments,
+        })
+
+        duplicate_records_count += len(members)
+        total_balance += group_balance
+        total_remaining += group_remaining
+        total_enrollments += group_enrollments
+
+    duplicate_groups.sort(key=lambda item: (-item['duplicate_count'], item['display_name']))
+
+    context = {
+        'duplicate_groups': duplicate_groups,
+        'search_query': search_query,
+        'scope': scope,
+        'duplicate_names_count': len(duplicate_groups),
+        'duplicate_records_count': duplicate_records_count,
+        'total_balance': total_balance,
+        'total_remaining': total_remaining,
+        'total_enrollments': total_enrollments,
+    }
+    return render(request, 'quick/quick_duplicate_students_report.html', context)
+
+
+@require_superuser
+def quick_duplicate_students_print(request):
+    group_key = _normalize_quick_student_name(request.GET.get('name'))
+    scope = request.GET.get('scope') or 'active'
+    duplicate_groups = _get_duplicate_groups(scope=scope)
+    group = next((item for item in duplicate_groups if item['normalized_name'] == group_key), None)
+    if not group:
+        raise Http404('Duplicate group not found')
+
+    return render(request, 'quick/quick_duplicate_students_print.html', {
+        'group': group,
+        'scope': scope,
+        'print_date': timezone.now(),
+    })
+
+
+@require_superuser
+def quick_duplicate_students_full_print(request):
+    search_query = (request.GET.get('q') or '').strip()
+    scope = request.GET.get('scope') or 'active'
+    duplicate_groups = _get_duplicate_groups(search_query=search_query, scope=scope)
+
+    total_balance = sum((group['group_balance'] for group in duplicate_groups), Decimal('0'))
+    total_remaining = sum((group['group_remaining'] for group in duplicate_groups), Decimal('0'))
+    total_enrollments = sum((group['group_enrollments'] for group in duplicate_groups), 0)
+    total_records = sum((group['duplicate_count'] for group in duplicate_groups), 0)
+
+    return render(request, 'quick/quick_duplicate_students_full_print.html', {
+        'duplicate_groups': duplicate_groups,
+        'search_query': search_query,
+        'scope': scope,
+        'duplicate_names_count': len(duplicate_groups),
+        'duplicate_records_count': total_records,
+        'total_balance': total_balance,
+        'total_remaining': total_remaining,
+        'total_enrollments': total_enrollments,
+        'print_date': timezone.now(),
+    })
+
 class QuickStudentCreateView(LoginRequiredMixin, CreateView):
     model = QuickStudent
     form_class = QuickStudentForm
@@ -1200,6 +1895,40 @@ class QuickStudentCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse('quick:student_profile', kwargs={'student_id': self.object.pk})
+
+
+@require_GET
+@login_required
+def quick_student_exists(request):
+    field = (request.GET.get('field') or '').strip()
+    value = (request.GET.get('value') or '').strip()
+    exclude_id = request.GET.get('exclude_id')
+
+    queryset = QuickStudent.objects.all().only('id', 'full_name', 'phone')
+    if exclude_id and exclude_id.isdigit():
+        queryset = queryset.exclude(pk=int(exclude_id))
+
+    match = None
+    if field == 'full_name' and value:
+        normalized_value = _normalize_quick_name(value)
+        match = next(
+            (student for student in queryset if _normalize_quick_name(student.full_name) == normalized_value),
+            None
+        )
+    elif field == 'phone' and value:
+        normalized_value = _normalize_quick_phone(value)
+        match = next(
+            (student for student in queryset if _normalize_quick_phone(student.phone) == normalized_value),
+            None
+        )
+
+    return JsonResponse({
+        'exists': bool(match),
+        'field': field,
+        'full_name': match.full_name if match else '',
+        'phone': match.phone if match else '',
+        'id': match.id if match else None,
+    })
 
 class QuickStudentDetailView(LoginRequiredMixin, DetailView):
     model = QuickStudent
@@ -2182,6 +2911,12 @@ def _build_quick_receipt_payload(receipts, student_id):
     }
 
 
+def _validate_print_agent(request):
+    configured = settings.QUICK_PRINT_AGENT_TOKEN
+    provided = request.headers.get('X-Printer-Token', '').strip()
+    return bool(configured) and provided == configured
+
+
 @login_required
 @require_POST
 def quick_multiple_receipt_payload(request, student_id):
@@ -2207,6 +2942,92 @@ def quick_multiple_receipt_payload(request, student_id):
         'ok': True,
         'payload': _build_quick_receipt_payload(receipts, student_id),
     })
+
+
+@login_required
+@require_POST
+def quick_multiple_receipt_enqueue_print(request, student_id):
+    ids_param = request.POST.get('ids', '')
+    if not ids_param:
+        return JsonResponse({'ok': False, 'error': 'لم يتم تحديد الإيصالات'}, status=400)
+
+    try:
+        receipt_ids = [int(pk.strip()) for pk in ids_param.split(',') if pk.strip()]
+    except ValueError:
+        return JsonResponse({'ok': False, 'error': 'معرّفات الإيصالات غير صحيحة'}, status=400)
+
+    student = get_object_or_404(QuickStudent, id=student_id)
+    receipts = list(
+        QuickStudentReceipt.objects.filter(
+            id__in=receipt_ids,
+            quick_student_id=student_id
+        ).select_related('quick_student', 'course', 'quick_enrollment').order_by('id')
+    )
+    if not receipts:
+        return JsonResponse({'ok': False, 'error': 'لا توجد إيصالات للطباعة'}, status=404)
+
+    job = QuickReceiptPrintJob.objects.create(
+        created_by=request.user,
+        quick_student=student,
+        payload=_build_quick_receipt_payload(receipts, student_id),
+        status=QuickReceiptPrintJob.STATUS_PENDING,
+    )
+    return JsonResponse({
+        'ok': True,
+        'job_id': job.id,
+        'message': f'تم إنشاء مهمة الطباعة رقم {job.id}. سيقوم لابتوب الطباعة بسحبها تلقائياً.',
+    })
+
+
+@csrf_exempt
+@require_GET
+def quick_print_agent_next_job(request):
+    if not _validate_print_agent(request):
+        return JsonResponse({'ok': False, 'error': 'Unauthorized printer agent'}, status=403)
+
+    with transaction.atomic():
+        job = (
+            QuickReceiptPrintJob.objects
+            .select_for_update(skip_locked=True)
+            .filter(status=QuickReceiptPrintJob.STATUS_PENDING)
+            .order_by('created_at')
+            .first()
+        )
+        if not job:
+            return JsonResponse({'ok': True, 'job': None})
+
+        job.status = QuickReceiptPrintJob.STATUS_PROCESSING
+        job.picked_at = timezone.now()
+        job.error_message = ''
+        job.save(update_fields=['status', 'picked_at', 'error_message', 'updated_at'])
+
+    return JsonResponse({
+        'ok': True,
+        'job': {
+            'id': job.id,
+            'payload': job.payload,
+        }
+    })
+
+
+@csrf_exempt
+@require_POST
+def quick_print_agent_job_update(request, job_id):
+    if not _validate_print_agent(request):
+        return JsonResponse({'ok': False, 'error': 'Unauthorized printer agent'}, status=403)
+
+    job = get_object_or_404(QuickReceiptPrintJob, id=job_id)
+    status = request.POST.get('status', '').strip().lower()
+    error_message = request.POST.get('error_message', '').strip()
+
+    if status not in {QuickReceiptPrintJob.STATUS_COMPLETED, QuickReceiptPrintJob.STATUS_FAILED}:
+        return JsonResponse({'ok': False, 'error': 'Invalid status'}, status=400)
+
+    job.status = status
+    job.error_message = error_message
+    job.completed_at = timezone.now()
+    job.save(update_fields=['status', 'error_message', 'completed_at', 'updated_at'])
+    return JsonResponse({'ok': True})
 
 
 @login_required

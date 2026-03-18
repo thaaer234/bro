@@ -506,3 +506,35 @@ class QuickStudentReceipt(models.Model):
         self.save(update_fields=['journal_entry'])
         
         return entry
+
+
+class QuickReceiptPrintJob(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_PROCESSING = 'processing'
+    STATUS_COMPLETED = 'completed'
+    STATUS_FAILED = 'failed'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'قيد الانتظار'),
+        (STATUS_PROCESSING, 'قيد المعالجة'),
+        (STATUS_COMPLETED, 'تمت الطباعة'),
+        (STATUS_FAILED, 'فشلت الطباعة'),
+    ]
+
+    created_by = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='quick_print_jobs')
+    quick_student = models.ForeignKey('QuickStudent', on_delete=models.CASCADE, related_name='print_jobs')
+    payload = models.JSONField(default=dict)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    error_message = models.TextField(blank=True)
+    picked_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'مهمة طباعة إيصالات سريعة'
+        verbose_name_plural = 'مهام طباعة الإيصالات السريعة'
+        ordering = ['status', 'created_at']
+
+    def __str__(self):
+        return f"Quick print job #{self.pk} - {self.quick_student.full_name}"

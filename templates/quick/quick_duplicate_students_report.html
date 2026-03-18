@@ -1,0 +1,649 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+:root {
+    --dup-bg: #f4f7fb;
+    --dup-surface: #ffffff;
+    --dup-border: rgba(15, 23, 42, 0.08);
+    --dup-ink: #122033;
+    --dup-muted: #64748b;
+    --dup-primary: #16324f;
+    --dup-accent: #2a7f62;
+    --dup-warning: #e67e22;
+    --dup-danger: #c0392b;
+    --dup-shadow: 0 28px 50px -34px rgba(15, 23, 42, 0.35);
+}
+
+.dup-page {
+    background:
+        radial-gradient(circle at top right, rgba(42, 127, 98, 0.12), transparent 26%),
+        radial-gradient(circle at left 30%, rgba(230, 126, 34, 0.12), transparent 20%),
+        var(--dup-bg);
+    border-radius: 24px;
+    padding: 24px;
+}
+
+.dup-hero,
+.dup-panel,
+.dup-stat,
+.dup-group-card,
+.dup-student-card {
+    border: 0;
+    border-radius: 22px;
+    box-shadow: var(--dup-shadow);
+    overflow: hidden;
+}
+
+.dup-hero {
+    background: linear-gradient(135deg, #102a43 0%, #1f4e79 100%);
+    color: #fff;
+}
+
+.dup-hero .card-body,
+.dup-panel .card-body,
+.dup-group-card .card-body,
+.dup-group-card .card-header,
+.dup-student-card .card-body {
+    padding: 22px;
+}
+
+.dup-hero h2 {
+    margin: 0 0 8px;
+    font-size: 1.7rem;
+    font-weight: 800;
+}
+
+.dup-hero p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.dup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dup-print-only {
+    display: none;
+}
+
+.dup-group-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.dup-btn {
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-weight: 700;
+}
+
+.dup-panel,
+.dup-stat,
+.dup-group-card {
+    background: var(--dup-surface);
+}
+
+.dup-filter-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr auto;
+    gap: 16px;
+    align-items: end;
+}
+
+.dup-stat .label {
+    color: var(--dup-muted);
+    font-size: 0.92rem;
+    margin-bottom: 8px;
+}
+
+.dup-stat .value {
+    color: var(--dup-ink);
+    font-size: 1.9rem;
+    font-weight: 800;
+}
+
+.dup-stat-primary { border-top: 4px solid var(--dup-primary); }
+.dup-stat-accent { border-top: 4px solid var(--dup-accent); }
+.dup-stat-warning { border-top: 4px solid var(--dup-warning); }
+.dup-stat-danger { border-top: 4px solid var(--dup-danger); }
+
+.dup-group-card .card-header {
+    background: linear-gradient(135deg, rgba(16, 42, 67, 0.96), rgba(31, 78, 121, 0.88));
+    color: #fff;
+    border-bottom: 0;
+}
+
+.dup-group-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.dup-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+.dup-student-card {
+    background: #fbfdff;
+    border: 1px solid var(--dup-border);
+}
+
+.dup-student-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.dup-student-name {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--dup-ink);
+}
+
+.dup-subtle {
+    color: var(--dup-muted);
+    font-size: 0.9rem;
+}
+
+.dup-money {
+    font-weight: 800;
+}
+
+.dup-money-danger { color: var(--dup-danger); }
+.dup-money-accent { color: var(--dup-accent); }
+
+.dup-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.dup-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.dup-summary-box {
+    background: #fff;
+    border: 1px solid var(--dup-border);
+    border-radius: 16px;
+    padding: 14px;
+}
+
+.dup-summary-box .title {
+    color: var(--dup-muted);
+    font-size: 0.82rem;
+    margin-bottom: 6px;
+}
+
+.dup-summary-box .value {
+    color: var(--dup-ink);
+    font-weight: 800;
+    font-size: 1.08rem;
+}
+
+.dup-table thead th {
+    background: #eaf1f8;
+    border: 0;
+    color: var(--dup-primary);
+    padding: 12px 10px;
+    font-size: 0.9rem;
+}
+
+.dup-table tbody td {
+    padding: 12px 10px;
+    border-color: var(--dup-border);
+    vertical-align: middle;
+}
+
+.dup-receipt-box {
+    margin-top: 12px;
+    border: 1px solid var(--dup-border);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.dup-receipt-head {
+    padding: 12px 14px;
+    background: #f8fafc;
+    color: var(--dup-primary);
+    font-weight: 800;
+    border-bottom: 1px solid var(--dup-border);
+}
+
+.dup-section-title {
+    margin: 16px 0 10px;
+    color: var(--dup-primary);
+    font-weight: 800;
+}
+
+.dup-empty {
+    text-align: center;
+    padding: 70px 16px;
+    color: var(--dup-muted);
+}
+
+.dup-empty i {
+    font-size: 3rem;
+    opacity: 0.45;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 991px) {
+    .dup-filter-grid,
+    .dup-summary-grid,
+    .dup-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    body {
+        background: #fff !important;
+    }
+
+    .navbar,
+    .mobile-super-link,
+    .dup-panel,
+    .dup-actions,
+    .btn,
+    .alert-messages {
+        display: none !important;
+    }
+
+    .dup-page {
+        background: #fff !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    .dup-hero,
+    .dup-group-card,
+    .dup-student-card,
+    .dup-stat {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .dup-hero {
+        color: #000 !important;
+        background: #fff !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .dup-group-card .card-header {
+        background: #f5f5f5 !important;
+        color: #000 !important;
+        border-bottom: 1px solid #ddd !important;
+    }
+
+    .dup-badge {
+        background: #eee !important;
+        color: #000 !important;
+    }
+
+    .dup-print-only {
+        display: block;
+    }
+}
+
+@media (max-width: 767px) {
+    .dup-page {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .dup-hero .card-body,
+    .dup-panel .card-body,
+    .dup-group-card .card-body,
+    .dup-group-card .card-header,
+    .dup-student-card .card-body {
+        padding: 16px;
+    }
+}
+</style>
+
+<div class="container-fluid dup-page">
+    <div class="card dup-hero mb-4">
+        <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2>تقرير الأسماء المكررة في الطلاب السريعين</h2>
+                <p>صفحة خاصة بالسوبر يوزر تعرض كل اسم مكرر كسجلات مستقلة، مع رصيد كل سجل والدورات المسجل فيها والمتبقي عليه بدون دمج الحسابات.</p>
+                <div class="dup-print-only mt-2">
+                    <strong>تاريخ الطباعة:</strong> {% now "Y-m-d H:i" %}
+                </div>
+            </div>
+            <div class="dup-actions">
+                <a href="/quick/reports/duplicate-students/print/all/?q={{ search_query|urlencode }}&scope={{ scope }}" target="_blank" class="btn btn-warning dup-btn">
+                    <i class="fas fa-print me-1"></i>
+                    فتح ملف التقرير
+                </a>
+                <a href="{% url 'quick:student_list' %}" class="btn btn-light dup-btn">
+                    <i class="fas fa-users me-1"></i>
+                    الطلاب السريعون
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card dup-panel mb-4">
+        <div class="card-body">
+            <form method="get" class="dup-filter-grid">
+                <div>
+                    <label for="search-query" class="form-label">بحث بالاسم</label>
+                    <input id="search-query" type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="مثال: حلا">
+                </div>
+                <div>
+                    <label for="scope" class="form-label">نطاق العرض</label>
+                    <select id="scope" name="scope" class="form-select">
+                        <option value="active" {% if scope == 'active' %}selected{% endif %}>الطلاب النشطون فقط</option>
+                        <option value="all" {% if scope == 'all' %}selected{% endif %}>جميع الطلاب</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary dup-btn w-100">
+                        <i class="fas fa-search me-1"></i>
+                        عرض التقرير
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card dup-stat dup-stat-primary">
+                <div class="card-body text-center">
+                    <div class="label">عدد الأسماء المكررة</div>
+                    <div class="value">{{ duplicate_names_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card dup-stat dup-stat-accent">
+                <div class="card-body text-center">
+                    <div class="label">عدد السجلات المكررة</div>
+                    <div class="value">{{ duplicate_records_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card dup-stat dup-stat-warning">
+                <div class="card-body text-center">
+                    <div class="label">إجمالي المتبقي على التسجيلات</div>
+                    <div class="value">{{ total_remaining|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card dup-stat dup-stat-danger">
+                <div class="card-body text-center">
+                    <div class="label">إجمالي رصيد الحسابات</div>
+                    <div class="value">{{ total_balance|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if duplicate_groups %}
+        {% for group in duplicate_groups %}
+        <div id="dup-group-{{ forloop.counter }}" class="card dup-group-card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">{{ group.display_name }}</h4>
+                <div class="dup-group-meta">
+                    <span class="dup-badge"><i class="fas fa-clone"></i> {{ group.duplicate_count }} سجلات</span>
+                    <span class="dup-badge"><i class="fas fa-book"></i> {{ group.group_enrollments }} تسجيلات</span>
+                    <span class="dup-badge"><i class="fas fa-file-invoice-dollar"></i> المتبقي {{ group.group_remaining|floatformat:0 }}</span>
+                    <span class="dup-badge"><i class="fas fa-wallet"></i> الرصيد {{ group.group_balance|floatformat:0 }}</span>
+                </div>
+            </div>
+                <div class="dup-group-actions">
+                    <form method="post" class="d-inline-block" onsubmit="return confirm('سيتم دمج كل السجلات المتكررة لهذا الاسم في أقدم سجل نشط، مع عكس التسجيلات المكررة على نفس الدورة إذا كان الدمج آمناً. متابعة؟');">
+                        {% csrf_token %}
+                        <input type="hidden" name="group_name" value="{{ group.normalized_name }}">
+                        <input type="hidden" name="q" value="{{ search_query }}">
+                        <input type="hidden" name="scope" value="{{ scope }}">
+                        <button type="submit" class="btn btn-sm btn-success">
+                            <i class="fas fa-object-group me-1"></i>
+                            دمج السجلات
+                        </button>
+                    </form>
+                    <a
+                        href="/quick/reports/duplicate-students/print/?name={{ group.normalized_name|urlencode }}&scope={{ scope }}"
+                        target="_blank"
+                        class="btn btn-sm btn-light"
+                    >
+                        <i class="fas fa-print me-1"></i>
+                        فتح ملف الطباعة
+                    </a>
+                </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for item in group.students %}
+                    <div class="col-12 mb-3">
+                        <div class="card dup-student-card">
+                            <div class="card-body">
+                                <div class="dup-student-head">
+                                    <div>
+                                        <div class="dup-student-name">
+                                            {{ item.student.full_name }}
+                                            <span class="badge bg-dark">#{{ item.student.id }}</span>
+                                        </div>
+                                        <div class="dup-subtle mt-1">
+                                            الهاتف: {{ item.student.phone|default:"-" }} |
+                                            السنة: {{ item.student.academic_year.name|default:"-" }} |
+                                            الحالة:
+                                            {% if item.student.is_active %}نشط{% else %}غير نشط{% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <a href="{% url 'quick:student_profile' item.student.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-user-circle me-1"></i>
+                                            الملف
+                                        </a>
+                                        <a href="{% url 'quick:student_statement' item.student.id %}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-file-invoice-dollar me-1"></i>
+                                            كشف الحساب
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="dup-summary-grid">
+                                    <div class="dup-summary-box">
+                                        <div class="title">رصيد الحساب لهذا السجل</div>
+                                        <div class="value dup-money {% if item.account_balance > 0 %}dup-money-danger{% else %}dup-money-accent{% endif %}">
+                                            {{ item.account_balance|floatformat:2 }}
+                                        </div>
+                                    </div>
+                                    <div class="dup-summary-box">
+                                        <div class="title">المتبقي على تسجيلاته</div>
+                                        <div class="value dup-money {% if item.remaining_total > 0 %}dup-money-danger{% else %}dup-money-accent{% endif %}">
+                                            {{ item.remaining_total|floatformat:2 }}
+                                        </div>
+                                    </div>
+                                    <div class="dup-summary-box">
+                                        <div class="title">عدد الدورات المسجل فيها</div>
+                                        <div class="value">{{ item.enrollments_count }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="dup-detail-grid">
+                                    <div class="dup-summary-box">
+                                        <div class="title">تمت إضافة الحساب بواسطة</div>
+                                        <div class="value">{{ item.account_created_by }}</div>
+                                    </div>
+                                    <div class="dup-summary-box">
+                                        <div class="title">تاريخ إنشاء السجل</div>
+                                        <div class="value">{{ item.student.created_at|date:"Y-m-d H:i" }}</div>
+                                    </div>
+                                </div>
+
+                                {% if item.enrollments %}
+                                <div class="table-responsive">
+                                    <table class="table dup-table align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>الدورة</th>
+                                                <th>تاريخ التسجيل</th>
+                                                <th>تم التسجيل بواسطة</th>
+                                                <th>قيمة القيد</th>
+                                                <th>المدفوع</th>
+                                                <th>المتبقي</th>
+                                                <th>الإيصالات</th>
+                                                <th>الحالة</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for enrollment in item.enrollments %}
+                                            <tr>
+                                                <td>{{ enrollment.course_name }}</td>
+                                                <td>{{ enrollment.enrollment_date|date:"Y-m-d" }}</td>
+                                                <td>{{ enrollment.registered_by }}</td>
+                                                <td>{{ enrollment.net_amount|floatformat:2 }}</td>
+                                                <td>{{ enrollment.paid_amount|floatformat:2 }}</td>
+                                                <td class="dup-money {% if enrollment.remaining_amount > 0 %}dup-money-danger{% else %}dup-money-accent{% endif %}">
+                                                    {{ enrollment.remaining_amount|floatformat:2 }}
+                                                </td>
+                                                <td>
+                                                    {% if enrollment.has_receipts %}
+                                                    <span class="badge bg-success">{{ enrollment.receipts_count }} إيصالات</span>
+                                                    {% else %}
+                                                    <span class="badge bg-secondary">لا يوجد</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if enrollment.is_completed %}
+                                                    <span class="badge bg-success">مكتمل</span>
+                                                    {% else %}
+                                                    <span class="badge bg-warning text-dark">مفتوح</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% if enrollment.receipts %}
+                                            <tr>
+                                                <td colspan="8" class="p-0">
+                                                    <div class="dup-receipt-box">
+                                                        <div class="dup-receipt-head">تفاصيل الإيصالات</div>
+                                                        <div class="table-responsive">
+                                                            <table class="table dup-table align-middle mb-0">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>رقم الإيصال</th>
+                                                                        <th>التاريخ</th>
+                                                                        <th>المبلغ</th>
+                                                                        <th>المدفوع</th>
+                                                                        <th>أنشأ الإيصال</th>
+                                                                        <th>الطباعة</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for receipt in enrollment.receipts %}
+                                                                    <tr>
+                                                                        <td>{{ receipt.receipt_number }}</td>
+                                                                        <td>{{ receipt.date|date:"Y-m-d" }}</td>
+                                                                        <td>{{ receipt.amount|floatformat:2 }}</td>
+                                                                        <td>{{ receipt.paid_amount|floatformat:2 }}</td>
+                                                                        <td>{{ receipt.created_by }}</td>
+                                                                        <td>
+                                                                            {% if receipt.is_printed %}
+                                                                            <span class="badge bg-success">مطبوعة</span>
+                                                                            {% else %}
+                                                                            <span class="badge bg-secondary">غير مطبوعة</span>
+                                                                            {% endif %}
+                                                                        </td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <div class="alert alert-light border mb-0">
+                                    لا توجد دورات مسجلة على هذا السجل.
+                                </div>
+                                {% endif %}
+
+                                {% if item.has_orphan_receipts %}
+                                <h6 class="dup-section-title">إيصالات موجودة بدون ربط واضح بتسجيل</h6>
+                                <div class="table-responsive">
+                                    <table class="table dup-table align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>رقم الإيصال</th>
+                                                <th>الدورة</th>
+                                                <th>التاريخ</th>
+                                                <th>المبلغ</th>
+                                                <th>المدفوع</th>
+                                                <th>أنشأ الإيصال</th>
+                                                <th>الطباعة</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for receipt in item.orphan_receipts %}
+                                            <tr>
+                                                <td>{{ receipt.receipt_number }}</td>
+                                                <td>{{ receipt.course_name }}</td>
+                                                <td>{{ receipt.date|date:"Y-m-d" }}</td>
+                                                <td>{{ receipt.amount|floatformat:2 }}</td>
+                                                <td>{{ receipt.paid_amount|floatformat:2 }}</td>
+                                                <td>{{ receipt.created_by }}</td>
+                                                <td>
+                                                    {% if receipt.is_printed %}
+                                                    <span class="badge bg-success">مطبوعة</span>
+                                                    {% else %}
+                                                    <span class="badge bg-secondary">غير مطبوعة</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="card dup-panel">
+        <div class="dup-empty">
+            <i class="fas fa-check-circle d-block"></i>
+            <h4 class="mb-2">لا توجد نتائج مطابقة</h4>
+            <p class="mb-0">إما لا توجد أسماء مكررة ضمن النطاق الحالي، أو أن البحث لا يطابق أي اسم مكرر.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

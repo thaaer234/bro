@@ -1,149 +1,357 @@
-/* أنماط متجاوبة لجميع الأجهزة */
+/* Responsive system-wide rules */
 
-/* هواتف صغيرة - أقل من 576px */
-@media (max-width: 575.98px) {
-    /* تعديلات عامة */
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+img,
+svg,
+canvas,
+video,
+iframe {
+    max-width: 100%;
+    height: auto;
+}
+
+.table-responsive,
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive table,
+.table-container table,
+.table-responsive .table,
+.table-container .table {
+    min-width: 680px;
+}
+
+.header-actions,
+.filter-actions,
+.activity-actions,
+.action-buttons,
+.page-toolbar__actions,
+.quick-actions,
+.quick-action-grid,
+.action-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.dashboard-cards,
+.dashboard-charts,
+.stats-grid,
+.summary-grid,
+.info-grid,
+.action-grid,
+.quick-actions,
+.activity-cards,
+.report-grid,
+.cards-grid {
+    width: 100%;
+}
+
+.form-row,
+.form-grid,
+.filter-row,
+.info-sections,
+.profile-layout,
+.main-content2 {
+    width: 100%;
+}
+
+@media (max-width: 1199.98px) {
+    .dashboard-charts,
+    .profile-layout,
+    .report-grid,
+    .main-content2 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .page-toolbar {
+        padding: 1.1rem !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .dashboard-cards,
+    .stats-grid,
+    .summary-grid,
+    .activity-cards,
+    .quick-actions,
+    .cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .form-row,
+    .filter-row {
+        flex-wrap: wrap;
+    }
+
+    .form-row > *,
+    .filter-row > *,
+    .form-grid > *,
+    .info-grid > * {
+        min-width: calc(50% - 0.75rem);
+        flex: 1 1 calc(50% - 0.75rem);
+    }
+
+    .page-toolbar__actions {
+        width: 100%;
+    }
+}
+
+@media (max-width: 767.98px) {
     body {
         font-size: 14px;
     }
-    
-    /* تحسين الـ Modals للهواتف */
-    .modal-content {
-        margin: 10% auto;
-        width: 95%;
-        padding: 15px;
+
+    .main-content,
+    .app-shell,
+    .page-content,
+    .welcome-shell,
+    .login-shell,
+    .about-shell,
+    .notification-shell {
+        width: 100%;
     }
-    
-    .modal-title {
-        font-size: 1.2rem;
+
+    .dashboard-cards,
+    .stats-grid,
+    .summary-grid,
+    .activity-cards,
+    .quick-actions,
+    .cards-grid,
+    .report-grid,
+    .info-grid,
+    .form-grid,
+    .profile-layout,
+    .main-content2 {
+        grid-template-columns: 1fr !important;
     }
-    
-    /* تعديلات على القوائم */
-    .sidebar {
-        width: 70px;
+
+    .page-toolbar,
+    .module-header,
+    .header,
+    .chart-container,
+    .recent-activity,
+    .filter-section,
+    .filters-container,
+    .card,
+    .main-card,
+    .sidebar-widget,
+    .edit-profile-card,
+    .profile-card {
+        padding: 1rem !important;
+        border-radius: 20px !important;
     }
-    
-    .sidebar-menu .menu-item span {
-        display: none;
+
+    .page-toolbar__title,
+    .module-header h2,
+    .header h2 {
+        font-size: 1.2rem !important;
     }
-    
-    .sidebar-menu .menu-item i {
-        margin-left: 0;
-        font-size: 1.2rem;
+
+    .page-toolbar__text,
+    .breadcrumb,
+    .card-title,
+    .stat-label,
+    .quick-action-desc,
+    .activity-desc {
+        font-size: 0.85rem !important;
     }
-    
-    .main-content {
-        margin-right: 70px;
+
+    .card-value,
+    .stat-value,
+    .mini-stat-value,
+    .indicator-value {
+        font-size: 1.35rem !important;
     }
-    
-    /* تعديلات على الجداول */
-    .table-container {
-        overflow-x: auto;
-        padding: 5px;
-    }
-    
-    .table {
-        font-size: 12px;
-    }
-    
-    .table th, .table td {
-        padding: 8px 5px;
-    }
-    
-    /* تعديلات على النماذج */
-    .form-row {
+
+    .header-actions,
+    .filter-actions,
+    .activity-actions,
+    .action-buttons,
+    .page-toolbar__actions,
+    .quick-actions,
+    .action-grid {
         flex-direction: column;
+        align-items: stretch;
     }
-    
-    .form-col {
-        padding: 0;
-        margin-bottom: 10px;
-    }
-    
-    /* تعديلات على الأزرار */
-    .btn {
-        padding: 8px 15px;
-        font-size: 14px;
-    }
-}
 
-/* أجهزة متوسطة - من 576px إلى 767px */
-@media (min-width: 576px) and (max-width: 767.98px) {
-    .modal-content {
-        width: 90%;
-        max-width: 100%;
+    .header-actions .btn,
+    .filter-actions .btn,
+    .activity-actions .btn,
+    .action-buttons .btn,
+    .page-toolbar__actions .btn,
+    .quick-actions .btn,
+    .action-grid .btn {
+        width: 100%;
+        justify-content: center;
     }
-    
-    .sidebar {
-        width: 180px;
-    }
-    
-    .main-content {
-        margin-right: 180px;
-    }
-    
-    .form-row {
-        flex-wrap: wrap;
-    }
-    
-    .form-col {
-        min-width: calc(50% - 20px);
-    }
-}
 
-/* أجهزة كبيرة - من 768px إلى 991px */
-@media (min-width: 768px) and (max-width: 991.98px) {
-    .modal-content {
-        width: 85%;
+    .form-row,
+    .filter-row {
+        flex-direction: column;
+        gap: 0.75rem;
     }
-    
-    .sidebar {
-        width: 220px;
-    }
-    
-    .main-content {
-        margin-right: 220px;
-    }
-}
 
-/* تعديلات للوضع الأفقي في الهواتف */
-@media (max-height: 500px) {
+    .form-row > *,
+    .filter-row > *,
+    .form-grid > *,
+    .info-grid > * {
+        min-width: 100%;
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
     .modal-content {
-        margin: 2% auto;
-        max-height: 96vh;
+        width: min(94vw, 560px) !important;
+        margin: 5vh auto !important;
+        max-height: 88vh;
         overflow-y: auto;
     }
+
+    .table-responsive table,
+    .table-container table,
+    .table-responsive .table,
+    .table-container .table {
+        min-width: 620px;
+    }
+
+    .nav-pills,
+    .tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.35rem;
+    }
+
+    .nav-pills > *,
+    .tabs > * {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
 }
 
-/* تعديلات للشاشات الصغيرة جداً */
-@media (max-width: 400px) {
+@media (max-width: 575.98px) {
+    .page-toolbar,
+    .module-header,
+    .header,
+    .chart-container,
+    .recent-activity,
+    .filter-section,
+    .filters-container,
+    .card,
+    .main-card,
+    .sidebar-widget,
+    .edit-profile-card,
+    .profile-card,
+    .auth-card {
+        padding: 0.9rem !important;
+        border-radius: 18px !important;
+    }
+
+    .page-toolbar__title,
+    .module-header h2,
+    .header h2,
+    h1 {
+        font-size: 1.08rem !important;
+    }
+
+    h2 {
+        font-size: 1rem !important;
+    }
+
+    h3,
+    .section-title,
+    .widget-title {
+        font-size: 0.95rem !important;
+    }
+
+    .btn,
+    button,
+    input[type='submit'],
+    input[type='button'] {
+        min-height: 42px;
+        font-size: 0.9rem !important;
+    }
+
+    .card-value,
+    .stat-value,
+    .mini-stat-value,
+    .indicator-value {
+        font-size: 1.15rem !important;
+    }
+
+    .card-icon,
+    .quick-action-icon,
+    .action-icon,
+    .activity-icon,
+    .stat-icon,
+    .field-icon,
+    .user-avatar {
+        width: 2.6rem !important;
+        height: 2.6rem !important;
+        min-width: 2.6rem !important;
+    }
+
+    .table-responsive table,
+    .table-container table,
+    .table-responsive .table,
+    .table-container .table {
+        min-width: 560px;
+    }
+
+    .table th,
+    .table td,
+    table th,
+    table td {
+        padding: 0.55rem 0.6rem !important;
+        font-size: 0.82rem !important;
+    }
+
+    .quick-access-chip {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 399.98px) {
+    body {
+        font-size: 13px;
+    }
+
+    .page-toolbar,
+    .module-header,
+    .header,
+    .chart-container,
+    .recent-activity,
+    .filter-section,
+    .filters-container,
+    .card,
+    .main-card,
+    .sidebar-widget,
+    .edit-profile-card,
+    .profile-card,
+    .auth-card {
+        padding: 0.8rem !important;
+    }
+
+    .table-responsive table,
+    .table-container table,
+    .table-responsive .table,
+    .table-container .table {
+        min-width: 520px;
+    }
+}
+
+@media (max-height: 540px) {
     .modal-content {
-        padding: 15px 10px;
-    }
-    
-    .modal-title {
-        font-size: 1.1rem;
-    }
-    
-    .close {
-        font-size: 24px;
-    }
-    
-    /* تعديلات على تنسيق النصوص */
-    h1, h2, h3 {
-        font-size: 1.3rem;
-    }
-    
-    /* تعديلات على بطاقات المعلومات */
-    .card {
-        padding: 15px;
-    }
-    
-    .card-title {
-        font-size: 14px;
-    }
-    
-    .card-value {
-        font-size: 20px;
+        margin: 2vh auto !important;
+        max-height: 94vh;
     }
 }

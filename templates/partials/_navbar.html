@@ -1,44 +1,33 @@
 {% load emp_perms %}
 {% load static emp_perms %}
 {% if user.is_authenticated %}
-<!-- Mobile menu toggle button -->
-<button class="mobile-menu-toggle d-md-none" onclick="toggleSidebar()">
+<button class="mobile-menu-toggle d-md-none" type="button" aria-label="فتح القائمة">
     <i class="fas fa-bars"></i>
 </button>
 
-<div class="sidebar">
+<aside class="sidebar">
     <div class="sidebar-header">
         <div class="logo-container">
-            <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" class="sidebar-logo" 
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="logo-fallback" style="display: none;">
+            <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="logo-fallback" style="display:none;">
                 <i class="fas fa-graduation-cap"></i>
             </div>
         </div>
-       
-        <!-- إضافة صورة البروفايل - تم إصلاح الرابط -->
+
         <div class="profile-section">
-            {% if user.is_authenticated %}
-                {% with profile=user.profile %}
-{% if profile and profile.get_optimized_picture_url %}
-    <div class="profile-image-container" onclick="redirectToProfile()">
-        <img src="{{ profile.get_optimized_picture_url }}" alt="صورة البروفايل" class="profile-image">
-    </div>
-{% else %}
-                        <div class="profile-image-container" onclick="redirectToProfile()">
-                            <div class="profile-default">
-                                <i class="fas fa-user"></i>
-                            </div>
-                        </div>
-                    {% endif %}
-                {% endwith %}
-            {% else %}
-                <div class="profile-image-container">
+            {% with profile=user.profile %}
+                {% if profile and profile.get_optimized_picture_url %}
+                <div class="profile-image-container" onclick="window.location.href='/registration/profile/';">
+                    <img src="{{ profile.get_optimized_picture_url }}" alt="صورة الملف الشخصي" class="profile-image">
+                </div>
+                {% else %}
+                <div class="profile-image-container" onclick="window.location.href='/registration/profile/';">
                     <div class="profile-default">
                         <i class="fas fa-user"></i>
                     </div>
                 </div>
-            {% endif %}
+                {% endif %}
+            {% endwith %}
         </div>
 
         <div class="user-info">
@@ -54,21 +43,20 @@
             </small>
         </div>
     </div>
-    
-    <div class="sidebar-menu">
-        <!-- لوحة التحكم (نعتبرها صلاحية admin_dashboard أو reports_dashboard) -->
+
+    <nav class="sidebar-menu">
         {% if user.is_superuser or 'admin_dashboard' in emp_perms or 'reports_dashboard' in emp_perms %}
-        <a href="{% url "pages:index" %}" class="menu-item" data-module="dashboard">
-            <i class="fas fa-tachometer-alt"></i>
+        <a href="{% url 'pages:index' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'pages' and request.resolver_match.url_name == 'index' %}active{% endif %}">
+            <i class="fas fa-house"></i>
             <span>لوحة التحكم</span>
         </a>
 
         {% if user.is_superuser %}
-        <a href="{% url "pages:system_report" %}" class="menu-item" data-module="system-report">
+        <a href="{% url 'pages:system_report' %}" class="menu-item {% if request.resolver_match and request.resolver_match.url_name == 'system_report' %}active{% endif %}">
             <i class="fas fa-clipboard-list"></i>
             <span>تقرير النظام</span>
         </a>
-        <a href="{% url 'announcements:dashboard' %}" class="menu-item" data-module="announcements-admin">
+        <a href="{% url 'announcements:dashboard' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'announcements' %}active{% endif %}">
             <i class="fas fa-bullhorn"></i>
             <span>التعاميم</span>
         </a>
@@ -76,37 +64,33 @@
         {% endif %}
 
         {% if user.is_superuser or 'admin_logs' in emp_perms %}
-        <a href="{% url 'security_dashboard' %}" class="menu-item {% if request.path == '/security/' %}active{% endif %}" data-module="security-center">
+        <a href="{% url 'security_dashboard' %}" class="menu-item {% if request.path == '/security/' %}active{% endif %}">
             <i class="fas fa-shield-halved"></i>
             <span>مركز الأمن</span>
         </a>
         {% endif %}
 
-        <!-- إدارة الطلاب -->
         {% if user.is_superuser or 'students_view' in emp_perms %}
-        <a href="{% url "students:student" %}" class="menu-item" data-module="students">
+        <a href="{% url 'students:student' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'students' %}active{% endif %}">
             <i class="fas fa-user-graduate"></i>
             <span>الطلاب</span>
         </a>
         {% endif %}
 
-        <!-- إدارة المدرسين -->
         {% if user.is_superuser or 'teachers_view' in emp_perms %}
-        <a href="{% url "employ:teachers" %}" class="menu-item" data-module="teachers">
+        <a href="{% url 'employ:teachers' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'employ' and request.resolver_match.url_name == 'teachers' %}active{% endif %}">
             <i class="fas fa-chalkboard-teacher"></i>
             <span>المدرسون</span>
         </a>
         {% endif %}
 
-        <!-- المحاسبة -->
         {% if user.is_superuser or 'accounting_dashboard' in emp_perms or 'accounting_view' in emp_perms %}
-        <a href="{% url "accounts:dashboard" %}" class="menu-item {% if request.resolver_match and 'accounts' == request.resolver_match.app_name %}active{% endif %}" data-module="accounts">
+        <a href="{% url 'accounts:dashboard' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'accounts' %}active{% endif %}">
             <i class="fas fa-file-invoice-dollar"></i>
             <span>المحاسبة</span>
         </a>
         {% endif %}
 
-        <!-- إدارة الحضور -->
         {% if user.is_superuser or 'attendance_view' in emp_perms or 'attendance_teacher_view' in emp_perms %}
         <div class="menu-group">
             <div class="menu-group-title">
@@ -116,19 +100,19 @@
             </div>
             <div class="sub-menu">
                 {% if user.is_superuser or 'attendance_view' in emp_perms %}
-                <a href="{% url "attendance:attendance" %}" class="menu-item sub-item" data-module="attendance">
+                <a href="{% url 'attendance:attendance' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'attendance' and request.resolver_match.url_name == 'attendance' %}active{% endif %}">
                     <i class="fas fa-calendar-check"></i>
                     <span>حضور الطلاب</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'attendance_teacher_view' in emp_perms %}
-                <a class="menu-item sub-item" href="{% url 'attendance:teacher_attendance' %}">
+                <a href="{% url 'attendance:teacher_attendance' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'teacher_attendance' %}active{% endif %}">
                     <i class="fas fa-user-check"></i>
                     <span>حضور المدرسين</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'reports_students' in emp_perms %}
-                <a href="{% url "students:stu_num" %}" class="menu-item sub-item" data-module="students-count">
+                <a href="{% url 'students:stu_num' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'stu_num' %}active{% endif %}">
                     <i class="fas fa-users"></i>
                     <span>عدد الطلاب</span>
                 </a>
@@ -137,7 +121,6 @@
         </div>
         {% endif %}
 
-        <!-- إدارة الشعب والعلامات -->
         {% if user.is_superuser or 'classroom_view' in emp_perms or 'examss_view' in emp_perms %}
         <div class="menu-group">
             <div class="menu-group-title">
@@ -147,22 +130,21 @@
             </div>
             <div class="sub-menu">
                 {% if user.is_superuser or 'classroom_view' in emp_perms %}
-                <a href="{% url "classroom:classroom" %}" class="menu-item sub-item" data-module="classroom">
-                    <i class="fas fa-chalkboard"></i>
+                <a href="{% url 'classroom:classroom' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'classroom' %}active{% endif %}">
+                    <i class="fas fa-school"></i>
                     <span>الشعب الدراسية</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'exams_view' in emp_perms %}
-                <a href="{% url "exams:dashboard" %}" class="menu-item sub-item" data-module="examss">
+                <a href="{% url 'exams:dashboard' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'exams' %}active{% endif %}">
                     <i class="fas fa-chart-line"></i>
                     <span>العلامات</span>
                 </a>
                 {% endif %}
             </div>
         </div>
-        {% endif %}            
+        {% endif %}
 
-        <!-- إدارة الموارد البشرية -->
         {% if user.is_superuser or 'hr_view' in emp_perms or 'hr_dashboard' in emp_perms %}
         <div class="menu-group">
             <div class="menu-group-title">
@@ -172,25 +154,25 @@
             </div>
             <div class="sub-menu">
                 {% if user.is_superuser or 'hr_view' in emp_perms %}
-                <a href="{% url "employ:hr" %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'hr' %}active{% endif %}" data-module="hr">
+                <a href="{% url 'employ:hr' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'hr' %}active{% endif %}">
                     <i class="fas fa-users"></i>
-                    <span>الموظفين</span>
+                    <span>الموظفون</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'hr_salary' in emp_perms %}
-                <a href="{% url "employ:salary_management" %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'salary_management' %}active{% endif %}" data-module="salary">
+                <a href="{% url 'employ:salary_management' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'salary_management' %}active{% endif %}">
                     <i class="fas fa-money-bill-wave"></i>
                     <span>إدارة الرواتب</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'hr_vacations' in emp_perms %}
-                <a href="{% url "employ:vacation_list" %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'vacation_list' %}active{% endif %}" data-module="vacations">
+                <a href="{% url 'employ:vacation_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'vacation_list' %}active{% endif %}">
                     <i class="fas fa-umbrella-beach"></i>
                     <span>الإجازات</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'hr_advances' in emp_perms %}
-                <a href="{% url "accounts:advance_list" %}" class="menu-item sub-item {% if request.resolver_match and 'advance' in request.resolver_match.url_name %}active{% endif %}" data-module="advances">
+                <a href="{% url 'accounts:advance_list' %}" class="menu-item sub-item {% if request.resolver_match and 'advance' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="fas fa-hand-holding-usd"></i>
                     <span>سلف الموظفين</span>
                 </a>
@@ -199,27 +181,25 @@
         </div>
         {% endif %}
 
-        <!-- إدارة المواد -->
         {% if user.is_superuser or 'courses_view' in emp_perms %}
-        <a href="{% url "courses:subject_list" %}" class="menu-item" data-module="subjects">
+        <a href="{% url 'courses:subject_list' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'courses' %}active{% endif %}">
             <i class="fas fa-book"></i>
             <span>المواد الدراسية</span>
         </a>
         {% endif %}
 
-        <!-- رابط صفحة السوبر يوزر (يظهر للمشرفين فقط) -->
         {% if user.is_superuser %}
-        <a href="{% url 'registration:superuser_password_reset' %}" class="menu-item" data-module="password-reset-admin">
+        <a href="{% url 'registration:superuser_password_reset' %}" class="menu-item {% if request.resolver_match and request.resolver_match.url_name == 'superuser_password_reset' %}active{% endif %}">
             <i class="fas fa-user-shield"></i>
             <span>إدارة كلمات المرور</span>
         </a>
         {% endif %}
-            <a href="{% url 'accounts:receipts_expenses' %}" class="menu-item {% if 'receipt' in request.resolver_match.url_name or 'expense' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="fas fa-receipt"></i>
-                <span>مصاريف</span>
-            </a>
-            
-        <!-- تسجيل الخروج -->
+
+        <a href="{% url 'accounts:receipts_expenses' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name and 'receipt' in request.resolver_match.url_name %}active{% elif request.resolver_match and request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name and 'expense' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-receipt"></i>
+            <span>المصاريف</span>
+        </a>
+
         <form action="{% url 'logout' %}" method="post" class="logout-form">
             {% csrf_token %}
             <button type="submit" class="menu-item logout-btn">
@@ -227,16 +207,14 @@
                 <span>تسجيل الخروج</span>
             </button>
         </form>
-    </div>
-</div>
+    </nav>
+</aside>
 {% else %}
-<!-- واجهة المستخدم غير المسجل دخولاً -->
-<div class="sidebar">
+<aside class="sidebar">
     <div class="sidebar-header">
         <div class="logo-container">
-            <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" class="sidebar-logo" 
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="logo-fallback" style="display: none;">
+            <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="logo-fallback" style="display:none;">
                 <i class="fas fa-graduation-cap"></i>
             </div>
         </div>
@@ -246,702 +224,10 @@
         </div>
     </div>
     <div class="sidebar-menu">
-        <a href="{% url "login" %}" class="menu-item login-btn">
+        <a href="{% url 'login' %}" class="menu-item login-btn">
             <i class="fas fa-sign-in-alt"></i>
             <span>تسجيل الدخول</span>
         </a>
     </div>
-</div>
+</aside>
 {% endif %}
-
-<style>
-:root {
-    --sidebar-width: 280px;
-    --sidebar-collapsed-width: 80px;
-    --sidebar-transition: all 0.3s ease;
-    --border-radius: 12px;
-    --transition: all 0.3s ease;
-    --white: #ffffff;
-}
-
-/* Logo container and fallback */
-.logo-container {
-    position: relative;
-    width: 90px;
-    height: 90px;
-    margin: 0 auto 1.5rem;
-}
-
-.logo-fallback {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.5rem;
-    color: white;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    transition: var(--transition);
-}
-
-.logo-fallback:hover {
-    transform: scale(1.05);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
-}
-
-/* Enhanced sidebar styling */
-.sidebar {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #2c3e50 100%);
-    color: white;
-    width: var(--sidebar-width);
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    right: 0;
-    overflow-y: auto;
-    transition: var(--sidebar-transition);
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(10px);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-header {
-    padding: 2rem 1.5rem;
-    text-align: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-}
-
-.sidebar-logo {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    margin-bottom: 1.5rem;
-    object-fit: cover;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    transition: var(--transition);
-    background: var(--white);
-    padding: 2px;
-}
-
-.user-info span {
-    display: block;
-    font-weight: 700;
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    letter-spacing: 0.5px;
-}
-
-.user-info small {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.sidebar-menu {
-    flex-grow: 1;
-    padding: 1.5rem 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-}
-
-.menu-group {
-    margin-bottom: 1rem;
-}
-
-.menu-group-title {
-    padding: 1rem 1.5rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    transition: var(--transition);
-    margin-bottom: 0;
-}
-
-.menu-group-title:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--white);
-}
-
-.menu-group-title i:first-child {
-    margin-left: 0.5rem;
-}
-
-.group-arrow {
-    font-size: 0.8rem;
-    transition: var(--transition);
-    opacity: 0.7;
-}
-
-.menu-group.expanded .group-arrow {
-    transform: rotate(180deg);
-}
-
-.sub-menu {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-}
-
-.menu-group.expanded .sub-menu {
-    max-height: 500px;
-}
-
-.menu-item {
-    display: flex;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    margin: 0.25rem 1rem;
-    color: rgba(255, 255, 255, 0.9);
-    text-decoration: none;
-    transition: var(--sidebar-transition);
-    border-radius: var(--border-radius);
-    font-weight: 500;
-    position: relative;
-    overflow: hidden;
-    gap: 1rem;
-}
-
-.menu-item:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: var(--white);
-    text-decoration: none;
-    transform: translateX(-5px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.menu-item.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: var(--white);
-    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
-    transform: translateX(-3px);
-}
-
-.menu-item.sub-item {
-    padding: 0.75rem 1.5rem 0.75rem 3rem;
-    margin: 0.125rem 1rem;
-    font-size: 0.875rem;
-    opacity: 0.9;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 0.9; transform: translateX(0); }
-}
-
-.menu-item i {
-    width: 24px;
-    min-width: 24px;
-    text-align: center;
-    font-size: 1.1rem;
-    transition: var(--sidebar-transition);
-}
-
-.logout-form {
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    margin-top: auto;
-    padding: 1rem 0;
-    background: rgba(0, 0, 0, 0.1);
-}
-
-.logout-btn, .login-btn {
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-    border: none;
-    width: 100%;
-    text-align: right;
-    cursor: pointer;
-    transition: var(--sidebar-transition);
-    border-radius: 0;
-    font-weight: 600;
-    padding: 1rem 1.5rem;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.logout-btn:hover, .login-btn:hover {
-    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
-}
-
-/* تنسيقات البروفايل */
-.profile-section {
-    text-align: center;
-    margin: 1rem 0 1.5rem;
-}
-
-.profile-image-container {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    transition: var(--transition);
-    cursor: pointer;
-    position: relative;
-}
-
-.profile-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: var(--transition);
-}
-
-.profile-default {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 2rem;
-}
-
-.profile-image-container:hover {
-    transform: scale(1.05);
-    border-color: rgba(255, 255, 255, 0.6);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-.profile-image-container:hover .profile-image {
-    transform: scale(1.1);
-}
-
-/* Mobile menu toggle button */
-.mobile-menu-toggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    cursor: pointer;
-    z-index: 1100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    transition: var(--transition);
-}
-
-.mobile-menu-toggle:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-}
-
-/* تصميم متجاوب */
-@media (max-width: 1200px) {
-    .sidebar {
-        width: 250px;
-    }
-}
-
-@media (max-width: 992px) {
-    .sidebar {
-        width: 220px;
-    }
-    
-    .sidebar-header {
-        padding: 1.5rem 1rem;
-    }
-    
-    .logo-container {
-        width: 70px;
-        height: 70px;
-    }
-    
-    .sidebar-logo {
-        width: 70px;
-        height: 70px;
-    }
-    
-    .logo-fallback {
-        width: 70px;
-        height: 70px;
-        font-size: 2rem;
-    }
-    
-    .profile-image-container {
-        width: 70px;
-        height: 70px;
-    }
-    
-    .profile-default {
-        font-size: 1.7rem;
-    }
-    
-    .user-info span {
-        font-size: 1.1rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .mobile-menu-toggle {
-        display: flex;
-    }
-    
-    .sidebar {
-        width: var(--sidebar-collapsed-width);
-        overflow-x: hidden;
-        transform: translateX(0);
-    }
-    
-    .sidebar-header {
-        padding: 1rem 0.5rem;
-    }
-    
-    .logo-container {
-        width: 50px;
-        height: 50px;
-        margin-bottom: 1rem;
-    }
-    
-    .sidebar-logo {
-        width: 50px;
-        height: 50px;
-        margin-bottom: 0.5rem;
-    }
-    
-    .logo-fallback {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-    }
-    
-    .profile-image-container {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .profile-default {
-        font-size: 1.3rem;
-    }
-    
-    .user-info span,
-    .user-info small,
-    .menu-item span,
-    .menu-group-title span,
-    .group-arrow {
-        display: none;
-    }
-    
-    .menu-item {
-        justify-content: center;
-        padding: 1rem 0;
-        margin: 0.25rem 0;
-        border-radius: 0;
-    }
-    
-    .menu-item i {
-        margin: 0;
-        font-size: 1.4rem;
-        width: auto;
-        min-width: auto;
-    }
-    
-    .menu-item:hover {
-        transform: none;
-        background: rgba(255, 255, 255, 0.15);
-    }
-    
-    .menu-group {
-        margin-bottom: 0.5rem;
-    }
-    
-    .menu-group-title {
-        justify-content: center;
-        padding: 1rem 0;
-    }
-    
-    .sub-menu {
-        display: none;
-    }
-    
-    .menu-group.expanded .sub-menu {
-        display: block;
-    }
-}
-
-@media (max-width: 576px) {
-    .sidebar {
-        transform: translateX(100%);
-        width: 85%;
-        right: -85%;
-    }
-    
-    .sidebar.active {
-        right: 0;
-        transform: translateX(0);
-    }
-    
-    .mobile-menu-toggle {
-        display: flex !important;
-    }
-}
-
-/* Enhanced mobile styles */
-@media (max-width: 480px) {
-    .sidebar {
-        width: 90%;
-        right: -90%;
-    }
-    
-    .menu-item {
-        padding: 1.2rem 0;
-        font-size: 0.9rem;
-    }
-    
-    .menu-item i {
-        font-size: 1.5rem;
-    }
-    
-    .sidebar-header {
-        padding: 1.5rem 1rem;
-    }
-    
-    .logo-container {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .sidebar-logo {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .logo-fallback {
-        width: 60px;
-        height: 60px;
-        font-size: 1.8rem;
-    }
-    
-    .profile-image-container {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .profile-default {
-        font-size: 1.5rem;
-    }
-}
-
-/* Animation for menu items */
-@keyframes fadeInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.menu-item {
-    animation: fadeInRight 0.4s ease forwards;
-    opacity: 0;
-}
-
-.menu-item:nth-child(1) { animation-delay: 0.1s; }
-.menu-item:nth-child(2) { animation-delay: 0.15s; }
-.menu-item:nth-child(3) { animation-delay: 0.2s; }
-.menu-item:nth-child(4) { animation-delay: 0.25s; }
-.menu-item:nth-child(5) { animation-delay: 0.3s; }
-.menu-item:nth-child(6) { animation-delay: 0.35s; }
-.menu-item:nth-child(7) { animation-delay: 0.4s; }
-.menu-item:nth-child(8) { animation-delay: 0.45s; }
-
-/* Custom scrollbar for sidebar */
-.sidebar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-}
-
-.sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
-}
-
-/* Ripple effect for profile image */
-.ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.6);
-    transform: scale(0);
-    animation: ripple 0.6s linear;
-    width: 100px;
-    height: 100px;
-    top: 50%;
-    left: 50%;
-    margin-top: -50px;
-    margin-left: -50px;
-}
-
-@keyframes ripple {
-    to {
-        transform: scale(2.5);
-        opacity: 0;
-    }
-}
-</style>
-
-<script>
-// Enhanced sidebar functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize sidebar
-    initializeSidebar();
-    
-    // Set active menu item based on current page
-    const currentPath = window.location.pathname;
-    const menuItems = document.querySelectorAll('.menu-item');
-    
-    menuItems.forEach(item => {
-        const href = item.getAttribute('href');
-        if (href && (currentPath === href || currentPath.startsWith(href + '/'))) {
-            item.classList.add('active');
-            
-            // Auto-expand parent group if this is a sub-item
-            const parentGroup = item.closest('.menu-group');
-            if (parentGroup && item.classList.contains('sub-item')) {
-                parentGroup.classList.add('expanded');
-            }
-        }
-    });
-    
-    // Add interactive effects to menu groups
-    const menuGroups = document.querySelectorAll('.menu-group-title');
-    menuGroups.forEach(group => {
-        group.addEventListener('click', function() {
-            const parentGroup = this.parentElement;
-            parentGroup.classList.toggle('expanded');
-        });
-    });
-    
-    // Add ripple effect to profile image
-    const profileImage = document.querySelector('.profile-image-container');
-    if (profileImage) {
-        profileImage.addEventListener('click', function(e) {
-            // Add ripple effect
-            const ripple = document.createElement('span');
-            ripple.classList.add('ripple');
-            this.appendChild(ripple);
-            
-            // Remove ripple after animation
-            setTimeout(() => {
-                ripple.remove();
-            }, 600);
-        });
-    }
-});
-
-// Sidebar toggle for mobile
-function toggleSidebar() {
-    const sidebar = document.querySelector('.sidebar');
-    sidebar.classList.toggle('active');
-    
-    // Toggle body scroll when sidebar is open on mobile
-    if (window.innerWidth <= 576) {
-        document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-    }
-}
-
-// Initialize sidebar functionality
-function initializeSidebar() {
-    const sidebar = document.querySelector('.sidebar');
-    
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', function(event) {
-        if (window.innerWidth <= 576) {
-            const sidebar = document.querySelector('.sidebar');
-            const toggleBtn = document.querySelector('.mobile-menu-toggle');
-            
-            if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target) && sidebar.classList.contains('active')) {
-                sidebar.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        }
-    });
-    
-    // Handle window resize
-    window.addEventListener('resize', function() {
-        const sidebar = document.querySelector('.sidebar');
-        if (window.innerWidth > 576) {
-            sidebar.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        
-        // Adjust sidebar behavior based on screen size
-        if (window.innerWidth <= 768) {
-            sidebar.classList.remove('expanded');
-        }
-    });
-}
-
-// Enhanced scroll behavior
-window.addEventListener('scroll', function() {
-    const sidebar = document.querySelector('.sidebar');
-    if (window.scrollY > 50) {
-        sidebar.style.boxShadow = '4px 0 25px rgba(0, 0, 0, 0.2)';
-    } else {
-        sidebar.style.boxShadow = '4px 0 20px rgba(0, 0, 0, 0.15)';
-    }
-});
-
-// Redirect to profile page - you need to implement this function based on your URL structure
-function redirectToProfile() {
-    // You need to replace this with the actual URL for the profile page
-    // Since 'profile' URL doesn't exist, you can use one of these options:
-    
-    // Option 1: Redirect to admin change form for the current user
-    if ({% if user.is_authenticated %}true{% else %}false{% endif %}) {
-         window.location.href = "/registration/profile/"; 
-    }
-    
-    // Option 2: Redirect to a custom profile page (you need to create this view)
-    // window.location.href = "/profile/";
-    
-    // Option 3: Show a message (temporary solution)
-    // alert('صفحة البروفايل قيد التطوير');
-}
-
-// Add keyboard support for accessibility
-document.addEventListener('keydown', function(e) {
-    // Close sidebar with Escape key
-    if (e.key === 'Escape' && window.innerWidth <= 576) {
-        const sidebar = document.querySelector('.sidebar');
-        if (sidebar.classList.contains('active')) {
-            sidebar.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-    }
-});
-</script>

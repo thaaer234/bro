@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from employ.decorators import require_employee_perm
+from employ.decorators import require_employee_perm, require_superuser
 
 app_name = 'quick'
 
@@ -19,6 +19,7 @@ urlpatterns = [
     # الطلاب السريعين
     path('students/', require_employee_perm('students_view')(views.QuickStudentListView.as_view()), name='student_list'),
     path('students/create/', require_employee_perm('students_create')(views.QuickStudentCreateView.as_view()), name='student_create'),
+    path('students/check-exists/', require_employee_perm('students_create')(views.quick_student_exists), name='student_exists'),
     path('students/<int:pk>/', require_employee_perm('students_profile')(views.QuickStudentDetailView.as_view()), name='student_detail'),
     path('students/<int:student_id>/register-course/', require_employee_perm('students_register_course')(views.register_quick_course), name='register_quick_course'),
     
@@ -74,6 +75,21 @@ urlpatterns = [
     ),
     
     # بروفايل الطالب السريع
+    path(
+        'reports/duplicate-students/',
+        require_superuser(views.quick_duplicate_students_report),
+        name='duplicate_students_report'
+    ),
+    path(
+        'reports/duplicate-students/print/',
+        require_superuser(views.quick_duplicate_students_print),
+        name='duplicate_students_print'
+    ),
+    path(
+        'reports/duplicate-students/print/all/',
+        require_superuser(views.quick_duplicate_students_full_print),
+        name='duplicate_students_full_print'
+    ),
     path('student/<int:student_id>/profile/', require_employee_perm('students_profile')(views.QuickStudentProfileView.as_view()), name='student_profile'),
     path('student/<int:student_id>/statement/', require_employee_perm('students_statement')(views.QuickStudentStatementView.as_view()), name='student_statement'),
     
@@ -88,7 +104,10 @@ urlpatterns = [
     path('receipt/<int:receipt_id>/print/', require_employee_perm('students_receipt')(views.quick_student_receipt_print), name='quick_student_receipt_print'),
     path('students/<int:student_id>/receipts/print-multiple/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_print), name='quick_multiple_receipt_print'),
     path('students/<int:student_id>/receipts/payload/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_payload), name='quick_multiple_receipt_payload'),
+    path('students/<int:student_id>/receipts/enqueue-print/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_enqueue_print), name='quick_multiple_receipt_enqueue_print'),
     path('students/<int:student_id>/receipts/print-server/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_server_print), name='quick_multiple_receipt_server_print'),
+    path('agent/print-jobs/next/', views.quick_print_agent_next_job, name='quick_print_agent_next_job'),
+    path('agent/print-jobs/<int:job_id>/update/', views.quick_print_agent_job_update, name='quick_print_agent_job_update'),
     path('students/<int:student_id>/quick-receipt/', require_employee_perm('students_receipt')(views.quick_student_quick_receipt), name='student_quick_receipt'),
     path('students/<int:student_id>/update-discount/', require_employee_perm('students_edit')(views.update_quick_student_discount), name='update_student_discount'),
     path('students/<int:student_id>/withdraw/', require_employee_perm('students_withdraw')(views.withdraw_quick_student), name='withdraw_student'),

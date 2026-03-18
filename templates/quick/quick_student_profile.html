@@ -2645,4 +2645,185 @@ function getCSRFToken() {
   color: #212529;
 }
 </style>
+<style>
+.student-profile {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.profile-header,
+.section-card,
+.info-card,
+.finance-table-container,
+.tab-content {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(118, 75, 162, 0.12) !important;
+  box-shadow: 0 24px 52px rgba(57, 24, 92, 0.12) !important;
+}
+
+.profile-header {
+  background: linear-gradient(135deg, rgba(106, 67, 146, 0.96) 0%, rgba(118, 75, 162, 0.92) 55%, rgba(157, 124, 197, 0.9) 100%) !important;
+  color: #fff !important;
+  overflow: hidden;
+}
+
+.profile-header::after {
+  content: "";
+  position: absolute;
+  inset: auto -40px -70px auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 72%);
+  pointer-events: none;
+}
+
+.student-info h1,
+.student-info h2,
+.student-info h3,
+.student-info p,
+.profile-header .student-name,
+.profile-header .student-id {
+  color: #fff !important;
+}
+
+.header-actions .btn,
+.tab-btn,
+.modal-footer .btn,
+.btn {
+  border-radius: 16px !important;
+  font-weight: 700 !important;
+}
+
+.summary-grid,
+.tab-grid,
+.finance-summary,
+.courses-grid {
+  gap: 1rem !important;
+}
+
+.summary-card,
+.finance-card,
+.course-card {
+  border-radius: 22px !important;
+  border: 1px solid rgba(118, 75, 162, 0.1) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,246,255,0.96)) !important;
+  box-shadow: 0 14px 32px rgba(70, 32, 108, 0.08) !important;
+}
+
+.summary-card .label,
+.summary-card .title,
+.info-label {
+  color: #6a5b83 !important;
+}
+
+.summary-card .value,
+.info-value {
+  color: #2d1d45 !important;
+}
+
+.tabs-container {
+  gap: 0.75rem !important;
+  padding: 0.55rem !important;
+  border-radius: 20px !important;
+  background: rgba(118, 75, 162, 0.06) !important;
+}
+
+.tab-btn {
+  min-height: 48px;
+  color: #65458d !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(118, 75, 162, 0.1) !important;
+}
+
+.tab-btn.active,
+.tab-btn:hover {
+  background: linear-gradient(135deg, #6f4699 0%, #855fb0 100%) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+
+.finance-table-container {
+  border-radius: 24px !important;
+  overflow-x: auto;
+}
+
+.finance-table {
+  min-width: 860px;
+}
+
+.finance-table th {
+  background: linear-gradient(135deg, #6f4699 0%, #7f59aa 100%) !important;
+}
+
+.finance-table td {
+  border-color: rgba(118, 75, 162, 0.08) !important;
+}
+
+.finance-table tr:hover td {
+  background: rgba(118, 75, 162, 0.04) !important;
+}
+
+#student-statement-link {
+  background: linear-gradient(135deg, #6f4699 0%, #855fb0 100%) !important;
+  box-shadow: 0 16px 32px rgba(87, 50, 127, 0.2) !important;
+}
+
+.modal-container,
+.modal-content {
+  border-radius: 26px !important;
+}
+
+.modal-body .form-control,
+.modal-body .form-select,
+.modal-body select,
+.modal-body textarea,
+.modal-body input {
+  border-radius: 16px !important;
+  border: 1px solid rgba(118, 75, 162, 0.18) !important;
+}
+
+.modal-body .form-control:focus,
+.modal-body .form-select:focus,
+.modal-body select:focus,
+.modal-body textarea:focus,
+.modal-body input:focus {
+  border-color: #764ba2 !important;
+  box-shadow: 0 0 0 0.22rem rgba(118, 75, 162, 0.14) !important;
+}
+
+@media (max-width: 991.98px) {
+  .profile-header {
+    padding: 1.4rem !important;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .student-profile {
+    padding: 0.5rem !important;
+  }
+
+  .profile-header,
+  .info-card,
+  .finance-table-container,
+  .tab-content {
+    border-radius: 22px !important;
+  }
+
+  .header-actions .btn,
+  .modal-footer .btn {
+    width: 100%;
+  }
+
+  .tabs-container {
+    padding: 0.4rem !important;
+  }
+}
+</style>
 {% endblock %}

@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+body {
+    background: #eef2f7;
+}
+
+.dup-print-page {
+    max-width: 1100px;
+    margin: 24px auto;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 20px 45px -32px rgba(15, 23, 42, 0.35);
+    padding: 24px;
+}
+
+.dup-print-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.dup-print-header {
+    border: 1px solid #dbe2ea;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 18px;
+    background: linear-gradient(135deg, #f8fbff, #eef4fb);
+}
+
+.dup-print-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.dup-print-stat {
+    border: 1px solid #dbe2ea;
+    border-radius: 14px;
+    padding: 12px;
+    background: #fff;
+}
+
+.dup-print-stat .label {
+    color: #64748b;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.dup-print-stat .value {
+    color: #0f172a;
+    font-weight: 800;
+}
+
+.dup-student {
+    border: 1px solid #dbe2ea;
+    border-radius: 16px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.dup-student-head {
+    background: #f8fafc;
+    border-bottom: 1px solid #dbe2ea;
+    padding: 16px;
+}
+
+.dup-student-body {
+    padding: 16px;
+}
+
+.dup-two-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.dup-box {
+    border: 1px solid #dbe2ea;
+    border-radius: 14px;
+    padding: 12px;
+    background: #fff;
+}
+
+.dup-box .label {
+    color: #64748b;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.dup-box .value {
+    font-weight: 800;
+}
+
+.dup-section-title {
+    color: #0f3d5e;
+    font-weight: 800;
+    margin: 16px 0 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+th, td {
+    border: 1px solid #dbe2ea;
+    padding: 8px;
+    text-align: right;
+    vertical-align: top;
+    font-size: 13px;
+    word-break: break-word;
+}
+
+th {
+    background: #eef4fb;
+}
+
+.dup-receipt-wrap {
+    margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+    .dup-print-grid,
+    .dup-two-col {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media print {
+    body {
+        background: #fff;
+    }
+
+    .main-content > .container {
+        display: none;
+    }
+
+    .dup-print-page {
+        max-width: none;
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+    }
+
+    .dup-print-toolbar {
+        display: none;
+    }
+
+    .dup-student,
+    .dup-box,
+    .dup-print-stat,
+    .dup-print-header {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+}
+</style>
+
+<div class="dup-print-page" dir="rtl">
+    <div class="dup-print-toolbar">
+        <div>
+            <strong>ملف الطباعة</strong>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary" onclick="window.print()">طباعة</button>
+            <a href="/quick/reports/duplicate-students/?scope={{ scope }}" class="btn btn-outline-secondary">رجوع</a>
+        </div>
+    </div>
+
+    <div class="dup-print-header">
+        <h2 class="mb-2">تقرير الاسم المكرر: {{ group.display_name }}</h2>
+        <div>تاريخ فتح الملف: {{ print_date|date:"Y-m-d H:i" }}</div>
+        <div class="dup-print-grid">
+            <div class="dup-print-stat">
+                <div class="label">عدد السجلات</div>
+                <div class="value">{{ group.duplicate_count }}</div>
+            </div>
+            <div class="dup-print-stat">
+                <div class="label">عدد التسجيلات</div>
+                <div class="value">{{ group.group_enrollments }}</div>
+            </div>
+            <div class="dup-print-stat">
+                <div class="label">إجمالي المتبقي</div>
+                <div class="value">{{ group.group_remaining|floatformat:2 }}</div>
+            </div>
+            <div class="dup-print-stat">
+                <div class="label">إجمالي الرصيد</div>
+                <div class="value">{{ group.group_balance|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+    {% for item in group.students %}
+    <div class="dup-student">
+        <div class="dup-student-head">
+            <h4 class="mb-1">{{ item.student.full_name }} - #{{ item.student.id }}</h4>
+            <div>الهاتف: {{ item.student.phone|default:"-" }} | السنة: {{ item.student.academic_year.name|default:"-" }} | الحالة: {% if item.student.is_active %}نشط{% else %}غير نشط{% endif %}</div>
+        </div>
+        <div class="dup-student-body">
+            <div class="dup-two-col">
+                <div class="dup-box">
+                    <div class="label">تمت إضافة الحساب بواسطة</div>
+                    <div class="value">{{ item.account_created_by }}</div>
+                </div>
+                <div class="dup-box">
+                    <div class="label">تاريخ إنشاء السجل</div>
+                    <div class="value">{{ item.student.created_at|date:"Y-m-d H:i" }}</div>
+                </div>
+                <div class="dup-box">
+                    <div class="label">رصيد الحساب</div>
+                    <div class="value">{{ item.account_balance|floatformat:2 }}</div>
+                </div>
+                <div class="dup-box">
+                    <div class="label">المتبقي على تسجيلاته</div>
+                    <div class="value">{{ item.remaining_total|floatformat:2 }}</div>
+                </div>
+            </div>
+
+            <h5 class="dup-section-title">التسجيلات</h5>
+            {% if item.enrollments %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>الدورة</th>
+                        <th>تاريخ التسجيل</th>
+                        <th>تم التسجيل بواسطة</th>
+                        <th>القيد</th>
+                        <th>المدفوع</th>
+                        <th>المتبقي</th>
+                        <th>إيصالات</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for enrollment in item.enrollments %}
+                    <tr>
+                        <td>{{ enrollment.course_name }}</td>
+                        <td>{{ enrollment.enrollment_date|date:"Y-m-d" }}</td>
+                        <td>{{ enrollment.registered_by }}</td>
+                        <td>{{ enrollment.net_amount|floatformat:2 }}</td>
+                        <td>{{ enrollment.paid_amount|floatformat:2 }}</td>
+                        <td>{{ enrollment.remaining_amount|floatformat:2 }}</td>
+                        <td>{% if enrollment.has_receipts %}{{ enrollment.receipts_count }}{% else %}لا يوجد{% endif %}</td>
+                        <td>{% if enrollment.is_completed %}مكتمل{% else %}مفتوح{% endif %}</td>
+                    </tr>
+                    {% if enrollment.receipts %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="dup-receipt-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>رقم الإيصال</th>
+                                            <th>التاريخ</th>
+                                            <th>المبلغ</th>
+                                            <th>المدفوع</th>
+                                            <th>أنشأ الإيصال</th>
+                                            <th>الطباعة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for receipt in enrollment.receipts %}
+                                        <tr>
+                                            <td>{{ receipt.receipt_number }}</td>
+                                            <td>{{ receipt.date|date:"Y-m-d" }}</td>
+                                            <td>{{ receipt.amount|floatformat:2 }}</td>
+                                            <td>{{ receipt.paid_amount|floatformat:2 }}</td>
+                                            <td>{{ receipt.created_by }}</td>
+                                            <td>{% if receipt.is_printed %}مطبوعة{% else %}غير مطبوعة{% endif %}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="dup-box">لا توجد دورات مسجلة على هذا السجل.</div>
+            {% endif %}
+
+            {% if item.has_orphan_receipts %}
+            <h5 class="dup-section-title">إيصالات بدون ربط واضح بتسجيل</h5>
+            <table>
+                <thead>
+                    <tr>
+                        <th>رقم الإيصال</th>
+                        <th>الدورة</th>
+                        <th>التاريخ</th>
+                        <th>المبلغ</th>
+                        <th>المدفوع</th>
+                        <th>أنشأ الإيصال</th>
+                        <th>الطباعة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for receipt in item.orphan_receipts %}
+                    <tr>
+                        <td>{{ receipt.receipt_number }}</td>
+                        <td>{{ receipt.course_name }}</td>
+                        <td>{{ receipt.date|date:"Y-m-d" }}</td>
+                        <td>{{ receipt.amount|floatformat:2 }}</td>
+                        <td>{{ receipt.paid_amount|floatformat:2 }}</td>
+                        <td>{{ receipt.created_by }}</td>
+                        <td>{% if receipt.is_printed %}مطبوعة{% else %}غير مطبوعة{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

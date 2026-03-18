@@ -1,0 +1,106 @@
+body.auth-page,
+.auth-page-shell {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(118, 75, 162, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(156, 122, 196, 0.14), transparent 24%),
+        linear-gradient(135deg, rgba(248, 244, 253, 0.94) 0%, rgba(241, 234, 249, 0.94) 100%),
+        url('../img/back.png');
+    background-size: auto, auto, auto, cover;
+    background-position: top left, bottom right, center, center;
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+    background-attachment: fixed;
+    position: relative;
+}
+
+body.auth-page::before,
+.auth-page-shell::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+        linear-gradient(rgba(255,255,255,0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.16) 1px, transparent 1px),
+        url('../img/back.png');
+    background-size: 28px 28px, 28px 28px, cover;
+    background-position: center;
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: -1;
+}
+
+body.auth-page .auth-card,
+.auth-page-shell .auth-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,244,253,0.94));
+    border: 1px solid rgba(118, 75, 162, 0.12);
+    box-shadow: 0 24px 50px rgba(118, 75, 162, 0.16);
+}
+
+body.auth-page .logo,
+body.auth-page .logo2,
+.auth-page-shell .logo,
+.auth-page-shell .logo2 {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(118, 75, 162, 0.12);
+    box-shadow: 0 20px 40px rgba(118, 75, 162, 0.14);
+}
+
+body.auth-page .logo img,
+body.auth-page .logo2 img,
+.auth-page-shell .logo img,
+.auth-page-shell .logo2 img {
+    background: #fff;
+    border-radius: 24px;
+    padding: 0.45rem;
+}
+
+body.auth-page .auth-form h2,
+body.auth-page .logo h1,
+.auth-page-shell .auth-form h2,
+.auth-page-shell .logo h1 {
+    color: #3d2853;
+}
+
+body.auth-page .input-with-icon input,
+body.auth-page .form-control,
+.auth-page-shell .input-with-icon input,
+.auth-page-shell .form-control {
+    border-color: rgba(118, 75, 162, 0.14);
+    background: rgba(255,255,255,0.95);
+}
+
+body.auth-page .input-with-icon input:focus,
+body.auth-page .form-control:focus,
+.auth-page-shell .input-with-icon input:focus,
+.auth-page-shell .form-control:focus {
+    border-color: #764ba2;
+    box-shadow: 0 0 0 4px rgba(118, 75, 162, 0.12);
+}
+
+body.auth-page .forgot-password,
+body.auth-page .auth-footer a,
+.auth-page-shell .forgot-password,
+.auth-page-shell .auth-footer a {
+    color: #764ba2;
+}
+
+body.auth-page .btn-primary,
+.auth-page-shell .btn-primary {
+    background: linear-gradient(135deg, #8e63b7 0%, #764ba2 100%);
+}
+
+body.auth-page .btn-primary:hover,
+.auth-page-shell .btn-primary:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #5f3789 100%);
+    box-shadow: 0 10px 24px rgba(118, 75, 162, 0.24);
+}
+
+.auth-page-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}

@@ -1,0 +1,450 @@
+body.app-quick .profile-header,
+body.app-students .profile-header,
+body.app-employ .profile-header,
+body.app-attendance .attendance-hero,
+body.app-announcements .announcement-hero {
+    background: linear-gradient(135deg, #5f3789 0%, #764ba2 60%, #9c7ac4 100%) !important;
+    color: #fff !important;
+    border-radius: 28px !important;
+    box-shadow: 0 24px 60px rgba(118, 75, 162, 0.22) !important;
+    border: 1px solid rgba(118, 75, 162, 0.14) !important;
+}
+
+body.app-quick .student-profile,
+body.app-students .modern-profile,
+body.app-employ .filters,
+body.app-attendance form,
+body.app-announcements .announcement-dashboard {
+    display: grid;
+    gap: 1.25rem;
+}
+
+body.app-quick .header-content,
+body.app-students .hero-content {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1.25rem;
+    align-items: center;
+}
+
+body.app-quick .summary-card,
+body.app-quick .info-card,
+body.app-quick .tab-panel,
+body.app-quick .tab-btn,
+body.app-quick .card,
+body.app-students .summary-card,
+body.app-students .info-card,
+body.app-students .main-card,
+body.app-students .sidebar-widget,
+body.app-students .tab-panel,
+body.app-employ .filters,
+body.app-employ .table-container,
+body.app-employ .modal-content,
+body.app-employ .card,
+body.app-attendance .table-container,
+body.app-attendance .attendance-container,
+body.app-attendance .card,
+body.app-attendance .modal-content,
+body.app-announcements .announcement-card,
+body.app-announcements .announcement-item,
+body.app-announcements .empty-box,
+body.app-announcements .placeholder-box {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,244,253,0.92)) !important;
+    border: 1px solid rgba(118, 75, 162, 0.12) !important;
+    box-shadow: 0 18px 42px rgba(118, 75, 162, 0.14) !important;
+    border-radius: 22px !important;
+}
+
+body.app-quick .summary-grid,
+body.app-students .stats-grid,
+body.app-students .profile-layout,
+body.app-students .quick-actions,
+body.app-students .info-grid,
+body.app-announcements .hero-stats {
+    display: grid !important;
+    gap: 1rem !important;
+}
+
+body.app-quick .summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+}
+
+body.app-students .profile-layout {
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr) !important;
+    align-items: start !important;
+}
+
+body.app-students .stats-grid,
+body.app-students .quick-actions,
+body.app-students .info-grid,
+body.app-announcements .hero-stats {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+}
+
+body.app-quick .tabs-container,
+body.app-students .tabs-container {
+    background: rgba(255,255,255,0.78) !important;
+    border: 1px solid rgba(118, 75, 162, 0.10) !important;
+    border-radius: 22px !important;
+    padding: 0.45rem !important;
+}
+
+body.app-quick .tabs-navigation,
+body.app-students .profile-sidebar,
+body.app-students .profile-main {
+    display: grid !important;
+    gap: 1rem !important;
+}
+
+body.app-quick .tab-btn,
+body.app-students .tab-btn,
+body.app-employ .tab,
+body.app-announcements .hero-chip,
+body.app-attendance .attendance-option {
+    border-radius: 16px !important;
+}
+
+body.app-quick .tab-btn,
+body.app-students .tab-btn,
+body.app-employ .tab {
+    padding: 0.9rem 1rem !important;
+    font-weight: 700 !important;
+    color: #5f3789 !important;
+    background: rgba(255,255,255,0.8) !important;
+    border: 1px solid rgba(118, 75, 162, 0.12) !important;
+}
+
+body.app-quick .tab-btn.active,
+body.app-students .tab-btn.active,
+body.app-employ .tab.active,
+body.app-attendance .attendance-option.active,
+body.app-announcements .preset-btn,
+body.app-announcements .status-active {
+    background: linear-gradient(135deg, #8e63b7, #764ba2) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+body.app-quick .card-header,
+body.app-students .card-header,
+body.app-students .widget-title,
+body.app-announcements .card-head,
+body.app-announcements .item-top {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.9rem !important;
+}
+
+body.app-quick .card-header h3,
+body.app-students .card-header h2,
+body.app-students .card-header h3,
+body.app-students .widget-title,
+body.app-announcements .card-head h3,
+body.app-announcements .item-top h4 {
+    margin: 0 !important;
+    color: #38254e !important;
+    font-family: 'Cocon Next Arabic', 'Cairo', sans-serif !important;
+}
+
+body.app-quick .info-row,
+body.app-students .info-field,
+body.app-students .debug-item,
+body.app-announcements .item-meta {
+    border-bottom: 1px solid rgba(118, 75, 162, 0.08) !important;
+    padding-bottom: 0.8rem !important;
+    margin-bottom: 0.8rem !important;
+}
+
+body.app-quick .info-row:last-child,
+body.app-students .info-field:last-child,
+body.app-students .debug-item:last-child {
+    border-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+body.app-quick .info-label,
+body.app-students .field-content label,
+body.app-students .debug-label,
+body.app-announcements .field-wrap label {
+    color: #7b6d90 !important;
+    font-weight: 700 !important;
+}
+
+body.app-quick .info-value,
+body.app-students .field-value,
+body.app-students .debug-value,
+body.app-announcements .announcement-item p {
+    color: #352146 !important;
+}
+
+body.app-quick .card-icon,
+body.app-students .card-icon,
+body.app-employ .btn-info,
+body.app-attendance .attendance-option.present-option,
+body.app-attendance .attendance-option.absent-option,
+body.app-announcements .hero-stat {
+    background: linear-gradient(135deg, rgba(118, 75, 162, 0.12), rgba(156, 122, 196, 0.18)) !important;
+}
+
+body.app-quick .student-avatar,
+body.app-students .profile-avatar-section,
+body.app-students .avatar-container {
+    display: grid !important;
+    justify-items: center !important;
+    gap: 0.75rem !important;
+}
+
+body.app-quick .avatar-placeholder,
+body.app-students .avatar-placeholder,
+body.app-students .profile-avatar {
+    width: 110px !important;
+    height: 110px !important;
+    border-radius: 28px !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08)) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    box-shadow: 0 16px 36px rgba(52, 33, 70, 0.20) !important;
+}
+
+body.app-quick .avatar-placeholder i,
+body.app-students .avatar-placeholder i {
+    color: #fff !important;
+    font-size: 2rem !important;
+}
+
+body.app-quick .status-badge,
+body.app-students .status-badge,
+body.app-announcements .audience-tag,
+body.app-announcements .status-inactive {
+    background: rgba(118, 75, 162, 0.10) !important;
+    color: #5f3789 !important;
+    border: 1px solid rgba(118, 75, 162, 0.14) !important;
+}
+
+body.app-quick .student-status,
+body.app-students .profile-meta,
+body.app-announcements .item-meta {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.65rem !important;
+    align-items: center !important;
+}
+
+body.app-attendance .attendance-option input {
+    accent-color: #764ba2;
+}
+
+body.app-attendance .attendance-option.present-option.active,
+body.app-attendance .attendance-option.absent-option.active {
+    box-shadow: 0 10px 20px rgba(118, 75, 162, 0.14) !important;
+}
+
+body.app-quick .table thead th,
+body.app-students .table thead th,
+body.app-employ .table thead th,
+body.app-attendance .table thead th,
+body.app-announcements .table thead th {
+    background: linear-gradient(180deg, #f5eefc, #eee5f8) !important;
+    color: #38254e !important;
+}
+
+body.app-employ .filters {
+    padding: 1rem !important;
+    border-radius: 22px !important;
+}
+
+body.app-employ .form-row,
+body.app-announcements .row {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.9rem !important;
+}
+
+body.app-employ .form-col,
+body.app-announcements .col-lg-5,
+body.app-announcements .col-lg-7 {
+    min-width: 0 !important;
+}
+
+body.app-employ .modal-content,
+body.app-attendance .modal-content {
+    max-width: 560px !important;
+}
+
+body.app-employ .delete-btn,
+body.app-attendance .btn-success,
+body.app-attendance .btn-primary {
+    min-height: 44px !important;
+}
+
+body.app-attendance #studentsList table {
+    min-width: 760px !important;
+}
+
+body.app-attendance .attendance-container {
+    display: flex !important;
+    gap: 0.6rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+body.app-attendance .attendance-option {
+    min-width: 112px !important;
+    font-weight: 700 !important;
+}
+
+body.app-announcements .announcement-card form {
+    display: grid !important;
+    gap: 0.9rem !important;
+}
+
+body.app-announcements .field-wrap input,
+body.app-announcements .field-wrap textarea,
+body.app-announcements .field-wrap select {
+    border-radius: 14px !important;
+    border: 1px solid rgba(118, 75, 162, 0.14) !important;
+    background: rgba(255,255,255,0.94) !important;
+}
+
+body.app-announcements .field-wrap small,
+body.app-announcements .item-meta,
+body.app-announcements .empty-box {
+    color: #7b6d90 !important;
+}
+
+body.app-quick .table tbody tr:hover,
+body.app-students .table tbody tr:hover,
+body.app-employ .table tbody tr:hover,
+body.app-attendance .table tbody tr:hover,
+body.app-announcements .table tbody tr:hover {
+    background: rgba(118, 75, 162, 0.05) !important;
+}
+
+body.app-employ .filters,
+body.app-attendance .table-container,
+body.app-quick .card,
+body.app-students .table-container {
+    padding: 1rem !important;
+}
+
+body.app-announcements .announcement-item {
+    display: block;
+    color: inherit !important;
+}
+
+body.app-announcements .announcement-item:hover {
+    transform: translateY(-2px);
+}
+
+body.app-quick .btn-dark,
+body.app-employ .btn-primary,
+body.app-students .btn-primary,
+body.app-attendance .btn-primary,
+body.app-announcements .btn-primary {
+    background: linear-gradient(135deg, #8e63b7, #764ba2) !important;
+    border-color: #764ba2 !important;
+    color: #fff !important;
+}
+
+body.app-quick .btn-warning,
+body.app-students .btn-warning,
+body.app-employ .btn-warning,
+body.app-attendance .btn-warning {
+    background: linear-gradient(135deg, #aa8dcc, #8e63b7) !important;
+    border-color: #8e63b7 !important;
+    color: #fff !important;
+}
+
+body.app-quick .btn-secondary,
+body.app-students .btn-secondary,
+body.app-employ .btn-secondary,
+body.app-attendance .btn-secondary {
+    background: rgba(255,255,255,0.92) !important;
+    color: #5f3789 !important;
+    border: 1px solid rgba(118, 75, 162, 0.14) !important;
+}
+
+body.app-quick .btn-info,
+body.app-students .btn-info,
+body.app-employ .btn-info {
+    color: #5f3789 !important;
+    border: 1px solid rgba(118, 75, 162, 0.14) !important;
+}
+
+body.app-quick .btn-danger,
+body.app-students .btn-danger,
+body.app-employ .btn-danger,
+body.app-attendance .btn-danger {
+    background: linear-gradient(135deg, #a14f7d, #8c3d68) !important;
+    border-color: #8c3d68 !important;
+    color: #fff !important;
+}
+
+@media (max-width: 991.98px) {
+    body.app-quick .header-content,
+    body.app-students .hero-content,
+    body.app-announcements .announcement-hero {
+        grid-template-columns: 1fr !important;
+        display: grid !important;
+        gap: 1rem !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    body.app-quick .profile-header,
+    body.app-students .profile-hero,
+    body.app-employ .module-header,
+    body.app-attendance .module-header,
+    body.app-announcements .announcement-hero {
+        padding: 1rem !important;
+        border-radius: 20px !important;
+    }
+
+    body.app-quick .header-actions,
+    body.app-students .header-actions,
+    body.app-employ .form-row,
+    body.app-announcements .card-head,
+    body.app-announcements .item-top {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+
+    body.app-quick .summary-grid,
+    body.app-quick .tab-grid,
+    body.app-students .stats-grid,
+    body.app-students .profile-layout,
+    body.app-students .quick-actions,
+    body.app-students .info-grid,
+    body.app-employ .form-row,
+    body.app-attendance .row,
+    body.app-announcements .row {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.app-attendance #studentsList,
+    body.app-employ .table-container,
+    body.app-quick .table-responsive,
+    body.app-students .table-responsive {
+        overflow-x: auto !important;
+    }
+
+    body.app-quick .tabs-container,
+    body.app-students .tabs-container {
+        overflow-x: auto !important;
+        display: flex !important;
+        gap: 0.5rem !important;
+        flex-wrap: nowrap !important;
+    }
+
+    body.app-quick .tab-btn,
+    body.app-students .tab-btn {
+        white-space: nowrap !important;
+        flex: 0 0 auto !important;
+    }
+
+    body.app-attendance .attendance-container {
+        flex-direction: column !important;
+    }
+}

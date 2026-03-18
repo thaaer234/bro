@@ -10,17 +10,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #FF2E63;
-            --primary-dark: #D91E4F;
-            --secondary: #08D9D6;
-            --accent: #FFC107;
-            --dark: #252A34;
-            --light: #EAEAEA;
-            --gradient-primary: linear-gradient(135deg, #FF2E63 0%, #D91E4F 100%);
-            --gradient-secondary: linear-gradient(135deg, #08D9D6 0%, #00A8A8 100%);
-            --gradient-dark: linear-gradient(135deg, #252A34 0%, #1A1E28 100%);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.2);
+            --primary: #764ba2;
+            --primary-dark: #5f3789;
+            --secondary: #9c7ac4;
+            --accent: #c7b0df;
+            --dark: #352146;
+            --light: #f7f2fc;
+            --gradient-primary: linear-gradient(135deg, #8e63b7 0%, #764ba2 100%);
+            --gradient-secondary: linear-gradient(135deg, #9c7ac4 0%, #764ba2 100%);
+            --gradient-dark: linear-gradient(135deg, #352146 0%, #5f3789 100%);
+            --shadow: 0 10px 30px rgba(118, 75, 162, 0.15);
+            --shadow-lg: 0 20px 50px rgba(118, 75, 162, 0.22);
             --radius: 16px;
             --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
@@ -33,7 +33,14 @@
         }
 
         body {
-            background-color: var(--light);
+            background:
+                radial-gradient(circle at top left, rgba(118, 75, 162, 0.16), transparent 24%),
+                radial-gradient(circle at bottom right, rgba(156, 122, 196, 0.14), transparent 24%),
+                linear-gradient(180deg, rgba(250, 247, 254, 0.94) 0%, rgba(241, 234, 250, 0.94) 100%),
+                url("{% static 'img/back.png' %}");
+            background-size: auto, auto, auto, cover;
+            background-position: top left, bottom right, center, center;
+            background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
             color: var(--dark);
             min-height: 100vh;
             display: flex;

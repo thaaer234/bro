@@ -12,6 +12,8 @@
     <!-- Custom CSS -->
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style2.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ui-refresh.css' %}">
+    <link rel="stylesheet" href="{% static 'css/accounts-refresh.css' %}">
 
        
     <!-- Open Graph Meta Tags -->
@@ -431,8 +433,10 @@ document.addEventListener('keydown', function(e) {
 }</style>
     
     {% block extra_css %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'css/site-unify-overrides.css' %}">
+    <link rel="stylesheet" href="{% static 'css/module-unify-overrides.css' %}">
 </head>
-<body>
+<body class="app-body app-body--accounts {% if user.is_authenticated %}has-sidebar{% endif %}{% if request.resolver_match and request.resolver_match.app_name %} app-{{ request.resolver_match.app_name }}{% endif %}{% if request.resolver_match and request.resolver_match.url_name %} page-{{ request.resolver_match.url_name }}{% endif %}">
     {% if user.is_authenticated %}
     <div class="sidebar">
         <div class="sidebar-header">
@@ -557,6 +561,34 @@ document.addEventListener('keydown', function(e) {
     {% endif %}
 
     <div class="{% if user.is_authenticated %}main-content{% else %}container mt-5{% endif %}">
+        <div class="page-shell">
+        <section class="page-toolbar">
+            <div class="page-toolbar__meta">
+                <span class="page-toolbar__eyebrow">النظام المالي</span>
+                <h1 class="page-toolbar__title">إدارة المحاسبة</h1>
+                <p class="page-toolbar__text">طبقة واجهات موحدة للتقارير والقيود والحركات اليومية.</p>
+            </div>
+            <div class="page-toolbar__actions">
+                <div class="accounts-brand">
+                    <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" class="accounts-brand__logo">
+                    <div class="accounts-brand__text">
+                        <span class="accounts-brand__title">معهد اليمان</span>
+                        <span class="accounts-brand__meta">هوية محاسبية موحدة</span>
+                    </div>
+                </div>
+                <span class="quick-access-chip">
+                    <i class="fas fa-calendar-day"></i>
+                    {% now "Y/m/d" %}
+                </span>
+                {% if user.is_authenticated %}
+                <span class="quick-access-chip quick-access-chip--muted">
+                    <i class="fas fa-user"></i>
+                    {{ user.get_full_name|default:user.username }}
+                </span>
+                {% endif %}
+            </div>
+        </section>
+        <div class="content-stack">
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }}" role="alert">
@@ -566,8 +598,11 @@ document.addEventListener('keydown', function(e) {
         {% endif %}
 
         {% block content %}{% endblock %}
+        </div>
+        </div>
     </div>
 
+    <script src="{% static 'js/ui-refresh.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

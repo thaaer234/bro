@@ -56,7 +56,7 @@ class QuickCourseAdmin(admin.ModelAdmin):
 class QuickStudentAdmin(admin.ModelAdmin):
     list_display = ['full_name', 'phone', 'student_type', 'course_track', 'academic_year', 'is_active', 'created_at', 'balance']
     list_filter = ['student_type', 'course_track', 'is_active', 'academic_year', 'created_at']
-    search_fields = ['full_name', 'phone', 'email', 'student__name']
+    search_fields = ['full_name', 'phone', 'email', 'student__full_name']
     readonly_fields = ['created_at', 'updated_at', 'balance', 'auto_academic_year']
     raw_id_fields = ['student', 'academic_year', 'created_by']
     list_editable = ['is_active']

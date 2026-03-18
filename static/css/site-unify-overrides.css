@@ -1,0 +1,322 @@
+body.app-body {
+    background:
+        radial-gradient(circle at top left, rgba(118, 75, 162, 0.16), transparent 28%) !important,
+        radial-gradient(circle at top right, rgba(156, 122, 196, 0.14), transparent 24%) !important,
+        linear-gradient(180deg, rgba(251, 248, 255, 0.94) 0%, rgba(243, 237, 249, 0.94) 100%) !important,
+        url('../img/back.png') !important;
+    background-size: auto, auto, auto, cover !important;
+    background-position: top left, top right, center, center !important;
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat !important;
+    background-attachment: fixed !important;
+    color: #2f2341 !important;
+}
+
+body.app-body .dashboard-header,
+body.app-body .hero-background,
+body.app-body .profile-hero,
+body.app-body .summary-header,
+body.app-body .page-hero,
+body.app-body .announcement-hero,
+body.app-body .report-hero,
+body.app-body .section-hero {
+    background: linear-gradient(135deg, #5f3789 0%, #764ba2 58%, #9872c1 100%) !important;
+    color: #fff !important;
+    border-color: rgba(118, 75, 162, 0.12) !important;
+    box-shadow: 0 24px 60px rgba(118, 75, 162, 0.22) !important;
+}
+
+body.app-body .dashboard-card,
+body.app-body .mini-stat-card,
+body.app-body .performance-indicator,
+body.app-body .quick-action-btn,
+body.app-body .action-card,
+body.app-body .stat-card,
+body.app-body .summary-card,
+body.app-body .sidebar-widget,
+body.app-body .main-card,
+body.app-body .glass-card,
+body.app-body .notification-card,
+body.app-body .login-card,
+body.app-body .profile-card,
+body.app-body .edit-profile-card,
+body.app-body .widget-card,
+body.app-body .info-card,
+body.app-body .record-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,244,253,0.92)) !important;
+    border: 1px solid rgba(118, 75, 162, 0.12) !important;
+    box-shadow: 0 18px 42px rgba(118, 75, 162, 0.14) !important;
+}
+
+body.app-body .dashboard-card::before,
+body.app-body .quick-action-btn::before,
+body.app-body .action-card::before,
+body.app-body .main-card::before,
+body.app-body .info-card::before {
+    background: linear-gradient(90deg, #8e63b7, #764ba2) !important;
+}
+
+body.app-body .card-icon,
+body.app-body .quick-action-icon,
+body.app-body .action-icon,
+body.app-body .activity-icon,
+body.app-body .stat-icon,
+body.app-body .field-icon,
+body.app-body .meta-item i,
+body.app-body .section-header i {
+    color: #764ba2 !important;
+}
+
+body.app-body .card-icon,
+body.app-body .quick-action-icon,
+body.app-body .action-icon,
+body.app-body .activity-icon,
+body.app-body .stat-icon,
+body.app-body .field-icon {
+    background: linear-gradient(135deg, rgba(118, 75, 162, 0.12), rgba(156, 122, 196, 0.18)) !important;
+}
+
+body.app-body .btn-primary,
+body.app-body .btn-success,
+body.app-body .btn-info,
+body.app-body .submit-btn,
+body.app-body .save-btn,
+body.app-body .print-btn,
+body.app-body .upload-btn,
+body.app-body .btn-filter {
+    background: linear-gradient(135deg, #8e63b7, #764ba2) !important;
+    border-color: #764ba2 !important;
+    color: #fff !important;
+}
+
+body.app-body .btn-warning,
+body.app-body .btn-avatar-action,
+body.app-body .secondary-action {
+    background: linear-gradient(135deg, #a98acb, #8e63b7) !important;
+    border-color: #8e63b7 !important;
+    color: #fff !important;
+}
+
+body.app-body .btn-danger,
+body.app-body .remove-btn,
+body.app-body .delete-btn {
+    background: linear-gradient(135deg, #a14f7d, #8c3d68) !important;
+    border-color: #8c3d68 !important;
+    color: #fff !important;
+}
+
+body.app-body .btn-outline-primary,
+body.app-body .btn-outline-secondary,
+body.app-body .back-btn,
+body.app-body .btn-outline,
+body.app-body .btn-secondary,
+body.app-body .cancel-btn {
+    color: #5f3789 !important;
+    border-color: rgba(118, 75, 162, 0.18) !important;
+    background: rgba(255,255,255,0.92) !important;
+}
+
+body.app-body .table thead th,
+body.app-body table thead th,
+body.app-body .data-table thead th {
+    background: linear-gradient(180deg, #f5eefc, #eee5f8) !important;
+    color: #38254e !important;
+    border-color: rgba(118, 75, 162, 0.10) !important;
+}
+
+body.app-body .table tbody tr:hover,
+body.app-body table tbody tr:hover,
+body.app-body .data-table tbody tr:hover {
+    background: rgba(118, 75, 162, 0.05) !important;
+}
+
+body.app-body .badge-success,
+body.app-body .status-badge.active,
+body.app-body .badge-primary {
+    background: rgba(118, 75, 162, 0.12) !important;
+    color: #5f3789 !important;
+}
+
+body.app-body .badge-warning,
+body.app-body .status-badge.pending {
+    background: rgba(156, 122, 196, 0.14) !important;
+    color: #6c4a94 !important;
+}
+
+body.app-body .badge-danger,
+body.app-body .status-badge.inactive {
+    background: rgba(162, 79, 128, 0.12) !important;
+    color: #7f3258 !important;
+}
+
+body.app-body .form-control:focus,
+body.app-body .form-select:focus,
+body.app-body input:focus,
+body.app-body select:focus,
+body.app-body textarea:focus {
+    border-color: rgba(118, 75, 162, 0.38) !important;
+    box-shadow: 0 0 0 4px rgba(118, 75, 162, 0.12) !important;
+}
+
+body.app-body .profile-avatar,
+body.app-body .profile-preview-image,
+body.app-body .avatar img,
+body.app-body .logo img {
+    background: #fff !important;
+    border-radius: 20px !important;
+    padding: 0.35rem;
+    box-shadow: 0 12px 30px rgba(118, 75, 162, 0.14) !important;
+}
+
+body.app-body .welcome-screen,
+body.app-body .about-shell,
+body.app-body .notification-shell,
+body.app-body .login-screen {
+    background:
+        radial-gradient(circle at 12% 18%, rgba(118, 75, 162, 0.18), transparent 55%) !important,
+        radial-gradient(circle at 85% 10%, rgba(156, 122, 196, 0.18), transparent 55%) !important,
+        radial-gradient(circle at 50% 90%, rgba(183, 154, 214, 0.20), transparent 55%) !important,
+        url('../img/back.png') !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+
+@media (max-width: 991.98px) {
+    body.app-body .page-toolbar,
+    body.app-body .module-header,
+    body.app-body .header {
+        gap: 0.85rem !important;
+    }
+
+    body.app-body .page-toolbar__actions,
+    body.app-body .header-actions,
+    body.app-body .filter-actions,
+    body.app-body .activity-actions {
+        width: 100%;
+    }
+}
+
+@media (max-width: 767.98px) {
+    body.app-body .main-content {
+        margin-right: 0 !important;
+        padding: 0.95rem 0.75rem 1.2rem !important;
+    }
+
+    body.app-body .page-shell,
+    body.app-body .container,
+    body.app-body .container-fluid {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    body.app-body .page-toolbar,
+    body.app-body .module-header,
+    body.app-body .header,
+    body.app-body .chart-container,
+    body.app-body .recent-activity,
+    body.app-body .filter-section,
+    body.app-body .filters-container,
+    body.app-body .card,
+    body.app-body .main-card,
+    body.app-body .dashboard-card,
+    body.app-body .mini-stat-card,
+    body.app-body .performance-indicator,
+    body.app-body .quick-action-btn,
+    body.app-body .sidebar-widget,
+    body.app-body .summary-card,
+    body.app-body .info-card,
+    body.app-body .record-card {
+        border-radius: 18px !important;
+        padding: 0.95rem !important;
+    }
+
+    body.app-body .dashboard-cards,
+    body.app-body .stats-grid,
+    body.app-body .summary-grid,
+    body.app-body .activity-cards,
+    body.app-body .quick-actions,
+    body.app-body .action-grid,
+    body.app-body .report-grid,
+    body.app-body .profile-layout,
+    body.app-body .form-grid,
+    body.app-body .info-grid,
+    body.app-body .main-content2 {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.app-body .page-toolbar__actions,
+    body.app-body .header-actions,
+    body.app-body .filter-actions,
+    body.app-body .activity-actions,
+    body.app-body .action-buttons {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    body.app-body .page-toolbar__actions > *,
+    body.app-body .header-actions > *,
+    body.app-body .filter-actions > *,
+    body.app-body .activity-actions > *,
+    body.app-body .action-buttons > * {
+        width: 100%;
+    }
+
+    body.app-body .quick-access-chip,
+    body.app-body .accounts-brand {
+        justify-content: center !important;
+    }
+
+    body.app-body .table-responsive,
+    body.app-body .table-container {
+        margin-left: -0.15rem;
+        margin-right: -0.15rem;
+    }
+
+    body.app-body .table-responsive table,
+    body.app-body .table-container table,
+    body.app-body .table-responsive .table,
+    body.app-body .table-container .table {
+        min-width: 620px !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    body.app-body .page-toolbar__title,
+    body.app-body .module-header h2,
+    body.app-body .header h2 {
+        font-size: 1.05rem !important;
+    }
+
+    body.app-body .page-toolbar__text,
+    body.app-body .card-title,
+    body.app-body .stat-label,
+    body.app-body .breadcrumb {
+        font-size: 0.82rem !important;
+    }
+
+    body.app-body .card-value,
+    body.app-body .stat-value,
+    body.app-body .mini-stat-value,
+    body.app-body .indicator-value {
+        font-size: 1.1rem !important;
+    }
+
+    body.app-body .card-icon,
+    body.app-body .quick-action-icon,
+    body.app-body .action-icon,
+    body.app-body .activity-icon,
+    body.app-body .stat-icon,
+    body.app-body .field-icon,
+    body.app-body .user-avatar {
+        width: 2.55rem !important;
+        height: 2.55rem !important;
+        min-width: 2.55rem !important;
+    }
+
+    body.app-body .table-responsive table,
+    body.app-body .table-container table,
+    body.app-body .table-responsive .table,
+    body.app-body .table-container .table {
+        min-width: 560px !important;
+    }
+}

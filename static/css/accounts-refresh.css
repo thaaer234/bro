@@ -1,0 +1,245 @@
+:root {
+    --accounts-primary: #764ba2;
+    --accounts-primary-dark: #5f3789;
+    --accounts-primary-soft: #f3ecfb;
+    --accounts-secondary: #3f2a56;
+    --accounts-accent: #b79ad6;
+    --accounts-surface: #fcfaff;
+    --accounts-border: rgba(118, 75, 162, 0.14);
+    --accounts-shadow: 0 16px 40px rgba(118, 75, 162, 0.14);
+}
+
+body.app-body--accounts {
+    background:
+        radial-gradient(circle at top left, rgba(118, 75, 162, 0.18), transparent 24%),
+        radial-gradient(circle at top right, rgba(183, 154, 214, 0.18), transparent 28%),
+        linear-gradient(180deg, #faf7ff 0%, #f4effa 100%);
+}
+
+body.app-body--accounts .page-toolbar {
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82)),
+        linear-gradient(135deg, rgba(118, 75, 162, 0.08), rgba(183, 154, 214, 0.14));
+    border-color: var(--accounts-border);
+    box-shadow: var(--accounts-shadow);
+}
+
+body.app-body--accounts .page-toolbar__eyebrow,
+body.app-body--accounts .quick-access-chip {
+    color: var(--accounts-primary-dark);
+}
+
+body.app-body--accounts .quick-access-chip {
+    background: rgba(118, 75, 162, 0.08);
+    border-color: rgba(118, 75, 162, 0.16);
+}
+
+body.app-body--accounts .quick-access-chip--muted {
+    background: rgba(183, 154, 214, 0.16);
+    color: var(--accounts-secondary);
+    border-color: rgba(118, 75, 162, 0.14);
+}
+
+body.app-body--accounts .sidebar {
+    background:
+        radial-gradient(circle at top, rgba(183, 154, 214, 0.22), transparent 26%),
+        linear-gradient(180deg, #362048 0%, #4c2d68 42%, #764ba2 100%);
+}
+
+body.app-body--accounts .sidebar::after {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+body.app-body--accounts .sidebar-header {
+    background: linear-gradient(180deg, rgba(54, 32, 72, 0.96), rgba(76, 45, 104, 0.80));
+}
+
+body.app-body--accounts .sidebar-logo {
+    border: 1px solid rgba(118, 75, 162, 0.22);
+    box-shadow: 0 18px 36px rgba(35, 17, 49, 0.22);
+}
+
+body.app-body--accounts .logo-fallback,
+body.app-body--accounts .profile-default {
+    background: linear-gradient(135deg, #8e63b7, #764ba2);
+}
+
+body.app-body--accounts .menu-item.active {
+    background: linear-gradient(135deg, #8e63b7, #764ba2);
+    box-shadow: 0 16px 30px rgba(118, 75, 162, 0.28);
+}
+
+body.app-body--accounts .module-header,
+body.app-body--accounts .header,
+body.app-body--accounts .table-container,
+body.app-body--accounts .chart-container,
+body.app-body--accounts .stats-container,
+body.app-body--accounts .quick-stats,
+body.app-body--accounts .filter-section,
+body.app-body--accounts .recent-activity,
+body.app-body--accounts .filters-container,
+body.app-body--accounts .modal-content,
+body.app-body--accounts .card,
+body.app-body--accounts .stat-item,
+body.app-body--accounts .activity-card,
+body.app-body--accounts .prompt-container,
+body.app-body--accounts .no-data-card,
+body.app-body--accounts .mini-stat-card,
+body.app-body--accounts .performance-indicator,
+body.app-body--accounts .dashboard-card,
+body.app-body--accounts .quick-action-btn {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,245,255,0.92));
+    border-color: var(--accounts-border);
+    box-shadow: var(--accounts-shadow);
+}
+
+body.app-body--accounts .dashboard-header {
+    background: linear-gradient(135deg, #5f3789 0%, #764ba2 58%, #9872c1 100%);
+    border: 1px solid rgba(255,255,255,0.16);
+    box-shadow: 0 24px 60px rgba(118, 75, 162, 0.26);
+}
+
+body.app-body--accounts .dashboard-card::before,
+body.app-body--accounts .dashboard-card.primary::before,
+body.app-body--accounts .dashboard-card.success::before,
+body.app-body--accounts .dashboard-card.warning::before,
+body.app-body--accounts .dashboard-card.info::before {
+    background: linear-gradient(90deg, #8e63b7, #764ba2);
+}
+
+body.app-body--accounts .card-icon,
+body.app-body--accounts .mini-stat-icon,
+body.app-body--accounts .quick-action-icon,
+body.app-body--accounts .activity-icon {
+    background: linear-gradient(135deg, rgba(118, 75, 162, 0.14), rgba(183, 154, 214, 0.28));
+    color: var(--accounts-primary);
+}
+
+body.app-body--accounts .card-icon.primary,
+body.app-body--accounts .card-icon.success,
+body.app-body--accounts .card-icon.warning,
+body.app-body--accounts .card-icon.info {
+    background: linear-gradient(135deg, rgba(118, 75, 162, 0.14), rgba(183, 154, 214, 0.28));
+    color: var(--accounts-primary);
+}
+
+body.app-body--accounts .card-title,
+body.app-body--accounts .mini-stat-title,
+body.app-body--accounts .indicator-title,
+body.app-body--accounts .quick-action-desc,
+body.app-body--accounts .activity-desc,
+body.app-body--accounts .breadcrumb {
+    color: #77688a;
+}
+
+body.app-body--accounts .card-value,
+body.app-body--accounts .mini-stat-value,
+body.app-body--accounts .indicator-value,
+body.app-body--accounts .page-toolbar__title,
+body.app-body--accounts .module-header h2,
+body.app-body--accounts .header h2 {
+    color: var(--accounts-secondary);
+}
+
+body.app-body--accounts .table thead th,
+body.app-body--accounts table thead th {
+    background: linear-gradient(180deg, #f6effe, #efe6fb) !important;
+    color: var(--accounts-secondary);
+}
+
+body.app-body--accounts .table tbody tr:hover,
+body.app-body--accounts table tbody tr:hover {
+    background: rgba(118, 75, 162, 0.05);
+}
+
+body.app-body--accounts .btn-primary,
+body.app-body--accounts .btn-success,
+body.app-body--accounts .btn-info,
+body.app-body--accounts .btn-filter {
+    background: linear-gradient(135deg, #8e63b7, #764ba2);
+    color: #fff;
+}
+
+body.app-body--accounts .btn-warning {
+    background: linear-gradient(135deg, #a66fd7, #8e63b7);
+    color: #fff;
+}
+
+body.app-body--accounts .btn-danger {
+    background: linear-gradient(135deg, #a13f6f, #84315a);
+    color: #fff;
+}
+
+body.app-body--accounts .btn-secondary,
+body.app-body--accounts .btn-outline,
+body.app-body--accounts .btn-outline-secondary,
+body.app-body--accounts .btn-reset {
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--accounts-secondary);
+    border-color: rgba(118, 75, 162, 0.18);
+}
+
+body.app-body--accounts .form-control:focus,
+body.app-body--accounts .form-select:focus,
+body.app-body--accounts .form-input:focus,
+body.app-body--accounts input:focus,
+body.app-body--accounts select:focus,
+body.app-body--accounts textarea:focus {
+    border-color: rgba(118, 75, 162, 0.38) !important;
+    box-shadow: 0 0 0 4px rgba(118, 75, 162, 0.12) !important;
+}
+
+body.app-body--accounts .tab.active,
+body.app-body--accounts .page-link.current,
+body.app-body--accounts .view-btn.active,
+body.app-body--accounts .btn-icon:hover,
+body.app-body--accounts .view-btn:hover {
+    background: linear-gradient(135deg, #8e63b7, #764ba2);
+    color: #fff;
+}
+
+body.app-body--accounts .user-avatar {
+    background: linear-gradient(135deg, #8e63b7, #764ba2);
+}
+
+.accounts-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(118, 75, 162, 0.14);
+}
+
+.accounts-brand__logo {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+    border-radius: 14px;
+    background: #fff;
+    padding: 0.35rem;
+    box-shadow: 0 10px 20px rgba(118, 75, 162, 0.12);
+}
+
+.accounts-brand__text {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.accounts-brand__title {
+    font-weight: 800;
+    color: var(--accounts-secondary);
+    line-height: 1.1;
+}
+
+.accounts-brand__meta {
+    font-size: 0.78rem;
+    color: #7b6a90;
+}
+
+@media (max-width: 767.98px) {
+    .accounts-brand__text {
+        display: none;
+    }
+}

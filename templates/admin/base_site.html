@@ -15,15 +15,58 @@
 {% block nav-global %}
 {{ block.super }}
 <style>
+body,
+#container,
+#content,
+#content-main {
+    background:
+        radial-gradient(circle at top left, rgba(118, 75, 162, 0.16), transparent 24%),
+        linear-gradient(180deg, rgba(251, 248, 255, 0.94) 0%, rgba(243, 237, 249, 0.94) 100%),
+        url("{% static 'img/back.png' %}");
+    background-size: auto, auto, cover;
+    background-position: top left, center, center;
+}
+
+#header {
+    background: linear-gradient(135deg, #5f3789, #764ba2) !important;
+    color: #fff;
+}
+
+#site-name a,
+#user-tools,
+.module caption,
+.inline-group h2 {
+    color: #fff !important;
+}
+
+.module,
+.dashboard .module,
+#content-related,
+.breadcrumbs {
+    border-radius: 18px;
+    border: 1px solid rgba(118, 75, 162, 0.12);
+    box-shadow: 0 16px 34px rgba(118, 75, 162, 0.10);
+    background: rgba(255,255,255,0.96);
+}
+
+.button,
+input[type=submit],
+input[type=button],
+.submit-row input,
+a.button {
+    background: linear-gradient(135deg, #8e63b7, #764ba2) !important;
+    border-color: #764ba2 !important;
+}
+
 .dashboard-button {
-    background: linear-gradient(135deg, #FF2E63, #FF6B6B);
+    background: linear-gradient(135deg, #8e63b7, #764ba2);
     color: white;
     padding: 10px 20px;
     border-radius: 25px;
     text-decoration: none;
     margin-right: 20px;
     font-weight: bold;
-    box-shadow: 0 4px 15px rgba(255, 46, 99, 0.3);
+    box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
     transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
@@ -32,7 +75,7 @@
 
 .dashboard-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 46, 99, 0.4);
+    box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
     color: white;
 }
 </style>
