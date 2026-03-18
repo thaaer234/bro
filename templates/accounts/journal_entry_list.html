@@ -2,6 +2,7 @@
 
 
 {% load emp_perms %}
+{% load student_filters %}
 {% block title %}قيود اليومية / Journal Entries{% endblock %}
 
 {% block content %}
@@ -57,7 +58,7 @@
                             </a>
                         </td>
                         <td>{{ entry.date }}</td>
-                        <td>{{ entry.description|truncatechars:50 }}</td>
+                        <td>{{ entry.description|fix_arabic_text|truncatechars:50 }}</td>
                         <td class="text-end">
                             <strong>{{ entry.total_amount|floatformat:2 }}</strong>
                         </td>
