@@ -614,7 +614,7 @@ function initializeDeleteButtons() {
             if (confirm('هل أنت متأكد من رغبتك في حذف هذا الطالب؟')) {
                 let deleteUrl = '';
                 if (isQuick) {
-                    deleteUrl = `/quick/students/delete/${studentId}/`;
+                    deleteUrl = `/quick/student/${studentId}/delete/`;
                 } else {
                     deleteUrl = `/students/delete/${studentId}/`;
                 }

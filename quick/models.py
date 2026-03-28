@@ -342,11 +342,6 @@ class QuickEnrollment(models.Model):
         
         # ترحيل القيد
         entry.post_entry(user)
-        
-        # حفظ المرجع للقيد المحاسبي (إزالة هذا السطر إذا لم يكن الحقل موجوداً)
-        # self.enrollment_journal_entry = entry
-        # self.save(update_fields=['enrollment_journal_entry'])
-        
 
         return entry
 # Signals: ensure AR account exists on create

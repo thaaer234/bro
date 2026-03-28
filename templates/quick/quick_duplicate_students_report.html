@@ -335,9 +335,23 @@
                 </div>
             </div>
             <div class="dup-actions">
+                <form method="post" class="d-inline-block" onsubmit="return confirm('سيتم دمج جميع الأسماء المكررة الظاهرة حسب الفلتر الحالي. سيتم تجاوز المجموعات التي تفشل ومتابعة الباقي. متابعة؟');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="merge_all">
+                    <input type="hidden" name="q" value="{{ search_query }}">
+                    <input type="hidden" name="scope" value="{{ scope }}">
+                    <button type="submit" class="btn btn-success dup-btn">
+                        <i class="fas fa-layer-group me-1"></i>
+                        دمج الكل
+                    </button>
+                </form>
                 <a href="/quick/reports/duplicate-students/print/all/?q={{ search_query|urlencode }}&scope={{ scope }}" target="_blank" class="btn btn-warning dup-btn">
                     <i class="fas fa-print me-1"></i>
                     فتح ملف التقرير
+                </a>
+                <a href="{% url 'quick:accounting_fix_tool' %}" class="btn btn-outline-light dup-btn">
+                    <i class="fas fa-wrench me-1"></i>
+                    أداة تصحيح القيود
                 </a>
                 <a href="{% url 'quick:student_list' %}" class="btn btn-light dup-btn">
                     <i class="fas fa-users me-1"></i>
@@ -421,6 +435,7 @@
                 <div class="dup-group-actions">
                     <form method="post" class="d-inline-block" onsubmit="return confirm('سيتم دمج كل السجلات المتكررة لهذا الاسم في أقدم سجل نشط، مع عكس التسجيلات المكررة على نفس الدورة إذا كان الدمج آمناً. متابعة؟');">
                         {% csrf_token %}
+                        <input type="hidden" name="action" value="merge_one">
                         <input type="hidden" name="group_name" value="{{ group.normalized_name }}">
                         <input type="hidden" name="q" value="{{ search_query }}">
                         <input type="hidden" name="scope" value="{{ scope }}">

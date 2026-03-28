@@ -99,10 +99,15 @@
             <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-sm btn-info">
                 <i class="fas fa-eye"></i>
             </a>
-                 <!-- ✅ إضافة زر التعديل -->
-                    <a href="{% url 'quick:student_update' student.pk %}" class="btn btn-sm btn-warning">
-                        <i class="fas fa-edit"></i>
-                    </a>
+            <a href="{% url 'quick:student_update' student.pk %}" class="btn btn-sm btn-warning">
+                <i class="fas fa-edit"></i>
+            </a>
+            <button class="btn btn-sm btn-danger delete-student-btn"
+                    data-student-name="{{ student.full_name|escape }}"
+                    data-delete-url="{% url 'quick:delete_student' student.id %}"
+                    data-summary-url="{% url 'quick:delete_student' student.id %}">
+                <i class="fas fa-trash"></i>
+            </button>
         </td>
     </tr>
     {% empty %}
@@ -118,6 +123,187 @@
     </table>
 </div>
 
+<style>
+#deleteStudentModal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483000 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+#deleteStudentModal .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(6px);
+    z-index: 1;
+}
+
+#deleteStudentModal .modal-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(680px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    border-radius: 24px;
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 32px 90px rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    z-index: 2;
+}
+
+#deleteStudentModal .modal-header,
+#deleteStudentModal .modal-body,
+#deleteStudentModal .modal-footer {
+    padding: 20px 24px;
+}
+
+#deleteStudentModal .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #fff7ed 0%, #fee2e2 100%);
+}
+
+#deleteStudentModal .modal-header h3 {
+    margin: 0;
+    color: #991b1b;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+#deleteStudentModal .close-btn {
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #991b1b;
+    cursor: pointer;
+    font-size: 18px;
+    box-shadow: 0 8px 20px rgba(148, 163, 184, 0.2);
+}
+
+#deleteStudentModal .modal-body p {
+    color: #334155;
+    text-align: right;
+    margin-bottom: 14px;
+    line-height: 1.8;
+}
+
+#deleteStudentModal .alert {
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+
+#deleteStudentModal ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 10px;
+}
+
+#deleteStudentModal li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+    font-weight: 600;
+}
+
+#deleteStudentModal li strong {
+    color: #b91c1c;
+    font-weight: 800;
+}
+
+#deleteStudentModal .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+#deleteStudentModal .btn {
+    min-width: 140px;
+    border-radius: 14px;
+    font-weight: 800;
+}
+
+@media (max-width: 640px) {
+    #deleteStudentModal .modal-container {
+        width: calc(100vw - 20px);
+        max-height: calc(100vh - 20px);
+        border-radius: 20px;
+    }
+
+    #deleteStudentModal .modal-header,
+    #deleteStudentModal .modal-body,
+    #deleteStudentModal .modal-footer {
+        padding: 16px;
+    }
+
+    #deleteStudentModal .modal-footer {
+        flex-direction: column-reverse;
+    }
+
+    #deleteStudentModal .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<div id="deleteStudentModal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3><i class="fas fa-trash"></i> تأكيد حذف الطالب السريع</h3>
+            <button type="button" class="close-btn" data-close>
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>تحذير:</strong> هذا الإجراء لا يمكن التراجع عنه.
+            </div>
+            <p>هل أنت متأكد من أنك تريد حذف الطالب السريع <strong id="delete-student-name"></strong>؟</p>
+            <p>سيتم حذف التسجيلات والإيصالات والقيود والحركات المالية المرتبطة به.</p>
+            <ul class="mb-0">
+                <li>التسجيلات: <strong id="delete-student-enrollments">0</strong></li>
+                <li>الإيصالات: <strong id="delete-student-receipts">0</strong></li>
+                <li>القيود: <strong id="delete-student-journals">0</strong></li>
+                <li>الحركات المالية: <strong id="delete-student-transactions">0</strong></li>
+                <li>حساب الذمم: <strong id="delete-student-accounts">-</strong></li>
+            </ul>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" data-close>إلغاء</button>
+            <button type="button" id="confirmDeleteStudent" class="btn btn-danger">
+                <i class="fas fa-trash"></i> نعم، احذف الطالب
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 // تهيئة خاصة بالطلاب السريعين
 document.addEventListener('DOMContentLoaded', function() {
@@ -127,6 +313,102 @@ document.addEventListener('DOMContentLoaded', function() {
         typeFilter.value = 'quick';
         typeFilter.dispatchEvent(new Event('change'));
     }
+
+    let currentDeleteUrl = null;
+    const deleteModal = document.getElementById('deleteStudentModal');
+
+    function openDeleteModal() {
+        if (deleteModal) {
+            deleteModal.style.display = 'flex';
+        }
+    }
+
+    function closeDeleteModal() {
+        if (deleteModal) {
+            deleteModal.style.display = 'none';
+        }
+    }
+
+    function getCsrfToken() {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+
+        if (cookieValue) {
+            return decodeURIComponent(cookieValue);
+        }
+
+        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        return csrfInput ? csrfInput.value : '';
+    }
+
+    document.querySelectorAll('.delete-student-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            currentDeleteUrl = this.getAttribute('data-delete-url');
+            const summaryUrl = this.getAttribute('data-summary-url');
+            document.getElementById('delete-student-name').textContent = this.getAttribute('data-student-name');
+            document.getElementById('delete-student-enrollments').textContent = '...';
+            document.getElementById('delete-student-receipts').textContent = '...';
+            document.getElementById('delete-student-journals').textContent = '...';
+            document.getElementById('delete-student-transactions').textContent = '...';
+            document.getElementById('delete-student-accounts').textContent = '...';
+            openDeleteModal();
+
+            try {
+                const response = await fetch(summaryUrl, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const data = await response.json();
+                const summary = data.summary || {};
+                document.getElementById('delete-student-enrollments').textContent = summary.enrollments_count ?? 0;
+                document.getElementById('delete-student-receipts').textContent = summary.receipts_count ?? 0;
+                document.getElementById('delete-student-journals').textContent = summary.journal_entries_count ?? 0;
+                document.getElementById('delete-student-transactions').textContent = summary.transactions_count ?? 0;
+                document.getElementById('delete-student-accounts').textContent = summary.account_codes_display || summary.ar_account_code || '-';
+            } catch (error) {
+                document.getElementById('delete-student-accounts').textContent = 'تعذر تحميل البيانات';
+            }
+        });
+    });
+
+    document.getElementById('confirmDeleteStudent')?.addEventListener('click', function() {
+        if (!currentDeleteUrl) return;
+
+        fetch(currentDeleteUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('حدث خطأ أثناء الحذف: ' + (data.error || 'غير معروف'));
+            }
+        })
+        .catch(() => {
+            alert('حدث خطأ في الشبكة');
+        })
+        .finally(() => {
+            closeDeleteModal();
+        });
+    });
+
+    document.querySelectorAll('#deleteStudentModal [data-close]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            closeDeleteModal();
+        });
+    });
+
+    document.querySelector('#deleteStudentModal .modal-overlay')?.addEventListener('click', function() {
+        closeDeleteModal();
+    });
 });
 </script>
 {% endblock %}

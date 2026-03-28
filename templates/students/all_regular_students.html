@@ -108,7 +108,9 @@
                 </a>
                 <button class="btn btn-sm btn-danger delete-student-btn" 
                         data-student-id="{{ student.id }}"
-                        data-student-name="{{ student.full_name }}"
+                        data-student-name="{{ student.full_name|escape }}"
+                        data-delete-url="{% url 'students:delete_student' student.id %}"
+                        data-summary-url="{% url 'students:delete_student' student.id %}"
                         title="حذف الطالب">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -143,7 +145,14 @@
                 <strong>تحذير:</strong> هذا الإجراء لا يمكن التراجع عنه!
             </div>
             <p>هل أنت متأكد من أنك تريد حذف الطالب <strong id="delete-student-name"></strong>؟</p>
-            <p>سيتم حذف جميع البيانات المرتبطة بالطالب بما في ذلك التسجيلات والإيصالات.</p>
+            <p>سيتم حذف جميع البيانات المرتبطة بالطالب بما في ذلك التسجيلات والسجلات المالية والإيصالات.</p>
+            <ul class="mb-0">
+                <li>التسجيلات: <strong id="delete-student-enrollments">0</strong></li>
+                <li>الإيصالات: <strong id="delete-student-receipts">0</strong></li>
+                <li>القيود: <strong id="delete-student-journals">0</strong></li>
+                <li>الحركات المالية: <strong id="delete-student-transactions">0</strong></li>
+                <li>حسابات الذمم: <strong id="delete-student-accounts">-</strong></li>
+            </ul>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-outline" data-close>إلغاء</button>
@@ -157,31 +166,51 @@
 <script>
 // إدارة حذف الطلاب
 document.addEventListener('DOMContentLoaded', function() {
-    let currentStudentToDelete = null;
+    let currentDeleteUrl = null;
     
     // فتح مودال الحذف
     document.querySelectorAll('.delete-student-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const studentId = this.getAttribute('data-student-id');
+        btn.addEventListener('click', async function() {
             const studentName = this.getAttribute('data-student-name');
-            
-            currentStudentToDelete = studentId;
+            const summaryUrl = this.getAttribute('data-summary-url');
+
+            currentDeleteUrl = this.getAttribute('data-delete-url');
             document.getElementById('delete-student-name').textContent = studentName;
+            document.getElementById('delete-student-enrollments').textContent = '...';
+            document.getElementById('delete-student-receipts').textContent = '...';
+            document.getElementById('delete-student-journals').textContent = '...';
+            document.getElementById('delete-student-transactions').textContent = '...';
+            document.getElementById('delete-student-accounts').textContent = '...';
             document.getElementById('deleteStudentModal').style.display = 'block';
+
+            try {
+                const response = await fetch(summaryUrl, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                const data = await response.json();
+                const summary = data.summary || {};
+                document.getElementById('delete-student-enrollments').textContent = summary.enrollments_count ?? 0;
+                document.getElementById('delete-student-receipts').textContent = summary.receipts_count ?? 0;
+                document.getElementById('delete-student-journals').textContent = summary.journal_entries_count ?? 0;
+                document.getElementById('delete-student-transactions').textContent = summary.transactions_count ?? 0;
+                document.getElementById('delete-student-accounts').textContent = summary.account_codes_display || '-';
+            } catch (error) {
+                document.getElementById('delete-student-accounts').textContent = 'تعذر تحميل البيانات';
+            }
         });
     });
     
     // تأكيد الحذف
     document.getElementById('confirmDeleteStudent').addEventListener('click', function() {
-        if (!currentStudentToDelete) return;
+        if (!currentDeleteUrl) return;
         
-        const deleteUrl = `/students/delete/${currentStudentToDelete}/`;
-        
-        fetch(deleteUrl, {
-            method: 'DELETE',
+        fetch(currentDeleteUrl, {
+            method: 'POST',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken'),
                 'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
             },
         })
         .then(response => response.json())

@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponse
 from datetime import datetime, date
 from decimal import Decimal
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
 from django.utils.decorators import method_decorator
@@ -45,9 +46,13 @@ def _repair_token(text):
         except (UnicodeEncodeError, UnicodeDecodeError):
             continue
 
-        if repaired != text and (
-            _arabic_score(repaired) > _arabic_score(text)
-            or _mojibake_score(repaired) < _mojibake_score(text)
+        original_arabic = _arabic_score(text)
+        repaired_arabic = _arabic_score(repaired)
+        original_mojibake = _mojibake_score(text)
+        repaired_mojibake = _mojibake_score(repaired)
+
+        if repaired != text and repaired_mojibake < original_mojibake and (
+            repaired_arabic >= original_arabic or (original_arabic == 0 and repaired_arabic > 0)
         ):
             return repaired
 
@@ -70,7 +75,11 @@ def _repair_mojibake_text(value):
     repaired_parts = [_repair_token(part) if part.strip() else part for part in parts]
     candidate = "".join(repaired_parts)
 
-    if candidate != text and _mojibake_score(candidate) < _mojibake_score(text):
+    if (
+        candidate != text
+        and _mojibake_score(candidate) < _mojibake_score(text)
+        and _arabic_score(candidate) >= _arabic_score(text)
+    ):
         return candidate
 
     return text
@@ -141,6 +150,30 @@ def fix_single_journal_mojibake(request, pk):
         messages.info(request, f'لم يتم العثور على نصوص معطوبة في القيد {journal_entry.reference}.')
 
     return redirect('accounts:journal_entry_detail', pk=journal_entry.pk)
+
+
+def _delete_journal_entry_with_rebuild(journal_entry):
+    entry_reference = journal_entry.reference
+    with db_transaction.atomic():
+        journal_entry.delete()
+    Account.rebuild_all_balances()
+    return entry_reference
+
+
+@login_required
+@require_POST
+def delete_journal_entry(request, pk):
+    journal_entry = get_object_or_404(JournalEntry, pk=pk)
+    password = request.POST.get('password', '')
+    next_url = request.POST.get('next') or reverse('accounts:journal_entry_list')
+
+    if not password or not request.user.check_password(password):
+        messages.error(request, 'كلمة المرور غير صحيحة. لم يتم حذف القيد.')
+        return redirect(next_url)
+
+    reference = _delete_journal_entry_with_rebuild(journal_entry)
+    messages.success(request, f'تم حذف القيد {reference} وإعادة بناء الأرصدة بنجاح.')
+    return redirect(next_url)
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -789,7 +822,30 @@ class JournalEntryListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        return JournalEntry.objects.select_related('created_by').order_by('-date', '-created_at')
+        queryset = JournalEntry.objects.select_related('created_by').order_by('-date', '-created_at')
+        search_query = (self.request.GET.get('q') or '').strip()
+        status_filter = (self.request.GET.get('status') or '').strip()
+
+        if search_query:
+            queryset = queryset.filter(
+                Q(reference__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(entry_type__icontains=search_query) |
+                Q(created_by__username__icontains=search_query) |
+                Q(created_by__first_name__icontains=search_query) |
+                Q(created_by__last_name__icontains=search_query) |
+                Q(transactions__description__icontains=search_query) |
+                Q(transactions__account__code__icontains=search_query) |
+                Q(transactions__account__name__icontains=search_query) |
+                Q(transactions__account__name_ar__icontains=search_query)
+            ).distinct()
+
+        if status_filter == 'posted':
+            queryset = queryset.filter(is_posted=True)
+        elif status_filter == 'unposted':
+            queryset = queryset.filter(is_posted=False)
+
+        return queryset
 
 
 class JournalEntryCreateView(LoginRequiredMixin, CreateView):
@@ -3816,13 +3872,96 @@ class JournalEntryListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        return JournalEntry.objects.select_related('created_by').order_by('-date', '-created_at')
+        queryset = JournalEntry.objects.select_related('created_by', 'posted_by').order_by('-date', '-created_at')
+        search_query = (self.request.GET.get('q') or '').strip()
+        status_filter = (self.request.GET.get('status') or '').strip()
+        entry_type = (self.request.GET.get('entry_type') or '').strip()
+        created_by = (self.request.GET.get('created_by') or '').strip()
+        date_from = parse_date((self.request.GET.get('date_from') or '').strip())
+        date_to = parse_date((self.request.GET.get('date_to') or '').strip())
+        amount_min_raw = (self.request.GET.get('amount_min') or '').strip()
+        amount_max_raw = (self.request.GET.get('amount_max') or '').strip()
+
+        if search_query:
+            queryset = queryset.filter(
+                Q(reference__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(entry_type__icontains=search_query) |
+                Q(created_by__username__icontains=search_query) |
+                Q(created_by__first_name__icontains=search_query) |
+                Q(created_by__last_name__icontains=search_query) |
+                Q(posted_by__username__icontains=search_query) |
+                Q(posted_by__first_name__icontains=search_query) |
+                Q(posted_by__last_name__icontains=search_query) |
+                Q(transactions__description__icontains=search_query) |
+                Q(transactions__account__code__icontains=search_query) |
+                Q(transactions__account__name__icontains=search_query) |
+                Q(transactions__account__name_ar__icontains=search_query)
+            ).distinct()
+
+        if status_filter == 'posted':
+            queryset = queryset.filter(is_posted=True)
+        elif status_filter == 'unposted':
+            queryset = queryset.filter(is_posted=False)
+
+        if entry_type:
+            queryset = queryset.filter(entry_type=entry_type)
+
+        if created_by:
+            queryset = queryset.filter(created_by_id=created_by)
+
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
+
+        try:
+            if amount_min_raw:
+                queryset = queryset.filter(total_amount__gte=Decimal(amount_min_raw))
+            if amount_max_raw:
+                queryset = queryset.filter(total_amount__lte=Decimal(amount_max_raw))
+        except Exception:
+            pass
+
+        return queryset
     
     def get(self, request, *args, **kwargs):
         # التحقق إذا كان الطلب لتصدير Excel
         if request.GET.get('export') == 'excel':
             return self.export_to_excel()
         return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        filtered_queryset = self.get_queryset()
+        creator_rows = (
+            JournalEntry.objects.exclude(created_by__isnull=True)
+            .values('created_by_id', 'created_by__username', 'created_by__first_name', 'created_by__last_name')
+            .distinct()
+            .order_by('created_by__first_name', 'created_by__last_name', 'created_by__username')
+        )
+
+        context.update({
+            'search_query': (self.request.GET.get('q') or '').strip(),
+            'status_filter': (self.request.GET.get('status') or '').strip(),
+            'entry_type_filter': (self.request.GET.get('entry_type') or '').strip(),
+            'created_by_filter': (self.request.GET.get('created_by') or '').strip(),
+            'date_from': (self.request.GET.get('date_from') or '').strip(),
+            'date_to': (self.request.GET.get('date_to') or '').strip(),
+            'amount_min': (self.request.GET.get('amount_min') or '').strip(),
+            'amount_max': (self.request.GET.get('amount_max') or '').strip(),
+            'entry_type_choices': JournalEntry.ENTRY_TYPE_CHOICES,
+            'created_by_users': creator_rows,
+            'filtered_total': filtered_queryset.count(),
+            'posted_count': filtered_queryset.filter(is_posted=True).count(),
+            'unposted_count': filtered_queryset.filter(is_posted=False).count(),
+            'this_month_count': filtered_queryset.filter(
+                date__year=timezone.now().year,
+                date__month=timezone.now().month,
+            ).count(),
+        })
+        return context
     
     def export_to_excel(self):
         """تصدير قيود اليومية إلى Excel بتصميم احترافي متطور"""

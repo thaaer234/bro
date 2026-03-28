@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4" dir="rtl">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h2 class="mb-2">أداة تصحيح قيود سحب الطلاب السريعين</h2>
+                    <p class="text-muted mb-0">
+                        هذه الأداة مخصصة لقيود السحب القديمة أو الخاطئة للطلاب السريعين. تقوم بتنظيف قيود السحب المخالفة ثم تعيد بناء السحب الصحيح وفق الخطة الحالية.
+                    </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'quick:accounting_fix_tool' %}" class="btn btn-outline-primary">أداة التصحيح العامة</a>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('سيتم تصحيح جميع قيود السحب السريعة المخالفة. هل تريد المتابعة؟');">
+                            تنفيذ تصحيح السحب
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">إجمالي حالات السحب المفحوصة</div>
+                    <div class="fs-3 fw-bold">{{ audited_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">حالات مرتبطة بقيود سحب قديمة</div>
+                    <div class="fs-3 fw-bold text-danger">{{ legacy_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">حالات فيها دفعات باقية</div>
+                    <div class="fs-3 fw-bold text-warning">{{ retained_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">حالات بلا قيد سحب واضح</div>
+                    <div class="fs-3 fw-bold text-info">{{ missing_withdraw_count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if rows %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>الطالب</th>
+                            <th>الدورة</th>
+                            <th>قيود سحب قديمة</th>
+                            <th>قيود سحب مولدة سابقاً</th>
+                            <th>المدفوع الحالي</th>
+                            <th>الأثر القديم</th>
+                            <th>المشكلات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td>{{ row.enrollment.student.full_name }}</td>
+                            <td>{{ row.enrollment.course.name }}</td>
+                            <td>{{ row.legacy_entries_count }}</td>
+                            <td>{{ row.existing_fix_entries_count }}</td>
+                            <td>{{ row.retained_amount|floatformat:2 }}</td>
+                            <td>{{ row.refunded_amount|floatformat:2 }}</td>
+                            <td>
+                                {% if row.issues %}
+                                    {% for issue in row.issues %}
+                                    <div>{{ issue }}</div>
+                                    {% endfor %}
+                                {% else %}
+                                <span class="text-muted">سحب يحتاج إعادة بناء</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">لا توجد حالياً قيود سحب سريعة تحتاج إلى تصحيح.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

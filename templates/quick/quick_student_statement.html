@@ -1,95 +1,72 @@
 {% extends "base.html" %}
-{% load static %}
 {% load student_filters %}
 
 {% block content %}
-<div class="student-profile" dir="rtl">
-    <!-- Header Section -->
-    <div class="profile-header">
-        <div class="header-content">
-            <div class="student-avatar">
-                <div class="avatar-placeholder">
-                    <i class="fas fa-user-graduate"></i>
-                </div>
+<div class="container py-4" dir="rtl">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h2 class="mb-1">{{ student.full_name }}</h2>
+                <div class="text-muted">كشف حساب الطالب السريع</div>
             </div>
-            <div class="student-info">
-                <h1>{{ student.full_name }}</h1>
-                <p class="student-number">كشف حساب الطالب السريع</p>
-                <div class="student-status">
-                    <span class="status-badge active">نشط</span>
-                    <span class="status-badge badge-warning ml-2">سريع</span>
-                </div>
-            </div>
-            <div class="header-actions">
-                <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-outline-primary">
-                    <i class="fas fa-arrow-right"></i>
-                    العودة للبروفايل
-                </a>
-                {% if request.user.is_superuser %}
-                <form method="post" action="{% url 'students:fix_arabic_mojibake' %}" style="display:inline-block;">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <button type="submit" class="btn btn-warning" onclick="return confirm('سيتم إصلاح النصوص العربية المعطوبة القديمة من قاعدة البيانات. هل تريد المتابعة؟');">
-                        <i class="fas fa-language"></i>
-                        إصلاح السجلات القديمة
-                    </button>
-                </form>
-                {% endif %}
-                <button onclick="window.print()" class="btn btn-primary">
-                    <i class="fas fa-print"></i>
-                    طباعة الكشف
-                </button>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-outline-primary">العودة إلى البروفايل</a>
+                <button onclick="window.print()" class="btn btn-primary">طباعة الكشف</button>
             </div>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="summary-section">
-        <div class="summary-grid">
-            <div class="summary-card">
-                <div class="card-icon">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="card-content">
-                    <span class="card-label">الرصيد الحالي</span>
-                    <strong class="card-value">{{ balance|floatformat:2 }} ل.س</strong>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">الرصيد الحالي</div>
+                    <div class="fs-4 fw-bold">{{ balance|floatformat:2 }} ل.س</div>
                 </div>
             </div>
-            <div class="summary-card">
-                <div class="card-icon">
-                    <i class="fas fa-receipt"></i>
-                </div>
-                <div class="card-content">
-                    <span class="card-label">عدد الإيصالات</span>
-                    <strong class="card-value">{{ receipts|length }}</strong>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">إجمالي القيود</div>
+                    <div class="fs-4 fw-bold">{{ entry_count }}</div>
                 </div>
             </div>
-            <div class="summary-card">
-                <div class="card-icon">
-                    <i class="fas fa-book"></i>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">إجمالي المدفوع</div>
+                    <div class="fs-4 fw-bold">{{ total_paid|floatformat:2 }} ل.س</div>
                 </div>
-                <div class="card-content">
-                    <span class="card-label">الدورات المسجلة</span>
-                    <strong class="card-value">{{ per_course|length }}</strong>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">المتبقي الحالي</div>
+                    <div class="fs-4 fw-bold">{{ total_remaining|floatformat:2 }} ل.س</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Financial Transactions -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3><i class="fas fa-exchange-alt"></i> الحركات المالية</h3>
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h3 class="mb-0">الحركات والقيود</h3>
         </div>
         <div class="card-body">
             {% if rows %}
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped table-hover align-middle">
                     <thead>
                         <tr>
                             <th>التاريخ</th>
-                            <th>الرقم المرجعي</th>
-                            <th>الوصف</th>
+                            <th>المرجع</th>
+                            <th>نوع القيد</th>
+                            <th>الحساب</th>
+                            <th>وصف القيد</th>
+                            <th>وصف الحركة</th>
                             <th>مدين</th>
                             <th>دائن</th>
                             <th>الرصيد</th>
@@ -101,12 +78,13 @@
                         <tr>
                             <td>{{ row.date|date:"Y-m-d" }}</td>
                             <td>{{ row.ref|default:"-" }}</td>
+                            <td>{{ row.entry_type }}</td>
+                            <td dir="ltr">{{ row.account_code }} - {{ row.account_name|fix_arabic_text }}</td>
                             <td>{{ row.desc|fix_arabic_text }}</td>
+                            <td>{{ row.tx_desc|fix_arabic_text }}</td>
                             <td class="text-danger">{{ row.debit|floatformat:2 }}</td>
                             <td class="text-success">{{ row.credit|floatformat:2 }}</td>
-                            <td class="{% if row.balance > 0 %}text-danger{% else %}text-success{% endif %}">
-                                {{ row.balance|floatformat:2 }}
-                            </td>
+                            <td>{{ row.balance|floatformat:2 }}</td>
                             <td>{{ row.created_by }}</td>
                         </tr>
                         {% endfor %}
@@ -114,34 +92,27 @@
                 </table>
             </div>
             {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="fas fa-exchange-alt"></i>
-                </div>
-                <h4>لا توجد حركات مالية</h4>
-                <p>لم يتم تسجيل أي حركات مالية لهذا الطالب</p>
-            </div>
+            <div class="text-center text-muted py-5">لا توجد قيود أو حركات مالية لهذا الطالب.</div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Receipts History -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3><i class="fas fa-receipt"></i> كشف الإيصالات</h3>
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h3 class="mb-0">الإيصالات</h3>
         </div>
         <div class="card-body">
             {% if receipts %}
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped align-middle">
                     <thead>
                         <tr>
                             <th>رقم الإيصال</th>
                             <th>الدورة</th>
                             <th>التاريخ</th>
                             <th>المبلغ</th>
-                            <th>الخصم</th>
-                            <th>الصافي</th>
+                            <th>المدفوع</th>
+                            <th>القيد</th>
                             <th>طباعة</th>
                         </tr>
                     </thead>
@@ -149,24 +120,14 @@
                         {% for receipt in receipts %}
                         <tr>
                             <td>{{ receipt.receipt_number|default:"-" }}</td>
-                            <td>{{ receipt.course.name|default:"-" }}</td>
+                            <td>{{ receipt.course.name|default:receipt.course_name|default:"-" }}</td>
                             <td>{{ receipt.date|date:"Y-m-d" }}</td>
                             <td>{{ receipt.amount|floatformat:2 }} ل.س</td>
-                            <td>
-                                {% if receipt.discount_percent > 0 %}
-                                {{ receipt.discount_percent }}%
-                                {% elif receipt.discount_amount > 0 %}
-                                {{ receipt.discount_amount|floatformat:2 }} ل.س
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
                             <td>{{ receipt.paid_amount|floatformat:2 }} ل.س</td>
+                            <td>{{ receipt.journal_entry.reference|default:"-" }}</td>
                             <td>
                                 {% if receipt.receipt_number %}
-                                <a href="{% url 'accounts:student_receipt_print' receipt.id %}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-print"></i>
-                                </a>
+                                <a href="{% url 'quick:student_receipt_print' receipt.id %}" target="_blank" class="btn btn-sm btn-outline-primary">طباعة</a>
                                 {% else %}
                                 -
                                 {% endif %}
@@ -177,31 +138,24 @@
                 </table>
             </div>
             {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="fas fa-receipt"></i>
-                </div>
-                <h4>لا توجد إيصالات مسجلة</h4>
-                <p>لم يتم قطع أي إيصالات لهذا الطالب حتى الآن</p>
-            </div>
+            <div class="text-center text-muted py-5">لا توجد إيصالات مسجلة لهذا الطالب.</div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Courses Summary -->
-    <div class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-list-alt"></i> ملخص الدورات</h3>
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h3 class="mb-0">ملخص الدورات</h3>
         </div>
         <div class="card-body">
             {% if per_course %}
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped align-middle">
                     <thead>
                         <tr>
                             <th>الدورة</th>
-                            <th>المبلغ المستحق</th>
-                            <th>المبلغ المدفوع</th>
+                            <th>المستحق</th>
+                            <th>المدفوع</th>
                             <th>المتبقي</th>
                             <th>الحالة</th>
                         </tr>
@@ -212,14 +166,14 @@
                             <td>{{ course.course.name }}</td>
                             <td>{{ course.price|floatformat:2 }} ل.س</td>
                             <td>{{ course.paid|floatformat:2 }} ل.س</td>
-                            <td class="{% if course.outstanding > 0 %}text-danger{% else %}text-success{% endif %}">
-                                {{ course.outstanding|floatformat:2 }} ل.س
-                            </td>
+                            <td>{{ course.outstanding|floatformat:2 }} ل.س</td>
                             <td>
-                                {% if course.outstanding <= 0 %}
-                                <span class="badge badge-success">مكتمل الدفع</span>
+                                {% if course.is_completed %}
+                                <span class="badge bg-secondary">مسحوب</span>
+                                {% elif course.outstanding <= 0 %}
+                                <span class="badge bg-success">مكتمل الدفع</span>
                                 {% else %}
-                                <span class="badge badge-warning">غير مكتمل</span>
+                                <span class="badge bg-warning text-dark">غير مكتمل</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -228,13 +182,7 @@
                 </table>
             </div>
             {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="fas fa-book"></i>
-                </div>
-                <h4>لا توجد دورات مسجلة</h4>
-                <p>لا توجد دورات مسجلة للطالب لعرض بياناتها المالية</p>
-            </div>
+            <div class="text-center text-muted py-5">لا توجد دورات مسجلة لهذا الطالب.</div>
             {% endif %}
         </div>
     </div>
@@ -242,7 +190,7 @@
 
 <style>
 @media print {
-    .header-actions, .summary-section {
+    .btn {
         display: none !important;
     }
 }

@@ -4,6 +4,7 @@ from django.views.generic.edit import FormView
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum
 from django.db import transaction as db_transaction
+from django.db.models import ProtectedError
 from django.contrib.auth import get_user_model
 from attendance.models import Attendance
 from classroom.models import Classroomenrollment
@@ -1334,14 +1335,143 @@ class CreateStudentView(LoginRequiredMixin, CreateView):
         messages.success(self.request, f'تم إضافة الطالب بنجاح - الفصل: {academic_year_name}')
         return response
     
-class StudentDeleteView(LoginRequiredMixin, DeleteView):
-    model = Student
-    success_url = reverse_lazy('students:student')
-    
+def _get_student_receipts_queryset(student):
+    return StudentReceipt.objects.filter(
+        Q(student_profile=student) | Q(student=student) | Q(enrollment__student=student)
+    ).distinct()
+
+
+def _get_student_related_accounts(student):
+    account_ids = set()
+
+    if student.account_id:
+        account_ids.add(student.account_id)
+
+    for enrollment in Studentenrollment.objects.filter(student=student).select_related('course'):
+        try:
+            account = Account.get_student_ar_account_for_course(student, enrollment.course)
+        except Exception:
+            account = None
+        if account:
+            account_ids.add(account.id)
+
+    if not account_ids:
+        return Account.objects.none()
+
+    return Account.objects.filter(id__in=account_ids)
+
+
+def _get_student_related_journal_entries(student):
+    receipt_entry_ids = _get_student_receipts_queryset(student).exclude(
+        journal_entry__isnull=True
+    ).values_list('journal_entry_id', flat=True)
+
+    enrollment_entry_ids = Studentenrollment.objects.filter(student=student).values_list(
+        'enrollment_journal_entry_id', flat=True
+    )
+    completion_entry_ids = Studentenrollment.objects.filter(student=student).values_list(
+        'completion_journal_entry_id', flat=True
+    )
+
+    account_entry_ids = Transaction.objects.filter(
+        account__in=_get_student_related_accounts(student)
+    ).values_list('journal_entry_id', flat=True)
+
+    entry_ids = {
+        entry_id for entry_id in list(receipt_entry_ids) + list(enrollment_entry_ids) + list(completion_entry_ids) + list(account_entry_ids)
+        if entry_id
+    }
+
+    if not entry_ids:
+        return JournalEntry.objects.none()
+
+    return JournalEntry.objects.filter(id__in=entry_ids).distinct()
+
+
+def _get_student_delete_summary(student):
+    enrollments_count = Studentenrollment.objects.filter(student=student).count()
+    receipts_count = _get_student_receipts_queryset(student).count()
+    journal_entries = _get_student_related_journal_entries(student)
+    journal_entries_count = journal_entries.count()
+    transactions_count = Transaction.objects.filter(journal_entry__in=journal_entries).count()
+    related_accounts = list(_get_student_related_accounts(student).values_list('code', flat=True))
+
+    return {
+        'enrollments_count': enrollments_count,
+        'receipts_count': receipts_count,
+        'journal_entries_count': journal_entries_count,
+        'transactions_count': transactions_count,
+        'account_codes': related_accounts,
+        'account_codes_display': '، '.join(related_accounts) if related_accounts else '-',
+    }
+
+
+def _delete_student_with_related_data(student):
+    receipts = list(_get_student_receipts_queryset(student))
+    enrollments = list(Studentenrollment.objects.filter(student=student))
+    journal_entries = list(_get_student_related_journal_entries(student))
+    related_accounts = list(_get_student_related_accounts(student))
+    student_name = student.full_name
+
+    with db_transaction.atomic():
+        if receipts:
+            StudentReceipt.objects.filter(id__in=[receipt.id for receipt in receipts]).delete()
+
+        if journal_entries:
+            JournalEntry.objects.filter(id__in=[entry.id for entry in journal_entries]).delete()
+
+        if enrollments:
+            Studentenrollment.objects.filter(id__in=[enrollment.id for enrollment in enrollments]).delete()
+
+        student.delete()
+
+        for account in related_accounts:
+            if not Transaction.objects.filter(account=account).exists():
+                account.delete()
+
+    Account.rebuild_all_balances()
+    return student_name
+
+
+class StudentDeleteView(LoginRequiredMixin, View):
+    def get_object(self):
+        return get_object_or_404(Student, pk=self.kwargs['pk'])
+
+    def get(self, request, *args, **kwargs):
+        student = self.get_object()
+        summary = _get_student_delete_summary(student)
+        return JsonResponse({
+            'success': True,
+            'student_name': student.full_name,
+            'summary': summary,
+        })
+
+    def _handle_delete(self, request):
+        student = self.get_object()
+
+        try:
+            student_name = _delete_student_with_related_data(student)
+        except ProtectedError:
+            return JsonResponse({
+                'success': False,
+                'error': 'تعذر حذف الطالب لأن هناك بيانات محمية ما زالت مرتبطة به.',
+            }, status=400)
+        except Exception as exc:
+            return JsonResponse({
+                'success': False,
+                'error': str(exc) or 'حدث خطأ غير متوقع أثناء حذف الطالب.',
+            }, status=400)
+
+        return JsonResponse({
+            'success': True,
+            'message': f'تم حذف الطالب "{student_name}" مع كل البيانات المرتبطة به.',
+        })
+
+    def post(self, request, *args, **kwargs):
+        return self._handle_delete(request)
+
     def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-        return JsonResponse({'success': True})
+        return self._handle_delete(request)
     
 class UpdateStudentView(LoginRequiredMixin, UpdateView):
     model = Student

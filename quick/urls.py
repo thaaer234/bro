@@ -81,6 +81,11 @@ urlpatterns = [
         name='duplicate_students_report'
     ),
     path(
+        'reports/merge-students/',
+        require_superuser(views.quick_duplicate_students_report),
+        name='merge_students_tool'
+    ),
+    path(
         'reports/duplicate-students/print/',
         require_superuser(views.quick_duplicate_students_print),
         name='duplicate_students_print'
@@ -90,6 +95,16 @@ urlpatterns = [
         require_superuser(views.quick_duplicate_students_full_print),
         name='duplicate_students_full_print'
     ),
+    path(
+        'reports/accounting-fix/',
+        require_superuser(views.quick_accounting_fix_tool),
+        name='accounting_fix_tool'
+    ),
+    path(
+        'reports/withdrawal-fix/',
+        require_superuser(views.quick_withdrawal_fix_tool),
+        name='withdrawal_fix_tool'
+    ),
     path('student/<int:student_id>/profile/', require_employee_perm('students_profile')(views.QuickStudentProfileView.as_view()), name='student_profile'),
     path('student/<int:student_id>/statement/', require_employee_perm('students_statement')(views.QuickStudentStatementView.as_view()), name='student_statement'),
     
@@ -98,6 +113,7 @@ urlpatterns = [
     path('student/<int:student_id>/update-discount/', require_employee_perm('students_edit')(views.update_quick_student_discount), name='update_quick_student_discount'),
     path('student/<int:student_id>/withdraw/', require_employee_perm('students_withdraw')(views.withdraw_quick_student), name='withdraw_quick_student'),
     path('student/<int:student_id>/refund/', require_employee_perm('students_withdraw')(views.refund_quick_student), name='refund_quick_student'),
+    path('student/<int:student_id>/delete/', require_employee_perm('students_edit')(views.quick_delete_student), name='delete_student'),
     
     # إيصالات الطلاب السريعين
     path('student-receipt/<int:receipt_id>/print/', require_employee_perm('students_receipt')(views.quick_student_receipt_print), name='student_receipt_print'),

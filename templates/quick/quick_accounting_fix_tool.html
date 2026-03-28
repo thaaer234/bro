@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4" dir="rtl">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h2 class="mb-2">أداة تدقيق وتصحيح قيود الطلاب السريعين</h2>
+                    <p class="text-muted mb-0">
+                        تفحص جميع تسجيلات الطلاب السريعين، وتراجع قيود التسجيل والقبض والسحب، ثم تصلح الحالات المخالفة القابلة للإصلاح.
+                    </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'quick:merge_students_tool' %}" class="btn btn-outline-primary">أداة دمج الطلاب المكررين</a>
+                    <a href="{% url 'quick:withdrawal_fix_tool' %}" class="btn btn-outline-warning">أداة تصحيح قيود السحب</a>
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('سيتم تنفيذ التصحيح التلقائي للحالات المخالفة القابلة للإصلاح. هل تريد المتابعة؟');">
+                            تنفيذ التصحيح الآن
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">إجمالي التسجيلات المفحوصة</div>
+                    <div class="fs-3 fw-bold">{{ audited_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">حالات مطابقة</div>
+                    <div class="fs-3 fw-bold text-success">{{ compliant_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">حالات مخالفة</div>
+                    <div class="fs-3 fw-bold text-danger">{{ issues_count }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-2">قيمة التصحيح المتوقعة</div>
+                    <div class="fs-4 fw-bold">{{ total_correction_amount|floatformat:2 }} ل.س</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if rows %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>الطالب</th>
+                            <th>الدورة</th>
+                            <th>الحالة</th>
+                            <th>التسجيل</th>
+                            <th>القبض</th>
+                            <th>السحب</th>
+                            <th>الإيصالات</th>
+                            <th>المدفوع الحالي</th>
+                            <th>الأثر القديم</th>
+                            <th>المشكلات</th>
+                            <th>الإجراء المقترح</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr class="{% if row.is_compliant %}table-success{% else %}table-warning{% endif %}">
+                            <td>{{ row.enrollment.student.full_name }}</td>
+                            <td>{{ row.enrollment.course.name }}</td>
+                            <td>
+                                {% if row.enrollment.is_completed %}
+                                <span class="badge bg-secondary">مسحوب</span>
+                                {% else %}
+                                <span class="badge bg-info text-dark">نشط</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.registration_ok %}
+                                <span class="text-success">مطابق</span>
+                                {% else %}
+                                <span class="text-danger">غير مطابق</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.receipts_ok %}
+                                <span class="text-success">مطابق</span>
+                                {% else %}
+                                <span class="text-danger">غير مطابق</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.withdrawal_ok %}
+                                <span class="text-success">مطابق</span>
+                                {% else %}
+                                <span class="text-danger">غير مطابق</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ row.audited_receipts }}/{{ row.receipt_count }}</td>
+                            <td>{{ row.retained_amount|floatformat:2 }}</td>
+                            <td>{{ row.refunded_amount|floatformat:2 }}</td>
+                            <td>
+                                {% if row.issues %}
+                                    {% for issue in row.issues %}
+                                    <div>{{ issue }}</div>
+                                    {% endfor %}
+                                {% else %}
+                                <span class="text-success">مطابق للخطة</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if row.suggested_actions %}
+                                    {% for action in row.suggested_actions %}
+                                    <div>{{ action }}</div>
+                                    {% endfor %}
+                                {% else %}
+                                <span class="text-muted">لا يلزم</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">لا توجد تسجيلات سريعة لعرضها حالياً.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

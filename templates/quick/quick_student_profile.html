@@ -52,6 +52,13 @@
     </div>
   </div>
 
+  <div class="mt-3 d-flex justify-content-end">
+    <button id="delete-student-btn" class="btn btn-danger" type="button">
+      <i class="fas fa-trash"></i>
+      حذف الطالب
+    </button>
+  </div>
+
   <!-- Summary Cards -->
   <div class="summary-section">
     <div class="summary-grid">
@@ -367,7 +374,7 @@
                       <td>
                         {% if not item.enrollment.is_completed %}
                           <button class="btn btn-sm btn-outline-danger withdraw-course-btn" 
-                                  data-enrollment-id="{{ item.enrollment.id }}"
+                                  data-enrollment-id="{{ item.enrollment.id|unlocalize }}"
                                   data-course-name="{{ item.enrollment.course.name }}"
                                   data-paid="{{ item.total_paid|default_if_none:0|floatformat:2 }}">
                             <i class="fas fa-user-minus"></i>
@@ -482,6 +489,43 @@
   </div>
 </div>
 
+<div id="deleteStudentModal" class="modal">
+  <div class="modal-overlay"></div>
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3><i class="fas fa-trash"></i> تأكيد حذف الطالب السريع</h3>
+      <button type="button" class="close-btn" data-close>
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        سيؤدي حذف هذا الطالب إلى إزالة جميع التسجيلات والإيصالات والسجلات المالية المرتبطة به نهائياً.
+      </div>
+      <p><strong>الطالب:</strong> {{ student.full_name }}</p>
+      <ul class="mb-3">
+        <li>التسجيلات: {{ delete_summary.enrollments_count }}</li>
+        <li>الإيصالات: {{ delete_summary.receipts_count }}</li>
+        <li>القيود: {{ delete_summary.journal_entries_count }}</li>
+        <li>الحركات المالية: {{ delete_summary.transactions_count }}</li>
+        <li>طلبات الطباعة: {{ delete_summary.print_jobs_count }}</li>
+        <li>حساب الذمة: {{ delete_summary.ar_account_code }}</li>
+      </ul>
+      <form id="deleteStudentForm" method="post" action="{% url 'quick:delete_student' student.id %}">
+        {% csrf_token %}
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" data-close>إلغاء</button>
+      <button type="submit" form="deleteStudentForm" class="btn btn-danger">
+        <i class="fas fa-trash"></i>
+        حذف الطالب وكل بياناته
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Quick Receipt Modal -->
 <div id="quickReceiptModal" class="modal">
   <div class="modal-overlay"></div>
@@ -573,10 +617,10 @@
           <option value="">-- اختر الدورة --</option>
           {% for item in active_enrollments %}
             {% if item.enrollment.is_completed == False %}
-              <option value="{{ item.enrollment.id }}" 
+              <option value="{{ item.enrollment.id|unlocalize }}" 
                       data-paid="{{ item.total_paid|floatformat:2 }}" 
                       data-course-name="{{ item.enrollment.course.name }}"
-                      data-enrollment-id="{{ item.enrollment.id }}"
+                      data-enrollment-id="{{ item.enrollment.id|unlocalize }}"
                       data-net-amount="{{ item.net_amount|floatformat:2 }}">
                 {{ item.enrollment.course.name }} - المسدّد: {{ item.total_paid|floatformat:2 }} ل.س
                 {% if item.balance_due <= 0 %}
@@ -636,7 +680,7 @@
           <option value="">-- اختر الدورة --</option>
           {% for item in active_enrollments %}
             {% if item.enrollment.is_completed == False %}
-              <option value="{{ item.enrollment.id }}" 
+              <option value="{{ item.enrollment.id|unlocalize }}" 
                       data-paid="{{ item.total_paid|floatformat:2 }}" 
                       data-course-name="{{ item.enrollment.course.name }}">
                 {{ item.enrollment.course.name }} - المدفوع: {{ item.total_paid|floatformat:2 }} ل.س
@@ -808,6 +852,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // تهيئة سحب الطالب
     initWithdrawStudent();
+    initDeleteStudent();
     
     // تهيئة أزرار سحب الدورات الفردية
     initCourseWithdrawButtons();
@@ -1205,6 +1250,7 @@ function processQuickReceipt() {
         method: 'POST',
         headers: {
             'X-CSRFToken': getCSRFToken(),
+            'X-Requested-With': 'XMLHttpRequest',
         },
         body: formData
     })
@@ -1539,15 +1585,16 @@ function processWithdraw() {
         method: 'POST',
         headers: {
             'X-CSRFToken': getCSRFToken(),
+            'X-Requested-With': 'XMLHttpRequest',
         },
         body: formData
     })
-    .then(response => {
-        if (response.redirected) {
-            window.location.href = response.url;
-            return;
+    .then(async response => {
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+            throw new Error((data && data.error) || 'فشل تنفيذ السحب');
         }
-        return response.json();
+        return data;
     })
     .then(data => {
         if (data && data.success === false) {
@@ -2649,6 +2696,20 @@ function getCSRFToken() {
 .student-profile {
   max-width: 1440px;
   margin: 0 auto;
+}
+
+function initDeleteStudent() {
+    const deleteBtn = document.getElementById('delete-student-btn');
+    const deleteModal = document.getElementById('deleteStudentModal');
+
+    if (!deleteBtn || !deleteModal) {
+        return;
+    }
+
+    deleteBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+        openModal(deleteModal);
+    });
 }
 
 .profile-header,

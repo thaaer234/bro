@@ -27,6 +27,7 @@ from .forms import (
 )
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
+import time
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_GET
 from django.utils.decorators import method_decorator
@@ -34,7 +35,7 @@ from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
 from django.db.models import Prefetch
 from django.conf import settings
-from django.db import transaction
+from django.db import transaction, connection, OperationalError, close_old_connections
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
@@ -142,6 +143,395 @@ def _adjust_quick_receipts_for_refund(student, enrollment, refund_amount):
         'new_total_paid': total_paid - refundable,
         'refunded_amount': refundable
     }
+
+
+def _is_quick_legacy_withdrawal_account(account):
+    if not account:
+        return False
+    code = str(getattr(account, 'code', '') or '')
+    if code == '4201' or code.startswith('4201-'):
+        return True
+    account_text = ' '.join([
+        code,
+        str(getattr(account, 'name', '') or ''),
+        str(getattr(account, 'name_ar', '') or ''),
+    ]).casefold()
+    return (
+        account.account_type == 'REVENUE' and (
+            'withdrawal' in account_text or
+            'انسحاب' in account_text
+        )
+    )
+
+
+def _get_legacy_withdrawal_amount(entry):
+    amount = Decimal('0')
+    for tx in entry.transactions.select_related('account').all():
+        if tx.is_debit and _is_quick_legacy_withdrawal_account(tx.account):
+            amount += tx.amount or Decimal('0')
+    return amount
+
+
+def _deactivate_quick_legacy_withdrawal_accounts():
+    deactivated = []
+    legacy_accounts = Account.objects.filter(
+        Q(code='4201') |
+        Q(code__startswith='4201-') |
+        (
+            Q(account_type='REVENUE') &
+            (
+                Q(name__icontains='Withdrawal') |
+                Q(name_ar__icontains='انسحاب')
+            )
+        )
+    ).order_by('-code')
+
+    for account in legacy_accounts:
+        try:
+            live_balance = account.get_net_balance() or Decimal('0')
+        except Exception:
+            live_balance = account.balance or Decimal('0')
+
+        if abs(live_balance) >= Decimal('0.01'):
+            continue
+        if not account.is_active:
+            continue
+
+        account.is_active = False
+        account.save(update_fields=['is_active'])
+        deactivated.append(account.code)
+
+    return deactivated
+
+
+def _find_quick_withdrawal_entries(enrollment):
+    student = getattr(enrollment, 'student', None)
+    course = getattr(enrollment, 'course', None)
+    if not student or not course:
+        return JournalEntry.objects.none()
+
+    deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+    return JournalEntry.objects.filter(
+        Q(description__icontains=student.full_name) &
+        Q(description__icontains=course.name) &
+        (
+            (
+                Q(transactions__account=deferred_account) &
+                (
+                    Q(transactions__description__icontains='عكس') |
+                    Q(transactions__description__icontains='المدينة')
+                )
+            ) |
+            (
+                Q(transactions__account__code='4201') |
+                Q(transactions__account__code__startswith='4201-') |
+                (
+                    Q(transactions__account__account_type='REVENUE') &
+                    (
+                        Q(transactions__account__name__icontains='Withdrawal') |
+                        Q(transactions__account__name_ar__icontains='انسحاب')
+                    )
+                )
+            )
+        )
+    ).distinct()
+
+
+def _find_quick_generated_withdraw_fix_entries(enrollment):
+    return JournalEntry.objects.filter(
+        Q(description__icontains=f'[QUICK_WITHDRAW #{enrollment.id}]') |
+        Q(description__icontains=f'[QUICK_WITHDRAW_FIX #{enrollment.id}]') |
+        Q(description__icontains=f'[QUICK_WITHDRAW_CLEANUP #{enrollment.id}]')
+    ).distinct()
+
+
+def _cleanup_quick_withdrawal_entries(enrollment, user):
+    cleaned = {
+        'reversed_ids': [],
+        'deleted_ids': [],
+    }
+    candidate_entries = {}
+    for entry in _find_quick_withdrawal_entries(enrollment):
+        candidate_entries[entry.id] = entry
+    for entry in _find_quick_generated_withdraw_fix_entries(enrollment):
+        candidate_entries[entry.id] = entry
+
+    for entry in candidate_entries.values():
+        entry_id = entry.id
+        entry.delete()
+        cleaned['deleted_ids'].append(entry_id)
+
+    return cleaned
+
+
+def _ensure_quick_enrollment_entry(enrollment, user=None):
+    entry = JournalEntry.objects.filter(reference=f'QE-{enrollment.id}').first()
+    if entry:
+        return entry
+
+    if user is not None:
+        entry = enrollment.create_accrual_enrollment_entry(user)
+        return _normalize_quick_enrollment_entry_arabic(entry, enrollment)
+
+    return None
+
+
+def _find_quick_enrollment_entry(enrollment):
+    return JournalEntry.objects.filter(reference=f'QE-{enrollment.id}').first()
+
+
+def _normalize_quick_enrollment_entry_arabic(entry, enrollment):
+    if not entry or not enrollment:
+        return entry
+
+    entry.description = f"تسجيل سريع - {enrollment.student.full_name} في {enrollment.course.name}"
+    entry.save(update_fields=['description'])
+
+    for tx in entry.transactions.all():
+        if tx.is_debit:
+            tx.description = f"تسجيل سريع - {enrollment.student.full_name}"
+        else:
+            tx.description = f"إيرادات مؤجلة - {enrollment.course.name}"
+        tx.save(update_fields=['description'])
+
+    return entry
+
+
+def _normalize_quick_receipt_entry_arabic(entry, receipt):
+    if not entry or not receipt:
+        return entry
+
+    entry.description = f"إيصال سريع - {receipt.student_name} - {receipt.course_name}"
+    entry.save(update_fields=['description'])
+
+    for tx in entry.transactions.all():
+        if tx.is_debit:
+            tx.description = f"إيصال سريع - {receipt.student_name}"
+        else:
+            tx.description = f"تسديد ذمم - {receipt.course_name}"
+        tx.save(update_fields=['description'])
+
+    return entry
+
+
+def _normalize_quick_withdrawal_entry_arabic(entry, enrollment, receipt=None):
+    if not entry or not enrollment:
+        return entry
+
+    student_name = enrollment.student.full_name
+    course_name = enrollment.course.name
+
+    if receipt is None:
+        entry.description = (
+            f"[QUICK_WITHDRAW #{enrollment.id}] "
+            f"عكس قيد تسجيل عند السحب - {student_name} - {course_name}"
+        )
+        entry.save(update_fields=['description'])
+
+        for tx in entry.transactions.all():
+            if tx.is_debit:
+                tx.description = f"عكس تسجيل سريع - {course_name}"
+            else:
+                tx.description = f"عكس تسجيل سريع - {student_name}"
+            tx.save(update_fields=['description'])
+        return entry
+
+    receipt_label = receipt.receipt_number or str(receipt.id)
+    entry.description = (
+        f"[QUICK_WITHDRAW #{enrollment.id}] "
+        f"عكس قيد قبض عند السحب - {student_name} - {course_name} - إيصال {receipt_label}"
+    )
+    entry.save(update_fields=['description'])
+
+    for tx in entry.transactions.all():
+        if tx.is_debit:
+            tx.description = f"عكس قبض سريع - {course_name}"
+        else:
+            tx.description = f"رد قبض سريع - {student_name}"
+        tx.save(update_fields=['description'])
+
+    return entry
+
+
+def _make_journal_reference_available(entry, suffix='OLD'):
+    if not entry or not entry.reference:
+        return
+
+    base_reference = entry.reference
+    max_length = JournalEntry._meta.get_field('reference').max_length
+    counter = 1
+    while True:
+        extra = f'-{suffix}{counter}'
+        candidate = f'{base_reference[:max_length - len(extra)]}{extra}'
+        if not JournalEntry.objects.exclude(id=entry.id).filter(reference=candidate).exists():
+            entry.reference = candidate
+            entry.save(update_fields=['reference'])
+            return
+        counter += 1
+
+
+def _rebuild_quick_enrollment_entry(enrollment, user):
+    entry = _find_quick_enrollment_entry(enrollment)
+    if entry:
+        if entry.is_posted:
+            entry.reverse_entry(
+                user,
+                description=(
+                    f"[QUICK_REG_CLEANUP #{enrollment.id}] "
+                    f"إلغاء قيد تسجيل خاطئ - {enrollment.student.full_name} - {enrollment.course.name}"
+                ),
+            )
+            _make_journal_reference_available(entry, suffix='REPLACED')
+        else:
+            entry.delete()
+    entry = enrollment.create_accrual_enrollment_entry(user)
+    return _normalize_quick_enrollment_entry_arabic(entry, enrollment)
+
+
+def _fix_quick_receipt_entry(receipt, student_ar_account):
+    if not receipt or not receipt.journal_entry_id:
+        return False
+
+    entry = receipt.journal_entry
+    if not entry:
+        return False
+
+    credit_transactions = list(entry.transactions.filter(is_debit=False).select_related('account'))
+    debit_transactions = list(entry.transactions.filter(is_debit=True).select_related('account'))
+
+    if len(credit_transactions) != 1 or len(debit_transactions) != 1:
+        return False
+
+    credit_tx = credit_transactions[0]
+    debit_tx = debit_transactions[0]
+    expected_amount = receipt.paid_amount or Decimal('0')
+
+    if debit_tx.amount != expected_amount or credit_tx.amount != expected_amount:
+        return False
+
+    if credit_tx.account_id == student_ar_account.id:
+        return True
+
+    credit_tx.account = student_ar_account
+    credit_tx.save(update_fields=['account'])
+    try:
+        debit_tx.account.recalculate_tree_balances()
+    except Exception:
+        pass
+    try:
+        student_ar_account.recalculate_tree_balances()
+    except Exception:
+        pass
+    return True
+
+
+def _rebuild_quick_receipt_entry(receipt, user):
+    if not receipt:
+        return False
+
+    entry = receipt.journal_entry
+    if entry:
+        if entry.is_posted:
+            entry.reverse_entry(
+                user,
+                description=(
+                    f"[QUICK_RECEIPT_CLEANUP #{receipt.id}] "
+                    f"إلغاء قيد قبض خاطئ - {receipt.student_name} - {receipt.course_name}"
+                ),
+            )
+            _make_journal_reference_available(entry, suffix='REPLACED')
+        else:
+            entry.delete()
+        QuickStudentReceipt.objects.filter(id=receipt.id).update(journal_entry=None)
+        receipt.journal_entry = None
+
+    if (receipt.paid_amount or Decimal('0')) <= 0:
+        return True
+
+    entry = receipt.create_accrual_journal_entry(user)
+    _normalize_quick_receipt_entry_arabic(entry, receipt)
+    return True
+
+
+def _cap_quick_enrollment_receipts_to_net(enrollment, user):
+    target_total = max(Decimal('0'), enrollment.net_amount or Decimal('0'))
+    receipts = list(
+        QuickStudentReceipt.objects.filter(
+            quick_student=enrollment.student,
+            quick_enrollment=enrollment,
+        ).select_related('journal_entry').order_by('-date', '-id')
+    )
+
+    current_total = sum((receipt.paid_amount or Decimal('0')) for receipt in receipts)
+    overflow = current_total - target_total
+    if overflow <= 0:
+        return 0
+
+    fixed = 0
+    for receipt in receipts:
+        if overflow <= 0:
+            break
+
+        current_paid = receipt.paid_amount or Decimal('0')
+        if current_paid <= 0:
+            continue
+
+        reduction = min(current_paid, overflow)
+        new_paid = current_paid - reduction
+        QuickStudentReceipt.objects.filter(id=receipt.id).update(paid_amount=new_paid)
+        receipt.paid_amount = new_paid
+        _rebuild_quick_receipt_entry(receipt, user)
+        overflow -= reduction
+        fixed += 1
+
+    return fixed
+
+
+def _build_quick_withdrawal_entry(enrollment, user, refunded_amount, description):
+    created_entries = []
+
+    enrollment_entry = _find_quick_enrollment_entry(enrollment)
+    if enrollment_entry and enrollment_entry.is_posted:
+        reversed_entry = enrollment_entry.reverse_entry(
+            user,
+            description=(
+                f"[QUICK_WITHDRAW #{enrollment.id}] "
+                f"عكس قيد تسجيل عند السحب - {enrollment.student.full_name} - {enrollment.course.name}"
+            ),
+        )
+        created_entries.append(
+            _normalize_quick_withdrawal_entry_arabic(
+                reversed_entry,
+                enrollment,
+            )
+        )
+
+    receipts = list(
+        QuickStudentReceipt.objects.filter(
+            quick_student=enrollment.student,
+            quick_enrollment=enrollment,
+        ).select_related('journal_entry').order_by('date', 'id')
+    )
+    for receipt in receipts:
+        entry = receipt.journal_entry
+        if not entry or not entry.is_posted:
+            continue
+        reversed_entry = entry.reverse_entry(
+            user,
+            description=(
+                f"[QUICK_WITHDRAW #{enrollment.id}] "
+                f"عكس قيد قبض عند السحب - {enrollment.student.full_name} - {enrollment.course.name} - إيصال {receipt.receipt_number or receipt.id}"
+            ),
+        )
+        created_entries.append(
+            _normalize_quick_withdrawal_entry_arabic(
+                reversed_entry,
+                enrollment,
+                receipt=receipt,
+            )
+        )
+
+    return created_entries
 
 
 def _get_quick_enrollment_paid_total(enrollment, student=None):
@@ -278,6 +668,52 @@ def _reverse_quick_enrollment_entry(enrollment, student_account, user, note=''):
     return reversing_entry
 
 
+def _reverse_quick_receipt_entry(receipt, student_account, user, note=''):
+    if not receipt or not receipt.journal_entry_id or (receipt.paid_amount or Decimal('0')) <= 0:
+        return None
+
+    entry = receipt.journal_entry
+    if not entry or not entry.is_posted:
+        return None
+
+    cash_account = None
+    for tx in entry.transactions.select_related('account').all():
+        if tx.is_debit:
+            cash_account = tx.account
+            break
+
+    if not cash_account:
+        return None
+
+    description = f'إلغاء إيصال مكرر لطالب سريع - {receipt.student_name} - {receipt.course_name or "-"}'
+    if note:
+        description = f'{description} - {note}'
+
+    reversing_entry = JournalEntry.objects.create(
+        date=timezone.now().date(),
+        description=description,
+        entry_type='ADJUSTMENT',
+        total_amount=receipt.paid_amount or Decimal('0'),
+        created_by=user,
+    )
+    Transaction.objects.create(
+        journal_entry=reversing_entry,
+        account=student_account,
+        amount=receipt.paid_amount or Decimal('0'),
+        is_debit=True,
+        description=f'عكس تسديد ذمة لإيصال مكرر - {receipt.course_name or "-"}',
+    )
+    Transaction.objects.create(
+        journal_entry=reversing_entry,
+        account=cash_account,
+        amount=receipt.paid_amount or Decimal('0'),
+        is_debit=False,
+        description=f'عكس قبض إيصال مكرر - {receipt.student_name}',
+    )
+    reversing_entry.post_entry(user)
+    return reversing_entry
+
+
 def _pick_merge_target(students):
     return sorted(
         students,
@@ -290,6 +726,8 @@ def _pick_merge_target(students):
 
 
 def _merge_quick_students_by_name(normalized_name, user):
+    _configure_sqlite_busy_timeout()
+
     students = list(
         QuickStudent.objects.select_related('student', 'academic_year', 'created_by')
         .filter(full_name__isnull=False)
@@ -321,6 +759,7 @@ def _merge_quick_students_by_name(normalized_name, user):
         for source in sources:
             source_ar = Account.get_or_create_quick_student_ar_account(source)
             touched_accounts[source_ar.id] = source_ar
+            deleted_receipt_ids = set()
 
             source_receipts = list(
                 QuickStudentReceipt.objects.select_related('course', 'quick_enrollment', 'journal_entry')
@@ -348,31 +787,35 @@ def _merge_quick_students_by_name(normalized_name, user):
                 )
 
                 if existing:
-                    existing_paid_total = _get_quick_enrollment_paid_total(existing, target)
-                    existing_orphans_total = sum(
-                        (receipt.paid_amount or Decimal('0'))
-                        for receipt in source_orphan_receipts
-                        if receipt.course_id == enrollment.course_id
-                    )
-                    combined_paid = existing_paid_total + source_receipt_total + existing_orphans_total
-                    if combined_paid > (existing.net_amount or Decimal('0')):
-                        raise ValueError(
-                            f'تعذر دمج "{target.full_name}" لأن دورة "{enrollment.course.name}" ستتجاوز قيمة التسجيل بعد الدمج '
-                            f'({combined_paid:,.0f} > {(existing.net_amount or Decimal("0")):,.0f}).'
-                        )
-
                     _reverse_quick_enrollment_entry(
                         enrollment=enrollment,
                         student_account=source_ar,
                         user=user,
                         note='دمج حسابات الطلاب السريعين',
                     )
+                    duplicate_receipts = list(source_receipts_by_enrollment.get(enrollment.id, []))
+                    duplicate_orphan_receipts = [
+                        receipt for receipt in source_orphan_receipts
+                        if receipt.course_id == enrollment.course_id
+                    ]
+                    for duplicate_receipt in duplicate_receipts + duplicate_orphan_receipts:
+                        _reverse_quick_receipt_entry(
+                            receipt=duplicate_receipt,
+                            student_account=source_ar,
+                            user=user,
+                            note='دمج حسابات الطلاب السريعين',
+                        )
+                        if duplicate_receipt in source_orphan_receipts:
+                            source_orphan_receipts.remove(duplicate_receipt)
+                        deleted_receipt_ids.add(duplicate_receipt.id)
+                        duplicate_receipt.delete()
+
                     reversed_duplicates += 1
                     enrollment_map[enrollment.id] = existing
                     continue
 
+                QuickEnrollment.objects.filter(pk=enrollment.pk).update(student=target)
                 enrollment.student = target
-                enrollment.save(update_fields=['student'])
                 entry = _get_quick_enrollment_entry(enrollment)
                 _retarget_journal_account(entry, source_ar, target_ar)
                 target_enrollments[enrollment.course_id] = enrollment
@@ -380,33 +823,48 @@ def _merge_quick_students_by_name(normalized_name, user):
                 merged_enrollments += 1
 
             for receipt in source_receipts:
+                if receipt.id in deleted_receipt_ids:
+                    continue
                 target_enrollment = None
                 if receipt.quick_enrollment_id:
                     target_enrollment = enrollment_map.get(receipt.quick_enrollment_id)
                 elif receipt.course_id:
                     target_enrollment = target_enrollments.get(receipt.course_id)
 
+                QuickStudentReceipt.objects.filter(pk=receipt.pk).update(
+                    quick_student=target,
+                    student_name=target.full_name,
+                    quick_enrollment=target_enrollment,
+                )
                 receipt.quick_student = target
                 receipt.student_name = target.full_name
                 receipt.quick_enrollment = target_enrollment
-                receipt.save(update_fields=['quick_student', 'student_name', 'quick_enrollment'])
                 _retarget_journal_account(receipt.journal_entry, source_ar, target_ar)
                 merged_receipts += 1
 
             _retarget_all_account_transactions(source_ar, target_ar)
             QuickReceiptPrintJob.objects.filter(quick_student=source).update(quick_student=target)
 
+            source_notes = ((source.notes or '').strip() + f'\n[MERGED_INTO #{target.id}]').strip()
+            QuickStudent.objects.filter(pk=source.pk).update(
+                is_active=False,
+                notes=source_notes,
+            )
             source.is_active = False
-            source.notes = ((source.notes or '').strip() + f'\n[MERGED_INTO #{target.id}]').strip()
-            source.save(update_fields=['is_active', 'notes', 'updated_at'])
+            source.notes = source_notes
 
             if getattr(source, 'student', None):
+                source_student_notes = ((source.student.notes or '').strip() + f'\nQuick merged into #{target.id}').strip()
+                type(source.student).objects.filter(pk=source.student.pk).update(
+                    is_active=False,
+                    notes=source_student_notes,
+                )
                 source.student.is_active = False
-                source.student.notes = ((source.student.notes or '').strip() + f'\nQuick merged into #{target.id}').strip()
-                source.student.save(update_fields=['is_active', 'notes', 'updated_at'])
+                source.student.notes = source_student_notes
 
+            source_id = source.pk
             source.delete()
-            deactivated_sources.append(source.id)
+            deactivated_sources.append(source_id)
 
         if getattr(target, 'student', None):
             updated_fields = []
@@ -417,7 +875,9 @@ def _merge_quick_students_by_name(normalized_name, user):
                 target.student.full_name = target.full_name
                 updated_fields.append('full_name')
             if updated_fields:
-                target.student.save(update_fields=updated_fields)
+                type(target.student).objects.filter(pk=target.student.pk).update(
+                    **{field: getattr(target.student, field) for field in updated_fields}
+                )
 
     for account in touched_accounts.values():
         try:
@@ -432,6 +892,27 @@ def _merge_quick_students_by_name(normalized_name, user):
         'merged_receipts': merged_receipts,
         'reversed_duplicates': reversed_duplicates,
     }
+
+
+def _merge_quick_students_by_name_with_retry(normalized_name, user, attempts=3):
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            return _merge_quick_students_by_name(normalized_name, user)
+        except OperationalError as exc:
+            if 'database is locked' not in str(exc).lower():
+                raise
+            last_error = exc
+            connection.close()
+            time.sleep(0.75 * (attempt + 1))
+    if last_error:
+        raise last_error
+
+
+def _configure_sqlite_busy_timeout(timeout_ms=30000):
+    if connection.vendor == 'sqlite':
+        with connection.cursor() as cursor:
+            cursor.execute(f'PRAGMA busy_timeout = {int(timeout_ms)}')
 
 
 def _get_duplicate_groups(search_query='', scope='active'):
@@ -614,6 +1095,349 @@ def _get_duplicate_groups(search_query='', scope='active'):
     return duplicate_groups
 
 
+def _build_quick_accounting_fix_rows():
+    rows = []
+    enrollments = (
+        QuickEnrollment.objects.select_related('student', 'course')
+        .order_by('-updated_at', '-id')
+    )
+
+    for enrollment in enrollments:
+        issues = []
+        suggested_actions = []
+        linked_entry = _find_quick_enrollment_entry(enrollment)
+        registration_ok = False
+        receipts_ok = True
+        withdrawal_ok = not enrollment.is_completed
+        fixable_receipt_ids = []
+
+        if not linked_entry:
+            issues.append('قيد التسجيل مفقود')
+            suggested_actions.append('إنشاء قيد التسجيل')
+        else:
+            student_ar = enrollment.student.ar_account
+            deferred_account = Account.get_or_create_quick_course_deferred_account(enrollment.course)
+            debit_ok = linked_entry.transactions.filter(
+                account=student_ar,
+                is_debit=True,
+                amount=enrollment.net_amount or Decimal('0'),
+            ).exists()
+            credit_ok = linked_entry.transactions.filter(
+                account=deferred_account,
+                is_debit=False,
+                amount=enrollment.net_amount or Decimal('0'),
+            ).exists()
+            registration_ok = debit_ok and credit_ok
+            if not registration_ok:
+                issues.append('قيد التسجيل لا يطابق الخطة المطلوبة')
+                suggested_actions.append('إعادة بناء قيد التسجيل')
+
+        receipts = list(
+            QuickStudentReceipt.objects.filter(
+                quick_student=enrollment.student,
+                quick_enrollment=enrollment,
+            ).select_related('journal_entry')
+        )
+        retained_amount = sum((receipt.paid_amount or Decimal('0')) for receipt in receipts)
+        receipt_count = len(receipts)
+        audited_receipts = 0
+        receipt_issue_count = 0
+        for receipt in receipts:
+            audited_receipts += 1
+            if not receipt.journal_entry_id:
+                receipts_ok = False
+                receipt_issue_count += 1
+                issues.append(f'إيصال #{receipt.id} بدون قيد قبض')
+                fixable_receipt_ids.append(receipt.id)
+                continue
+
+            receipt_entry = receipt.journal_entry
+            credit_ok = receipt_entry.transactions.filter(
+                account=enrollment.student.ar_account,
+                is_debit=False,
+                amount=receipt.paid_amount or Decimal('0'),
+            ).exists()
+            debit_ok = receipt_entry.transactions.filter(
+                is_debit=True,
+                amount=receipt.paid_amount or Decimal('0'),
+            ).exclude(account=enrollment.student.ar_account).exists()
+            if not (credit_ok and debit_ok):
+                receipts_ok = False
+                receipt_issue_count += 1
+                issues.append(f'إيصال #{receipt.id} لا يطابق قيد القبض المطلوب')
+                if receipt.journal_entry_id:
+                    fixable_receipt_ids.append(receipt.id)
+
+        legacy_entries = list(_find_quick_withdrawal_entries(enrollment))
+        refunded_amount = sum((_get_legacy_withdrawal_amount(entry) for entry in legacy_entries), Decimal('0'))
+
+        correction_amount = retained_amount + refunded_amount
+        existing_fix_entries = list(_find_quick_generated_withdraw_fix_entries(enrollment))
+        already_fixed = bool(existing_fix_entries)
+
+        if enrollment.is_completed and correction_amount > 0:
+            if refunded_amount > 0 and retained_amount > 0:
+                issues.append('سحب قديم جزئي لم يُستكمل بالكامل وفق الطريقة الجديدة')
+            elif refunded_amount > 0:
+                issues.append('سحب قديم أبقى أثراً على الدورة أو على حساب الانسحاب القديم')
+            elif retained_amount > 0:
+                issues.append('سحب قديم لم يصفّر الدفعات المسجلة بالكامل')
+            if already_fixed:
+                suggested_actions.append('إلغاء قيود السحب القديمة وإعادة إنشائها')
+            else:
+                suggested_actions.append('إنشاء قيد تصحيح سحب')
+            withdrawal_ok = False
+        elif enrollment.is_completed:
+            if not legacy_entries and not existing_fix_entries and (enrollment.net_amount or Decimal('0')) > 0:
+                issues.append('تسجيل مسحوب بدون قيد سحب واضح')
+                suggested_actions.append('إنشاء قيد سحب مفقود')
+                withdrawal_ok = False
+            else:
+                withdrawal_ok = True
+
+        if not enrollment.is_completed and retained_amount > (enrollment.net_amount or Decimal('0')):
+            issues.append('إجمالي المقبوض أكبر من صافي التسجيل')
+            suggested_actions.append('تصحيح مبالغ القبض الزائدة')
+
+        if not suggested_actions and issues:
+            suggested_actions.append('مراجعة يدوية')
+
+        rows.append({
+            'enrollment': enrollment,
+            'missing_entry': not bool(linked_entry),
+            'legacy_entries': legacy_entries,
+            'legacy_entries_count': len(legacy_entries),
+            'existing_fix_entries_count': len(existing_fix_entries),
+            'has_legacy_withdrawal': refunded_amount > 0,
+            'retained_amount': retained_amount,
+            'refunded_amount': refunded_amount,
+            'correction_amount': correction_amount,
+            'already_fixed': already_fixed,
+            'issues': issues,
+            'suggested_actions': suggested_actions,
+            'is_compliant': not issues,
+            'registration_ok': registration_ok,
+            'receipts_ok': receipts_ok,
+            'withdrawal_ok': withdrawal_ok,
+            'receipt_count': receipt_count,
+            'audited_receipts': audited_receipts,
+            'receipt_issue_count': receipt_issue_count,
+            'fixable_receipt_ids': fixable_receipt_ids,
+        })
+
+    return rows
+
+
+def _apply_quick_accounting_fixes(user):
+    rows = _build_quick_accounting_fix_rows()
+    fixed_links = 0
+    fixed_withdrawals = 0
+    fixed_receipts = 0
+    created_entries = []
+    errors = []
+    cleaned_withdraw_entries = 0
+    deactivated_legacy_accounts = []
+
+    for row in rows:
+        enrollment = row['enrollment']
+        success = False
+        last_exc = None
+        for attempt in range(3):
+            try:
+                close_old_connections()
+                _configure_sqlite_busy_timeout()
+                with transaction.atomic():
+                    if row['missing_entry'] or not row['registration_ok']:
+                        if row['missing_entry']:
+                            entry = _ensure_quick_enrollment_entry(enrollment, user=user)
+                        else:
+                            entry = _rebuild_quick_enrollment_entry(enrollment, user=user)
+                        if entry:
+                            fixed_links += 1
+
+                    if row['fixable_receipt_ids']:
+                        for receipt in QuickStudentReceipt.objects.filter(id__in=row['fixable_receipt_ids']).select_related('journal_entry'):
+                            if not receipt.journal_entry_id:
+                                if _rebuild_quick_receipt_entry(receipt, user):
+                                    fixed_receipts += 1
+                                continue
+
+                            student_ar = enrollment.student.ar_account
+                            if _fix_quick_receipt_entry(receipt, student_ar):
+                                fixed_receipts += 1
+                            elif _rebuild_quick_receipt_entry(receipt, user):
+                                fixed_receipts += 1
+
+                    if enrollment.is_completed and row['correction_amount'] > 0:
+                        if row['retained_amount'] > 0:
+                            _adjust_quick_receipts_for_refund(
+                                enrollment.student,
+                                enrollment,
+                                row['retained_amount'],
+                            )
+
+                        cleanup_result = _cleanup_quick_withdrawal_entries(enrollment, user)
+                        cleaned_withdraw_entries += (
+                            len(cleanup_result['reversed_ids']) +
+                            len(cleanup_result['deleted_ids'])
+                        )
+
+                        description = (
+                            f"[QUICK_WITHDRAW #{enrollment.id}] "
+                            f"تصحيح سحب طالب سريع - {enrollment.student.full_name} - {enrollment.course.name}"
+                        )
+
+                        entries = _build_quick_withdrawal_entry(
+                            enrollment=enrollment,
+                            user=user,
+                            refunded_amount=row['retained_amount'],
+                            description=description,
+                        )
+                        created_entries.extend(entry.id for entry in entries)
+                        fixed_withdrawals += len(entries)
+                    elif enrollment.is_completed and 'تسجيل مسحوب بدون قيد سحب واضح' in row['issues']:
+                        description = (
+                            f"[QUICK_WITHDRAW #{enrollment.id}] "
+                            f"إنشاء قيد سحب مفقود - {enrollment.student.full_name} - {enrollment.course.name}"
+                        )
+                        entries = _build_quick_withdrawal_entry(
+                            enrollment=enrollment,
+                            user=user,
+                            refunded_amount=row['retained_amount'],
+                            description=description,
+                        )
+                        created_entries.extend(entry.id for entry in entries)
+                        fixed_withdrawals += len(entries)
+
+                    if (
+                        not enrollment.is_completed and
+                        'إجمالي المقبوض أكبر من صافي التسجيل' in row['issues']
+                    ):
+                        fixed_receipts += _cap_quick_enrollment_receipts_to_net(enrollment, user)
+                success = True
+                connection.close()
+                break
+            except OperationalError as exc:
+                last_exc = exc
+                if 'database is locked' not in str(exc).lower():
+                    break
+                close_old_connections()
+                connection.close()
+                time.sleep(1.5 * (attempt + 1))
+            except Exception as exc:
+                last_exc = exc
+                break
+
+        if not success and last_exc:
+            errors.append(f'{enrollment.student.full_name} / {enrollment.course.name}: {last_exc}')
+
+    if cleaned_withdraw_entries:
+        Account.rebuild_all_balances()
+
+    deactivated_legacy_accounts = _deactivate_quick_legacy_withdrawal_accounts()
+
+    return {
+        'fixed_links': fixed_links,
+        'fixed_withdrawals': fixed_withdrawals,
+        'fixed_receipts': fixed_receipts,
+        'cleaned_withdraw_entries': cleaned_withdraw_entries,
+        'deactivated_legacy_accounts': deactivated_legacy_accounts,
+        'created_entries': created_entries,
+        'errors': errors,
+    }
+
+
+def _build_quick_withdrawal_fix_rows():
+    rows = []
+    for row in _build_quick_accounting_fix_rows():
+        enrollment = row['enrollment']
+        needs_fix = (
+            row['legacy_entries_count'] > 0 or
+            (enrollment.is_completed and row['correction_amount'] > 0) or
+            (enrollment.is_completed and 'تسجيل مسحوب بدون قيد سحب واضح' in row['issues']) or
+            row['existing_fix_entries_count'] > 0
+        )
+        if not needs_fix:
+            continue
+
+        rows.append(row)
+
+    return rows
+
+
+def _apply_quick_withdrawal_fixes(user):
+    rows = _build_quick_withdrawal_fix_rows()
+    fixed_withdrawals = 0
+    cleaned_withdraw_entries = 0
+    created_entries = []
+    errors = []
+
+    for row in rows:
+        enrollment = row['enrollment']
+        success = False
+        last_exc = None
+        for attempt in range(3):
+            try:
+                close_old_connections()
+                _configure_sqlite_busy_timeout()
+                with transaction.atomic():
+                    if enrollment.is_completed and row['retained_amount'] > 0:
+                        _adjust_quick_receipts_for_refund(
+                            enrollment.student,
+                            enrollment,
+                            row['retained_amount'],
+                        )
+
+                    cleanup_result = _cleanup_quick_withdrawal_entries(enrollment, user)
+                    cleaned_withdraw_entries += (
+                        len(cleanup_result['reversed_ids']) +
+                        len(cleanup_result['deleted_ids'])
+                    )
+
+                    if enrollment.is_completed:
+                        entries = _build_quick_withdrawal_entry(
+                            enrollment=enrollment,
+                            user=user,
+                            refunded_amount=row['retained_amount'],
+                            description=(
+                                f"[QUICK_WITHDRAW #{enrollment.id}] "
+                                f"تصحيح سحب طالب سريع - {enrollment.student.full_name} - {enrollment.course.name}"
+                            ),
+                        )
+                        created_entries.extend(entry.id for entry in entries)
+                        fixed_withdrawals += len(entries)
+                success = True
+                connection.close()
+                break
+            except OperationalError as exc:
+                last_exc = exc
+                if 'database is locked' not in str(exc).lower():
+                    break
+                close_old_connections()
+                connection.close()
+                time.sleep(1.5 * (attempt + 1))
+            except Exception as exc:
+                last_exc = exc
+                break
+
+        if not success and last_exc:
+            errors.append(f'{enrollment.student.full_name} / {enrollment.course.name}: {last_exc}')
+
+    if cleaned_withdraw_entries:
+        Account.rebuild_all_balances()
+
+    deactivated_legacy_accounts = _deactivate_quick_legacy_withdrawal_accounts()
+
+    return {
+        'rows_count': len(rows),
+        'fixed_withdrawals': fixed_withdrawals,
+        'cleaned_withdraw_entries': cleaned_withdraw_entries,
+        'deactivated_legacy_accounts': deactivated_legacy_accounts,
+        'created_entries': created_entries,
+        'errors': errors,
+    }
+
+
 def _append_quick_course_statement_rows(rows, course_name, student_name, student_phone, source_label, entry):
     transactions = list(entry.transactions.all())
     transactions.sort(key=lambda transaction: (transaction.is_debit, transaction.id))
@@ -643,7 +1467,7 @@ def _append_quick_course_statement_rows(rows, course_name, student_name, student
             'debit': transaction.amount if transaction.is_debit else Decimal('0'),
             'credit': transaction.amount if not transaction.is_debit else Decimal('0'),
             'entry_total': entry.total_amount or Decimal('0'),
-            'posted_status': 'ظ…ط±ط­ظ„' if entry.is_posted else 'ط؛ظٹط± ظ…ط±ط­ظ„',
+            'posted_status': 'مرحل' if entry.is_posted else 'غير مرحل',
             'created_by': created_by,
             'posted_by': posted_by,
         })
@@ -692,7 +1516,7 @@ def _build_quick_course_statement_rows(courses):
             course_name=enrollment.course.name,
             student_name=enrollment.student.full_name,
             student_phone=enrollment.student.phone,
-            source_label='ظ‚ظٹط¯ طھط³ط¬ظٹظ„',
+            source_label='قيد تسجيل',
             entry=entry,
         )
 
@@ -706,7 +1530,7 @@ def _build_quick_course_statement_rows(courses):
             course_name=receipt.course.name if receipt.course else (receipt.course_name or "-"),
             student_name=receipt.student_name or getattr(receipt.quick_student, 'full_name', "-"),
             student_phone=getattr(receipt.quick_student, 'phone', "-"),
-            source_label='ظ‚ظٹط¯ ظ‚ط¨ط¶',
+            source_label='قيد قبض',
             entry=entry,
         )
 
@@ -790,38 +1614,38 @@ def export_quick_course_statement_excel(request):
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
     columns = [
         ("#", 6),
-        ("ط§ظ„ط¯ظˆط±ط©", 24),
-        ("ط§ظ„ط·ط§ظ„ط¨", 24),
-        ("ط§ظ„ظ‡ط§طھظپ", 16),
-        ("ظ…طµط¯ط± ط§ظ„ظ‚ظٹط¯", 14),
-        ("ط±ظ‚ظ… ط§ظ„ظ‚ظٹط¯", 16),
-        ("طھط§ط±ظٹط® ط§ظ„ظ‚ظٹط¯", 14),
-        ("ظ†ظˆط¹ ط§ظ„ظ‚ظٹط¯", 18),
-        ("ط¨ظٹط§ظ† ط§ظ„ظ‚ظٹط¯", 34),
-        ("ط±ظ…ط² ط§ظ„ط­ط³ط§ط¨", 14),
-        ("ط§ط³ظ… ط§ظ„ط­ط³ط§ط¨", 24),
-        ("ط¨ظٹط§ظ† ط§ظ„ط­ط±ظƒط©", 34),
-        ("ظ…ط¯ظٹظ†", 14),
-        ("ط¯ط§ط¦ظ†", 14),
-        ("ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ‚ظٹط¯", 14),
-        ("ط§ظ„ط­ط§ظ„ط©", 12),
-        ("ط£ظ†ط´ط¦ ط¨ظˆط§ط³ط·ط©", 18),
-        ("ط±ظڈط­ظ„ ط¨ظˆط§ط³ط·ط©", 18),
+        ("الدورة", 24),
+        ("الطالب", 24),
+        ("الهاتف", 16),
+        ("مصدر القيد", 14),
+        ("رقم القيد", 16),
+        ("تاريخ القيد", 14),
+        ("نوع القيد", 18),
+        ("بيان القيد", 34),
+        ("رمز الحساب", 14),
+        ("اسم الحساب", 24),
+        ("بيان الحركة", 34),
+        ("مدين", 14),
+        ("دائن", 14),
+        ("إجمالي القيد", 14),
+        ("الحالة", 12),
+        ("أنشئ بواسطة", 18),
+        ("رُحّل بواسطة", 18),
     ]
 
     def write_sheet(ws, title, rows, include_course_name):
         ws.sheet_view.rightToLeft = True
-        visible_columns = columns if include_course_name else [col for col in columns if col[0] != "ط§ظ„ط¯ظˆط±ط©"]
+        visible_columns = columns if include_course_name else [col for col in columns if col[0] != "الدورة"]
         total_cols = len(visible_columns)
 
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
-        title_cell = ws.cell(row=1, column=1, value="ظƒط´ظپ ط­ط³ط§ط¨ ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„ط³ط±ظٹط¹ط©")
+        title_cell = ws.cell(row=1, column=1, value="كشف حساب الدورات السريعة")
         title_cell.font = title_font
         title_cell.alignment = center
         title_cell.fill = header_fill
 
         ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=total_cols)
-        meta_cell = ws.cell(row=2, column=1, value=f"ط§ظ„ط¯ظˆط±ط©/ط§ظ„طھطµظ†ظٹظپ: {title} | ط¹ط¯ط¯ ط§ظ„ط­ط±ظƒط§طھ: {len(rows)}")
+        meta_cell = ws.cell(row=2, column=1, value=f"الدورة/التصنيف: {title} | عدد الحركات: {len(rows)}")
         meta_cell.alignment = right
         meta_cell.fill = subheader_fill
 
@@ -863,7 +1687,7 @@ def export_quick_course_statement_excel(request):
                 cell.border = border
                 cell.alignment = center if col_idx in (1, 6, 7) else right
                 header_label = visible_columns[col_idx - 1][0]
-                if header_label in {"ظ…ط¯ظٹظ†", "ط¯ط§ط¦ظ†", "ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ‚ظٹط¯"}:
+                if header_label in {"مدين", "دائن", "إجمالي القيد"}:
                     cell.number_format = '#,##0.00'
 
         ws.freeze_panes = 'A5'
@@ -872,7 +1696,7 @@ def export_quick_course_statement_excel(request):
     for course in courses:
         combined_rows.extend(rows_by_course.get(course.id, []))
 
-    all_sheet = workbook.create_sheet("ظƒظ„ ط§ظ„ط¯ظˆط±ط§طھ")
+    all_sheet = workbook.create_sheet("كل الدورات")
     write_sheet(all_sheet, report_label, combined_rows, include_course_name=True)
 
     existing_titles = {all_sheet.title}
@@ -886,7 +1710,7 @@ def export_quick_course_statement_excel(request):
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     timestamp = timezone.now().strftime('%Y%m%d_%H%M')
-    response['Content-Disposition'] = f'attachment; filename="ظƒط´ظپ_ط­ط³ط§ط¨_ط§ظ„ط¯ظˆط±ط§طھ_ط§ظ„ط³ط±ظٹط¹ط©_{report_label}_{timestamp}.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="كشف_حساب_الدورات_السريعة_{report_label}_{timestamp}.xlsx"'
     workbook.save(response)
     return response
 
@@ -1279,106 +2103,39 @@ def _build_quick_outstanding_rows(courses, start_date=None, end_date=None):
 def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_amount=None):
     student = enrollment.student
     if enrollment.is_completed:
-        raise ValueError('ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط© ظ…ط³ط­ظˆط¨ط© ظ…ط³ط¨ظ‚ط§ظ‹')
+        raise ValueError('هذه الدورة مسحوبة مسبقاً')
 
-    paid_total = QuickStudentReceipt.objects.filter(
-        quick_student=student,
-        quick_enrollment=enrollment,
-        course=enrollment.course
-    ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+    with transaction.atomic():
+        paid_total = QuickStudentReceipt.objects.filter(
+            quick_student=student,
+            quick_enrollment=enrollment,
+            course=enrollment.course
+        ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
 
-    if refund_amount is None:
         refund_amount = paid_total
-    refund_amount = max(Decimal('0'), refund_amount)
-    if refund_amount <= 0 and paid_total > 0:
-        refund_amount = paid_total
+        refund_result = _adjust_quick_receipts_for_refund(student, enrollment, refund_amount)
+        actual_refund = refund_result['refunded_amount']
 
-    refund_result = _adjust_quick_receipts_for_refund(student, enrollment, refund_amount)
-    actual_refund = refund_result['refunded_amount']
+        description = f"سحب طالب سريع {student.full_name} من {enrollment.course.name}"
+        if withdrawal_reason:
+            description = f"{description} - {withdrawal_reason}"
 
-    if getattr(enrollment, 'enrollment_journal_entry_id', None):
-        try:
-            enrollment.enrollment_journal_entry.reverse_entry(
-                user,
-                description=(
-                    f"ط¥ظ„ط؛ط§ط، طھط³ط¬ظٹظ„ ط³ط±ظٹط¹ - {withdrawal_reason}"
-                    if withdrawal_reason else "ط¥ظ„ط؛ط§ط، طھط³ط¬ظٹظ„ ط³ط±ظٹط¹"
-                )
-            )
-        except Exception:
-            pass
-
-    returns_account, _ = Account.objects.get_or_create(
-        code='4201',
-        defaults={
-            'name': 'Withdrawal Revenue - Students',
-            'name_ar': 'إيرادات انسحاب طلاب',
-            'account_type': 'REVENUE',
-            'is_active': True,
-        }
-    )
-
-    student_ar = student.ar_account
-    previous_paid = refund_result['previous_paid']
-    due = max(Decimal('0.00'), (enrollment.net_amount or Decimal('0.00')) - previous_paid)
-
-    entry = JournalEntry.objects.create(
-        reference="",
-        date=timezone.now().date(),
-        description=(
-            f"سحب طالب سريع {student.full_name} من {enrollment.course.name}"
-            + (f" - {withdrawal_reason}" if withdrawal_reason else "")
-        ),
-        entry_type='ADJUSTMENT',
-        total_amount=actual_refund + due,
-        created_by=user
-    )
-
-    if actual_refund > 0:
-        cash_account = _get_employee_cash_account(user)
-        Transaction.objects.create(
-            journal_entry=entry,
-            account=returns_account,
-            amount=actual_refund,
-            is_debit=True,
-            description=f"استرداد - {withdrawal_reason}" if withdrawal_reason else "استرداد مبلغ مدفوع"
-        )
-        Transaction.objects.create(
-            journal_entry=entry,
-            account=cash_account,
-            amount=actual_refund,
-            is_debit=False,
-            description=f"دفع استرداد للطالب {student.full_name}"
+        created_entries = _build_quick_withdrawal_entry(
+            enrollment=enrollment,
+            user=user,
+            refunded_amount=actual_refund,
+            description=description,
         )
 
-    if due > 0:
-        deferred_account = Account.get_or_create_quick_course_deferred_account(enrollment.course)
-        if deferred_account and student_ar:
-            Transaction.objects.create(
-                journal_entry=entry,
-                account=deferred_account,
-                amount=due,
-                is_debit=True,
-                description="عكس إيرادات مؤجلة"
-            )
-            Transaction.objects.create(
-                journal_entry=entry,
-                account=student_ar,
-                amount=due,
-                is_debit=False,
-                description="عكس ذمم الطالب المدينة"
-            )
-
-    entry.post_entry(user)
-
-    enrollment.is_completed = True
-    enrollment.completion_date = timezone.now().date()
-    enrollment.save(update_fields=['is_completed', 'completion_date'])
+        enrollment.is_completed = True
+        enrollment.completion_date = timezone.now().date()
+        enrollment.save(update_fields=['is_completed', 'completion_date'])
 
     return {
         'actual_refund': actual_refund,
         'student_name': student.full_name,
         'course_name': enrollment.course.name,
+        'created_entry_ids': [entry.id for entry in created_entries],
     }
 
 
@@ -1604,26 +2361,62 @@ class QuickStudentListView(LoginRequiredMixin, ListView):
 @require_superuser
 def quick_duplicate_students_report(request):
     if request.method == 'POST':
+        action = request.POST.get('action') or 'merge_one'
         group_key = _normalize_quick_student_name(request.POST.get('group_name'))
         search_query = (request.POST.get('q') or '').strip()
         scope = request.POST.get('scope') or 'active'
 
-        if not group_key:
-            messages.error(request, 'لم يتم تحديد الاسم المطلوب دمجه.')
-            return redirect(f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'scope': scope})}")
+        if action == 'merge_all':
+            duplicate_groups = _get_duplicate_groups(search_query=search_query, scope=scope)
+            if not duplicate_groups:
+                messages.info(request, 'لا توجد مجموعات مكررة مطابقة للفلتر الحالي.')
+                return redirect(f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'scope': scope})}")
 
-        try:
-            merge_result = _merge_quick_students_by_name(group_key, request.user)
-        except Exception as exc:
-            messages.error(request, f'فشل دمج السجلات المكررة: {exc}')
+            merged_groups = 0
+            total_enrollments = 0
+            total_receipts = 0
+            total_reversed = 0
+            failed_groups = []
+
+            for group in duplicate_groups:
+                try:
+                    merge_result = _merge_quick_students_by_name_with_retry(group['normalized_name'], request.user)
+                except Exception as exc:
+                    failed_groups.append(f'{group["display_name"]}: {exc}')
+                    continue
+
+                merged_groups += 1
+                total_enrollments += merge_result['merged_enrollments']
+                total_receipts += merge_result['merged_receipts']
+                total_reversed += merge_result['reversed_duplicates']
+
+            if merged_groups:
+                messages.success(
+                    request,
+                    f'تم الدمج الجماعي لـ {merged_groups} مجموعة، '
+                    f'ونُقل {total_enrollments} تسجيل و{total_receipts} إيصال، '
+                    f'مع عكس {total_reversed} تسجيل مكرر.'
+                )
+            if failed_groups:
+                for error in failed_groups[:10]:
+                    messages.error(request, f'فشل دمج السجلات المكررة: {error}')
         else:
-            messages.success(
-                request,
-                'تم الدمج بنجاح إلى السجل '
-                f'#{merge_result["target"].id}، '
-                f'ونُقل {merge_result["merged_enrollments"]} تسجيل و{merge_result["merged_receipts"]} إيصال، '
-                f'مع عكس {merge_result["reversed_duplicates"]} تسجيل مكرر على نفس الدورة.'
-            )
+            if not group_key:
+                messages.error(request, 'لم يتم تحديد الاسم المطلوب دمجه.')
+                return redirect(f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'scope': scope})}")
+
+            try:
+                merge_result = _merge_quick_students_by_name_with_retry(group_key, request.user)
+            except Exception as exc:
+                messages.error(request, f'فشل دمج السجلات المكررة: {exc}')
+            else:
+                messages.success(
+                    request,
+                    'تم الدمج بنجاح إلى السجل '
+                    f'#{merge_result["target"].id}، '
+                    f'ونُقل {merge_result["merged_enrollments"]} تسجيل و{merge_result["merged_receipts"]} إيصال، '
+                    f'مع عكس {merge_result["reversed_duplicates"]} تسجيل مكرر على نفس الدورة.'
+                )
 
         return redirect(f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'scope': scope})}")
 
@@ -1869,6 +2662,175 @@ def quick_duplicate_students_full_print(request):
         'print_date': timezone.now(),
     })
 
+
+@require_superuser
+def quick_accounting_fix_tool(request):
+    if request.method == 'POST':
+        result = _apply_quick_accounting_fixes(request.user)
+        if result['fixed_links'] or result['fixed_withdrawals'] or result['fixed_receipts']:
+            messages.success(
+                request,
+                f'تم تنفيذ التصحيح: ربط {result["fixed_links"]} قيد تسجيل '
+                f'وتصحيح {result["fixed_receipts"]} قيد قبض '
+                f'وإلغاء/تنظيف {result["cleaned_withdraw_entries"]} قيد سحب قديم '
+                f'وإنشاء {result["fixed_withdrawals"]} قيد سحب جديد.'
+            )
+        else:
+            messages.info(request, 'لم يتم العثور على قيود سريعة تحتاج تصحيحاً تلقائياً.')
+
+        if result['deactivated_legacy_accounts']:
+            messages.info(
+                request,
+                'تم تعطيل حسابات الانسحاب القديمة بدون حذف أي بيانات: '
+                + ', '.join(result['deactivated_legacy_accounts'])
+            )
+
+        for error in result['errors'][:10]:
+            messages.error(request, error)
+        return redirect('quick:accounting_fix_tool')
+
+    rows = _build_quick_accounting_fix_rows()
+    issue_rows = [row for row in rows if row['issues']]
+    context = {
+        'rows': rows,
+        'issue_rows': issue_rows,
+        'audited_count': len(rows),
+        'issues_count': len(issue_rows),
+        'compliant_count': sum(1 for row in rows if row['is_compliant']),
+        'missing_entry_count': sum(1 for row in rows if row['missing_entry']),
+        'withdraw_fix_count': sum(
+            1 for row in issue_rows
+            if row['legacy_entries_count'] > 0 and row['correction_amount'] > 0
+        ),
+        'total_correction_amount': sum((row['correction_amount'] for row in issue_rows), Decimal('0')),
+    }
+    return render(request, 'quick/quick_accounting_fix_tool.html', context)
+
+
+@require_superuser
+def quick_withdrawal_fix_tool(request):
+    if request.method == 'POST':
+        result = _apply_quick_withdrawal_fixes(request.user)
+        if result['fixed_withdrawals'] or result['cleaned_withdraw_entries']:
+            messages.success(
+                request,
+                f'تم تنفيذ تصحيح قيود السحب: حذف/تنظيف {result["cleaned_withdraw_entries"]} قيد سحب قديم '
+                f'وإنشاء {result["fixed_withdrawals"]} قيد عكس جديد.'
+            )
+        else:
+            messages.info(request, 'لم يتم العثور على قيود سحب سريعة تحتاج تصحيحاً.')
+
+        if result['deactivated_legacy_accounts']:
+            messages.info(
+                request,
+                'تم تعطيل حسابات الانسحاب القديمة بدون حذف أي بيانات: '
+                + ', '.join(result['deactivated_legacy_accounts'])
+            )
+
+        for error in result['errors'][:10]:
+            messages.error(request, error)
+        return redirect('quick:withdrawal_fix_tool')
+
+    rows = _build_quick_withdrawal_fix_rows()
+    context = {
+        'rows': rows,
+        'audited_count': len(rows),
+        'legacy_count': sum(1 for row in rows if row['legacy_entries_count'] > 0),
+        'retained_count': sum(1 for row in rows if row['retained_amount'] > 0),
+        'missing_withdraw_count': sum(
+            1 for row in rows if 'تسجيل مسحوب بدون قيد سحب واضح' in row['issues']
+        ),
+    }
+    return render(request, 'quick/quick_withdrawal_fix_tool.html', context)
+
+
+def _get_existing_quick_student_ar_account(student):
+    if not student or not getattr(student, 'id', None):
+        return None
+    return Account.objects.filter(code=f'1252-{student.id:03d}').first()
+
+
+def _get_quick_student_related_journal_entries(student):
+    ar_account = _get_existing_quick_student_ar_account(student)
+    if not ar_account:
+        return JournalEntry.objects.none()
+
+    entry_ids = Transaction.objects.filter(
+        account=ar_account
+    ).values_list('journal_entry_id', flat=True).distinct()
+    return JournalEntry.objects.filter(id__in=entry_ids).distinct()
+
+
+def _get_quick_student_delete_summary(student):
+    enrollments_count = QuickEnrollment.objects.filter(student=student).count()
+    receipts_count = QuickStudentReceipt.objects.filter(quick_student=student).count()
+    print_jobs_count = QuickReceiptPrintJob.objects.filter(quick_student=student).count()
+    journal_entries = _get_quick_student_related_journal_entries(student)
+    journal_entries_count = journal_entries.count()
+    transactions_count = Transaction.objects.filter(journal_entry__in=journal_entries).count()
+    ar_account = _get_existing_quick_student_ar_account(student)
+
+    return {
+        'enrollments_count': enrollments_count,
+        'receipts_count': receipts_count,
+        'print_jobs_count': print_jobs_count,
+        'journal_entries_count': journal_entries_count,
+        'transactions_count': transactions_count,
+        'ar_account_code': ar_account.code if ar_account else '-',
+        'account_codes_display': ar_account.code if ar_account else '-',
+    }
+
+
+@login_required
+def quick_delete_student(request, student_id):
+    student = get_object_or_404(QuickStudent.objects.select_related('student'), pk=student_id)
+    summary = _get_quick_student_delete_summary(student)
+
+    if not request.user.is_superuser and not request.user.has_perm('quick.change_quickstudent'):
+        if request.method == 'GET':
+            return JsonResponse({'success': False, 'error': 'لا تملك صلاحية حذف الطلاب السريعين.'}, status=403)
+        messages.error(request, 'لا تملك صلاحية حذف الطلاب السريعين.')
+        return redirect('quick:student_profile', student_id=student.id)
+
+    if request.method == 'GET':
+        return JsonResponse({
+            'success': True,
+            'student_name': student.full_name,
+            'summary': summary,
+        })
+
+    redirect_url = reverse('quick:student_list')
+    linked_student = getattr(student, 'student', None)
+    ar_account = _get_existing_quick_student_ar_account(student)
+    journal_entries = list(_get_quick_student_related_journal_entries(student))
+
+    with transaction.atomic():
+        if journal_entries:
+            JournalEntry.objects.filter(id__in=[entry.id for entry in journal_entries]).delete()
+
+        student.delete()
+
+        if linked_student:
+            linked_student.delete()
+
+        if ar_account and not Transaction.objects.filter(account=ar_account).exists():
+            ar_account.delete()
+
+    Account.rebuild_all_balances()
+
+    messages.success(
+        request,
+        f'تم حذف الطالب السريع "{student.full_name}" مع {summary["enrollments_count"]} تسجيل، '
+        f'{summary["receipts_count"]} إيصال، {summary["journal_entries_count"]} قيد، '
+        f'و{summary["transactions_count"]} حركة مالية.'
+    )
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'message': f'تم حذف الطالب السريع "{student.full_name}" مع كل البيانات المرتبطة به.',
+        })
+    return redirect(redirect_url)
+
 class QuickStudentCreateView(LoginRequiredMixin, CreateView):
     model = QuickStudent
     form_class = QuickStudentForm
@@ -2038,6 +3000,7 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
                 'total_remaining': total_remaining,
                 'receipts': receipts,
                 'has_active_enrollments': has_active_enrollments,
+                'delete_summary': _get_quick_student_delete_summary(student),
             })
             
         except Exception as e:
@@ -2050,6 +3013,7 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
                 'total_remaining': Decimal('0.00'),
                 'receipts': [],
                 'has_active_enrollments': False,
+                'delete_summary': _get_quick_student_delete_summary(student),
             })
         
         return context
@@ -2067,50 +3031,121 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
         student = self.get_object()
         
         try:
-            # âœ… ط¬ظ„ط¨ ط§ظ„طھط³ط¬ظٹظ„ط§طھ ط§ظ„ظ†ط´ط·ط© ظپظ‚ط·
-            active_enrollments_queryset = QuickEnrollment.objects.filter(
-                student=student, 
-                is_completed=False
-            ).select_related('course')
-            
-            # âœ… ط¥ظ†ط´ط§ط، ظ‚ط§ط¦ظ…ط© ط¨ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط­ط³ظˆط¨ط© ظ„ظ„طھط³ط¬ظٹظ„ط§طھ ط§ظ„ظ†ط´ط·ط©
+            enrollments = list(
+                QuickEnrollment.objects.filter(student=student)
+                .select_related('course')
+                .order_by('enrollment_date', 'id')
+            )
+            receipts = list(
+                QuickStudentReceipt.objects.filter(quick_student=student)
+                .select_related('course', 'quick_enrollment', 'journal_entry', 'created_by')
+                .order_by('date', 'id')
+            )
+
             enrollment_data = []
-            for enrollment in active_enrollments_queryset:
-                # ط§ط±ط¨ط· ط§ظ„ط¯ظپط¹ط§طھ ط¨ظ‡ط°ط§ ط§ظ„طھط³ط¬ظٹظ„ ظ†ظپط³ظ‡ ظ„ظ…ظ†ط¹ ط®ظ„ط· ط¥ظٹطµط§ظ„ط§طھ طھط³ط¬ظٹظ„ ط¢ط®ط±
-                total_paid = _get_quick_enrollment_paid_total(enrollment, student)
-                
+            per_course = []
+            total_paid = Decimal('0.00')
+            total_due = Decimal('0.00')
+
+            entry_ids = set()
+            enrollment_refs = {f'QE-{enrollment.id}' for enrollment in enrollments}
+            if enrollment_refs:
+                entry_ids.update(
+                    JournalEntry.objects.filter(reference__in=enrollment_refs).values_list('id', flat=True)
+                )
+
+            for receipt in receipts:
+                if receipt.journal_entry_id:
+                    entry_ids.add(receipt.journal_entry_id)
+
+            for enrollment in enrollments:
+                total_enrollment_paid = _get_quick_enrollment_paid_total(enrollment, student)
                 net_amount = enrollment.net_amount or Decimal('0.00')
-                balance_due = max(Decimal('0.00'), net_amount - total_paid)
-                
+                balance_due = max(Decimal('0.00'), net_amount - total_enrollment_paid)
+
                 enrollment_data.append({
                     'enrollment': enrollment,
-                    'total_paid': total_paid,
+                    'total_paid': total_enrollment_paid,
                     'balance_due': balance_due,
                     'net_amount': net_amount,
-                    'is_active': not enrollment.is_completed
+                    'is_active': not enrollment.is_completed,
                 })
-            
-            # âœ… ط­ط³ط§ط¨ ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹط§طھ
-            total_paid = sum(item['total_paid'] for item in enrollment_data)
-            total_due = sum(item['net_amount'] for item in enrollment_data)
-            total_remaining = total_due - total_paid
-            
-            # âœ… ط¬ظ„ط¨ ط¬ظ…ظٹط¹ ط§ظ„ط¥ظٹطµط§ظ„ط§طھ ط§ظ„ط³ط±ظٹط¹ط©
-            receipts = QuickStudentReceipt.objects.filter(
-                quick_student=student
-            ).select_related('course').order_by('-date', '-id')
-            
-            # âœ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ طھط³ط¬ظٹظ„ط§طھ ظ†ط´ط·ط©
-            has_active_enrollments = len(enrollment_data) > 0
-            
+                per_course.append({
+                    'course': enrollment.course,
+                    'price': net_amount,
+                    'paid': total_enrollment_paid,
+                    'outstanding': balance_due,
+                    'is_completed': enrollment.is_completed,
+                    'enrollment_id': enrollment.id,
+                })
+
+                total_paid += total_enrollment_paid
+                total_due += net_amount
+
+                entry_ids.update(
+                    _find_quick_withdrawal_entries(enrollment).values_list('id', flat=True)
+                )
+                entry_ids.update(
+                    _find_quick_generated_withdraw_fix_entries(enrollment).values_list('id', flat=True)
+                )
+
+            entry_ids.update(
+                JournalEntry.objects.filter(description__icontains=student.full_name).values_list('id', flat=True)
+            )
+
+            journal_entries = list(
+                JournalEntry.objects.filter(id__in=entry_ids)
+                .select_related('created_by', 'posted_by')
+                .prefetch_related('transactions__account')
+                .order_by('date', 'id')
+            )
+
+            student_ar_account = getattr(student, 'ar_account', None)
+            running_balance = Decimal('0.00')
+            rows = []
+            for entry in journal_entries:
+                transactions = list(entry.transactions.select_related('account').all())
+                transactions.sort(key=lambda tx: (not tx.is_debit, tx.id))
+                for tx in transactions:
+                    debit = tx.amount if tx.is_debit else Decimal('0.00')
+                    credit = tx.amount if not tx.is_debit else Decimal('0.00')
+                    if student_ar_account and tx.account_id == student_ar_account.id:
+                        running_balance += debit - credit
+
+                    rows.append({
+                        'date': entry.date,
+                        'ref': entry.reference or '-',
+                        'desc': entry.description or tx.description or '-',
+                        'account_code': tx.account.code,
+                        'account_name': tx.account.name_ar or tx.account.name,
+                        'tx_desc': tx.description or '-',
+                        'debit': debit,
+                        'credit': credit,
+                        'balance': running_balance,
+                        'created_by': (
+                            entry.created_by.get_full_name()
+                            or entry.created_by.username
+                            if entry.created_by else '-'
+                        ),
+                        'entry_type': entry.get_entry_type_display(),
+                    })
+
+            total_remaining = max(Decimal('0.00'), total_due - total_paid)
+            balance = student.balance
+
             context.update({
                 'enrollment_data': enrollment_data,
-                'active_enrollments': enrollment_data,
+                'active_enrollments': [row for row in enrollment_data if row['is_active']],
+                'all_enrollments': enrollment_data,
                 'total_paid': total_paid,
                 'total_due': total_due,
                 'total_remaining': total_remaining,
                 'receipts': receipts,
-                'has_active_enrollments': has_active_enrollments,
+                'has_active_enrollments': any(row['is_active'] for row in enrollment_data),
+                'rows': rows,
+                'per_course': per_course,
+                'balance': balance,
+                'entry_count': len(journal_entries),
             })
             
         except Exception as e:
@@ -2123,6 +3158,10 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
                 'total_remaining': Decimal('0.00'),
                 'receipts': [],
                 'has_active_enrollments': False,
+                'rows': [],
+                'per_course': [],
+                'balance': Decimal('0.00'),
+                'entry_count': 0,
             })
         
         return context
@@ -2359,69 +3398,15 @@ def withdraw_quick_student(request, student_id):
                 except Exception:
                     pass
 
-            returns_account, _ = Account.objects.get_or_create(
-                code='4201',
-                defaults={
-                    'name': 'Withdrawal Revenue - Students',
-                    'name_ar': 'إيرادات انسحاب طلاب',
-                    'account_type': 'REVENUE',
-                    'is_active': True,
-                }
+            description = f"سحب طالب سريع {student.full_name} من {enrollment.course.name}"
+            if withdrawal_reason:
+                description = f"{description} - {withdrawal_reason}"
+            _build_quick_withdrawal_entry(
+                enrollment=enrollment,
+                user=request.user,
+                refunded_amount=actual_refund,
+                description=description,
             )
-
-            student_ar = student.ar_account
-
-            new_total_paid = refund_result['new_total_paid']
-            previous_paid = refund_result['previous_paid']
-            due = max(Decimal('0.00'), (enrollment.net_amount or Decimal('0.00')) - previous_paid)
-            entry_total = actual_refund + due
-
-            entry = JournalEntry.objects.create(
-                reference="",
-                date=timezone.now().date(),
-                description=f"سحب طالب سريع {student.full_name} من {enrollment.course.name}" + 
-                           (f" - {withdrawal_reason}" if withdrawal_reason else ""),
-                entry_type='ADJUSTMENT',
-                total_amount=entry_total,
-                created_by=request.user
-            )
-
-            if actual_refund > 0:
-                cash_account = _get_employee_cash_account(request.user)
-                Transaction.objects.create(
-                    journal_entry=entry,
-                    account=returns_account,
-                    amount=actual_refund,
-                    is_debit=True,
-                    description=f"استرداد - {withdrawal_reason}" if withdrawal_reason else "استرداد مبلغ مدفوع"
-                )
-                Transaction.objects.create(
-                    journal_entry=entry,
-                    account=cash_account,
-                    amount=actual_refund,
-                    is_debit=False,
-                    description=f"دفع استرداد للطالب {student.full_name}"
-                )
-
-            if due > 0:
-                deferred_account = Account.get_or_create_quick_course_deferred_account(enrollment.course)
-                if deferred_account and student_ar:
-                    Transaction.objects.create(
-                        journal_entry=entry,
-                        account=deferred_account,
-                        amount=due,
-                        is_debit=True,
-                        description="عكس إيرادات مؤجلة"
-                    )
-                    Transaction.objects.create(
-                        journal_entry=entry,
-                        account=student_ar,
-                        amount=due,
-                        is_debit=False,
-                        description="عكس ذمم الطالب المدينة"
-                    )
-
-            entry.post_entry(request.user)
 
             enrollment.is_completed = True
             enrollment.completion_date = timezone.now().date()
@@ -3175,12 +4160,18 @@ class QuickCourseUpdateView(LoginRequiredMixin, UpdateView):
 def withdraw_quick_student(request, student_id):
     """Withdraw quick student from course."""
     student = get_object_or_404(QuickStudent, pk=student_id)
-    enrollment_id = request.POST.get('enrollment_id')
+    enrollment_id_raw = request.POST.get('enrollment_id')
     withdrawal_reason = request.POST.get('withdrawal_reason', '')
     refund_amount_raw = request.POST.get('refund_amount', '0')
+    wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    enrollment_id = ''.join(ch for ch in str(enrollment_id_raw or '') if ch.isdigit())
 
     if not enrollment_id:
-        messages.error(request, 'Enrollment was not selected')
+        error_message = 'لم يتم تحديد تسجيل الدورة'
+        if wants_json:
+            return JsonResponse({'success': False, 'error': error_message}, status=400)
+        messages.error(request, error_message)
         return redirect('quick:student_profile', student_id=student.id)
 
     try:
@@ -3197,10 +4188,20 @@ def withdraw_quick_student(request, student_id):
             refund_amount=refund_amount,
         )
         actual_refund = result['actual_refund']
+        if wants_json:
+            return JsonResponse({
+                'success': True,
+                'student_name': result['student_name'],
+                'course_name': result['course_name'],
+                'actual_refund': f'{actual_refund:,.0f}',
+                'created_entry_ids': result.get('created_entry_ids', []),
+            })
         refund_note = f' and refunded {actual_refund:,.0f} SYP' if actual_refund > 0 else ''
         messages.success(request, f'Student withdrawn from course {enrollment.course.name}{refund_note} successfully')
     except Exception as exc:
         print(f"ERROR in withdraw_quick_student override: {exc}")
+        if wants_json:
+            return JsonResponse({'success': False, 'error': str(exc)}, status=400)
         messages.error(request, f'Withdrawal error: {exc}')
 
     return redirect('quick:student_profile', student_id=student.id)

@@ -28,6 +28,7 @@ urlpatterns = [
     path('journal/<int:pk>/update/', require_employee_perm('accounting_entries')(views.JournalEntryUpdateView.as_view()), name='journal_entry_update'),
     path('journal/<int:pk>/post/', require_employee_perm('accounting_entries_post')(views.PostJournalEntryView.as_view()), name='journal_entry_post'),
     path('journal/<int:pk>/reverse/', require_employee_perm('accounting_entries')(views.ReverseJournalEntryView.as_view()), name='journal_entry_reverse'),
+    path('journal/<int:pk>/delete/', require_employee_perm('accounting_entries')(views.delete_journal_entry), name='journal_entry_delete'),
     path('journal/fix-mojibake/', require_employee_perm('accounting_entries')(views.fix_journal_mojibake_records), name='fix_journal_mojibake'),
     path('journal/<int:pk>/fix-mojibake/', require_employee_perm('accounting_entries')(views.fix_single_journal_mojibake), name='fix_single_journal_mojibake'),
     
