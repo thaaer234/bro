@@ -85,11 +85,56 @@ def _repair_mojibake_text(value):
     return text
 
 
+def _should_skip_mojibake_repair(obj, field_name, text):
+    text = str(text or "")
+    lowered_text = text.casefold()
+    skip_tokens = (
+        'سحب',
+        'منسحب',
+        'انسحاب',
+        'استرداد',
+        'withdraw',
+        'withdrawal',
+        'refund',
+        'quick_withdraw',
+        '[quick_withdraw',
+    )
+
+    if any(token in lowered_text for token in skip_tokens):
+        return True
+
+    if hasattr(obj, 'entry_type') and str(getattr(obj, 'entry_type', '')).upper() in {'WITHDRAW', 'WITHDRAWAL'}:
+        return True
+
+    journal_entry = getattr(obj, 'journal_entry', None)
+    if journal_entry:
+        journal_text = ' '.join([
+            str(getattr(journal_entry, 'description', '') or ''),
+            str(getattr(journal_entry, 'entry_type', '') or ''),
+        ]).casefold()
+        if any(token in journal_text for token in skip_tokens):
+            return True
+
+    account = getattr(obj, 'account', None)
+    if account:
+        account_text = ' '.join([
+            str(getattr(account, 'code', '') or ''),
+            str(getattr(account, 'name', '') or ''),
+            str(getattr(account, 'name_ar', '') or ''),
+        ]).casefold()
+        if any(token in account_text for token in ('withdraw', 'withdrawal', 'انسحاب', 'سحب')):
+            return True
+
+    return False
+
+
 def _fix_mojibake_queryset(queryset, field_name):
     updated_count = 0
 
     for obj in queryset.only("id", field_name).iterator():
         original_value = getattr(obj, field_name, None)
+        if _should_skip_mojibake_repair(obj, field_name, original_value):
+            continue
         repaired_value = _repair_mojibake_text(original_value)
 
         if repaired_value != original_value:
