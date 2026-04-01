@@ -6,6 +6,8 @@ from django.utils import timezone
 from decimal import Decimal, InvalidOperation
 from django.core.exceptions import ValidationError
 from django.db.models import Sum, Q
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 import uuid
 
 
@@ -1918,6 +1920,9 @@ class StudentReceipt(models.Model):
         
         return entry
 
+    def get_linked_journal_entries(self):
+        return [entry for entry in [self.journal_entry] if entry]
+
 
     # إضافة العلاقة الجديدة للتسجيلات السريعة
     quick_enrollment = models.ForeignKey(
@@ -2743,3 +2748,60 @@ def get_withdrawal_revenue_account(cls, student=None, course=None):
             account_type='REVENUE',
             is_active=True
         )
+def _delete_linked_instance(instance):
+    if not instance or getattr(instance, '_skip_linked_cleanup', False):
+        return
+    instance._skip_linked_cleanup = True
+    instance.delete()
+
+
+@receiver(pre_delete, sender=JournalEntry)
+def delete_student_operation_when_entry_deleted(sender, instance, **kwargs):
+    if getattr(instance, '_skip_linked_cleanup', False):
+        return
+
+    linked_objects = []
+    linked_objects.extend(instance.receipts.all())
+    linked_objects.extend(instance.enrollments.all())
+
+    from quick.models import QuickEnrollment, QuickStudentReceipt
+
+    linked_objects.extend(QuickStudentReceipt.objects.filter(journal_entry=instance))
+
+    if instance.reference and instance.reference.startswith('QE-'):
+        try:
+            enrollment_id = int(instance.reference.split('-', 1)[1])
+        except (TypeError, ValueError):
+            enrollment_id = None
+        if enrollment_id:
+            linked_objects.extend(QuickEnrollment.objects.filter(id=enrollment_id))
+
+    seen = set()
+    for obj in linked_objects:
+        key = (obj.__class__, obj.pk)
+        if obj.pk and key in seen:
+            continue
+        seen.add(key)
+        _delete_linked_instance(obj)
+
+
+@receiver(pre_delete, sender=Studentenrollment)
+def delete_student_entry_when_enrollment_deleted(sender, instance, **kwargs):
+    if getattr(instance, '_skip_linked_cleanup', False):
+        return
+
+    for entry in [instance.enrollment_journal_entry, instance.completion_journal_entry]:
+        if not entry:
+            continue
+        entry._skip_linked_cleanup = True
+        entry.delete()
+
+
+@receiver(pre_delete, sender=StudentReceipt)
+def delete_student_entry_when_receipt_deleted(sender, instance, **kwargs):
+    if getattr(instance, '_skip_linked_cleanup', False):
+        return
+
+    for entry in instance.get_linked_journal_entries():
+        entry._skip_linked_cleanup = True
+        entry.delete()

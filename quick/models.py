@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db import transaction as db_transaction
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 from django.utils import timezone
 
 from students.models import Student
@@ -465,7 +467,6 @@ class QuickStudent(models.Model):
 
 
 from django.db.models.signals import pre_save
-from django.dispatch import receiver
 
 @receiver(pre_save, sender=QuickStudent)
 def set_auto_academic_year(sender, instance, **kwargs):
@@ -506,6 +507,18 @@ class QuickEnrollment(models.Model):
         return f"{self.student.full_name} - {self.course.name}"
 
     @property
+    def enrollment_reference(self):
+        return f"QE-{self.id}" if self.id else None
+
+    @property
+    def enrollment_journal_entry(self):
+        reference = self.enrollment_reference
+        if not reference:
+            return None
+        from accounts.models import JournalEntry
+        return JournalEntry.objects.filter(reference=reference).first()
+
+    @property
     def calculated_net_amount(self):
         """حساب المبلغ الصافي بعد الخصم (خاصية محسوبة)"""
         total = self.total_amount or Decimal('0')
@@ -530,6 +543,10 @@ class QuickEnrollment(models.Model):
     def create_accrual_enrollment_entry(self, user):
         """إنشاء قيد محاسبي للتسجيل السريع"""
         from accounts.models import Account, JournalEntry, Transaction
+
+        existing_entry = self.enrollment_journal_entry
+        if existing_entry:
+            return existing_entry
         
         # الحسابات الخاصة بالطلاب السريعين
         student_ar_account = Account.get_or_create_quick_student_ar_account(self.student)
@@ -725,6 +742,9 @@ class QuickStudentReceipt(models.Model):
         
         return entry
 
+    def get_linked_journal_entries(self):
+        return [entry for entry in [self.journal_entry] if entry]
+
 
 class QuickReceiptPrintJob(models.Model):
     STATUS_PENDING = 'pending'
@@ -756,3 +776,24 @@ class QuickReceiptPrintJob(models.Model):
 
     def __str__(self):
         return f"Quick print job #{self.pk} - {self.quick_student.full_name}"
+
+
+@receiver(pre_delete, sender=QuickEnrollment)
+def delete_quick_entry_when_enrollment_deleted(sender, instance, **kwargs):
+    if getattr(instance, '_skip_linked_cleanup', False):
+        return
+
+    entry = instance.enrollment_journal_entry
+    if entry:
+        entry._skip_linked_cleanup = True
+        entry.delete()
+
+
+@receiver(pre_delete, sender=QuickStudentReceipt)
+def delete_quick_entry_when_receipt_deleted(sender, instance, **kwargs):
+    if getattr(instance, '_skip_linked_cleanup', False):
+        return
+
+    for entry in instance.get_linked_journal_entries():
+        entry._skip_linked_cleanup = True
+        entry.delete()

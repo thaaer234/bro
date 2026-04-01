@@ -1492,13 +1492,52 @@ def _append_quick_course_statement_rows(rows, course_name, student_name, student
         })
 
 
+def _extract_quick_student_id_from_entry(entry):
+    for transaction in entry.transactions.select_related('account').all():
+        code = (transaction.account.code or '').strip()
+        if not code.startswith('1252-'):
+            continue
+        parts = code.split('-')
+        if len(parts) < 2:
+            continue
+        try:
+            return int(parts[1])
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _resolve_quick_entry_source(entry, receipt=None, enrollment=None):
+    if receipt:
+        return 'قيد قبض'
+    if enrollment:
+        return 'قيد تسجيل'
+
+    description = (entry.description or '').lower()
+    if 'quick_withdraw' in description or 'سحب' in description:
+        return 'قيد سحب'
+    if 'استرداد' in description:
+        return 'قيد استرداد'
+    if entry.entry_type == 'ADJUSTMENT':
+        return 'قيد تسوية'
+    return entry.get_entry_type_display()
+
+
 def _build_quick_course_statement_rows(courses):
     courses = list(courses)
     rows_by_course = defaultdict(list)
-    added_entry_ids = defaultdict(set)
 
     if not courses:
         return rows_by_course
+
+    course_map = {course.id: course for course in courses}
+    course_account_codes = {
+        course.id: {f'2151-{course.id:03d}', f'4111-{course.id:03d}'}
+        for course in courses
+    }
+    all_course_account_codes = {
+        code for codes in course_account_codes.values() for code in codes
+    }
 
     enrollments = list(
         QuickEnrollment.objects.filter(course__in=courses)
@@ -1506,101 +1545,111 @@ def _build_quick_course_statement_rows(courses):
         .order_by('course__name', 'student__full_name', 'id')
     )
     enrollment_ref_map = {f"QE-{enrollment.id}": enrollment for enrollment in enrollments}
+    enrollment_by_course = defaultdict(list)
+    for enrollment in enrollments:
+        enrollment_by_course[enrollment.course_id].append(enrollment)
 
     receipts = list(
         QuickStudentReceipt.objects.filter(course__in=courses, journal_entry__isnull=False)
         .select_related('quick_student', 'course')
         .order_by('course__name', 'date', 'id')
     )
-    receipt_entry_ids = {receipt.journal_entry_id for receipt in receipts if receipt.journal_entry_id}
+    receipt_by_entry_id = {
+        receipt.journal_entry_id: receipt
+        for receipt in receipts
+        if receipt.journal_entry_id
+    }
+    receipt_entry_ids = set(receipt_by_entry_id.keys())
 
-    journal_entries = JournalEntry.objects.filter(
-        Q(reference__in=enrollment_ref_map.keys()) | Q(id__in=receipt_entry_ids)
-    ).select_related(
-        'created_by', 'posted_by'
-    ).prefetch_related(
-        Prefetch('transactions', queryset=Transaction.objects.select_related('account').order_by('id'))
-    )
-
-    entries_by_reference = {entry.reference: entry for entry in journal_entries}
-    entries_by_id = {entry.id: entry for entry in journal_entries}
-
-    for enrollment in enrollments:
-        entry = entries_by_reference.get(f"QE-{enrollment.id}")
-        if not entry:
-            continue
-        added_entry_ids[enrollment.course_id].add(entry.id)
-        _append_quick_course_statement_rows(
-            rows_by_course[enrollment.course_id],
-            course_name=enrollment.course.name,
-            student_name=enrollment.student.full_name,
-            student_phone=enrollment.student.phone,
-            source_label='قيد تسجيل',
-            entry=entry,
-        )
-
-    for receipt in receipts:
-        entry = entries_by_id.get(receipt.journal_entry_id)
-        if not entry:
-            continue
-        added_entry_ids[receipt.course_id].add(entry.id)
-        _append_quick_course_statement_rows(
-            rows_by_course[receipt.course_id],
-            course_name=receipt.course.name if receipt.course else (receipt.course_name or "-"),
-            student_name=receipt.student_name or getattr(receipt.quick_student, 'full_name', "-"),
-            student_phone=getattr(receipt.quick_student, 'phone', "-"),
-            source_label='قيد قبض',
-            entry=entry,
-        )
-
-    adjustment_entries = list(
-        JournalEntry.objects.filter(entry_type='ADJUSTMENT')
-        .select_related('created_by', 'posted_by')
-        .prefetch_related(
+    journal_entries = list(
+        JournalEntry.objects.filter(
+            Q(reference__in=enrollment_ref_map.keys())
+            | Q(id__in=receipt_entry_ids)
+            | Q(transactions__account__code__in=all_course_account_codes)
+        ).distinct().select_related(
+            'created_by', 'posted_by'
+        ).prefetch_related(
             Prefetch('transactions', queryset=Transaction.objects.select_related('account').order_by('id'))
-        )
-        .order_by('date', 'id')
+        ).order_by('date', 'id')
     )
 
-    for enrollment in enrollments:
-        student_name = enrollment.student.full_name or ""
-        course_name = enrollment.course.name or ""
-        description_prefixes = [
-            ("استرداد مبلغ - ", "قيد استرداد"),
-            ("سحب طالب سريع ", "قيد سحب"),
-            ("ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - ", "قيد استرداد"),
-            ("ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ ", "قيد سحب"),
-        ]
+    added_entry_ids = defaultdict(set)
+    quick_student_cache = {}
 
-        for entry in adjustment_entries:
-            if entry.id in added_entry_ids[enrollment.course_id]:
+    for entry in journal_entries:
+        entry_course_ids = set()
+
+        receipt = receipt_by_entry_id.get(entry.id)
+        if receipt and receipt.course_id in course_map:
+            entry_course_ids.add(receipt.course_id)
+
+        enrollment = enrollment_ref_map.get(entry.reference)
+        if enrollment and enrollment.course_id in course_map:
+            entry_course_ids.add(enrollment.course_id)
+
+        for transaction in entry.transactions.all():
+            code = (transaction.account.code or '').strip()
+            for course_id, account_codes in course_account_codes.items():
+                if code in account_codes:
+                    entry_course_ids.add(course_id)
+
+        if not entry_course_ids:
+            continue
+
+        student_obj = None
+        if receipt and getattr(receipt, 'quick_student', None):
+            student_obj = receipt.quick_student
+        elif enrollment and getattr(enrollment, 'student', None):
+            student_obj = enrollment.student
+        else:
+            quick_student_id = _extract_quick_student_id_from_entry(entry)
+            if quick_student_id:
+                if quick_student_id not in quick_student_cache:
+                    quick_student_cache[quick_student_id] = QuickStudent.objects.filter(
+                        id=quick_student_id
+                    ).first()
+                student_obj = quick_student_cache.get(quick_student_id)
+
+        for course_id in sorted(entry_course_ids):
+            if entry.id in added_entry_ids[course_id]:
                 continue
 
-            description = entry.description or ""
-            matched_source = None
-            for prefix, source_label in description_prefixes:
-                if prefix in {"استرداد مبلغ - ", "ط§ط³طھط±ط¯ط§ط¯ ظ…ط¨ظ„ط؛ - "} and description.startswith(f"{prefix}{student_name} - {course_name}"):
-                    matched_source = source_label
-                    break
-                if prefix in {"سحب طالب سريع ", "ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ "} and description.startswith(f"{prefix}{student_name} من {course_name}"):
-                    matched_source = source_label
-                    break
-                if prefix == "ط³ط­ط¨ ط·ط§ظ„ط¨ ط³ط±ظٹط¹ " and description.startswith(f"{prefix}{student_name} ظ…ظ† {course_name}"):
-                    matched_source = source_label
-                    break
+            course = course_map.get(course_id)
+            linked_enrollment = enrollment
+            if not linked_enrollment and student_obj:
+                linked_enrollment = next(
+                    (
+                        item for item in enrollment_by_course.get(course_id, [])
+                        if item.student_id == getattr(student_obj, 'id', None)
+                    ),
+                    None,
+                )
 
-            if not matched_source:
-                continue
+            student_name = '-'
+            student_phone = '-'
+            if receipt:
+                student_name = receipt.student_name or getattr(receipt.quick_student, 'full_name', '-') or '-'
+                student_phone = getattr(receipt.quick_student, 'phone', '-') or '-'
+            elif student_obj:
+                student_name = getattr(student_obj, 'full_name', '-') or '-'
+                student_phone = getattr(student_obj, 'phone', '-') or '-'
+            elif linked_enrollment:
+                student_name = linked_enrollment.student.full_name or '-'
+                student_phone = linked_enrollment.student.phone or '-'
 
-            added_entry_ids[enrollment.course_id].add(entry.id)
             _append_quick_course_statement_rows(
-                rows_by_course[enrollment.course_id],
-                course_name=course_name,
+                rows_by_course[course_id],
+                course_name=course.name if course else '-',
                 student_name=student_name,
-                student_phone=enrollment.student.phone,
-                source_label=matched_source,
+                student_phone=student_phone,
+                source_label=_resolve_quick_entry_source(
+                    entry,
+                    receipt=receipt if receipt and receipt.course_id == course_id else None,
+                    enrollment=linked_enrollment if linked_enrollment and linked_enrollment.course_id == course_id else None,
+                ),
                 entry=entry,
             )
+            added_entry_ids[course_id].add(entry.id)
 
     return rows_by_course
 
