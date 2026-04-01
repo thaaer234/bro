@@ -353,6 +353,7 @@
             overflow: hidden;
             background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
             page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .schedule-card__head {
@@ -363,6 +364,8 @@
             padding: 16px 18px;
             border-bottom: 1px solid var(--line);
             background: linear-gradient(180deg, #f7fbfd 0%, #f1f7fb 100%);
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .course-name {
@@ -431,6 +434,8 @@
 
         .schedule-card__body {
             padding: 16px 18px 18px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .schedule-grid {
@@ -444,6 +449,8 @@
             border-radius: 18px;
             background: #fff;
             padding: 12px 13px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .info-box__label {
@@ -555,6 +562,28 @@
             .toolbar { display: none !important; }
             .sheet { padding: 0; }
             .schedule-card, .hero, .stat, .meta-card { box-shadow: none !important; }
+            .hero,
+            .stats,
+            .stat,
+            .info-strip,
+            .section-head,
+            .schedule-list,
+            .schedule-card,
+            .schedule-card__head,
+            .schedule-card__body,
+            .schedule-grid,
+            .info-box,
+            .badge-row,
+            .footer {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            .schedule-card {
+                margin-bottom: 10px;
+            }
+            .schedule-card + .schedule-card {
+                page-break-before: auto;
+            }
         }
     </style>
 </head>
