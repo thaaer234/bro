@@ -2702,6 +2702,7 @@ def _generate_schedule_for_courses(courses, user):
         'students_assigned': 0,
         'students_unassigned': 0,
         'courses_with_unassigned': [],
+        'courses_without_sessions': [],
         'skipped_options': [],
     }
     ordered_courses = sorted(
@@ -2715,6 +2716,8 @@ def _generate_schedule_for_courses(courses, user):
         summary['sessions_created'] += len(created_sessions)
         summary['students_assigned'] += assignment_result['assigned_count']
         summary['students_unassigned'] += assignment_result['unassigned_count']
+        if not created_sessions:
+            summary['courses_without_sessions'].append(course.name)
         if assignment_result['unassigned_count']:
             summary['courses_with_unassigned'].append(course.name)
         summary['skipped_options'].extend(skipped_options)
@@ -2851,14 +2854,37 @@ def quick_course_generate_schedule(request, course_id):
 @login_required
 @require_POST
 def quick_generate_all_schedules(request):
+    active_courses = QuickCourse.objects.filter(is_active=True)
+    courses_without_time_options = list(
+        active_courses.filter(
+            enrollments__is_completed=False,
+            enrollments__student__is_active=True,
+        )
+        .exclude(time_options__is_active=True)
+        .distinct()
+        .order_by('name')
+        .values_list('name', flat=True)
+    )
     courses = (
-        QuickCourse.objects.filter(is_active=True, time_options__is_active=True)
+        active_courses.filter(time_options__is_active=True)
         .distinct()
         .order_by('id')
     )
     summary = _generate_schedule_for_courses(courses, request.user)
+    if courses_without_time_options:
+        messages.warning(
+            request,
+            'هذه الدورات لديها طلاب لكن لا يوجد لها أي وقت متاح فعّال: '
+            + ', '.join(courses_without_time_options[:8])
+        )
     if summary['skipped_options']:
         messages.warning(request, 'تم تخطي بعض الأوقات بسبب التعارض: ' + ', '.join(summary['skipped_options'][:8]))
+    if summary['courses_without_sessions']:
+        messages.warning(
+            request,
+            'تعذر توليد أي كلاس لبعض الدورات رغم وجود أوقات متاحة: '
+            + ', '.join(summary['courses_without_sessions'][:8])
+        )
     if summary['students_unassigned']:
         messages.error(
             request,
