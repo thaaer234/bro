@@ -542,6 +542,44 @@
             font-size: 13px;
         }
 
+        .print-table-wrap {
+            display: none;
+            margin-top: 14px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .print-table thead th {
+            background: #edf4f8;
+            color: var(--ink);
+            font-size: 11px;
+            font-weight: 900;
+            padding: 9px 7px;
+            text-align: right;
+            border-bottom: 1px solid var(--line-strong);
+        }
+
+        .print-table tbody td {
+            padding: 8px 7px;
+            font-size: 10.5px;
+            line-height: 1.45;
+            vertical-align: top;
+            border-bottom: 1px solid #ebf1f5;
+            word-break: break-word;
+        }
+
+        .print-table tbody tr:nth-child(even) td {
+            background: #fbfdff;
+        }
+
         @media screen and (max-width: 860px) {
             body { padding: 0; background: #fff; }
             .report { border: 0; border-radius: 0; box-shadow: none; }
@@ -561,28 +599,31 @@
             }
             .toolbar { display: none !important; }
             .sheet { padding: 0; }
-            .schedule-card, .hero, .stat, .meta-card { box-shadow: none !important; }
             .hero,
             .stats,
-            .stat,
             .info-strip,
             .section-head,
-            .schedule-list,
-            .schedule-card,
-            .schedule-card__head,
-            .schedule-card__body,
-            .schedule-grid,
-            .info-box,
-            .badge-row,
+            .schedule-list {
+                display: none !important;
+            }
+            .print-table-wrap {
+                display: block !important;
+            }
+            .meta-card, .footer {
+                box-shadow: none !important;
+            }
             .footer {
+                margin-top: 10px;
+                padding-top: 8px;
+            }
+            .print-table,
+            .print-table thead,
+            .print-table tbody,
+            .print-table tr,
+            .print-table th,
+            .print-table td {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
-            }
-            .schedule-card {
-                margin-bottom: 10px;
-            }
-            .schedule-card + .schedule-card {
-                page-break-before: auto;
             }
         }
     </style>
@@ -748,6 +789,56 @@
                     </div>
                 </article>
                 {% endfor %}
+            </section>
+
+            <section class="print-table-wrap">
+                <table class="print-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 26%;">الدورة</th>
+                            <th style="width: 16%;">الكلاس</th>
+                            <th style="width: 20%;">التاريخ</th>
+                            <th style="width: 15%;">الوقت</th>
+                            <th style="width: 11%;">القاعة</th>
+                            <th style="width: 12%;">السعة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>
+                                <strong>{{ session.course.name }}</strong><br>
+                                <span>{{ session.course.get_course_type_display }}</span><br>
+                                <span>{{ session.course.academic_year.name }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ session.title }}</strong><br>
+                                <span>{{ session.display_code }}</span>
+                            </td>
+                            <td>
+                                {{ session.start_date|date:"Y-m-d" }}<br>
+                                {% if session.end_date != session.start_date %}
+                                حتى {{ session.end_date|date:"Y-m-d" }}<br>
+                                {% endif %}
+                                {{ session.total_days }} يوم
+                            </td>
+                            <td>
+                                {{ session.start_time|time:"h:i A" }}<br>
+                                {% if session.end_time %}
+                                {{ session.end_time|time:"h:i A" }}
+                                {% else %}
+                                بدون نهاية
+                                {% endif %}
+                            </td>
+                            <td>{{ session.room_name|default:"-" }}</td>
+                            <td>
+                                {{ session.enrolled_count }}{% if session.capacity %} / {{ session.capacity }}{% else %} / مفتوح{% endif %}<br>
+                                الحد الأدنى: {{ session.min_capacity }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </section>
             {% else %}
             <section class="empty">
