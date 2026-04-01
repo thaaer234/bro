@@ -12,13 +12,19 @@
         }
 
         :root {
-            --ink: #163247;
-            --muted: #6e8496;
-            --line: #d6e0e8;
-            --accent: #c38b2a;
-            --accent-soft: #f8eed9;
-            --panel: #f4f8fb;
+            --ink: #18364a;
+            --ink-soft: #547186;
             --paper: #ffffff;
+            --canvas: #eef4f8;
+            --line: #d7e2ea;
+            --line-strong: #bdd0dd;
+            --panel: #f8fbfd;
+            --gold: #c78b2f;
+            --gold-soft: #f7edda;
+            --blue: #2c6f94;
+            --blue-soft: #e7f1f7;
+            --success: #2d7d5a;
+            --shadow: 0 24px 60px rgba(20, 49, 69, 0.12);
         }
 
         * {
@@ -28,59 +34,86 @@
         html, body {
             margin: 0;
             padding: 0;
-            background: #edf3f7;
+            background:
+                radial-gradient(circle at top right, rgba(199, 139, 47, 0.10), transparent 22%),
+                linear-gradient(180deg, #eef4f8 0%, #e7eff5 100%);
             color: var(--ink);
-            font-family: "Tahoma", "Segoe UI", sans-serif;
+            font-family: "Segoe UI", Tahoma, sans-serif;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
         body {
-            padding: 24px;
+            padding: 28px;
         }
 
-        .print-page {
-            max-width: 1120px;
+        .report {
+            max-width: 1180px;
             margin: 0 auto;
             background: var(--paper);
             border: 1px solid var(--line);
-            box-shadow: 0 18px 48px rgba(18, 48, 71, 0.08);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
         }
 
         .toolbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 16px;
             padding: 16px 22px;
-            background: linear-gradient(135deg, #163247 0%, #245b79 100%);
+            background: linear-gradient(135deg, #143349 0%, #215a78 58%, #2a7896 100%);
             color: #fff;
         }
 
-        .toolbar__meta {
+        .toolbar__title {
             display: flex;
-            gap: 12px;
             align-items: center;
-            font-size: 13px;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .toolbar__pill {
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.16);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .toolbar__title strong {
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .toolbar__meta {
+            color: rgba(255,255,255,0.78);
+            font-size: 12px;
         }
 
         .toolbar__actions {
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .btn {
+            appearance: none;
             border: 0;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 10px 16px;
             cursor: pointer;
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+            font-size: 13px;
+            font-weight: 800;
+            transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
         }
 
         .btn-primary {
@@ -89,120 +122,257 @@
         }
 
         .btn-secondary {
-            background: rgba(255,255,255,0.14);
+            background: rgba(255,255,255,0.12);
             color: #fff;
-            border: 1px solid rgba(255,255,255,0.16);
+            border: 1px solid rgba(255,255,255,0.18);
         }
 
         .sheet {
-            padding: 22px 22px 18px;
+            padding: 22px;
         }
 
-        .report-head {
+        .hero {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            background:
+                radial-gradient(circle at left top, rgba(199, 139, 47, 0.14), transparent 28%),
+                linear-gradient(145deg, #fcfdff 0%, #f3f8fb 100%);
+            padding: 22px;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(90deg, rgba(24,54,74,0.04) 1px, transparent 1px),
+                linear-gradient(rgba(24,54,74,0.035) 1px, transparent 1px);
+            background-size: 28px 28px;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        .hero__content {
+            position: relative;
+            z-index: 1;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 20px;
-            padding-bottom: 18px;
-            border-bottom: 2px solid var(--line);
         }
 
         .brand {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 18px;
         }
 
-        .brand__logo-wrap {
-            width: 78px;
-            height: 78px;
-            border-radius: 18px;
+        .brand__logo {
+            width: 88px;
+            height: 88px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, #ffffff 0%, #eef5f9 100%);
             border: 1px solid var(--line);
-            background: linear-gradient(180deg, #fff 0%, #f7fafc 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
         }
 
-        .brand__logo-wrap img {
-            width: 56px;
-            height: 56px;
+        .brand__logo img {
+            width: 58px;
+            height: 58px;
             object-fit: contain;
         }
 
-        .brand__text h1 {
-            margin: 0 0 6px;
-            font-size: 28px;
-            line-height: 1.1;
+        .brand__eyebrow {
+            display: inline-block;
+            margin-bottom: 8px;
+            color: var(--blue);
+            font-size: 12px;
+            letter-spacing: 0.18em;
+            font-weight: 800;
+        }
+
+        .brand__title {
+            margin: 0 0 8px;
+            font-size: 32px;
+            line-height: 1.05;
+            font-weight: 900;
             color: var(--ink);
         }
 
-        .brand__text p {
+        .brand__subtitle {
             margin: 0;
-            color: var(--muted);
+            color: var(--ink-soft);
             font-size: 13px;
+            max-width: 640px;
+            line-height: 1.8;
         }
 
-        .report-meta {
-            text-align: left;
-            min-width: 240px;
+        .hero__aside {
+            min-width: 250px;
+            display: grid;
+            gap: 10px;
         }
 
-        .report-meta__label {
+        .meta-card {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.76);
+            backdrop-filter: blur(6px);
+        }
+
+        .meta-card__label {
             font-size: 11px;
-            color: var(--muted);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
+            color: var(--ink-soft);
+            margin-bottom: 6px;
         }
 
-        .report-meta__value {
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 4px;
+        .meta-card__value {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--ink);
         }
 
         .stats {
-            margin-top: 18px;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 18px;
         }
 
         .stat {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            padding: 16px 16px 14px;
             border: 1px solid var(--line);
-            background: var(--panel);
-            border-radius: 14px;
-            padding: 12px 14px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%);
         }
 
-        .stat span {
+        .stat::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 58px;
+            height: 58px;
+            border-bottom-left-radius: 24px;
+            background: var(--blue-soft);
+            opacity: 0.9;
+        }
+
+        .stat--gold::before {
+            background: var(--gold-soft);
+        }
+
+        .stat__label {
+            position: relative;
             display: block;
-            color: var(--muted);
             font-size: 12px;
-            margin-bottom: 8px;
+            color: var(--ink-soft);
+            margin-bottom: 10px;
         }
 
-        .stat strong {
+        .stat__value {
+            position: relative;
             display: block;
-            font-size: 22px;
+            font-size: 28px;
+            font-weight: 900;
             color: var(--ink);
             line-height: 1;
         }
 
-        .filters {
+        .stat__hint {
+            position: relative;
+            display: block;
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--ink-soft);
+        }
+
+        .info-strip {
             margin-top: 16px;
-            padding: 12px 14px;
-            border: 1px dashed var(--line);
-            border-radius: 14px;
-            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            border: 1px dashed var(--line-strong);
+            border-radius: 18px;
+            padding: 13px 16px;
+            background: linear-gradient(90deg, #fbfdff 0%, #f4f9fc 100%);
+        }
+
+        .info-strip__text {
+            color: var(--ink-soft);
             font-size: 12px;
-            background: #fbfdff;
+            line-height: 1.8;
+        }
+
+        .legend {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .legend__item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #fff;
+            border: 1px solid var(--line);
+            color: var(--ink-soft);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .legend__dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .legend__dot--blue { background: var(--blue); }
+        .legend__dot--gold { background: var(--gold); }
+        .legend__dot--green { background: var(--success); }
+
+        .section-head {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+            margin: 20px 0 14px;
+        }
+
+        .section-head h2 {
+            margin: 0 0 6px;
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--ink);
+        }
+
+        .section-head p {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 12px;
+        }
+
+        .table-shell {
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            overflow: hidden;
+            background: #fff;
         }
 
         .table-wrap {
-            margin-top: 18px;
+            overflow: hidden;
         }
 
         table {
@@ -212,101 +382,188 @@
         }
 
         thead th {
-            background: #eaf1f6;
+            background: linear-gradient(180deg, #edf4f8 0%, #e4eef4 100%);
             color: var(--ink);
+            padding: 12px 10px;
             font-size: 12px;
-            font-weight: 800;
-            padding: 10px 8px;
-            border: 1px solid var(--line);
+            font-weight: 900;
+            border-bottom: 1px solid var(--line-strong);
+            text-align: right;
         }
 
         tbody td {
-            border: 1px solid var(--line);
-            padding: 9px 8px;
-            vertical-align: middle;
+            padding: 12px 10px;
             font-size: 12px;
-            line-height: 1.45;
-            word-wrap: break-word;
+            line-height: 1.65;
+            vertical-align: middle;
+            border-bottom: 1px solid #ebf1f5;
+            word-break: break-word;
         }
 
         tbody tr:nth-child(even) td {
             background: #fbfdff;
         }
 
+        tbody tr:hover td {
+            background: #f5fafc;
+        }
+
         .course-name {
-            font-weight: 800;
+            display: block;
             font-size: 12px;
+            font-weight: 900;
+            color: var(--ink);
         }
 
         .course-type {
-            display: block;
-            margin-top: 3px;
-            color: var(--muted);
+            display: inline-block;
+            margin-top: 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: var(--blue-soft);
+            color: var(--blue);
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .session-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 34px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            background: #f6fafc;
+            border: 1px solid var(--line);
+            font-weight: 800;
+            color: var(--ink);
+        }
+
+        .date-block,
+        .time-block {
+            display: grid;
+            gap: 4px;
+        }
+
+        .date-main,
+        .time-main {
+            font-weight: 800;
+            color: var(--ink);
+        }
+
+        .date-sub,
+        .time-sub {
+            color: var(--ink-soft);
             font-size: 11px;
+        }
+
+        .room-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #fff;
+            border: 1px solid var(--line);
+            color: var(--ink);
+            font-weight: 800;
+        }
+
+        .days-badge,
+        .capacity-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 74px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .days-badge {
+            background: var(--blue-soft);
+            color: var(--blue);
         }
 
         .capacity-badge {
-            display: inline-block;
-            min-width: 72px;
-            text-align: center;
-            padding: 5px 8px;
-            border-radius: 999px;
-            background: var(--accent-soft);
-            color: #7e5b1c;
-            font-weight: 800;
-            font-size: 11px;
+            background: var(--gold-soft);
+            color: #835f1f;
         }
 
         .footer {
-            margin-top: 14px;
-            padding-top: 10px;
-            border-top: 1px solid var(--line);
+            margin-top: 16px;
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            color: var(--muted);
+            gap: 14px;
+            padding-top: 12px;
+            border-top: 1px solid var(--line);
+            color: var(--ink-soft);
             font-size: 11px;
         }
 
-        .empty {
-            margin-top: 20px;
-            text-align: center;
-            padding: 36px 20px;
-            border: 1px dashed var(--line);
-            border-radius: 16px;
-            color: var(--muted);
-            background: #fbfdff;
+        .footer strong {
+            color: var(--ink);
         }
 
-        @media screen and (max-width: 1200px) {
+        .empty {
+            margin-top: 18px;
+            border: 1px dashed var(--line-strong);
+            border-radius: 22px;
+            background: linear-gradient(180deg, #fbfdff 0%, #f5f9fc 100%);
+            text-align: center;
+            padding: 54px 20px;
+        }
+
+        .empty h3 {
+            margin: 0 0 8px;
+            font-size: 20px;
+            color: var(--ink);
+        }
+
+        .empty p {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 13px;
+        }
+
+        @media screen and (max-width: 1100px) {
             .stats {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .hero__content,
+            .info-strip,
+            .toolbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .hero__aside {
+                min-width: 0;
+                width: 100%;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
-        @media screen and (max-width: 820px) {
+        @media screen and (max-width: 780px) {
             body {
                 padding: 0;
                 background: #fff;
             }
 
-            .print-page {
+            .report {
                 border: 0;
+                border-radius: 0;
                 box-shadow: none;
             }
 
-            .toolbar,
-            .report-head,
-            .footer {
-                flex-direction: column;
-                align-items: flex-start;
+            .sheet {
+                padding: 16px;
             }
 
-            .report-meta {
-                text-align: right;
-                min-width: 0;
-            }
-
+            .hero__aside,
             .stats {
                 grid-template-columns: 1fr;
             }
@@ -316,19 +573,23 @@
             }
 
             table {
-                min-width: 1000px;
+                min-width: 1050px;
             }
         }
 
         @media print {
-            body {
+            html, body {
                 background: #fff;
+            }
+
+            body {
                 padding: 0;
             }
 
-            .print-page {
+            .report {
                 max-width: none;
                 border: 0;
+                border-radius: 0;
                 box-shadow: none;
             }
 
@@ -340,28 +601,37 @@
                 padding: 0;
             }
 
-            .report-head {
-                margin-bottom: 10px;
+            .hero,
+            .table-shell,
+            .stat,
+            .meta-card {
+                box-shadow: none !important;
             }
 
-            .table-wrap,
+            .table-shell {
+                border-radius: 14px;
+            }
+
             table,
             thead,
             tbody,
             tr,
-            td,
-            th {
+            th,
+            td {
                 page-break-inside: avoid;
             }
         }
     </style>
 </head>
 <body>
-    <div class="print-page">
+    <div class="report">
         <div class="toolbar">
-            <div class="toolbar__meta">
-                <strong>برنامج الكلاسات السريعة</strong>
-                <span>{{ generated_at|date:"Y-m-d H:i" }}</span>
+            <div class="toolbar__title">
+                <span class="toolbar__pill">برنامج الكلاسات السريعة</span>
+                <div>
+                    <strong>تقرير طباعة جاهز للاعتماد</strong>
+                    <div class="toolbar__meta">{{ generated_at|date:"Y-m-d H:i" }}</div>
+                </div>
             </div>
             <div class="toolbar__actions">
                 <a href="{% url 'quick:course_list' %}" class="btn btn-secondary">العودة للدورات</a>
@@ -370,113 +640,155 @@
         </div>
 
         <div class="sheet">
-            <div class="report-head">
-                <div class="brand">
-                    <div class="brand__logo-wrap">
-                        <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+            <section class="hero">
+                <div class="hero__content">
+                    <div class="brand">
+                        <div class="brand__logo">
+                            <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                        </div>
+                        <div>
+                            <span class="brand__eyebrow">AL YAMAN INSTITUTE</span>
+                            <h1 class="brand__title">برنامج الكلاسات السريعة</h1>
+                            <p class="brand__subtitle">تقرير مصمم للطباعة والعرض الإداري، يوضّح توزيع الكلاسات، القاعات، الفترات الزمنية، والسعات الفعلية ضمن صفحة واحدة واضحة وأنيقة.</p>
+                        </div>
                     </div>
-                    <div class="brand__text">
-                        <h1>برنامج الكلاسات السريعة</h1>
-                        <p>معهد اليمان | جدول منسق للطباعة على ورق A4</p>
+
+                    <div class="hero__aside">
+                        <div class="meta-card">
+                            <div class="meta-card__label">تاريخ تجهيز التقرير</div>
+                            <div class="meta-card__value">{{ generated_at|date:"Y-m-d H:i" }}</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-card__label">نوع الدورات المعروضة</div>
+                            <div class="meta-card__value">{{ selected_course_type }}</div>
+                        </div>
                     </div>
                 </div>
-                <div class="report-meta">
-                    <div class="report-meta__label">تاريخ التجهيز</div>
-                    <div class="report-meta__value">{{ generated_at|date:"Y-m-d H:i" }}</div>
-                    <div class="report-meta__value">نوع الدورات: {{ selected_course_type }}</div>
-                </div>
-            </div>
+            </section>
 
-            <div class="stats">
+            <section class="stats">
                 <div class="stat">
-                    <span>عدد الدورات</span>
-                    <strong>{{ total_courses }}</strong>
+                    <span class="stat__label">عدد الدورات</span>
+                    <strong class="stat__value">{{ total_courses }}</strong>
+                    <span class="stat__hint">إجمالي الدورات الداخلة في التقرير</span>
                 </div>
                 <div class="stat">
-                    <span>عدد الكلاسات</span>
-                    <strong>{{ total_sessions }}</strong>
+                    <span class="stat__label">عدد الكلاسات</span>
+                    <strong class="stat__value">{{ total_sessions }}</strong>
+                    <span class="stat__hint">الكلاسات المولدة والقابلة للطباعة</span>
                 </div>
-                <div class="stat">
-                    <span>الطلاب الموزعون</span>
-                    <strong>{{ total_students }}</strong>
+                <div class="stat stat--gold">
+                    <span class="stat__label">الطلاب الموزعون</span>
+                    <strong class="stat__value">{{ total_students }}</strong>
+                    <span class="stat__hint">العدد الفعلي داخل الكلاسات المعروضة</span>
                 </div>
-                <div class="stat">
-                    <span>الدورات المحددة</span>
-                    <strong>{{ selected_course_ids|length|default:total_courses }}</strong>
+                <div class="stat stat--gold">
+                    <span class="stat__label">الدورات المحددة</span>
+                    <strong class="stat__value">{{ selected_course_ids|length|default:total_courses }}</strong>
+                    <span class="stat__hint">حسب الفلترة الحالية للتقرير</span>
                 </div>
-            </div>
+            </section>
 
-            <div class="filters">
-                {% if selected_course_ids %}
-                تم تخصيص التقرير للدورات المحددة فقط.
-                {% else %}
-                التقرير يعرض جميع الدورات المطابقة لنوع الدورة المختار.
-                {% endif %}
-            </div>
+            <section class="info-strip">
+                <div class="info-strip__text">
+                    {% if selected_course_ids %}
+                    التقرير الحالي مخصص للدورات التي تم تحديدها فقط، ومهيأ للطباعة المباشرة على ورق A4.
+                    {% else %}
+                    التقرير الحالي يعرض جميع الدورات المطابقة لنوع الدورة المختار، بصياغة مناسبة للإدارة والطباعة.
+                    {% endif %}
+                </div>
+                <div class="legend">
+                    <span class="legend__item"><span class="legend__dot legend__dot--blue"></span>الأيام</span>
+                    <span class="legend__item"><span class="legend__dot legend__dot--gold"></span>السعة</span>
+                    <span class="legend__item"><span class="legend__dot legend__dot--green"></span>جاهز للطباعة</span>
+                </div>
+            </section>
 
             {% if sessions %}
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 24%;">الدورة</th>
-                            <th style="width: 13%;">الكلاس</th>
-                            <th style="width: 18%;">الفترة</th>
-                            <th style="width: 12%;">الوقت</th>
-                            <th style="width: 15%;">القاعة</th>
-                            <th style="width: 8%;">الأيام</th>
-                            <th style="width: 10%;">السعة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for session in sessions %}
-                        <tr>
-                            <td>
-                                <span class="course-name">{{ session.course.name }}</span>
-                                <span class="course-type">{{ session.course.get_course_type_display }}</span>
-                            </td>
-                            <td>{{ session.title }}</td>
-                            <td>
-                                {{ session.start_date|date:"Y-m-d" }}
-                                {% if session.end_date != session.start_date %}
-                                <br>
-                                حتى {{ session.end_date|date:"Y-m-d" }}
-                                {% endif %}
-                            </td>
-                            <td>
-                                {{ session.start_time|time:"H:i" }}
-                                {% if session.end_time %}
-                                <br>
-                                {{ session.end_time|time:"H:i" }}
-                                {% endif %}
-                            </td>
-                            <td>{{ session.room_name|default:"-" }}</td>
-                            <td>{{ session.total_days }}</td>
-                            <td>
-                                <span class="capacity-badge">
-                                    {{ session.enrolled_count }}
-                                    {% if session.capacity %}
-                                    / {{ session.capacity }}
-                                    {% else %}
-                                    / مفتوح
-                                    {% endif %}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            <section class="section-head">
+                <div>
+                    <h2>جدول البرنامج</h2>
+                    <p>مرتب حسب التاريخ ثم الوقت، مع إبراز كل دورة وكلاس بشكل أوضح بصرياً.</p>
+                </div>
+            </section>
+
+            <section class="table-shell">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">الدورة</th>
+                                <th style="width: 13%;">الكلاس</th>
+                                <th style="width: 18%;">الفترة</th>
+                                <th style="width: 12%;">الوقت</th>
+                                <th style="width: 14%;">القاعة</th>
+                                <th style="width: 8%;">الأيام</th>
+                                <th style="width: 10%;">السعة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                            <tr>
+                                <td>
+                                    <span class="course-name">{{ session.course.name }}</span>
+                                    <span class="course-type">{{ session.course.get_course_type_display }}</span>
+                                </td>
+                                <td>
+                                    <span class="session-badge">{{ session.title }}</span>
+                                </td>
+                                <td>
+                                    <div class="date-block">
+                                        <span class="date-main">{{ session.start_date|date:"Y-m-d" }}</span>
+                                        {% if session.end_date != session.start_date %}
+                                        <span class="date-sub">حتى {{ session.end_date|date:"Y-m-d" }}</span>
+                                        {% else %}
+                                        <span class="date-sub">يوم واحد</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="time-block">
+                                        <span class="time-main">{{ session.start_time|time:"H:i" }}</span>
+                                        {% if session.end_time %}
+                                        <span class="time-sub">{{ session.end_time|time:"H:i" }}</span>
+                                        {% else %}
+                                        <span class="time-sub">بدون نهاية محددة</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="room-badge">{{ session.room_name|default:"-" }}</span>
+                                </td>
+                                <td>
+                                    <span class="days-badge">{{ session.total_days }}</span>
+                                </td>
+                                <td>
+                                    <span class="capacity-badge">
+                                        {{ session.enrolled_count }}
+                                        {% if session.capacity %}
+                                        / {{ session.capacity }}
+                                        {% else %}
+                                        / مفتوح
+                                        {% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
             {% else %}
-            <div class="empty">
-                لا يوجد حالياً أي برنامج مطابق للطباعة.
-            </div>
+            <section class="empty">
+                <h3>لا يوجد برنامج مطابق للطباعة حالياً</h3>
+                <p>أضف أوقاتاً أو ولّد البرنامج أولاً ليظهر التقرير النهائي هنا بشكل كامل.</p>
+            </section>
             {% endif %}
 
-            <div class="footer">
-                <span>alyaman-institute.com</span>
-                <span>تم تجهيز هذا التقرير للاعتماد والطباعة المباشرة</span>
-            </div>
+            <footer class="footer">
+                <span><strong>alyaman-institute.com</strong></span>
+                <span>تم تجهيز هذا التقرير للطباعة المباشرة والاعتماد الإداري</span>
+            </footer>
         </div>
     </div>
 </body>
