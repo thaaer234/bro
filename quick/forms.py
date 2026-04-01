@@ -212,6 +212,14 @@ class QuickCourseSessionForm(forms.ModelForm):
 
 
 class QuickCourseTimeOptionForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["preferred_room"].queryset = Classroom.objects.filter(
+            class_type="course",
+            is_active=True,
+        ).order_by("name")
+        self.fields["preferred_room"].required = False
+
     class Meta:
         model = QuickCourseTimeOption
         fields = [

@@ -2803,7 +2803,15 @@ def quick_course_add_time_option(request, course_id):
         option.save()
         messages.success(request, 'تمت إضافة وقت متاح للدورة.')
     else:
-        messages.error(request, 'تعذر حفظ الوقت المتاح.')
+        error_parts = []
+        for field_name, field_errors in form.errors.items():
+            label = form.fields.get(field_name).label if field_name in form.fields else 'التحقق العام'
+            for error in field_errors:
+                error_parts.append(f"{label}: {error}")
+        messages.error(
+            request,
+            'تعذر حفظ الوقت المتاح. ' + ' | '.join(error_parts[:4]) if error_parts else 'تعذر حفظ الوقت المتاح.',
+        )
     return redirect('quick:course_time_options_manage', course_id=course.id)
 
 
