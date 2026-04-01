@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>برنامج الكلاسات السريعة</title>
+    <title>برنامج الصفوف السريعة</title>
     <style>
         @page {
             size: A4 portrait;
@@ -562,7 +562,7 @@
     <div class="report">
         <div class="toolbar">
             <div class="toolbar__title">
-                <span class="toolbar__pill">برنامج الكلاسات السريعة</span>
+                <span class="toolbar__pill">برنامج الصفوف السريعة</span>
                 <div>
                     <strong>تقرير طباعة جاهز للاعتماد</strong>
                     <div class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }}</div>
@@ -583,7 +583,7 @@
                         </div>
                         <div>
                             <span class="brand__eyebrow">AL YAMAN INSTITUTE</span>
-                            <h1 class="brand__title">برنامج الكلاسات السريعة</h1>
+                            <h1 class="brand__title">برنامج الصفوف السريعة</h1>
                             <p class="brand__subtitle">تصميم محسّن للطباعة العامودية على ورق A4، مع عرض أقوى للبرنامج على شكل بطاقات واضحة بدل جدول ضعيف ومزدحم.</p>
                         </div>
                     </div>
@@ -608,9 +608,9 @@
                     <span class="stat__hint">إجمالي الدورات الداخلة في التقرير</span>
                 </div>
                 <div class="stat">
-                    <span class="stat__label">عدد الكلاسات</span>
+                    <span class="stat__label">عدد الصفوف</span>
                     <strong class="stat__value">{{ total_sessions }}</strong>
-                    <span class="stat__hint">الكلاسات المولدة والقابلة للطباعة</span>
+                    <span class="stat__hint">الصفوف المولدة والقابلة للطباعة</span>
                 </div>
                 <div class="stat stat--gold">
                     <span class="stat__label">الطلاب الموزعون</span>
@@ -665,7 +665,7 @@
                         </div>
                         <div class="schedule-card__code">
                             <strong>{{ session.title }}</strong>
-                            <span>رمز الكلاس: {{ session.display_code }}</span>
+                            <span>رمز الصف: {{ session.display_code }}</span>
                         </div>
                     </div>
 
