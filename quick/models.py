@@ -1,9 +1,13 @@
-from django.db import models
-from django.contrib.auth.models import User
-from django.utils import timezone
-from students.models import Student
+from datetime import timedelta
 from decimal import Decimal
+
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.db import models
 from django.db import transaction as db_transaction
+from django.utils import timezone
+
+from students.models import Student
 
 class AcademicYear(models.Model):
     name = models.CharField(max_length=100, verbose_name='اسم الفصل')
@@ -56,6 +60,225 @@ class QuickCourse(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.academic_year}"
+
+    @property
+    def active_sessions_count(self):
+        return self.sessions.filter(is_active=True).count()
+
+    @property
+    def total_session_capacity(self):
+        return sum(session.capacity for session in self.sessions.filter(is_active=True))
+
+    @property
+    def assigned_students_count(self):
+        return QuickCourseSessionEnrollment.objects.filter(
+            session__course=self,
+            session__is_active=True,
+            enrollment__is_completed=False,
+            enrollment__student__is_active=True,
+        ).count()
+
+
+class QuickCourseTimeOption(models.Model):
+    course = models.ForeignKey(QuickCourse, on_delete=models.CASCADE, related_name='time_options')
+    title = models.CharField(max_length=200, verbose_name='اسم الخيار')
+    start_date = models.DateField(verbose_name='تاريخ البداية')
+    end_date = models.DateField(verbose_name='تاريخ النهاية')
+    start_time = models.TimeField(verbose_name='وقت البداية')
+    end_time = models.TimeField(null=True, blank=True, verbose_name='وقت النهاية')
+    meeting_days = models.CharField(max_length=200, blank=True, verbose_name='أيام الدوام')
+    min_capacity = models.PositiveIntegerField(default=1, verbose_name='الحد الأدنى')
+    max_capacity = models.PositiveIntegerField(default=0, verbose_name='الحد الأقصى')
+    preferred_room = models.ForeignKey(
+        'classroom.Classroom',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='quick_time_options',
+        verbose_name='القاعة المفضلة',
+    )
+    priority = models.PositiveIntegerField(default=1, verbose_name='الأولوية')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+    notes = models.TextField(blank=True, verbose_name='ملاحظات')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_quick_time_options')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'وقت متاح للدورة السريعة'
+        verbose_name_plural = 'الأوقات المتاحة للدورات السريعة'
+        ordering = ['priority', 'start_date', 'start_time', 'id']
+
+    def __str__(self):
+        return f"{self.course.name} - {self.title}"
+
+    def clean(self):
+        if self.end_date < self.start_date:
+            raise ValidationError('تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية.')
+        if self.end_time and self.end_time <= self.start_time:
+            raise ValidationError('وقت النهاية يجب أن يكون بعد وقت البداية.')
+        if self.max_capacity and self.min_capacity > self.max_capacity:
+            raise ValidationError('الحد الأدنى لا يمكن أن يكون أكبر من الحد الأقصى.')
+
+    @property
+    def total_days(self):
+        return ((self.end_date - self.start_date).days + 1) if self.end_date and self.start_date else 0
+
+
+class QuickCourseSession(models.Model):
+    course = models.ForeignKey(QuickCourse, on_delete=models.CASCADE, related_name='sessions')
+    time_option = models.ForeignKey(QuickCourseTimeOption, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_sessions')
+    title = models.CharField(max_length=200, verbose_name='اسم الكلاس')
+    code = models.CharField(max_length=40, blank=True, verbose_name='رمز الكلاس')
+    min_capacity = models.PositiveIntegerField(default=1, verbose_name='الحد الأدنى للافتتاح')
+    capacity = models.PositiveIntegerField(default=0, verbose_name='الحد الأقصى')
+    start_date = models.DateField(verbose_name='تاريخ البداية')
+    end_date = models.DateField(verbose_name='تاريخ النهاية')
+    start_time = models.TimeField(verbose_name='وقت البداية')
+    end_time = models.TimeField(null=True, blank=True, verbose_name='وقت النهاية')
+    meeting_days = models.CharField(max_length=200, blank=True, verbose_name='أيام الدوام')
+    room_name = models.CharField(max_length=120, blank=True, verbose_name='القاعة')
+    room = models.ForeignKey(
+        'classroom.Classroom',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='quick_sessions',
+        verbose_name='القاعة',
+    )
+    notes = models.TextField(blank=True, verbose_name='ملاحظات')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_quick_sessions')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'كلاس دورة سريعة'
+        verbose_name_plural = 'كلاسات الدورات السريعة'
+        ordering = ['start_date', 'start_time', 'id']
+
+    def __str__(self):
+        return f"{self.course.name} - {self.title}"
+
+    def clean(self):
+        if self.end_time and self.end_time <= self.start_time:
+            raise ValidationError('وقت النهاية يجب أن يكون بعد وقت البداية.')
+        if self.end_date < self.start_date:
+            raise ValidationError('تاريخ النهاية يجب أن يكون بعد أو يساوي تاريخ البداية.')
+        if self.capacity and self.min_capacity and self.min_capacity > self.capacity:
+            raise ValidationError('الحد الأدنى لا يمكن أن يكون أكبر من الحد الأقصى.')
+
+    @property
+    def total_days(self):
+        return ((self.end_date - self.start_date).days + 1) if self.end_date and self.start_date else 0
+
+    @property
+    def enrolled_count(self):
+        return self.session_enrollments.filter(
+            enrollment__is_completed=False,
+            enrollment__student__is_active=True,
+        ).count()
+
+    @property
+    def available_seats(self):
+        if not self.capacity:
+            return 0
+        return max(0, self.capacity - self.enrolled_count)
+
+    @property
+    def progress_days(self):
+        today = timezone.localdate()
+        if today < self.start_date:
+            return 0
+        return min(self.total_days, (today - self.start_date).days + 1)
+
+    @property
+    def meets_minimum_capacity(self):
+        return self.enrolled_count >= self.min_capacity
+
+    @property
+    def is_upcoming(self):
+        return timezone.localdate() < self.start_date
+
+    @property
+    def is_finished(self):
+        return timezone.localdate() > self.end_date
+
+    @property
+    def is_attendance_open(self):
+        today = timezone.localdate()
+        return self.start_date <= today <= self.end_date and self.is_active
+
+    @property
+    def display_code(self):
+        return self.code or f"S{self.pk or ''}"
+
+    def get_day_number_for_date(self, attendance_date):
+        if not attendance_date or attendance_date < self.start_date or attendance_date > self.end_date:
+            return None
+        return (attendance_date - self.start_date).days + 1
+
+
+class QuickCourseSessionEnrollment(models.Model):
+    session = models.ForeignKey(QuickCourseSession, on_delete=models.CASCADE, related_name='session_enrollments')
+    enrollment = models.OneToOneField('QuickEnrollment', on_delete=models.CASCADE, related_name='session_assignment')
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='quick_session_assignments')
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    notes = models.CharField(max_length=255, blank=True, verbose_name='ملاحظات')
+
+    class Meta:
+        verbose_name = 'توزيع طالب على كلاس سريع'
+        verbose_name_plural = 'توزيعات الطلاب على الكلاسات السريعة'
+        ordering = ['session__start_date', 'session__start_time', 'id']
+
+    def __str__(self):
+        return f"{self.enrollment.student.full_name} -> {self.session.title}"
+
+    def clean(self):
+        if self.session.course_id != self.enrollment.course_id:
+            raise ValidationError('لا يمكن توزيع الطالب على كلاس تابع لدورة مختلفة.')
+
+        if self.session.capacity and self.session.enrolled_count >= self.session.capacity:
+            existing_session_id = getattr(self, 'pk', None)
+            current_count = self.session.session_enrollments.exclude(pk=existing_session_id).count()
+            if current_count >= self.session.capacity:
+                raise ValidationError('هذا الكلاس وصل إلى السعة القصوى.')
+
+
+class QuickCourseSessionAttendance(models.Model):
+    STATUS_CHOICES = [
+        ('present', 'حاضر'),
+        ('absent', 'غائب'),
+        ('late', 'متأخر'),
+        ('excused', 'غياب مبرر'),
+    ]
+
+    session = models.ForeignKey(QuickCourseSession, on_delete=models.CASCADE, related_name='attendance_records')
+    enrollment = models.ForeignKey('QuickEnrollment', on_delete=models.CASCADE, related_name='quick_session_attendance')
+    attendance_date = models.DateField(verbose_name='تاريخ الحضور')
+    day_number = models.PositiveIntegerField(default=1, verbose_name='رقم اليوم')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='present', verbose_name='الحالة')
+    notes = models.CharField(max_length=255, blank=True, verbose_name='ملاحظات')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_quick_attendance')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'حضور كلاس سريع'
+        verbose_name_plural = 'حضور الكلاسات السريعة'
+        ordering = ['-attendance_date', 'session__start_time', 'id']
+        unique_together = ['session', 'enrollment', 'attendance_date']
+
+    def __str__(self):
+        return f"{self.session.title} - {self.enrollment.student.full_name} - {self.attendance_date}"
+
+    def clean(self):
+        if self.session.course_id != self.enrollment.course_id:
+            raise ValidationError('سجل الحضور لا يطابق دورة التسجيل.')
+        if self.attendance_date < self.session.start_date or self.attendance_date > self.session.end_date:
+            raise ValidationError('تاريخ الحضور خارج مدة الكلاس.')
+        if not self.day_number:
+            self.day_number = self.session.get_day_number_for_date(self.attendance_date) or 1
 
 class QuickStudent(models.Model):
     STUDENT_TYPE_CHOICES = [

@@ -2,14 +2,14 @@
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView
 from django.views.generic.edit import FormView
 from django.urls import reverse, reverse_lazy
-from django.db.models import Q, Sum, Value, DecimalField
+from django.db.models import Q, Sum, Value, DecimalField, Count
 from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.contrib.auth.decorators import login_required  # â†گ ط£ط¶ظپ ظ‡ط°ط§ ط§ظ„ط³ط·ط±
 from attendance.models import Attendance
-from classroom.models import Classroomenrollment
+from classroom.models import Classroomenrollment, Classroom
 from django.http import JsonResponse, Http404, HttpResponse
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -20,6 +20,12 @@ from django.utils.dateparse import parse_date
 from .forms import (
     AcademicYearForm,
     QuickCourseForm,
+    QuickClassroomForm,
+    QuickCourseTimeOptionForm,
+    QuickCourseSessionForm,
+    QuickSessionAssignStudentsForm,
+    QuickSessionAttendanceBulkForm,
+    QuickSessionTransferForm,
     QuickStudentForm,
     QuickEnrollmentForm,
     _normalize_quick_name,
@@ -27,6 +33,7 @@ from .forms import (
 )
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
+from math import ceil
 import time
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_GET
@@ -40,7 +47,18 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from accounts.models import Transaction, JournalEntry, Account, get_user_cash_account
-from .models import QuickStudent, QuickEnrollment, QuickCourse, AcademicYear, QuickStudentReceipt, QuickReceiptPrintJob
+from .models import (
+    QuickCourse,
+    QuickCourseTimeOption,
+    QuickCourseSession,
+    QuickCourseSessionAttendance,
+    QuickCourseSessionEnrollment,
+    QuickEnrollment,
+    QuickReceiptPrintJob,
+    QuickStudent,
+    QuickStudentReceipt,
+    AcademicYear,
+)
 from accounts.models import Course, CostCenter
 from .services.receipt_printer import QuickReceiptPrinterError, print_many_receipts
 from employ.decorators import require_superuser
@@ -2282,18 +2300,886 @@ class QuickCourseListView(LoginRequiredMixin, ListView):
     context_object_name = 'courses'
     
     def get_queryset(self):
-        return QuickCourse.objects.filter(is_active=True)
+        return (
+            QuickCourse.objects.filter(is_active=True)
+            .select_related('academic_year')
+            .annotate(
+                enrollments_count=Count(
+                    'enrollments',
+                    filter=Q(enrollments__is_completed=False, enrollments__student__is_active=True),
+                    distinct=True,
+                ),
+                sessions_count=Count('sessions', filter=Q(sessions__is_active=True), distinct=True),
+            )
+            .order_by('-created_at')
+        )
+
+
+class QuickClassroomListView(LoginRequiredMixin, ListView):
+    model = Classroom
+    template_name = 'quick/quick_classroom_list.html'
+    context_object_name = 'classrooms'
+
+    def get_queryset(self):
+        return Classroom.objects.filter(class_type='course').order_by('name', 'id')
+
+
+class QuickClassroomCreateView(LoginRequiredMixin, CreateView):
+    model = Classroom
+    form_class = QuickClassroomForm
+    template_name = 'quick/quick_classroom_form.html'
+    success_url = reverse_lazy('quick:classroom_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تمت إضافة كلاس/قاعة للدورات السريعة.')
+        return super().form_valid(form)
+
+
+class QuickClassroomUpdateView(LoginRequiredMixin, UpdateView):
+    model = Classroom
+    form_class = QuickClassroomForm
+    template_name = 'quick/quick_classroom_form.html'
+    success_url = reverse_lazy('quick:classroom_list')
+
+    def get_queryset(self):
+        return Classroom.objects.filter(class_type='course')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم تحديث بيانات الكلاس/القاعة.')
+        return super().form_valid(form)
+
+
+class QuickStudentIntersectionView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/student_intersections.html'
+
+    def _get_selected_course_ids(self):
+        selected_ids = []
+        seen_ids = set()
+
+        for raw_value in self.request.GET.getlist('course_ids'):
+            try:
+                course_id = int(raw_value)
+            except (TypeError, ValueError):
+                continue
+            if course_id not in seen_ids:
+                selected_ids.append(course_id)
+                seen_ids.add(course_id)
+
+        add_course_raw = self.request.GET.get('add_course')
+        if add_course_raw:
+            try:
+                add_course_id = int(add_course_raw)
+            except (TypeError, ValueError):
+                add_course_id = None
+            if add_course_id and add_course_id not in seen_ids:
+                selected_ids.append(add_course_id)
+
+        return selected_ids
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        selected_course_ids = self._get_selected_course_ids()
+        courses_queryset = (
+            QuickCourse.objects.filter(is_active=True)
+            .select_related('academic_year')
+            .annotate(
+                active_students_count=Count(
+                    'enrollments',
+                    filter=Q(enrollments__is_completed=False, enrollments__student__is_active=True),
+                    distinct=True,
+                )
+            )
+            .order_by('-academic_year__start_date', 'name')
+        )
+
+        courses_map = {course.id: course for course in courses_queryset}
+        selected_courses = [courses_map[course_id] for course_id in selected_course_ids if course_id in courses_map]
+        selected_course_ids = [course.id for course in selected_courses]
+
+        intersection_ids = None
+        for course_id in selected_course_ids:
+            course_student_ids = set(
+                QuickEnrollment.objects.filter(
+                    course_id=course_id,
+                    is_completed=False,
+                    student__is_active=True,
+                ).values_list('student_id', flat=True)
+            )
+            if intersection_ids is None:
+                intersection_ids = course_student_ids
+            else:
+                intersection_ids &= course_student_ids
+
+        matching_student_ids = sorted(intersection_ids) if intersection_ids else []
+        matching_students = []
+        if matching_student_ids:
+            matching_students = list(
+                QuickStudent.objects.filter(id__in=matching_student_ids, is_active=True)
+                .select_related('student', 'academic_year')
+                .annotate(
+                    total_active_courses=Count(
+                        'enrollments',
+                        filter=Q(enrollments__is_completed=False),
+                        distinct=True,
+                    ),
+                    matched_courses_count=Count(
+                        'enrollments',
+                        filter=Q(enrollments__course_id__in=selected_course_ids, enrollments__is_completed=False),
+                        distinct=True,
+                    ),
+                )
+                .order_by('full_name', 'id')
+            )
+
+        selected_course_entries = []
+        for index, course in enumerate(selected_courses):
+            remaining_ids = [str(course_id) for i, course_id in enumerate(selected_course_ids) if i != index]
+            remove_url = reverse('quick:student_intersections')
+            if remaining_ids:
+                remove_url = f"{remove_url}?{urlencode([('course_ids', course_id) for course_id in remaining_ids])}"
+            selected_course_entries.append({
+                'course': course,
+                'remove_url': remove_url,
+            })
+
+        available_courses = [course for course in courses_queryset if course.id not in selected_course_ids]
+
+        context.update({
+            'selected_courses': selected_course_entries,
+            'selected_course_ids': selected_course_ids,
+            'available_courses': available_courses,
+            'matching_students': matching_students,
+            'matching_students_count': len(matching_students),
+            'selected_courses_count': len(selected_courses),
+            'total_available_courses': courses_queryset.count(),
+            'has_selection': bool(selected_courses),
+            'intersection_mode': 'single' if len(selected_courses) == 1 else 'multi',
+            'is_exact_intersection': len(selected_courses) > 1,
+        })
+        return context
 
 class QuickCourseCreateView(LoginRequiredMixin, CreateView):
     model = QuickCourse
     form_class = QuickCourseForm
     template_name = 'quick/quick_course_form.html'
-    success_url = reverse_lazy('quick:course_list')
     
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         messages.success(self.request, 'طھظ… ط¥ط¶ط§ظپط© ط§ظ„ط¯ظˆط±ط© ط§ظ„ط³ط±ظٹط¹ط© ط¨ظ†ط¬ط§ط­')
         return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('quick:course_detail', kwargs={'pk': self.object.pk})
+
+
+def _quick_session_display_rows(course):
+    today = timezone.localdate()
+    sessions = list(
+        course.sessions.filter(is_active=True)
+        .prefetch_related('session_enrollments__enrollment__student')
+        .order_by('start_date', 'start_time', 'title')
+    )
+    rows = []
+    for session in sessions:
+        rows.append({
+            'session': session,
+            'is_upcoming': session.start_date > today,
+            'is_open': session.start_date <= today <= session.end_date,
+            'is_finished': today > session.end_date,
+            'attendance_taken_today': session.attendance_records.filter(attendance_date=today).count(),
+        })
+    return rows
+
+
+def _dates_overlap(start_a, end_a, start_b, end_b):
+    return start_a <= end_b and start_b <= end_a
+
+
+def _times_overlap(start_a, end_a, start_b, end_b):
+    if not end_a or not end_b:
+        return start_a == start_b
+    return start_a < end_b and start_b < end_a
+
+
+def _effective_capacity(option_max_capacity, room_max_capacity):
+    limits = [value for value in [option_max_capacity, room_max_capacity] if value]
+    return min(limits) if limits else 0
+
+
+def _course_active_enrollment_count(course):
+    return QuickEnrollment.objects.filter(
+        course=course,
+        is_completed=False,
+        student__is_active=True,
+    ).count()
+
+
+def _shared_student_ids_for_course(course):
+    return set(
+        QuickEnrollment.objects.filter(course=course, is_completed=False, student__is_active=True)
+        .values_list('student_id', flat=True)
+    )
+
+
+def _find_available_room_for_option(option, shared_student_ids, needed_students=0):
+    candidate_rooms = Classroom.objects.filter(class_type='course', is_active=True).order_by('name')
+    room_rank = lambda room: (
+        0 if _effective_capacity(option.max_capacity, getattr(room, 'max_capacity', 0)) >= needed_students else 1,
+        -(_effective_capacity(option.max_capacity, getattr(room, 'max_capacity', 0)) or 0),
+        room.name,
+    )
+    if option.preferred_room_id:
+        candidate_rooms = sorted(
+            list(candidate_rooms),
+            key=lambda room: (
+                0 if room.id == option.preferred_room_id else 1,
+                *room_rank(room),
+            )
+        )
+    else:
+        candidate_rooms = sorted(list(candidate_rooms), key=room_rank)
+
+    conflicting_sessions = QuickCourseSession.objects.filter(is_active=True).exclude(course=option.course)
+    for room in candidate_rooms:
+        room_conflict = conflicting_sessions.filter(room_id=room.id)
+        room_has_overlap = any(
+            _dates_overlap(option.start_date, option.end_date, session.start_date, session.end_date)
+            and _times_overlap(option.start_time, option.end_time, session.start_time, session.end_time)
+            for session in room_conflict
+        )
+        if room_has_overlap:
+            continue
+
+        student_conflict = False
+        if shared_student_ids:
+            related_sessions = conflicting_sessions.filter(
+                session_enrollments__enrollment__student_id__in=shared_student_ids
+            ).distinct()
+            student_conflict = any(
+                _dates_overlap(option.start_date, option.end_date, session.start_date, session.end_date)
+                and _times_overlap(option.start_time, option.end_time, session.start_time, session.end_time)
+                for session in related_sessions
+            )
+        if student_conflict:
+            continue
+        return room
+    return option.preferred_room
+
+
+def _auto_assign_course_enrollments(course, user):
+    sessions = list(
+        course.sessions.filter(is_active=True)
+        .order_by('start_date', 'start_time', 'id')
+    )
+    enrollments = list(
+        QuickEnrollment.objects.filter(course=course, is_completed=False, student__is_active=True)
+        .select_related('student')
+        .order_by('enrollment_date', 'id')
+    )
+
+    QuickCourseSessionEnrollment.objects.filter(session__course=course).delete()
+
+    assigned_count = 0
+    unassigned_count = 0
+    session_index = 0
+    seats_used = {}
+
+    for enrollment in enrollments:
+        while session_index < len(sessions):
+            session = sessions[session_index]
+            seats_used.setdefault(session.id, 0)
+            if session.capacity and seats_used[session.id] >= session.capacity:
+                session_index += 1
+                continue
+            QuickCourseSessionEnrollment.objects.create(
+                session=session,
+                enrollment=enrollment,
+                assigned_by=user,
+            )
+            seats_used[session.id] += 1
+            assigned_count += 1
+            break
+        else:
+            unassigned_count += 1
+
+    under_minimum = sum(1 for session in sessions if session.enrolled_count and not session.meets_minimum_capacity)
+    empty_sessions = sum(1 for session in sessions if session.enrolled_count == 0)
+    return {
+        'assigned_count': assigned_count,
+        'unassigned_count': unassigned_count,
+        'under_minimum': under_minimum,
+        'empty_sessions': empty_sessions,
+    }
+
+
+def _assign_enrollment_to_available_session(enrollment, user=None):
+    sessions = (
+        QuickCourseSession.objects.filter(course=enrollment.course, is_active=True)
+        .order_by('start_date', 'start_time', 'id')
+    )
+    for session in sessions:
+        if session.capacity and session.enrolled_count >= session.capacity:
+            continue
+        assignment, _created = QuickCourseSessionEnrollment.objects.update_or_create(
+            enrollment=enrollment,
+            defaults={'session': session, 'assigned_by': user},
+        )
+        return assignment
+    return None
+
+
+def _generate_course_sessions_from_options(course, user):
+    options = list(
+        course.time_options.filter(is_active=True)
+        .select_related('preferred_room')
+        .order_by('priority', 'start_date', 'start_time', 'id')
+    )
+    shared_student_ids = _shared_student_ids_for_course(course)
+
+    QuickCourseSession.objects.filter(course=course).update(is_active=False)
+
+    created_sessions = []
+    skipped_options = []
+    total_students = QuickEnrollment.objects.filter(course=course, is_completed=False, student__is_active=True).count()
+    remaining_students = total_students
+    remaining_options = len(options)
+    for index, option in enumerate(options, start=1):
+        target_students = ceil(remaining_students / remaining_options) if remaining_options else remaining_students
+        room = _find_available_room_for_option(option, shared_student_ids, needed_students=target_students)
+        if room is None and Classroom.objects.filter(class_type='course', is_active=True).exists():
+            skipped_options.append(option.title)
+            remaining_options -= 1
+            continue
+        room_capacity = getattr(room, 'max_capacity', 0) if room else 0
+        effective_capacity = _effective_capacity(option.max_capacity, room_capacity)
+        session = QuickCourseSession.objects.create(
+            course=course,
+            time_option=option,
+            title=option.title or f"كلاس {index}",
+            code=f"{course.id}-{index}",
+            min_capacity=max(option.min_capacity or 1, getattr(room, 'min_capacity', 1) or 1),
+            capacity=effective_capacity,
+            start_date=option.start_date,
+            end_date=option.end_date,
+            start_time=option.start_time,
+            end_time=option.end_time,
+            meeting_days=option.meeting_days,
+            room=room,
+            room_name=(room.name if room else ''),
+            notes=option.notes,
+            is_active=True,
+            created_by=user,
+        )
+        created_sessions.append(session)
+        remaining_students = max(0, remaining_students - (effective_capacity or remaining_students))
+        remaining_options -= 1
+    return created_sessions, skipped_options
+
+
+def _generate_schedule_for_courses(courses, user):
+    summary = {
+        'courses_processed': 0,
+        'sessions_created': 0,
+        'students_assigned': 0,
+        'students_unassigned': 0,
+        'courses_with_unassigned': [],
+        'skipped_options': [],
+    }
+    ordered_courses = sorted(
+        list(courses),
+        key=lambda course: (-_course_active_enrollment_count(course), course.id),
+    )
+    for course in ordered_courses:
+        created_sessions, skipped_options = _generate_course_sessions_from_options(course, user)
+        assignment_result = _auto_assign_course_enrollments(course, user)
+        summary['courses_processed'] += 1
+        summary['sessions_created'] += len(created_sessions)
+        summary['students_assigned'] += assignment_result['assigned_count']
+        summary['students_unassigned'] += assignment_result['unassigned_count']
+        if assignment_result['unassigned_count']:
+            summary['courses_with_unassigned'].append(course.name)
+        summary['skipped_options'].extend(skipped_options)
+    return summary
+
+
+class QuickCourseDetailView(LoginRequiredMixin, DetailView):
+    model = QuickCourse
+    template_name = 'quick/quick_course_detail.html'
+    context_object_name = 'course'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course = self.object
+        active_enrollments = (
+            QuickEnrollment.objects.filter(course=course, is_completed=False, student__is_active=True)
+            .select_related('student')
+            .order_by('student__full_name')
+        )
+        assigned_ids = set(
+            QuickCourseSessionEnrollment.objects.filter(session__course=course).values_list('enrollment_id', flat=True)
+        )
+        context.update({
+            'session_form': QuickCourseSessionForm(),
+            'session_rows': _quick_session_display_rows(course),
+            'active_enrollments': active_enrollments,
+            'unassigned_enrollments': [enrollment for enrollment in active_enrollments if enrollment.id not in assigned_ids],
+            'transfer_form': QuickSessionTransferForm(course=course),
+            'sessions_manage_url': reverse('quick:course_sessions_manage', kwargs={'course_id': course.id}),
+            'today': timezone.localdate(),
+        })
+        return context
+
+
+class QuickCourseSessionsManageView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_sessions_manage.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course = get_object_or_404(QuickCourse.objects.select_related('academic_year'), pk=self.kwargs['course_id'], is_active=True)
+        active_enrollments = (
+            QuickEnrollment.objects.filter(course=course, is_completed=False, student__is_active=True)
+            .select_related('student')
+            .order_by('enrollment_date', 'id')
+        )
+        assigned_ids = set(
+            QuickCourseSessionEnrollment.objects.filter(session__course=course).values_list('enrollment_id', flat=True)
+        )
+        context.update({
+            'course': course,
+            'session_form': QuickCourseSessionForm(),
+            'time_option_form': QuickCourseTimeOptionForm(),
+            'time_options': course.time_options.filter(is_active=True).select_related('preferred_room').order_by('priority', 'start_date', 'start_time'),
+            'session_rows': _quick_session_display_rows(course),
+            'active_enrollments': active_enrollments,
+            'unassigned_enrollments': [enrollment for enrollment in active_enrollments if enrollment.id not in assigned_ids],
+            'transfer_form': QuickSessionTransferForm(course=course),
+            'today': timezone.localdate(),
+        })
+        return context
+
+
+class QuickCourseTimeOptionsManageView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_time_options_manage.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course = get_object_or_404(QuickCourse.objects.select_related('academic_year'), pk=self.kwargs['course_id'], is_active=True)
+        options = course.time_options.filter(is_active=True).select_related('preferred_room').order_by('priority', 'start_date', 'start_time')
+        context.update({
+            'course': course,
+            'time_option_form': QuickCourseTimeOptionForm(),
+            'time_options': options,
+            'rooms': Classroom.objects.filter(class_type='course', is_active=True).order_by('name'),
+        })
+        return context
+
+
+@login_required
+@require_POST
+def quick_course_add_session(request, course_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    form = QuickCourseSessionForm(request.POST)
+    if form.is_valid():
+        session = form.save(commit=False)
+        session.course = course
+        session.created_by = request.user
+        session.save()
+        messages.success(request, 'تمت إضافة كلاس جديد للدورة.')
+    else:
+        messages.error(request, 'تعذر حفظ الكلاس. يرجى مراجعة الحقول المدخلة.')
+    return redirect('quick:course_sessions_manage', course_id=course.id)
+
+
+@login_required
+@require_POST
+def quick_course_add_time_option(request, course_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    form = QuickCourseTimeOptionForm(request.POST)
+    if form.is_valid():
+        option = form.save(commit=False)
+        option.course = course
+        option.created_by = request.user
+        option.save()
+        messages.success(request, 'تمت إضافة وقت متاح للدورة.')
+    else:
+        messages.error(request, 'تعذر حفظ الوقت المتاح.')
+    return redirect('quick:course_time_options_manage', course_id=course.id)
+
+
+@login_required
+@require_POST
+def quick_course_generate_schedule(request, course_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    created_sessions, skipped_options = _generate_course_sessions_from_options(course, request.user)
+    result = _auto_assign_course_enrollments(course, request.user)
+    if skipped_options:
+        messages.warning(request, f"تم تخطي بعض الخيارات بسبب تعارض القاعات أو الطلاب: {', '.join(skipped_options[:5])}")
+    messages.success(
+        request,
+        f"تم توليد {len(created_sessions)} كلاس وتوزيع {result['assigned_count']} طالب تلقائياً."
+    )
+    return redirect('quick:course_sessions_manage', course_id=course.id)
+
+
+@login_required
+@require_POST
+def quick_generate_all_schedules(request):
+    courses = (
+        QuickCourse.objects.filter(is_active=True, time_options__is_active=True)
+        .distinct()
+        .order_by('id')
+    )
+    summary = _generate_schedule_for_courses(courses, request.user)
+    if summary['skipped_options']:
+        messages.warning(request, 'تم تخطي بعض الأوقات بسبب التعارض: ' + ', '.join(summary['skipped_options'][:8]))
+    if summary['students_unassigned']:
+        messages.error(
+            request,
+            f"بقي {summary['students_unassigned']} طالب بدون كلاس في الدورات التالية: "
+            + ', '.join(summary['courses_with_unassigned'][:8])
+        )
+    else:
+        messages.success(
+            request,
+            f"تم توليد برنامج {summary['courses_processed']} دورة وإنشاء {summary['sessions_created']} كلاس "
+            f"وتوزيع {summary['students_assigned']} طالب بدون أي طلاب غير موزعين."
+        )
+    return redirect('quick:course_list')
+
+
+@login_required
+@require_POST
+def quick_course_session_extend(request, session_id):
+    session = get_object_or_404(QuickCourseSession, pk=session_id, is_active=True)
+    session.end_date = session.end_date + timedelta(days=1)
+    session.save(update_fields=['end_date', 'updated_at'])
+    messages.success(request, f'تمت إضافة يوم دوام إلى {session.title}.')
+    return redirect('quick:course_sessions_manage', course_id=session.course_id)
+
+
+@login_required
+@require_POST
+def quick_course_session_assign_students(request, session_id):
+    session = get_object_or_404(QuickCourseSession, pk=session_id, is_active=True)
+    form = QuickSessionAssignStudentsForm(request.POST, session=session)
+    if not form.is_valid():
+        messages.error(request, 'تعذر توزيع الطلاب على الكلاس.')
+        return redirect('quick:course_session_students', session_id=session.id)
+
+    selected = list(form.cleaned_data['enrollment_ids'])
+    if session.capacity and selected:
+        remaining = max(0, session.capacity - session.enrolled_count)
+        if len(selected) > remaining:
+            messages.error(request, f'السعة المتبقية في الكلاس هي {remaining} طالب فقط.')
+            return redirect('quick:course_session_students', session_id=session.id)
+
+    created_count = 0
+    for enrollment in selected:
+        assignment, created = QuickCourseSessionEnrollment.objects.get_or_create(
+            enrollment=enrollment,
+            defaults={'session': session, 'assigned_by': request.user},
+        )
+        if not created and assignment.session_id != session.id:
+            assignment.session = session
+            assignment.assigned_by = request.user
+            assignment.save(update_fields=['session', 'assigned_by'])
+            created = True
+        if created:
+            created_count += 1
+
+    messages.success(request, f'تم توزيع {created_count} طالب على الكلاس.')
+    return redirect('quick:course_session_students', session_id=session.id)
+
+
+@login_required
+@require_POST
+def quick_course_transfer_students(request, course_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    form = QuickSessionTransferForm(request.POST, course=course)
+    if not form.is_valid():
+        messages.error(request, 'تعذر نقل الطلاب بين الكلاسات.')
+        return redirect('quick:course_sessions_manage', course_id=course.id)
+
+    source = form.cleaned_data['source_session']
+    target = form.cleaned_data['target_session']
+    enrollments = list(form.cleaned_data['enrollment_ids'])
+
+    if target.capacity:
+        remaining = max(0, target.capacity - target.enrolled_count)
+        if len(enrollments) > remaining:
+            messages.error(request, f'السعة المتبقية في الكلاس الهدف هي {remaining} طالب فقط.')
+            return redirect('quick:course_sessions_manage', course_id=course.id)
+
+    moved = 0
+    for enrollment in enrollments:
+        assignment = getattr(enrollment, 'session_assignment', None)
+        if assignment and assignment.session_id == source.id:
+            assignment.session = target
+            assignment.assigned_by = request.user
+            assignment.save(update_fields=['session', 'assigned_by'])
+            moved += 1
+
+    messages.success(request, f'تم نقل {moved} طالب إلى {target.title}.')
+    return redirect('quick:course_sessions_manage', course_id=course.id)
+
+
+@login_required
+@require_POST
+def quick_course_auto_assign_students(request, course_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    result = _auto_assign_course_enrollments(course, request.user)
+    messages.success(
+        request,
+        f"تم التوزيع التلقائي لـ {result['assigned_count']} طالب. "
+        f"غير الموزعين: {result['unassigned_count']} | "
+        f"كلاسات دون الحد الأدنى: {result['under_minimum']}."
+    )
+    return redirect('quick:course_sessions_manage', course_id=course.id)
+
+
+class QuickCourseSessionStudentsView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_session_students.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session = get_object_or_404(
+            QuickCourseSession.objects.select_related('course', 'course__academic_year'),
+            pk=self.kwargs['session_id'],
+        )
+        assignments = list(
+            session.session_enrollments.select_related('enrollment__student')
+            .order_by('enrollment__student__full_name')
+        )
+        context.update({
+            'session': session,
+            'course': session.course,
+            'assignments': assignments,
+            'assign_form': QuickSessionAssignStudentsForm(session=session),
+            'today': timezone.localdate(),
+        })
+        return context
+
+
+class QuickCourseAttendanceDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_attendance_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+        sessions = (
+            QuickCourseSession.objects.filter(is_active=True)
+            .select_related('course', 'course__academic_year')
+            .prefetch_related('session_enrollments__enrollment__student')
+            .order_by('start_date', 'start_time', 'course__name', 'title')
+        )
+        live_sessions = []
+        upcoming_sessions = []
+        archived_sessions = []
+        for session in sessions:
+            row = {
+                'session': session,
+                'assigned_count': session.enrolled_count,
+                'attendance_taken_today': session.attendance_records.filter(attendance_date=today).count(),
+                'current_day_number': session.get_day_number_for_date(min(today, session.end_date)) if today >= session.start_date else None,
+            }
+            if session.start_date <= today <= session.end_date:
+                live_sessions.append(row)
+            elif session.start_date > today:
+                upcoming_sessions.append(row)
+            else:
+                archived_sessions.append(row)
+        live_sessions.sort(key=lambda item: (item['session'].start_date, item['session'].start_time))
+        upcoming_sessions.sort(key=lambda item: (item['session'].start_date, item['session'].start_time))
+        archived_sessions.sort(key=lambda item: (item['session'].end_date, item['session'].start_time), reverse=True)
+        context.update({
+            'today': today,
+            'live_sessions': live_sessions,
+            'upcoming_sessions': upcoming_sessions,
+            'archived_sessions': archived_sessions[:12],
+        })
+        return context
+
+
+class QuickCourseAttendanceArchiveView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_attendance_archive.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+        archived_sessions = (
+            QuickCourseSession.objects.filter(is_active=True, start_date__lt=today)
+            .select_related('course', 'course__academic_year')
+            .order_by('-start_date', '-start_time')
+        )
+        context['archived_sessions'] = [session for session in archived_sessions if session.is_finished]
+        return context
+
+
+class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_session_attendance.html'
+
+    def _get_session(self):
+        return get_object_or_404(
+            QuickCourseSession.objects.select_related('course', 'course__academic_year'),
+            pk=self.kwargs['session_id'],
+        )
+
+    def _resolve_attendance_date(self, session):
+        today = timezone.localdate()
+        raw_value = self.request.GET.get('date') or self.request.POST.get('attendance_date')
+        attendance_date = parse_date(raw_value) if raw_value else today
+        if attendance_date is None:
+            attendance_date = today
+        if attendance_date < session.start_date:
+            attendance_date = session.start_date
+        if attendance_date > today:
+            attendance_date = today
+        if attendance_date > session.end_date:
+            attendance_date = session.end_date
+        return attendance_date
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session = self._get_session()
+        attendance_date = self._resolve_attendance_date(session)
+        assignments = list(
+            session.session_enrollments.select_related('enrollment__student')
+            .order_by('enrollment__student__full_name')
+        )
+        records = {
+            record.enrollment_id: record
+            for record in session.attendance_records.filter(attendance_date=attendance_date)
+        }
+        form = QuickSessionAttendanceBulkForm(
+            initial={'attendance_date': attendance_date},
+            session=session,
+            assignments=assignments,
+        )
+        for assignment in assignments:
+            record = records.get(assignment.enrollment_id)
+            if not record:
+                continue
+            prefix = f"student_{assignment.enrollment_id}"
+            form.fields[f"{prefix}_status"].initial = record.status
+            form.fields[f"{prefix}_notes"].initial = record.notes
+
+        attendance_rows = []
+        for assignment in assignments:
+            prefix = f"student_{assignment.enrollment_id}"
+            attendance_rows.append({
+                'assignment': assignment,
+                'status_field': form[f"{prefix}_status"],
+                'notes_field': form[f"{prefix}_notes"],
+            })
+
+        context.update({
+            'session': session,
+            'course': session.course,
+            'attendance_form': form,
+            'assignments': assignments,
+            'attendance_rows': attendance_rows,
+            'attendance_date': attendance_date,
+            'day_number': session.get_day_number_for_date(attendance_date),
+            'today': timezone.localdate(),
+            'can_take_attendance': attendance_date >= session.start_date,
+            'max_attendance_date': min(timezone.localdate(), session.end_date),
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        session = self._get_session()
+        attendance_date = self._resolve_attendance_date(session)
+        assignments = list(
+            session.session_enrollments.select_related('enrollment__student')
+            .order_by('enrollment__student__full_name')
+        )
+        if attendance_date < session.start_date:
+            messages.error(request, 'لا يمكن أخذ الحضور قبل بداية الكلاس.')
+            return redirect('quick:course_session_attendance', session_id=session.id)
+
+        form = QuickSessionAttendanceBulkForm(request.POST, session=session, assignments=assignments)
+        if not form.is_valid():
+            messages.error(request, 'تعذر حفظ الحضور.')
+            return self.get(request, *args, **kwargs)
+
+        day_number = session.get_day_number_for_date(attendance_date) or 1
+        saved = 0
+        for assignment in assignments:
+            prefix = f"student_{assignment.enrollment_id}"
+            status = form.cleaned_data.get(f"{prefix}_status") or 'present'
+            notes = form.cleaned_data.get(f"{prefix}_notes", '')
+            QuickCourseSessionAttendance.objects.update_or_create(
+                session=session,
+                enrollment=assignment.enrollment,
+                attendance_date=attendance_date,
+                defaults={
+                    'day_number': day_number,
+                    'status': status,
+                    'notes': notes,
+                    'created_by': request.user,
+                },
+            )
+            saved += 1
+
+        messages.success(request, f'تم حفظ حضور {saved} طالب لليوم رقم {day_number}.')
+        return redirect(f"{reverse('quick:course_session_attendance', kwargs={'session_id': session.id})}?date={attendance_date.isoformat()}")
+
+
+class QuickCourseSchedulePrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_schedule_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        selected_ids = []
+        for raw_value in self.request.GET.getlist('course_ids'):
+            try:
+                selected_ids.append(int(raw_value))
+            except (TypeError, ValueError):
+                continue
+        course_type = self.request.GET.get('course_type') or 'INTENSIVE'
+        courses = QuickCourse.objects.filter(is_active=True, course_type=course_type).select_related('academic_year')
+        if selected_ids:
+            courses = courses.filter(id__in=selected_ids)
+        sessions = (
+            QuickCourseSession.objects.filter(course__in=courses, is_active=True)
+            .select_related('course', 'course__academic_year')
+            .order_by('start_date', 'start_time', 'course__name', 'title')
+        )
+        total_students = 0
+        sessions_by_course = defaultdict(list)
+        for session in sessions:
+            assigned_count = session.enrolled_count
+            total_students += assigned_count
+            sessions_by_course[session.course_id].append({
+                'session': session,
+                'assigned_count': assigned_count,
+                'seat_utilization': (
+                    round((assigned_count / session.capacity) * 100)
+                    if session.capacity else 0
+                ),
+            })
+        course_cards = []
+        for course in courses.order_by('name'):
+            course_sessions = sessions_by_course.get(course.id, [])
+            course_cards.append({
+                'course': course,
+                'sessions': course_sessions,
+                'students_count': sum(item['assigned_count'] for item in course_sessions),
+            })
+        context.update({
+            'courses': courses.order_by('name'),
+            'sessions': sessions,
+            'course_cards': course_cards,
+            'selected_course_ids': selected_ids,
+            'selected_course_type': course_type,
+            'course_type_choices': QuickCourse.COURSE_TYPE_CHOICES,
+            'total_courses': courses.count(),
+            'total_sessions': sessions.count(),
+            'total_students': total_students,
+            'generated_at': timezone.localtime(),
+        })
+        return context
 
 # ط§ظ„ط·ظ„ط§ط¨ ط§ظ„ط³ط±ظٹط¹ظٹظ†
 class QuickStudentListView(LoginRequiredMixin, ListView):
@@ -2934,6 +3820,9 @@ class QuickEnrollmentCreateView(LoginRequiredMixin, CreateView):
         # ط¥ظ†ط´ط§ط، ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ
         try:
             self.object.create_accrual_enrollment_entry(self.request.user)
+            assignment = _assign_enrollment_to_available_session(self.object, self.request.user)
+            if assignment is None:
+                messages.warning(self.request, 'تم تسجيل الطالب لكن لا يوجد كلاس فيه شاغر حالياً لهذه الدورة.')
             messages.success(self.request, 'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط·ط§ظ„ط¨ ظˆط¥ظ†ط´ط§ط، ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ ط¨ظ†ط¬ط§ط­')
         except Exception as e:
             messages.warning(self.request, f'طھظ… ط§ظ„طھط³ط¬ظٹظ„ ظˆظ„ظƒظ† ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ: {str(e)}')
@@ -3779,6 +4668,9 @@ def register_quick_course(request, student_id):
                 total_amount=course.price
             )
             created_enrollments += 1
+            assignment = _assign_enrollment_to_available_session(enrollment, request.user)
+            if assignment is None:
+                warnings.append(f'الطالب سُجل في دورة {course.name} لكن لا يوجد كلاس متاح فيه شاغر حالياً.')
 
             try:
                 enrollment.create_accrual_enrollment_entry(request.user)
@@ -4143,7 +5035,7 @@ class QuickCourseUpdateView(LoginRequiredMixin, UpdateView):
     context_object_name = 'course'
     
     def get_success_url(self):
-        return reverse_lazy('quick:course_list')
+        return reverse('quick:course_detail', kwargs={'pk': self.object.pk})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

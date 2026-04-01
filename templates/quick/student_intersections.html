@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+:root {
+    --intersection-bg: #f4f7fb;
+    --intersection-surface: #ffffff;
+    --intersection-ink: #0f172a;
+    --intersection-muted: #64748b;
+    --intersection-line: rgba(15, 23, 42, 0.08);
+    --intersection-primary: #0f4c5c;
+    --intersection-primary-soft: rgba(15, 76, 92, 0.12);
+    --intersection-accent: #d97706;
+    --intersection-accent-soft: rgba(217, 119, 6, 0.14);
+    --intersection-success: #0f766e;
+    --intersection-success-soft: rgba(15, 118, 110, 0.13);
+    --intersection-shadow: 0 24px 48px -32px rgba(15, 23, 42, 0.42);
+}
+
+.intersection-page {
+    background:
+        radial-gradient(circle at top right, rgba(15, 118, 110, 0.12), transparent 26%),
+        radial-gradient(circle at left center, rgba(217, 119, 6, 0.10), transparent 24%),
+        var(--intersection-bg);
+    border-radius: 28px;
+    padding: 24px;
+}
+
+.intersection-card,
+.intersection-stat,
+.intersection-chip,
+.intersection-table-wrap {
+    border: 0;
+    border-radius: 24px;
+    box-shadow: var(--intersection-shadow);
+}
+
+.intersection-hero {
+    background: linear-gradient(135deg, #0f4c5c 0%, #1f7a8c 100%);
+    color: #fff;
+    overflow: hidden;
+}
+
+.intersection-hero .card-body {
+    padding: 28px;
+}
+
+.intersection-hero h2 {
+    font-size: 1.85rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.intersection-hero p {
+    margin: 0;
+    max-width: 760px;
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.intersection-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.intersection-btn {
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-weight: 700;
+}
+
+.intersection-panel {
+    background: var(--intersection-surface);
+}
+
+.intersection-panel .card-body,
+.intersection-panel .card-header {
+    padding: 22px 24px;
+}
+
+.intersection-panel .card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--intersection-line);
+}
+
+.intersection-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+    gap: 18px;
+    align-items: end;
+}
+
+.intersection-hint {
+    color: var(--intersection-muted);
+    font-size: 0.93rem;
+}
+
+.intersection-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.intersection-chip {
+    background: var(--intersection-surface);
+    padding: 16px 18px;
+    min-width: 220px;
+}
+
+.intersection-chip .title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-weight: 800;
+    color: var(--intersection-ink);
+}
+
+.intersection-chip .meta {
+    color: var(--intersection-muted);
+    font-size: 0.88rem;
+}
+
+.intersection-remove {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    background: rgba(220, 38, 38, 0.1);
+    color: #b91c1c;
+}
+
+.intersection-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.intersection-stat {
+    background: var(--intersection-surface);
+}
+
+.intersection-stat .card-body {
+    padding: 20px;
+}
+
+.intersection-stat .label {
+    color: var(--intersection-muted);
+    margin-bottom: 8px;
+}
+
+.intersection-stat .value {
+    font-size: 1.95rem;
+    font-weight: 900;
+    color: var(--intersection-ink);
+}
+
+.intersection-stat.primary { border-top: 4px solid var(--intersection-primary); }
+.intersection-stat.accent { border-top: 4px solid var(--intersection-accent); }
+.intersection-stat.success { border-top: 4px solid var(--intersection-success); }
+
+.intersection-table-wrap {
+    background: var(--intersection-surface);
+    overflow: hidden;
+}
+
+.intersection-table {
+    margin: 0;
+}
+
+.intersection-table thead th {
+    background: #123d5d;
+    color: #fff;
+    border: 0;
+    padding: 14px 12px;
+    white-space: nowrap;
+}
+
+.intersection-table tbody td {
+    padding: 15px 12px;
+    border-color: var(--intersection-line);
+    vertical-align: middle;
+}
+
+.intersection-table tbody tr:hover {
+    background: rgba(15, 76, 92, 0.03);
+}
+
+.student-name {
+    font-weight: 800;
+    color: var(--intersection-ink);
+    text-decoration: none;
+}
+
+.student-subtle {
+    color: var(--intersection-muted);
+    font-size: 0.87rem;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.pill.primary {
+    background: var(--intersection-primary-soft);
+    color: var(--intersection-primary);
+}
+
+.pill.accent {
+    background: var(--intersection-accent-soft);
+    color: #b45309;
+}
+
+.pill.success {
+    background: var(--intersection-success-soft);
+    color: var(--intersection-success);
+}
+
+.intersection-empty {
+    text-align: center;
+    padding: 56px 18px;
+    color: var(--intersection-muted);
+}
+
+.intersection-empty i {
+    font-size: 3rem;
+    margin-bottom: 12px;
+    opacity: 0.45;
+}
+
+@media (max-width: 991px) {
+    .intersection-form-grid,
+    .intersection-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .intersection-page {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    .intersection-hero .card-body,
+    .intersection-panel .card-body,
+    .intersection-panel .card-header,
+    .intersection-stat .card-body {
+        padding: 16px;
+    }
+
+    .intersection-hero h2 {
+        font-size: 1.45rem;
+    }
+}
+</style>
+
+<div class="container-fluid intersection-page">
+    <div class="card intersection-card intersection-hero mb-4">
+        <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2>الطلاب المشتركين</h2>
+                <p>
+                    اختر دورة واحدة ليظهر جميع طلابها، ثم أضف دورات أخرى ليعرض النظام فقط الطلاب المشتركين بين كل الدورات المحددة.
+                </p>
+            </div>
+            <div class="intersection-actions">
+                <a href="{% url 'quick:student_list' %}" class="btn btn-light intersection-btn">
+                    <i class="fas fa-users me-1"></i>
+                    الطلاب السريعون
+                </a>
+                <a href="{% url 'quick:course_list' %}" class="btn btn-outline-light intersection-btn">
+                    <i class="fas fa-book me-1"></i>
+                    الدورات السريعة
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card intersection-card intersection-panel mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h5 class="mb-1">بناء التقاطع</h5>
+                <div class="intersection-hint">كل إضافة جديدة تضيق النتائج إلى الطلاب الموجودين في جميع الدورات المختارة.</div>
+            </div>
+            {% if has_selection %}
+            <a href="{% url 'quick:student_intersections' %}" class="btn btn-outline-secondary intersection-btn">
+                <i class="fas fa-rotate-left me-1"></i>
+                تصفير الاختيار
+            </a>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <form method="get" class="intersection-form-grid">
+                <div>
+                    <label for="add-course" class="form-label fw-bold">إضافة دورة إلى المقارنة</label>
+                    <select id="add-course" name="add_course" class="form-select" {% if not available_courses %}disabled{% endif %}>
+                        <option value="">اختر دورة لإضافتها</option>
+                        {% for course in available_courses %}
+                        <option value="{{ course.id }}">
+                            {{ course.name }}{% if course.name_ar %} - {{ course.name_ar }}{% endif %} | {{ course.active_students_count }} طالب
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if not available_courses %}
+                    <div class="intersection-hint mt-2">تمت إضافة جميع الدورات المتاحة أو لا توجد دورات نشطة حالياً.</div>
+                    {% endif %}
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    {% for course_id in selected_course_ids %}
+                    <input type="hidden" name="course_ids" value="{{ course_id }}">
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary intersection-btn" {% if not available_courses %}disabled{% endif %}>
+                        <i class="fas fa-plus me-1"></i>
+                        إضافة وعرض النتائج
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card intersection-card intersection-panel mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>الدورات المحددة</h5>
+        </div>
+        <div class="card-body">
+            {% if selected_courses %}
+            <div class="intersection-chip-list">
+                {% for item in selected_courses %}
+                <div class="intersection-chip">
+                    <div class="title">
+                        <span>{{ item.course.name }}</span>
+                        <a href="{{ item.remove_url }}" class="intersection-remove" title="إزالة الدورة">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                    {% if item.course.name_ar %}
+                    <div class="meta">{{ item.course.name_ar }}</div>
+                    {% endif %}
+                    <div class="meta">السنة: {{ item.course.academic_year.name }} | الطلاب النشطون: {{ item.course.active_students_count }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="intersection-empty py-4">
+                <i class="fas fa-diagram-project d-block"></i>
+                <h4 class="mb-2">ابدأ باختيار أول دورة</h4>
+                <p class="mb-0">بعد اختيار دورة واحدة ستظهر جميع أسماء طلابها هنا في النتائج، ومع كل دورة إضافية سيُحسب التقاطع تلقائياً.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="intersection-stats mb-4">
+        <div class="card intersection-stat primary">
+            <div class="card-body">
+                <div class="label">الدورات المحددة</div>
+                <div class="value">{{ selected_courses_count }}</div>
+            </div>
+        </div>
+        <div class="card intersection-stat accent">
+            <div class="card-body">
+                <div class="label">
+                    {% if is_exact_intersection %}عدد الطلاب المشتركين{% else %}عدد الطلاب الظاهرين{% endif %}
+                </div>
+                <div class="value">{{ matching_students_count }}</div>
+            </div>
+        </div>
+        <div class="card intersection-stat success">
+            <div class="card-body">
+                <div class="label">إجمالي الدورات النشطة</div>
+                <div class="value">{{ total_available_courses }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="intersection-table-wrap">
+        <div class="card-header bg-transparent border-0 pt-4 px-4">
+            <h5 class="mb-1">
+                {% if not has_selection %}
+                نتائج التقاطع
+                {% elif intersection_mode == 'single' %}
+                جميع طلاب الدورة المحددة
+                {% else %}
+                الطلاب المشتركون بين الدورات المحددة
+                {% endif %}
+            </h5>
+            <div class="intersection-hint">
+                {% if not has_selection %}
+                لا توجد نتائج بعد لأنك لم تختر أي دورة.
+                {% elif intersection_mode == 'single' %}
+                هذه القائمة تمثل كل الطلاب النشطين المسجلين في الدورة المختارة.
+                {% else %}
+                هذه القائمة تعرض فقط الطلاب الموجودين في جميع الدورات التي أضفتها.
+                {% endif %}
+            </div>
+        </div>
+        {% if matching_students %}
+        <div class="table-responsive">
+            <table class="table intersection-table align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>الطالب</th>
+                        <th>الهاتف</th>
+                        <th>السنة الدراسية</th>
+                        <th class="text-center">الدورات المطابقة</th>
+                        <th class="text-center">كل الدورات النشطة</th>
+                        <th class="text-end">الرصيد</th>
+                        <th class="text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in matching_students %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <a href="{% url 'quick:student_profile' student.id %}" class="student-name">{{ student.full_name }}</a>
+                            <div class="student-subtle">
+                                {% if student.student.gender == 'male' %}
+                                ذكر
+                                {% elif student.student.gender == 'female' %}
+                                أنثى
+                                {% else %}
+                                غير محدد
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>{{ student.phone|default:"-" }}</td>
+                        <td>{{ student.academic_year.name|default:"-" }}</td>
+                        <td class="text-center"><span class="pill accent">{{ student.matched_courses_count }}</span></td>
+                        <td class="text-center"><span class="pill primary">{{ student.total_active_courses }}</span></td>
+                        <td class="text-end">
+                            <span class="pill {% if student.balance > 0 %}accent{% else %}success{% endif %}">
+                                {{ student.balance|floatformat:0 }} ل.س
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-user-circle me-1"></i>الملف
+                                </a>
+                                <a href="{% url 'quick:student_statement' student.id %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-file-invoice-dollar me-1"></i>الحساب
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="intersection-empty">
+            <i class="fas fa-users-slash d-block"></i>
+            {% if not has_selection %}
+            <h4 class="mb-2">لا توجد نتائج حالياً</h4>
+            <p class="mb-0">اختر دورة واحدة على الأقل لتبدأ بعرض الطلاب.</p>
+            {% else %}
+            <h4 class="mb-2">لا يوجد طلاب مطابقون</h4>
+            <p class="mb-0">جرّب إزالة إحدى الدورات أو اختيار دورات أخرى للحصول على تقاطع فعلي بين الطلاب.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

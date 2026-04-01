@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-calendar-check"></i></div>
+            <div>
+                <h1 class="page-title">حضور الدورات السريعة</h1>
+                <p class="page-subtitle">تظهر الكلاسات المتاح أخذ حضورها اليوم أولاً، ثم القادمة، ثم الأرشيف</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'quick:quick_course_attendance_archive' %}" class="btn btn-outline-secondary"><i class="fas fa-box-archive"></i> أرشيف الدورات المنتهية</a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h3>الكلاسات المتاحة اليوم</h3></div>
+        <div class="card-body">
+            {% for row in live_sessions %}
+            <div class="border rounded p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <strong>{{ row.session.title }}</strong> - {{ row.session.course.name }}
+                        <div class="text-muted small">اليوم رقم {{ row.current_day_number }} | {{ row.session.start_time|time:"H:i" }}{% if row.session.end_time %} - {{ row.session.end_time|time:"H:i" }}{% endif %}</div>
+                    </div>
+                    <a href="{% url 'quick:course_session_attendance' row.session.id %}" class="btn btn-success">أخذ الحضور</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-muted">لا يوجد كلاس مفتوح للحضور اليوم.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h3>الكلاسات القادمة</h3></div>
+        <div class="card-body">
+            {% for row in upcoming_sessions %}
+            <div class="border rounded p-3 mb-3">
+                <strong>{{ row.session.title }}</strong> - {{ row.session.course.name }}
+                <div class="text-muted small">تبدأ بتاريخ {{ row.session.start_date|date:"Y-m-d" }}</div>
+            </div>
+            {% empty %}
+            <div class="text-muted">لا توجد كلاسات قادمة.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3>آخر الكلاسات المؤرشفة</h3></div>
+        <div class="card-body">
+            {% for row in archived_sessions %}
+            <div class="border rounded p-3 mb-3">
+                <strong>{{ row.session.title }}</strong> - {{ row.session.course.name }}
+                <div class="text-muted small">انتهت بتاريخ {{ row.session.end_date|date:"Y-m-d" }}</div>
+            </div>
+            {% empty %}
+            <div class="text-muted">لا يوجد أرشيف بعد.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

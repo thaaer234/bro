@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-clipboard-check"></i></div>
+            <div>
+                <h1 class="page-title">{{ session.title }}</h1>
+                <p class="page-subtitle">{{ course.name }} | اليوم رقم {{ day_number }} | {{ attendance_date|date:"Y-m-d" }}</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'quick:course_session_students' session.id %}" class="btn btn-outline-info">الطلاب</a>
+            <a href="{% url 'quick:quick_course_attendance' %}" class="btn btn--ghost">العودة</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <form method="post" class="card-body">
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="label" for="{{ attendance_form.attendance_date.id_for_label }}">تاريخ الحضور</label>
+                    {{ attendance_form.attendance_date|add_class:"input" }}
+                </div>
+                <div class="col-md-8 d-flex align-items-end">
+                    <div class="text-muted">يمكنك أخذ الحضور من تاريخ البداية وحتى اليوم الحالي فقط.</div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>الطالب</th><th>الحالة</th><th>ملاحظات</th></tr></thead>
+                    <tbody>
+                        {% for row in attendance_rows %}
+                        <tr>
+                            <td>{{ row.assignment.enrollment.student.full_name }}</td>
+                            <td>{{ row.status_field|add_class:"input" }}</td>
+                            <td>{{ row.notes_field|add_class:"input" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted py-4">لا يوجد طلاب موزعون على هذا الكلاس.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn--primary"><i class="fas fa-save"></i> حفظ الحضور</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

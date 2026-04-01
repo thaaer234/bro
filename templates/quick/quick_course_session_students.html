@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-users"></i></div>
+            <div>
+                <h1 class="page-title">{{ session.title }}</h1>
+                <p class="page-subtitle">{{ course.name }} | الطلاب الموزعون على الكلاس</p>
+            </div>
+        </div>
+        <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn--ghost"><i class="fas fa-arrow-right"></i> العودة لإدارة الكلاسات</a>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3>إضافة طلاب إلى الكلاس</h3></div>
+        <form method="post" action="{% url 'quick:course_session_assign_students' session.id %}" class="card-body">
+            {% csrf_token %}
+            <div class="border rounded p-3" style="max-height:280px; overflow:auto;">
+                {{ assign_form.enrollment_ids }}
+            </div>
+            <div class="form-actions mt-3">
+                <button type="submit" class="btn btn--primary"><i class="fas fa-user-plus"></i> توزيع المحددين</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header"><h3>طلاب الكلاس</h3></div>
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>الطالب</th><th>الهاتف</th><th>تاريخ التسجيل</th></tr></thead>
+                <tbody>
+                    {% for assignment in assignments %}
+                    <tr>
+                        <td>{{ assignment.enrollment.student.full_name }}</td>
+                        <td>{{ assignment.enrollment.student.phone }}</td>
+                        <td>{{ assignment.enrollment.enrollment_date|date:"Y-m-d" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="text-center text-muted py-4">لا يوجد طلاب موزعون بعد.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-calendar-days"></i></div>
+            <div>
+                <h1 class="page-title">إدارة كلاسات {{ course.name }}</h1>
+                <p class="page-subtitle">تعريف الكلاسات، السعات الدنيا/العليا، ثم توزيع الطلاب تلقائياً حسب أقدمية التسجيل</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'quick:course_detail' course.id %}" class="btn btn--ghost">ملف الدورة</a>
+            <a href="{% url 'quick:classroom_list' %}" class="btn btn-outline-secondary"><i class="fas fa-school"></i> الكلاسات تبعي</a>
+            <a href="{% url 'quick:course_time_options_manage' course.id %}" class="btn btn-info"><i class="fas fa-clock"></i> الأوقات المتاحة</a>
+            <form method="post" action="{% url 'quick:course_generate_schedule' course.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary"><i class="fas fa-calendar-plus"></i> توليد البرنامج</button>
+            </form>
+            <form method="post" action="{% url 'quick:course_auto_assign_students' course.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success"><i class="fas fa-wand-magic-sparkles"></i> توزيع تلقائي</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="card-header"><h3>منطق التشغيل</h3></div>
+            <div class="card-body">
+                <p class="mb-2">1. عرّف الأوقات المتاحة للدورة.</p>
+                <p class="mb-2">2. شغّل توليد البرنامج ليتم اختيار القاعات والكلاسات دون تقاطع.</p>
+                <p class="mb-0">3. إذا لزم الأمر عدّل التوزيع أو انقل الطلاب يدوياً.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3>نقل طلاب بين الكلاسات</h3></div>
+            <form method="post" action="{% url 'quick:course_transfer_students' course.id %}" class="card-body">
+                {% csrf_token %}
+                <div class="grid">
+                    <div class="field">
+                        <label class="label">من الكلاس</label>
+                        {{ transfer_form.source_session|add_class:"input" }}
+                    </div>
+                    <div class="field">
+                        <label class="label">إلى الكلاس</label>
+                        {{ transfer_form.target_session|add_class:"input" }}
+                    </div>
+                    <div class="field field--full">
+                        <label class="label">الطلاب</label>
+                        <div class="border rounded p-3" style="max-height:220px; overflow:auto;">{{ transfer_form.enrollment_ids }}</div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-warning">نقل الطلاب المحددين</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header"><h3>جدول الكلاسات</h3></div>
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>الكلاس</th>
+                        <th>التواريخ</th>
+                        <th>عدد الأيام</th>
+                        <th>الوقت</th>
+                        <th>الحد الأدنى / الأقصى</th>
+                        <th>عدد الطلاب</th>
+                        <th>وضع الافتتاح</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in session_rows %}
+                    <tr>
+                        <td>{{ row.session.title }}</td>
+                        <td>{{ row.session.start_date|date:"Y-m-d" }} - {{ row.session.end_date|date:"Y-m-d" }}</td>
+                        <td>{{ row.session.total_days }}</td>
+                        <td>{{ row.session.start_time|time:"H:i" }}{% if row.session.end_time %} - {{ row.session.end_time|time:"H:i" }}{% endif %}</td>
+                        <td>{{ row.session.min_capacity }} / {{ row.session.capacity }}</td>
+                        <td>{{ row.session.enrolled_count }}</td>
+                        <td>
+                            {% if row.session.enrolled_count == 0 %}
+                            <span class="badge bg-secondary">فارغ</span>
+                            {% elif row.session.meets_minimum_capacity %}
+                            <span class="badge bg-success">جاهز للفتح</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">أقل من الحد الأدنى</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'quick:course_session_students' row.session.id %}" class="btn btn-sm btn-primary">الطلاب</a>
+                                <a href="{% url 'quick:course_session_attendance' row.session.id %}" class="btn btn-sm btn-success">الحضور</a>
+                                <form method="post" action="{% url 'quick:course_session_extend' row.session.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-warning">+ يوم</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">لا توجد كلاسات معرفة لهذه الدورة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header"><h3>الطلاب غير الموزعين</h3></div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead><tr><th>الطالب</th><th>تاريخ التسجيل</th></tr></thead>
+                <tbody>
+                    {% for enrollment in unassigned_enrollments %}
+                    <tr>
+                        <td>{{ enrollment.student.full_name }}</td>
+                        <td>{{ enrollment.enrollment_date|date:"Y-m-d" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="text-center text-muted py-3">كل الطلاب موزعون حالياً.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

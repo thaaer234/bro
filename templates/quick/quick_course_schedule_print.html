@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="schedule-shell">
+    <section class="schedule-hero">
+        <div class="schedule-hero__backdrop"></div>
+        <div class="schedule-hero__content">
+            <div class="schedule-brand">
+                <div class="schedule-brand__logo-wrap">
+                    <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" class="schedule-brand__logo">
+                </div>
+                <div class="schedule-brand__text">
+                    <span class="schedule-brand__eyebrow">معهد اليمان</span>
+                    <h1>برنامج الكلاسات السريعة</h1>
+                    <p>واجهة موحدة لعرض برنامج الدورات المكثفة مع القاعات، الأوقات، والسعات المعتمدة قبل الطباعة أو النشر.</p>
+                </div>
+            </div>
+            <div class="schedule-actions no-print">
+                <a href="{% url 'quick:course_list' %}" class="btn btn-light schedule-action-btn">
+                    <i class="fas fa-arrow-right"></i>
+                    رجوع إلى الدورات
+                </a>
+                <button class="btn btn-primary schedule-action-btn" onclick="window.print()">
+                    <i class="fas fa-print"></i>
+                    طباعة البرنامج
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="schedule-stats">
+        <article class="schedule-stat-card">
+            <span>الدورات المحددة</span>
+            <strong>{{ total_courses }}</strong>
+        </article>
+        <article class="schedule-stat-card">
+            <span>الكلاسات المولدة</span>
+            <strong>{{ total_sessions }}</strong>
+        </article>
+        <article class="schedule-stat-card">
+            <span>الطلاب الموزعون</span>
+            <strong>{{ total_students }}</strong>
+        </article>
+        <article class="schedule-stat-card">
+            <span>وقت التحديث</span>
+            <strong>{{ generated_at|date:"Y-m-d H:i" }}</strong>
+        </article>
+    </section>
+
+    <section class="schedule-filters card no-print">
+        <div class="card-body">
+            <form method="get" class="schedule-filters__grid">
+                <div class="schedule-field">
+                    <label>نوع الدورة</label>
+                    <select name="course_type" class="form-control">
+                        {% for value, label in course_type_choices %}
+                        <option value="{{ value }}" {% if selected_course_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="schedule-field schedule-field--wide">
+                    <label>الدورات</label>
+                    <select name="course_ids" class="form-control" multiple size="7">
+                        {% for course in courses %}
+                        <option value="{{ course.id }}" {% if course.id in selected_course_ids %}selected{% endif %}>{{ course.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="schedule-field schedule-field--actions">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-sync-alt"></i>
+                        تحديث العرض
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="schedule-board">
+        <div class="schedule-board__header">
+            <div>
+                <h2>عرض البرنامج</h2>
+                <p>تم ترتيب الكلاسات بحسب التاريخ ثم الوقت، مع إظهار نسبة تعبئة كل كلاس.</p>
+            </div>
+        </div>
+
+        {% if sessions %}
+        <div class="schedule-course-cards">
+            {% for card in course_cards %}
+            {% if card.sessions %}
+            <article class="schedule-course-card">
+                <div class="schedule-course-card__head">
+                    <div>
+                        <h3>{{ card.course.name }}</h3>
+                        <p>{{ card.sessions|length }} كلاس | {{ card.students_count }} طالب موزع</p>
+                    </div>
+                    <span class="schedule-course-card__badge">{{ card.course.get_course_type_display }}</span>
+                </div>
+                <div class="schedule-course-card__body">
+                    {% for item in card.sessions %}
+                    <div class="schedule-session-chip">
+                        <div class="schedule-session-chip__main">
+                            <strong>{{ item.session.title }}</strong>
+                            <span>{{ item.session.start_date|date:"Y-m-d" }}{% if item.session.end_date != item.session.start_date %} حتى {{ item.session.end_date|date:"Y-m-d" }}{% endif %}</span>
+                        </div>
+                        <div class="schedule-session-chip__meta">
+                            <span>{{ item.session.start_time|time:"H:i" }}{% if item.session.end_time %} - {{ item.session.end_time|time:"H:i" }}{% endif %}</span>
+                            <span>{{ item.session.room_name|default:"بدون قاعة" }}</span>
+                            <span>{{ item.assigned_count }}/{{ item.session.capacity|default:"غير محدد" }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </article>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="schedule-table-wrap">
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>الدورة</th>
+                        <th>الكلاس</th>
+                        <th>الفترة</th>
+                        <th>الوقت</th>
+                        <th>القاعة</th>
+                        <th>السعة</th>
+                        <th>التعبئة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in sessions %}
+                    <tr>
+                        <td>
+                            <strong>{{ session.course.name }}</strong>
+                            <small>{{ session.course.get_course_type_display }}</small>
+                        </td>
+                        <td>{{ session.title }}</td>
+                        <td>
+                            {{ session.start_date|date:"Y-m-d" }}
+                            {% if session.end_date != session.start_date %}
+                            <span class="schedule-table__separator">حتى</span>
+                            {{ session.end_date|date:"Y-m-d" }}
+                            {% endif %}
+                        </td>
+                        <td>{{ session.start_time|time:"H:i" }}{% if session.end_time %} - {{ session.end_time|time:"H:i" }}{% endif %}</td>
+                        <td>{{ session.room_name|default:"-" }}</td>
+                        <td>
+                            {{ session.enrolled_count }}
+                            {% if session.capacity %}
+                            / {{ session.capacity }}
+                            {% else %}
+                            / مفتوحة
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if session.capacity %}
+                            <div class="schedule-progress">
+                                <span style="width: {% widthratio session.enrolled_count session.capacity 100 %}%"></span>
+                            </div>
+                            {% widthratio session.enrolled_count session.capacity 100 %}%
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="schedule-empty">
+            <i class="fas fa-calendar-times"></i>
+            <h3>لا يوجد برنامج مطابق حالياً</h3>
+            <p>أضف أوقاتاً للدورات ثم ولّد البرنامج ليظهر هنا بشكل كامل.</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<style>
+.schedule-shell {
+    --schedule-ink: #123047;
+    --schedule-accent: #c8922d;
+    --schedule-accent-soft: rgba(200, 146, 45, 0.14);
+    --schedule-sky: #eef6fb;
+    --schedule-card: #ffffff;
+    --schedule-line: rgba(18, 48, 71, 0.1);
+    --schedule-shadow: 0 20px 50px rgba(16, 38, 53, 0.12);
+    padding: 24px 0 40px;
+}
+
+.schedule-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    background:
+        radial-gradient(circle at top right, rgba(200, 146, 45, 0.28), transparent 34%),
+        linear-gradient(135deg, #0f3043 0%, #1b5675 56%, #24739a 100%);
+    box-shadow: var(--schedule-shadow);
+    color: #fff;
+    margin-bottom: 22px;
+}
+
+.schedule-hero__backdrop {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.18;
+}
+
+.schedule-hero__content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 28px;
+    align-items: flex-start;
+}
+
+.schedule-brand {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+}
+
+.schedule-brand__logo-wrap {
+    width: 90px;
+    height: 90px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+}
+
+.schedule-brand__logo {
+    width: 62px;
+    height: 62px;
+    object-fit: contain;
+}
+
+.schedule-brand__eyebrow {
+    display: inline-block;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.74);
+    margin-bottom: 6px;
+}
+
+.schedule-brand__text h1 {
+    margin: 0 0 8px;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.schedule-brand__text p {
+    margin: 0;
+    max-width: 700px;
+    color: rgba(255,255,255,0.84);
+    line-height: 1.8;
+}
+
+.schedule-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.schedule-action-btn {
+    min-width: 160px;
+}
+
+.schedule-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.schedule-stat-card {
+    background: var(--schedule-card);
+    border-radius: 20px;
+    padding: 18px 20px;
+    box-shadow: 0 16px 38px rgba(18, 48, 71, 0.08);
+    border: 1px solid var(--schedule-line);
+}
+
+.schedule-stat-card span {
+    display: block;
+    color: #648096;
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+
+.schedule-stat-card strong {
+    color: var(--schedule-ink);
+    font-size: 1.55rem;
+    font-weight: 800;
+}
+
+.schedule-filters,
+.schedule-board {
+    border: 1px solid var(--schedule-line);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(18, 48, 71, 0.07);
+    background: var(--schedule-card);
+}
+
+.schedule-filters {
+    margin-bottom: 22px;
+}
+
+.schedule-filters__grid {
+    display: grid;
+    grid-template-columns: 220px 1fr 190px;
+    gap: 16px;
+    align-items: end;
+}
+
+.schedule-field label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--schedule-ink);
+    font-weight: 700;
+}
+
+.schedule-board__header {
+    padding: 24px 24px 0;
+}
+
+.schedule-board__header h2 {
+    margin: 0 0 6px;
+    color: var(--schedule-ink);
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+
+.schedule-board__header p {
+    margin: 0;
+    color: #6c8598;
+}
+
+.schedule-course-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    padding: 22px 24px 8px;
+}
+
+.schedule-course-card {
+    border-radius: 20px;
+    border: 1px solid rgba(18, 48, 71, 0.08);
+    background: linear-gradient(180deg, #fff 0%, #f7fbfe 100%);
+    overflow: hidden;
+}
+
+.schedule-course-card__head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid rgba(18, 48, 71, 0.08);
+}
+
+.schedule-course-card__head h3 {
+    margin: 0 0 6px;
+    color: var(--schedule-ink);
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.schedule-course-card__head p {
+    margin: 0;
+    color: #688297;
+    font-size: 0.92rem;
+}
+
+.schedule-course-card__badge {
+    align-self: flex-start;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--schedule-accent-soft);
+    color: #8d6418;
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.schedule-course-card__body {
+    padding: 14px 18px 18px;
+    display: grid;
+    gap: 10px;
+}
+
+.schedule-session-chip {
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(18, 48, 71, 0.08);
+    padding: 12px 14px;
+}
+
+.schedule-session-chip__main,
+.schedule-session-chip__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.schedule-session-chip__main strong {
+    color: var(--schedule-ink);
+}
+
+.schedule-session-chip__main span,
+.schedule-session-chip__meta span {
+    color: #6d8597;
+    font-size: 0.9rem;
+}
+
+.schedule-table-wrap {
+    padding: 16px 24px 24px;
+    overflow-x: auto;
+}
+
+.schedule-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 920px;
+}
+
+.schedule-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--schedule-sky);
+    color: var(--schedule-ink);
+    font-weight: 800;
+    font-size: 0.92rem;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--schedule-line);
+}
+
+.schedule-table tbody td {
+    padding: 15px 16px;
+    border-bottom: 1px solid rgba(18, 48, 71, 0.08);
+    color: #274457;
+    vertical-align: middle;
+}
+
+.schedule-table tbody tr:nth-child(even) td {
+    background: rgba(239, 246, 251, 0.52);
+}
+
+.schedule-table tbody strong {
+    display: block;
+    color: var(--schedule-ink);
+}
+
+.schedule-table tbody small {
+    color: #7991a3;
+}
+
+.schedule-progress {
+    width: 120px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(18, 48, 71, 0.08);
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.schedule-progress span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #c8922d 0%, #f0bb58 100%);
+    border-radius: inherit;
+}
+
+.schedule-table__separator {
+    display: inline-block;
+    margin: 0 4px;
+    color: #8aa0af;
+}
+
+.schedule-empty {
+    text-align: center;
+    padding: 56px 20px 64px;
+    color: #698194;
+}
+
+.schedule-empty i {
+    font-size: 2.6rem;
+    color: var(--schedule-accent);
+    margin-bottom: 14px;
+}
+
+.schedule-empty h3 {
+    color: var(--schedule-ink);
+    margin-bottom: 8px;
+    font-weight: 800;
+}
+
+@media (max-width: 992px) {
+    .schedule-hero__content,
+    .schedule-brand {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .schedule-stats,
+    .schedule-filters__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .schedule-action-btn {
+        width: 100%;
+    }
+}
+
+@media print {
+    .no-print,
+    .sidebar,
+    .mobile-menu-toggle,
+    .topbar,
+    .page-header {
+        display: none !important;
+    }
+
+    .main-content,
+    .content-wrapper,
+    .schedule-shell {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .schedule-hero,
+    .schedule-board,
+    .schedule-stat-card {
+        box-shadow: none !important;
+    }
+
+    .schedule-hero {
+        border: 1px solid #d2dce5;
+    }
+
+    .schedule-table thead th {
+        background: #edf3f7 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+</style>
+{% endblock %}

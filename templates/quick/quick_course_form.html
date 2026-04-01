@@ -7,145 +7,65 @@
         <div class="page-header__left">
             <div class="page-header__icon"><i class="fas fa-rocket"></i></div>
             <div>
-                {% if is_update %}
-                <h1 class="page-title">تعديل الدورة السريعة</h1>
-                <p class="page-subtitle">قم بتعديل بيانات الدورة السريعة</p>
-                {% else %}
-                <h1 class="page-title">إضافة دورة سريعة جديدة</h1>
-                <p class="page-subtitle">املأ البيانات أدناه لإضافة دورة سريعة جديدة</p>
-                {% endif %}
+                <h1 class="page-title">{% if is_update %}تعديل الدورة السريعة{% else %}إضافة دورة سريعة{% endif %}</h1>
+                <p class="page-subtitle">بعد الحفظ تنتقل مباشرة إلى ملف الدورة لإضافة الكلاسات وتوزيع الطلاب</p>
             </div>
         </div>
         <a href="{% url 'quick:course_list' %}" class="btn btn--ghost">
-            <i class="fas fa-arrow-right"></i>
-            <span>العودة للقائمة</span>
+            <i class="fas fa-arrow-right"></i> العودة
         </a>
     </div>
 
     <div class="card">
-        <form method="POST">
+        <form method="post" class="card-body">
             {% csrf_token %}
-            
             <div class="grid">
                 <div class="field">
                     <label class="label" for="{{ form.name.id_for_label }}">اسم الدورة</label>
-                    <div class="control control--with-icon">
-                        <i class="fas fa-book"></i>
-                        {{ form.name|add_class:"input" }}
-                    </div>
-                    {% if form.name.errors %}
-                    <div class="field__error">{{ form.name.errors }}</div>
-                    {% endif %}
+                    {{ form.name|add_class:"input" }}
                 </div>
-
                 <div class="field">
-                    <label class="label" for="{{ form.name_ar.id_for_label }}">الاسم بالعربية</label>
-                    <div class="control control--with-icon">
-                        <i class="fas fa-language"></i>
-                        {{ form.name_ar|add_class:"input" }}
-                    </div>
-                    {% if form.name_ar.errors %}
-                    <div class="field__error">{{ form.name_ar.errors }}</div>
-                    {% endif %}
+                    <label class="label" for="{{ form.name_ar.id_for_label }}">الاسم العربي</label>
+                    {{ form.name_ar|add_class:"input" }}
                 </div>
-
                 <div class="field">
                     <label class="label" for="{{ form.course_type.id_for_label }}">نوع الدورة</label>
-                    <div class="control control--with-icon">
-                        <i class="fas fa-filter"></i>
-                        {{ form.course_type|add_class:"input" }}
-                    </div>
-                    {% if form.course_type.errors %}
-                    <div class="field__error">{{ form.course_type.errors }}</div>
-                    {% endif %}
+                    {{ form.course_type|add_class:"input" }}
                 </div>
-
                 <div class="field">
                     <label class="label" for="{{ form.academic_year.id_for_label }}">الفصل الدراسي</label>
-                    <div class="control control--with-icon">
-                        <i class="fas fa-calendar"></i>
-                        {{ form.academic_year|add_class:"input" }}
-                    </div>
-                    {% if form.academic_year.errors %}
-                    <div class="field__error">{{ form.academic_year.errors }}</div>
-                    {% endif %}
+                    {{ form.academic_year|add_class:"input" }}
                 </div>
-
                 <div class="field">
-                    <label class="label" for="{{ form.price.id_for_label }}">السعر (ل.س)</label>
-                    <div class="control control--with-icon">
-                        <i class="fas fa-money-bill-wave"></i>
-                        {{ form.price|add_class:"input" }}
-                    </div>
-                    {% if form.price.errors %}
-                    <div class="field__error">{{ form.price.errors }}</div>
-                    {% endif %}
+                    <label class="label" for="{{ form.price.id_for_label }}">السعر</label>
+                    {{ form.price|add_class:"input" }}
                 </div>
-
                 <div class="field">
-                    <label class="label" for="{{ form.duration_weeks.id_for_label }}">المدة (أسابيع)</label>
-                    <div class="control control--with-icon">
-                        <i class="fas fa-clock"></i>
-                        {{ form.duration_weeks|add_class:"input" }}
-                    </div>
-                    {% if form.duration_weeks.errors %}
-                    <div class="field__error">{{ form.duration_weeks.errors }}</div>
-                    {% endif %}
+                    <label class="label" for="{{ form.duration_weeks.id_for_label }}">المدة بالأسابيع</label>
+                    {{ form.duration_weeks|add_class:"input" }}
                 </div>
-
                 <div class="field">
-                    <label class="label" for="{{ form.hours_per_week.id_for_label }}">الساعات أسبوعياً</label>
-                    <div class="control control--with-icon">
-                        <i class="fas fa-hourglass"></i>
-                        {{ form.hours_per_week|add_class:"input" }}
-                    </div>
-                    {% if form.hours_per_week.errors %}
-                    <div class="field__error">{{ form.hours_per_week.errors }}</div>
-                    {% endif %}
+                    <label class="label" for="{{ form.hours_per_week.id_for_label }}">ساعات الأسبوع</label>
+                    {{ form.hours_per_week|add_class:"input" }}
                 </div>
-
                 <div class="field">
                     <label class="label" for="{{ form.cost_center.id_for_label }}">مركز التكلفة</label>
-                    <div class="control control--with-icon">
-                        <i class="fas fa-building"></i>
-                        {{ form.cost_center|add_class:"input" }}
-                    </div>
-                    {% if form.cost_center.errors %}
-                    <div class="field__error">{{ form.cost_center.errors }}</div>
-                    {% endif %}
+                    {{ form.cost_center|add_class:"input" }}
                 </div>
-
                 <div class="field field--full">
                     <label class="label" for="{{ form.description.id_for_label }}">الوصف</label>
-                    <div class="control control--with-icon">
-                        <i class="fas fa-file-alt"></i>
-                        {{ form.description|add_class:"input" }}
-                    </div>
-                    {% if form.description.errors %}
-                    <div class="field__error">{{ form.description.errors }}</div>
-                    {% endif %}
+                    {{ form.description|add_class:"input" }}
                 </div>
-
                 <div class="field">
-                    <label class="label" for="{{ form.is_active.id_for_label }}">
-                        {{ form.is_active }} نشط
-                    </label>
-                    {% if form.is_active.errors %}
-                    <div class="field__error">{{ form.is_active.errors }}</div>
-                    {% endif %}
+                    <label class="label" for="{{ form.is_active.id_for_label }}">الحالة</label>
+                    <div>{{ form.is_active }} نشطة</div>
                 </div>
             </div>
 
             <div class="form-actions">
                 <button type="submit" class="btn btn--primary">
-                    <i class="fas fa-save"></i>
-                    {% if is_update %}تحديث الدورة{% else %}حفظ الدورة{% endif %}
+                    <i class="fas fa-save"></i> حفظ
                 </button>
-                {% if is_update %}
-                <a href="{% url 'quick:course_list' %}" class="btn btn--secondary">
-                    <i class="fas fa-times"></i> إلغاء
-                </a>
-                {% endif %}
             </div>
         </form>
     </div>

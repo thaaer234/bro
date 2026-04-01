@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-clock"></i></div>
+            <div>
+                <h1 class="page-title">الأوقات المتاحة لـ {{ course.name }}</h1>
+                <p class="page-subtitle">أضف أكثر من وقت محتمل للدورة، وبعدها المولّد يختار القاعة والبرنامج بدون تعارض</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'quick:classroom_list' %}" class="btn btn-outline-secondary"><i class="fas fa-school"></i> الكلاسات تبعي</a>
+            <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn--ghost">إدارة الكلاسات</a>
+            <form method="post" action="{% url 'quick:course_generate_schedule' course.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary"><i class="fas fa-wand-magic-sparkles"></i> توليد البرنامج التلقائي</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="card-header"><h3>إضافة وقت متاح</h3></div>
+            <form method="post" action="{% url 'quick:course_add_time_option' course.id %}" class="card-body">
+                {% csrf_token %}
+                <div class="grid">
+                    {% for field in time_option_form %}
+                    <div class="field {% if field.name == 'notes' %}field--full{% endif %}">
+                        <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field|add_class:"input" }}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn--primary">حفظ الوقت المتاح</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3>القاعات المتاحة</h3></div>
+            <div class="card-body">
+                {% for room in rooms %}
+                <div class="border rounded p-2 mb-2">{{ room.name }}</div>
+                {% empty %}
+                <div class="text-muted">لا توجد كلاسات/قاعات معرفة بعد. أضفها من قسم "الكلاسات تبعي".</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header"><h3>خيارات التوقيت المسجلة</h3></div>
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>الخيار</th>
+                        <th>التواريخ</th>
+                        <th>الوقت</th>
+                        <th>الأيام</th>
+                        <th>الحد الأدنى / الأقصى</th>
+                        <th>القاعة المفضلة</th>
+                        <th>الأولوية</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for option in time_options %}
+                    <tr>
+                        <td>{{ option.title }}</td>
+                        <td>{{ option.start_date|date:"Y-m-d" }} - {{ option.end_date|date:"Y-m-d" }}</td>
+                        <td>{{ option.start_time|time:"H:i" }}{% if option.end_time %} - {{ option.end_time|time:"H:i" }}{% endif %}</td>
+                        <td>{{ option.total_days }}</td>
+                        <td>{{ option.min_capacity }} / {{ option.max_capacity }}</td>
+                        <td>{{ option.preferred_room.name|default:"أي قاعة" }}</td>
+                        <td>{{ option.priority }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد أوقات متاحة معرفة بعد.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

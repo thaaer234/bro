@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div class="page-header__left">
+            <div class="page-header__icon"><i class="fas fa-school"></i></div>
+            <div>
+                <h1 class="page-title">الكلاسات تبعي</h1>
+                <p class="page-subtitle">القاعات/الكلاسات المخصصة للدورات السريعة والتي يعتمد عليها البرنامج التلقائي</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'quick:course_list' %}" class="btn btn--ghost">الدورات السريعة</a>
+            <a href="{% url 'quick:classroom_create' %}" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة كلاس</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>اسم الكلاس</th>
+                        <th>الحد الأدنى / الأقصى</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for classroom in classrooms %}
+                    <tr>
+                        <td>{{ classroom.name }}</td>
+                        <td>{{ classroom.min_capacity|default:1 }} / {{ classroom.max_capacity|default:0 }}</td>
+                        <td>
+                            {% if classroom.is_active %}
+                            <span class="badge bg-success">نشط</span>
+                            {% else %}
+                            <span class="badge bg-secondary">غير نشط</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'quick:classroom_update' classroom.id %}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i> تعديل
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">لا توجد كلاسات معرفة بعد.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

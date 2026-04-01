@@ -111,6 +111,12 @@
                     <span>حضور المدرسين</span>
                 </a>
                 {% endif %}
+                {% if user.is_superuser or 'attendance_view' in emp_perms %}
+                <a href="{% url 'quick:quick_course_attendance' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'quick_course_attendance' %}active{% endif %}">
+                    <i class="fas fa-bolt"></i>
+                    <span>حضور الدورات السريعة</span>
+                </a>
+                {% endif %}
                 {% if user.is_superuser or 'reports_students' in emp_perms %}
                 <a href="{% url 'students:stu_num' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'stu_num' %}active{% endif %}">
                     <i class="fas fa-users"></i>
