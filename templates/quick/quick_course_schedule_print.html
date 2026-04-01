@@ -12,20 +12,19 @@
         }
 
         :root {
-            --ink: #18364a;
-            --ink-soft: #5f788b;
+            --ink: #173548;
+            --ink-soft: #657f92;
             --paper: #ffffff;
             --canvas: #eef4f8;
-            --line: #d9e3ea;
-            --line-strong: #c6d6e1;
-            --panel: #f7fbfd;
-            --gold: #c7862a;
-            --gold-soft: #f7edd9;
-            --blue: #2a6d91;
+            --line: #d7e2ea;
+            --line-strong: #c7d6e0;
+            --blue: #266e94;
             --blue-soft: #e6f1f7;
-            --green: #247a5a;
-            --green-soft: #e7f6ee;
-            --gray-soft: #f2f4f6;
+            --gold: #c78728;
+            --gold-soft: #f7edd9;
+            --green: #247351;
+            --green-soft: #e7f4ec;
+            --gray-soft: #f1f3f5;
             --shadow: 0 24px 56px rgba(20, 49, 69, 0.12);
         }
 
@@ -35,8 +34,9 @@
             margin: 0;
             padding: 0;
             background:
-                radial-gradient(circle at top right, rgba(199, 134, 42, 0.10), transparent 23%),
-                linear-gradient(180deg, #eef4f8 0%, #e7eff5 100%);
+                radial-gradient(circle at top right, rgba(39, 110, 148, 0.10), transparent 22%),
+                radial-gradient(circle at left center, rgba(199, 135, 40, 0.10), transparent 20%),
+                linear-gradient(180deg, #eef4f8 0%, #e8f0f5 100%);
             color: var(--ink);
             font-family: "Segoe UI", Tahoma, sans-serif;
             -webkit-print-color-adjust: exact;
@@ -50,7 +50,7 @@
             margin: 0 auto;
             background: var(--paper);
             border: 1px solid var(--line);
-            border-radius: 28px;
+            border-radius: 30px;
             overflow: hidden;
             box-shadow: var(--shadow);
         }
@@ -59,9 +59,9 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 16px;
+            gap: 14px;
             padding: 16px 20px;
-            background: linear-gradient(135deg, #143349 0%, #215a78 58%, #2a7896 100%);
+            background: linear-gradient(135deg, #133349 0%, #225d7a 58%, #2b7da0 100%);
             color: #fff;
         }
 
@@ -69,7 +69,6 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            min-width: 0;
         }
 
         .toolbar__pill {
@@ -79,7 +78,6 @@
             border: 1px solid rgba(255,255,255,0.18);
             font-size: 12px;
             font-weight: 800;
-            white-space: nowrap;
         }
 
         .toolbar__title strong {
@@ -89,32 +87,31 @@
         }
 
         .toolbar__meta {
-            color: rgba(255,255,255,0.78);
-            font-size: 12px;
             margin-top: 3px;
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
         }
 
         .toolbar__actions {
             display: flex;
             gap: 10px;
-            align-items: center;
-            flex-shrink: 0;
         }
 
         .btn {
-            appearance: none;
             border: 0;
             border-radius: 12px;
             padding: 10px 14px;
-            cursor: pointer;
             text-decoration: none;
+            cursor: pointer;
             font-size: 13px;
             font-weight: 800;
-            transition: transform 0.18s ease;
         }
 
-        .btn:hover { transform: translateY(-1px); }
-        .btn-primary { background: #fff; color: var(--ink); }
+        .btn-primary {
+            background: #fff;
+            color: var(--ink);
+        }
+
         .btn-secondary {
             background: rgba(255,255,255,0.12);
             color: #fff;
@@ -127,9 +124,9 @@
             position: relative;
             overflow: hidden;
             border: 1px solid var(--line);
-            border-radius: 24px;
+            border-radius: 26px;
             background:
-                radial-gradient(circle at left top, rgba(199, 134, 42, 0.13), transparent 28%),
+                radial-gradient(circle at left top, rgba(199, 135, 40, 0.14), transparent 28%),
                 linear-gradient(145deg, #fcfdff 0%, #f3f8fb 100%);
             padding: 22px;
         }
@@ -139,10 +136,10 @@
             position: absolute;
             inset: 0;
             background:
-                linear-gradient(90deg, rgba(24,54,74,0.04) 1px, transparent 1px),
-                linear-gradient(rgba(24,54,74,0.035) 1px, transparent 1px);
+                linear-gradient(90deg, rgba(23,53,72,0.04) 1px, transparent 1px),
+                linear-gradient(rgba(23,53,72,0.03) 1px, transparent 1px);
             background-size: 28px 28px;
-            opacity: 0.5;
+            opacity: 0.45;
             pointer-events: none;
         }
 
@@ -151,8 +148,8 @@
             z-index: 1;
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
             gap: 18px;
+            align-items: flex-start;
         }
 
         .brand {
@@ -162,19 +159,19 @@
         }
 
         .brand__logo {
-            width: 82px;
-            height: 82px;
+            width: 84px;
+            height: 84px;
             border-radius: 22px;
-            background: linear-gradient(180deg, #fff 0%, #eef5f9 100%);
             border: 1px solid var(--line);
+            background: linear-gradient(180deg, #fff 0%, #edf5f9 100%);
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .brand__logo img {
-            width: 54px;
-            height: 54px;
+            width: 56px;
+            height: 56px;
             object-fit: contain;
         }
 
@@ -183,24 +180,24 @@
             margin-bottom: 8px;
             color: var(--blue);
             font-size: 11px;
-            letter-spacing: 0.18em;
             font-weight: 900;
+            letter-spacing: 0.18em;
         }
 
         .brand__title {
             margin: 0 0 8px;
-            font-size: 28px;
-            line-height: 1.05;
+            font-size: 29px;
+            line-height: 1.04;
             font-weight: 900;
             color: var(--ink);
         }
 
         .brand__subtitle {
             margin: 0;
+            max-width: 470px;
             color: var(--ink-soft);
             font-size: 13px;
-            line-height: 1.8;
-            max-width: 470px;
+            line-height: 1.85;
         }
 
         .hero__aside {
@@ -213,7 +210,7 @@
             border: 1px solid var(--line);
             border-radius: 18px;
             padding: 14px 16px;
-            background: rgba(255,255,255,0.82);
+            background: rgba(255,255,255,0.84);
         }
 
         .meta-card__label {
@@ -238,10 +235,10 @@
         .stat {
             position: relative;
             overflow: hidden;
-            border-radius: 20px;
-            padding: 16px;
             border: 1px solid var(--line);
+            border-radius: 20px;
             background: linear-gradient(180deg, #fff 0%, #f8fbfd 100%);
+            padding: 16px;
         }
 
         .stat::before {
@@ -269,9 +266,9 @@
             position: relative;
             display: block;
             font-size: 28px;
+            line-height: 1;
             font-weight: 900;
             color: var(--ink);
-            line-height: 1;
         }
 
         .stat__hint {
@@ -284,8 +281,6 @@
 
         .info-strip {
             margin-top: 16px;
-            display: grid;
-            gap: 12px;
             border: 1px dashed var(--line-strong);
             border-radius: 18px;
             padding: 14px 16px;
@@ -299,6 +294,7 @@
         }
 
         .legend {
+            margin-top: 12px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -343,127 +339,166 @@
             margin: 0;
             color: var(--ink-soft);
             font-size: 12px;
-            line-height: 1.7;
+            line-height: 1.75;
         }
 
-        .table-shell {
+        .schedule-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .schedule-card {
             border: 1px solid var(--line);
-            border-radius: 22px;
+            border-radius: 24px;
             overflow: hidden;
-            background: #fff;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+            page-break-inside: avoid;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
+        .schedule-card__head {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: flex-start;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(180deg, #f7fbfd 0%, #f1f7fb 100%);
         }
-
-        thead th {
-            background: linear-gradient(180deg, #edf4f8 0%, #e4eef4 100%);
-            color: var(--ink);
-            padding: 12px 10px;
-            font-size: 12px;
-            font-weight: 900;
-            text-align: right;
-            border-bottom: 1px solid var(--line-strong);
-        }
-
-        tbody td {
-            padding: 12px 10px;
-            font-size: 12px;
-            line-height: 1.6;
-            vertical-align: top;
-            border-bottom: 1px solid #ebf1f5;
-            word-break: break-word;
-        }
-
-        tbody tr:nth-child(even) td { background: #fbfdff; }
 
         .course-name {
             display: block;
-            font-size: 13px;
-            font-weight: 900;
             color: var(--ink);
+            font-size: 15px;
+            font-weight: 900;
+            line-height: 1.5;
         }
 
-        .course-type {
-            display: inline-block;
-            margin-top: 6px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            background: var(--blue-soft);
-            color: var(--blue);
-            font-size: 10px;
-            font-weight: 800;
-        }
-
-        .meta-list {
-            display: grid;
-            gap: 4px;
+        .course-subtitle {
             margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
-        .meta-line {
-            color: var(--ink-soft);
-            font-size: 11px;
-        }
-
-        .session-badge {
+        .pill {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-height: 34px;
-            padding: 6px 10px;
-            border-radius: 12px;
-            background: #f6fafc;
-            border: 1px solid var(--line);
-            font-weight: 900;
-            color: var(--ink);
-        }
-
-        .room-badge,
-        .days-badge,
-        .capacity-badge,
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 6px 10px;
             border-radius: 999px;
+            padding: 6px 10px;
             font-size: 11px;
             font-weight: 900;
         }
 
-        .room-badge {
-            background: #fff;
-            border: 1px solid var(--line);
-            color: var(--ink);
-        }
-
-        .days-badge {
+        .pill.type {
             background: var(--blue-soft);
             color: var(--blue);
         }
 
-        .capacity-badge {
-            background: var(--gold-soft);
-            color: #835f1f;
+        .pill.year {
+            background: #eef2f5;
+            color: #5f7180;
         }
 
-        .status-badge {
+        .pill.status {
             background: #eef5ff;
             color: #1f5f98;
         }
 
-        .status-badge.live {
+        .pill.status.live {
             background: var(--green-soft);
             color: var(--green);
         }
 
-        .status-badge.finished {
+        .pill.status.finished {
             background: var(--gray-soft);
             color: #5d6b76;
+        }
+
+        .schedule-card__code {
+            text-align: left;
+            color: var(--ink-soft);
+            font-size: 11px;
+        }
+
+        .schedule-card__code strong {
+            display: block;
+            color: var(--ink);
+            font-size: 15px;
+            font-weight: 900;
+            margin-bottom: 4px;
+        }
+
+        .schedule-card__body {
+            padding: 16px 18px 18px;
+        }
+
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .info-box {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: #fff;
+            padding: 12px 13px;
+        }
+
+        .info-box__label {
+            display: block;
+            color: var(--ink-soft);
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+
+        .info-box__value {
+            display: block;
+            color: var(--ink);
+            font-size: 14px;
+            font-weight: 900;
+            line-height: 1.6;
+        }
+
+        .info-box__sub {
+            display: block;
+            margin-top: 6px;
+            color: var(--ink-soft);
+            font-size: 11px;
+        }
+
+        .badge-row {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 7px 11px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .badge-chip.capacity {
+            background: var(--gold-soft);
+            color: #835f1f;
+        }
+
+        .badge-chip.days {
+            background: var(--blue-soft);
+            color: var(--blue);
+        }
+
+        .badge-chip.room {
+            background: #fff;
+            color: var(--ink);
+            border: 1px solid var(--line);
         }
 
         .footer {
@@ -503,11 +538,9 @@
         @media screen and (max-width: 860px) {
             body { padding: 0; background: #fff; }
             .report { border: 0; border-radius: 0; box-shadow: none; }
-            .toolbar, .hero__content, .footer { flex-direction: column; align-items: flex-start; }
-            .toolbar__actions, .hero__aside, .stats { width: 100%; }
-            .stats { grid-template-columns: 1fr; }
-            .table-shell { overflow-x: auto; }
-            table { min-width: 760px; }
+            .toolbar, .hero__content, .schedule-card__head, .footer { flex-direction: column; align-items: flex-start; }
+            .toolbar__actions, .hero__aside, .stats, .schedule-grid { width: 100%; }
+            .stats, .schedule-grid { grid-template-columns: 1fr; }
         }
 
         @media print {
@@ -521,7 +554,7 @@
             }
             .toolbar { display: none !important; }
             .sheet { padding: 0; }
-            table, thead, tbody, tr, th, td { page-break-inside: avoid; }
+            .schedule-card, .hero, .stat, .meta-card { box-shadow: none !important; }
         }
     </style>
 </head>
@@ -551,7 +584,7 @@
                         <div>
                             <span class="brand__eyebrow">AL YAMAN INSTITUTE</span>
                             <h1 class="brand__title">برنامج الكلاسات السريعة</h1>
-                            <p class="brand__subtitle">نسخة مطورة للطباعة العامودية على ورق A4، تعرض البرنامج بشكل أكثر تركيزاً مع تفاصيل أغنى داخل كل سطر لسهولة المراجعة والاعتماد.</p>
+                            <p class="brand__subtitle">تصميم محسّن للطباعة العامودية على ورق A4، مع عرض أقوى للبرنامج على شكل بطاقات واضحة بدل جدول ضعيف ومزدحم.</p>
                         </div>
                     </div>
 
@@ -594,9 +627,9 @@
             <section class="info-strip">
                 <div class="info-strip__text">
                     {% if selected_course_ids %}
-                    التقرير الحالي مخصص للدورات التي تم تحديدها فقط، وتم ترتيبه ليبقى واضحاً ومقروءاً بالكامل على ورق A4 عامودي.
+                    التقرير الحالي مخصص للدورات المحددة فقط، وتم ترتيبه بصرياً ليخرج بشكل أنيق وقوي على الصفحة العامودية.
                     {% else %}
-                    التقرير الحالي يعرض جميع الدورات المطابقة لنوع الدورة المختار، بصياغة مضغوطة واحترافية ملائمة للطباعة الإدارية.
+                    التقرير الحالي يعرض جميع الدورات المطابقة لنوع الدورة المختار، مع إبراز أقوى للتاريخ، الوقت، السعة، والقاعة في كل كلاس.
                     {% endif %}
                 </div>
                 <div class="legend">
@@ -608,74 +641,84 @@
 
             {% if sessions %}
             <section class="section-head">
-                <h2>جدول البرنامج</h2>
-                <p>تم دمج البيانات المهمة داخل أربع خانات فقط حتى يظهر التقرير بشكل منظم وأكثر فائدة على الصفحة العامودية.</p>
+                <h2>بطاقات البرنامج</h2>
+                <p>كل كلاس يظهر كبطاقة مستقلة تحتوي أهم المعلومات التشغيلية والإدارية، وهذا أنسب بكثير لـ A4 العامودي.</p>
             </section>
 
-            <section class="table-shell">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 31%;">الدورة</th>
-                            <th style="width: 22%;">الكلاس</th>
-                            <th style="width: 27%;">البرنامج الزمني</th>
-                            <th style="width: 20%;">السعة والحالة</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for session in sessions %}
-                        <tr>
-                            <td>
-                                <span class="course-name">{{ session.course.name }}</span>
-                                <span class="course-type">{{ session.course.get_course_type_display }}</span>
-                                <div class="meta-list">
-                                    <div class="meta-line">السنة: {{ session.course.academic_year.name }}</div>
-                                    {% if session.course.name_ar %}
-                                    <div class="meta-line">{{ session.course.name_ar }}</div>
+            <section class="schedule-list">
+                {% for session in sessions %}
+                <article class="schedule-card">
+                    <div class="schedule-card__head">
+                        <div>
+                            <span class="course-name">{{ session.course.name }}</span>
+                            <div class="course-subtitle">
+                                <span class="pill type">{{ session.course.get_course_type_display }}</span>
+                                <span class="pill year">{{ session.course.academic_year.name }}</span>
+                                {% if session.is_finished %}
+                                <span class="pill status finished">منتهي</span>
+                                {% elif session.is_upcoming %}
+                                <span class="pill status">قادم</span>
+                                {% else %}
+                                <span class="pill status live">قيد التنفيذ</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="schedule-card__code">
+                            <strong>{{ session.title }}</strong>
+                            <span>رمز الكلاس: {{ session.display_code }}</span>
+                        </div>
+                    </div>
+
+                    <div class="schedule-card__body">
+                        <div class="schedule-grid">
+                            <div class="info-box">
+                                <span class="info-box__label">الفترة الزمنية</span>
+                                <span class="info-box__value">{{ session.start_date|date:"Y-m-d" }}</span>
+                                <span class="info-box__sub">
+                                    {% if session.end_date != session.start_date %}
+                                    حتى {{ session.end_date|date:"Y-m-d" }}
+                                    {% else %}
+                                    نفس اليوم
                                     {% endif %}
-                                </div>
-                            </td>
-                            <td>
-                                <span class="session-badge">{{ session.title }}</span>
-                                <div class="meta-list">
-                                    <div class="meta-line">القاعة: <span class="room-badge">{{ session.room_name|default:"-" }}</span></div>
-                                    <div class="meta-line">رمز الكلاس: {{ session.display_code }}</div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="meta-list" style="margin-top:0;">
-                                    <div class="meta-line"><strong>من:</strong> {{ session.start_date|date:"Y-m-d" }}</div>
-                                    <div class="meta-line">
-                                        <strong>إلى:</strong>
-                                        {% if session.end_date != session.start_date %}
-                                        {{ session.end_date|date:"Y-m-d" }}
-                                        {% else %}
-                                        نفس اليوم
-                                        {% endif %}
-                                    </div>
-                                    <div class="meta-line"><strong>الوقت:</strong> {{ session.start_time|time:"h:i A" }}{% if session.end_time %} - {{ session.end_time|time:"h:i A" }}{% endif %}</div>
-                                    <div class="meta-line"><strong>عدد الأيام:</strong> <span class="days-badge">{{ session.total_days }}</span></div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="meta-list" style="margin-top:0;">
-                                    <div><span class="capacity-badge">{{ session.enrolled_count }}{% if session.capacity %} / {{ session.capacity }}{% else %} / مفتوح{% endif %}</span></div>
-                                    <div class="meta-line">الحد الأدنى للافتتاح: {{ session.min_capacity }}</div>
-                                    <div>
-                                        {% if session.is_finished %}
-                                        <span class="status-badge finished">منتهي</span>
-                                        {% elif session.is_upcoming %}
-                                        <span class="status-badge">قادم</span>
-                                        {% else %}
-                                        <span class="status-badge live">قيد التنفيذ</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                </span>
+                            </div>
+
+                            <div class="info-box">
+                                <span class="info-box__label">وقت الدوام</span>
+                                <span class="info-box__value">{{ session.start_time|time:"h:i A" }}</span>
+                                <span class="info-box__sub">
+                                    {% if session.end_time %}
+                                    حتى {{ session.end_time|time:"h:i A" }}
+                                    {% else %}
+                                    بدون نهاية محددة
+                                    {% endif %}
+                                </span>
+                            </div>
+
+                            <div class="info-box">
+                                <span class="info-box__label">معلومة إضافية</span>
+                                <span class="info-box__value">{{ session.room_name|default:"بدون قاعة" }}</span>
+                                <span class="info-box__sub">
+                                    {% if session.course.name_ar %}
+                                    {{ session.course.name_ar }}
+                                    {% else %}
+                                    معلومات القاعة/الاسم الإضافي
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="badge-row">
+                            <span class="badge-chip room">القاعة: {{ session.room_name|default:"-" }}</span>
+                            <span class="badge-chip days">عدد الأيام: {{ session.total_days }}</span>
+                            <span class="badge-chip capacity">
+                                السعة: {{ session.enrolled_count }}{% if session.capacity %} / {{ session.capacity }}{% else %} / مفتوح{% endif %}
+                            </span>
+                            <span class="badge-chip capacity">الحد الأدنى: {{ session.min_capacity }}</span>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
             </section>
             {% else %}
             <section class="empty">
