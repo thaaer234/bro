@@ -2502,6 +2502,23 @@ def _times_overlap(start_a, end_a, start_b, end_b):
     return start_a < end_b and start_b < end_a
 
 
+def _session_conflicts_with_window(session, start_date, end_date, start_time, end_time):
+    return (
+        _dates_overlap(start_date, end_date, session.start_date, session.end_date)
+        and _times_overlap(start_time, end_time, session.start_time, session.end_time)
+    )
+
+
+def _sessions_conflict(first_session, second_session):
+    return _session_conflicts_with_window(
+        second_session,
+        first_session.start_date,
+        first_session.end_date,
+        first_session.start_time,
+        first_session.end_time,
+    )
+
+
 def _effective_capacity(option_max_capacity, room_max_capacity):
     limits = [value for value in [option_max_capacity, room_max_capacity] if value]
     return min(limits) if limits else 0
@@ -2515,14 +2532,7 @@ def _course_active_enrollment_count(course):
     ).count()
 
 
-def _shared_student_ids_for_course(course):
-    return set(
-        QuickEnrollment.objects.filter(course=course, is_completed=False, student__is_active=True)
-        .values_list('student_id', flat=True)
-    )
-
-
-def _find_available_room_for_option(option, shared_student_ids, needed_students=0):
+def _find_available_room_for_option(option, needed_students=0):
     candidate_rooms = Classroom.objects.filter(class_type='course', is_active=True).order_by('name')
     room_rank = lambda room: (
         0 if _effective_capacity(option.max_capacity, getattr(room, 'max_capacity', 0)) >= needed_students else 1,
@@ -2544,27 +2554,33 @@ def _find_available_room_for_option(option, shared_student_ids, needed_students=
     for room in candidate_rooms:
         room_conflict = conflicting_sessions.filter(room_id=room.id)
         room_has_overlap = any(
-            _dates_overlap(option.start_date, option.end_date, session.start_date, session.end_date)
-            and _times_overlap(option.start_time, option.end_time, session.start_time, session.end_time)
+            _session_conflicts_with_window(
+                session,
+                option.start_date,
+                option.end_date,
+                option.start_time,
+                option.end_time,
+            )
             for session in room_conflict
         )
         if room_has_overlap:
             continue
-
-        student_conflict = False
-        if shared_student_ids:
-            related_sessions = conflicting_sessions.filter(
-                session_enrollments__enrollment__student_id__in=shared_student_ids
-            ).distinct()
-            student_conflict = any(
-                _dates_overlap(option.start_date, option.end_date, session.start_date, session.end_date)
-                and _times_overlap(option.start_time, option.end_time, session.start_time, session.end_time)
-                for session in related_sessions
-            )
-        if student_conflict:
-            continue
         return room
     return option.preferred_room
+
+
+def _student_has_conflict_for_session(student_id, session):
+    other_sessions = (
+        QuickCourseSession.objects.filter(
+            is_active=True,
+            session_enrollments__enrollment__student_id=student_id,
+            session_enrollments__enrollment__is_completed=False,
+            session_enrollments__enrollment__student__is_active=True,
+        )
+        .exclude(course=session.course)
+        .distinct()
+    )
+    return any(_sessions_conflict(session, other_session) for other_session in other_sessions)
 
 
 def _auto_assign_course_enrollments(course, user):
@@ -2582,15 +2598,15 @@ def _auto_assign_course_enrollments(course, user):
 
     assigned_count = 0
     unassigned_count = 0
-    session_index = 0
     seats_used = {}
 
     for enrollment in enrollments:
-        while session_index < len(sessions):
-            session = sessions[session_index]
+        assigned = False
+        for session in sessions:
             seats_used.setdefault(session.id, 0)
             if session.capacity and seats_used[session.id] >= session.capacity:
-                session_index += 1
+                continue
+            if _student_has_conflict_for_session(enrollment.student_id, session):
                 continue
             QuickCourseSessionEnrollment.objects.create(
                 session=session,
@@ -2599,8 +2615,9 @@ def _auto_assign_course_enrollments(course, user):
             )
             seats_used[session.id] += 1
             assigned_count += 1
+            assigned = True
             break
-        else:
+        if not assigned:
             unassigned_count += 1
 
     under_minimum = sum(1 for session in sessions if session.enrolled_count and not session.meets_minimum_capacity)
@@ -2621,6 +2638,8 @@ def _assign_enrollment_to_available_session(enrollment, user=None):
     for session in sessions:
         if session.capacity and session.enrolled_count >= session.capacity:
             continue
+        if _student_has_conflict_for_session(enrollment.student_id, session):
+            continue
         assignment, _created = QuickCourseSessionEnrollment.objects.update_or_create(
             enrollment=enrollment,
             defaults={'session': session, 'assigned_by': user},
@@ -2635,7 +2654,6 @@ def _generate_course_sessions_from_options(course, user):
         .select_related('preferred_room')
         .order_by('priority', 'start_date', 'start_time', 'id')
     )
-    shared_student_ids = _shared_student_ids_for_course(course)
 
     QuickCourseSession.objects.filter(course=course).update(is_active=False)
 
@@ -2646,7 +2664,7 @@ def _generate_course_sessions_from_options(course, user):
     remaining_options = len(options)
     for index, option in enumerate(options, start=1):
         target_students = ceil(remaining_students / remaining_options) if remaining_options else remaining_students
-        room = _find_available_room_for_option(option, shared_student_ids, needed_students=target_students)
+        room = _find_available_room_for_option(option, needed_students=target_students)
         if room is None and Classroom.objects.filter(class_type='course', is_active=True).exists():
             skipped_options.append(option.title)
             remaining_options -= 1
