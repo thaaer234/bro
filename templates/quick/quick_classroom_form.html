@@ -7,7 +7,7 @@
         <div class="page-header__left">
             <div class="page-header__icon"><i class="fas fa-school"></i></div>
             <div>
-                <h1 class="page-title">{% if object %}تعديل الكلاس{% else %}إضافة كلاس{% endif %}</h1>
+                <h1 class="page-title">{% if object %}تعديل الصف{% else %}إضافة كلاس{% endif %}</h1>
                 <p class="page-subtitle">هذا القسم خاص بقاعات/كلاسات الدورات السريعة فقط</p>
             </div>
         </div>
@@ -19,7 +19,7 @@
             {% csrf_token %}
             <div class="grid">
                 <div class="field">
-                    <label class="label" for="{{ form.name.id_for_label }}">اسم الكلاس</label>
+                    <label class="label" for="{{ form.name.id_for_label }}">اسم الصف</label>
                     {{ form.name|add_class:"input" }}
                 </div>
                 <div class="field">

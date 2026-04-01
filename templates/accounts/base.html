@@ -524,7 +524,7 @@ document.addEventListener('keydown', function(e) {
                 </a>
                 <a href="{% url 'quick:classroom_list' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and 'classroom' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="fas fa-school"></i>
-                    <span>الكلاسات تبعي</span>
+                    <span>الصفوف تبعي</span>
                 </a>
                 <a href="{% url 'quick:student_intersections' %}" class="btn btn-outline-info">
                 <i class="fas fa-diagram-project"></i> الطلاب المشتركين

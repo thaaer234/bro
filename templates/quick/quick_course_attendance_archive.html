@@ -7,7 +7,7 @@
             <div class="page-header__icon"><i class="fas fa-box-archive"></i></div>
             <div>
                 <h1 class="page-title">أرشيف الدورات المنتهية</h1>
-                <p class="page-subtitle">الكلاسات التي انتهت مدتها خرجت تلقائياً من شاشة الحضور الحالية</p>
+                <p class="page-subtitle">الصفوف التي انتهت مدتها خرجت تلقائياً من شاشة الحضور الحالية</p>
             </div>
         </div>
         <a href="{% url 'quick:quick_course_attendance' %}" class="btn btn--ghost"><i class="fas fa-arrow-right"></i> العودة</a>
@@ -16,7 +16,7 @@
     <div class="card">
         <div class="card-body">
             <table class="table table-hover">
-                <thead><tr><th>الكلاس</th><th>الدورة</th><th>الفترة</th><th>الطلاب</th><th>الحضور</th></tr></thead>
+                <thead><tr><th>الصف</th><th>الدورة</th><th>الفترة</th><th>الطلاب</th><th>الحضور</th></tr></thead>
                 <tbody>
                     {% for session in archived_sessions %}
                     <tr>

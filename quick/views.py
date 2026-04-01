@@ -33,6 +33,7 @@ from .forms import (
 )
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
+from itertools import combinations
 from math import ceil
 import time
 from django.views.decorators.http import require_POST
@@ -2345,7 +2346,7 @@ class QuickClassroomUpdateView(LoginRequiredMixin, UpdateView):
         return Classroom.objects.filter(class_type='course')
 
     def form_valid(self, form):
-        messages.success(self.request, 'تم تحديث بيانات الكلاس/القاعة.')
+        messages.success(self.request, 'تم تحديث بيانات الصف/القاعة.')
         return super().form_valid(form)
 
 
@@ -2517,6 +2518,109 @@ def _sessions_conflict(first_session, second_session):
         first_session.start_time,
         first_session.end_time,
     )
+
+
+def _build_quick_session_conflict_report(course_type='ALL', selected_course_ids=None):
+    courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
+    if course_type != 'ALL':
+        courses = courses.filter(course_type=course_type)
+    if selected_course_ids:
+        courses = courses.filter(id__in=selected_course_ids)
+
+    course_list = list(courses)
+    course_ids = [course.id for course in course_list]
+    assignments = (
+        QuickCourseSessionEnrollment.objects.filter(
+            session__is_active=True,
+            session__course_id__in=course_ids,
+            enrollment__is_completed=False,
+            enrollment__student__is_active=True,
+        )
+        .select_related(
+            'enrollment__student',
+            'session',
+            'session__course',
+            'session__course__academic_year',
+        )
+        .order_by(
+            'enrollment__student__full_name',
+            'session__start_date',
+            'session__start_time',
+            'session_id',
+        )
+    )
+
+    assignments_by_student = defaultdict(list)
+    for assignment in assignments:
+        assignments_by_student[assignment.enrollment.student_id].append(assignment)
+
+    conflict_rows = []
+    grouped_students = []
+    course_ids_with_conflicts = set()
+    session_ids_with_conflicts = set()
+
+    for student_assignments in assignments_by_student.values():
+        student_conflicts = []
+        for first_assignment, second_assignment in combinations(student_assignments, 2):
+            first_session = first_assignment.session
+            second_session = second_assignment.session
+            if first_session.course_id == second_session.course_id:
+                continue
+            if not _sessions_conflict(first_session, second_session):
+                continue
+
+            overlap_start_date = max(first_session.start_date, second_session.start_date)
+            overlap_end_date = min(first_session.end_date, second_session.end_date)
+            overlap_start_time = max(first_session.start_time, second_session.start_time)
+            if first_session.end_time and second_session.end_time:
+                overlap_end_time = min(first_session.end_time, second_session.end_time)
+            else:
+                overlap_end_time = first_session.end_time or second_session.end_time
+
+            row = {
+                'student': first_assignment.enrollment.student,
+                'first_assignment': first_assignment,
+                'second_assignment': second_assignment,
+                'first_session': first_session,
+                'second_session': second_session,
+                'overlap_start_date': overlap_start_date,
+                'overlap_end_date': overlap_end_date,
+                'overlap_start_time': overlap_start_time,
+                'overlap_end_time': overlap_end_time,
+            }
+            conflict_rows.append(row)
+            student_conflicts.append(row)
+            course_ids_with_conflicts.update([first_session.course_id, second_session.course_id])
+            session_ids_with_conflicts.update([first_session.id, second_session.id])
+
+        if student_conflicts:
+            grouped_students.append({
+                'student': student_conflicts[0]['student'],
+                'conflicts': student_conflicts,
+                'conflicts_count': len(student_conflicts),
+            })
+
+    conflict_rows.sort(
+        key=lambda row: (
+            row['overlap_start_date'],
+            row['overlap_start_time'],
+            row['student'].full_name,
+            row['first_session'].course.name,
+        )
+    )
+    grouped_students.sort(
+        key=lambda row: (-row['conflicts_count'], row['student'].full_name)
+    )
+
+    return {
+        'courses': course_list,
+        'grouped_students': grouped_students,
+        'conflict_rows': conflict_rows,
+        'unique_students_count': len(grouped_students),
+        'unique_courses_count': len(course_ids_with_conflicts),
+        'unique_sessions_count': len(session_ids_with_conflicts),
+        'total_conflicts': len(conflict_rows),
+    }
 
 
 def _effective_capacity(option_max_capacity, room_max_capacity):
@@ -2808,7 +2912,7 @@ def quick_course_add_session(request, course_id):
         session.save()
         messages.success(request, 'تمت إضافة كلاس جديد للدورة.')
     else:
-        messages.error(request, 'تعذر حفظ الكلاس. يرجى مراجعة الحقول المدخلة.')
+        messages.error(request, 'تعذر حفظ الصف. يرجى مراجعة الحقول المدخلة.')
     return redirect('quick:course_sessions_manage', course_id=course.id)
 
 
@@ -2916,14 +3020,14 @@ def quick_course_session_assign_students(request, session_id):
     session = get_object_or_404(QuickCourseSession, pk=session_id, is_active=True)
     form = QuickSessionAssignStudentsForm(request.POST, session=session)
     if not form.is_valid():
-        messages.error(request, 'تعذر توزيع الطلاب على الكلاس.')
+        messages.error(request, 'تعذر توزيع الطلاب على الصف.')
         return redirect('quick:course_session_students', session_id=session.id)
 
     selected = list(form.cleaned_data['enrollment_ids'])
     if session.capacity and selected:
         remaining = max(0, session.capacity - session.enrolled_count)
         if len(selected) > remaining:
-            messages.error(request, f'السعة المتبقية في الكلاس هي {remaining} طالب فقط.')
+            messages.error(request, f'السعة المتبقية في الصف هي {remaining} طالب فقط.')
             return redirect('quick:course_session_students', session_id=session.id)
 
     created_count = 0
@@ -2940,7 +3044,7 @@ def quick_course_session_assign_students(request, session_id):
         if created:
             created_count += 1
 
-    messages.success(request, f'تم توزيع {created_count} طالب على الكلاس.')
+    messages.success(request, f'تم توزيع {created_count} طالب على الصف.')
     return redirect('quick:course_session_students', session_id=session.id)
 
 
@@ -2950,7 +3054,7 @@ def quick_course_transfer_students(request, course_id):
     course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
     form = QuickSessionTransferForm(request.POST, course=course)
     if not form.is_valid():
-        messages.error(request, 'تعذر نقل الطلاب بين الكلاسات.')
+        messages.error(request, 'تعذر نقل الطلاب بين الصفوف.')
         return redirect('quick:course_sessions_manage', course_id=course.id)
 
     source = form.cleaned_data['source_session']
@@ -2960,7 +3064,7 @@ def quick_course_transfer_students(request, course_id):
     if target.capacity:
         remaining = max(0, target.capacity - target.enrolled_count)
         if len(enrollments) > remaining:
-            messages.error(request, f'السعة المتبقية في الكلاس الهدف هي {remaining} طالب فقط.')
+            messages.error(request, f'السعة المتبقية في الصف الهدف هي {remaining} طالب فقط.')
             return redirect('quick:course_sessions_manage', course_id=course.id)
 
     moved = 0
@@ -3147,7 +3251,7 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
             .order_by('enrollment__student__full_name')
         )
         if attendance_date < session.start_date:
-            messages.error(request, 'لا يمكن أخذ الحضور قبل بداية الكلاس.')
+            messages.error(request, 'لا يمكن أخذ الحضور قبل بداية الصف.')
             return redirect('quick:course_session_attendance', session_id=session.id)
 
         form = QuickSessionAttendanceBulkForm(request.POST, session=session, assignments=assignments)
@@ -3229,6 +3333,38 @@ class QuickCourseSchedulePrintView(LoginRequiredMixin, TemplateView):
             'total_courses': courses.count(),
             'total_sessions': sessions.count(),
             'total_students': total_students,
+            'generated_at': timezone.localtime(),
+        })
+        return context
+
+
+class QuickCourseConflictReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_conflicts_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        selected_ids = []
+        for raw_value in self.request.GET.getlist('course_ids'):
+            try:
+                selected_ids.append(int(raw_value))
+            except (TypeError, ValueError):
+                continue
+        course_type = self.request.GET.get('course_type') or 'ALL'
+        report = _build_quick_session_conflict_report(
+            course_type=course_type,
+            selected_course_ids=selected_ids,
+        )
+        context.update({
+            'available_courses': report['courses'],
+            'grouped_students': report['grouped_students'],
+            'conflict_rows': report['conflict_rows'],
+            'unique_students_count': report['unique_students_count'],
+            'unique_courses_count': report['unique_courses_count'],
+            'unique_sessions_count': report['unique_sessions_count'],
+            'total_conflicts': report['total_conflicts'],
+            'selected_course_ids': selected_ids,
+            'selected_course_type': course_type,
+            'course_type_choices': [('ALL', 'كل الأنواع')] + list(QuickCourse.COURSE_TYPE_CHOICES),
             'generated_at': timezone.localtime(),
         })
         return context

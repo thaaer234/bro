@@ -7,12 +7,12 @@
             <div class="page-header__icon"><i class="fas fa-bolt"></i></div>
             <div>
                 <h1 class="page-title">الدورات السريعة</h1>
-                <p class="page-subtitle">إدارة الدورات، الكلاسات، الحضور، وبرنامج الدوام</p>
+                <p class="page-subtitle">إدارة الدورات، الصفوف، الحضور، وبرنامج الدوام</p>
             </div>
         </div>
         <div class="header-actions">
             <a href="{% url 'quick:classroom_list' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-school"></i> الكلاسات تبعي
+                <i class="fas fa-school"></i> الصفوف تبعي
             </a>
             <form method="post" action="{% url 'quick:generate_all_schedules' %}" class="d-inline">
                 {% csrf_token %}
@@ -24,7 +24,10 @@
                 <i class="fas fa-calendar-check"></i> حضور الدورات السريعة
             </a>
             <a href="{% url 'quick:quick_course_schedule_print' %}" class="btn btn-outline-info">
-                <i class="fas fa-print"></i> برنامج الكلاسات
+                <i class="fas fa-print"></i> برنامج الصفوف
+            </a>
+            <a href="{% url 'quick:quick_course_conflicts_report' %}" class="btn btn-outline-danger">
+                <i class="fas fa-user-clock"></i> تعارض الطلاب
             </a>
             <a href="{% url 'quick:course_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> دورة جديدة
@@ -42,7 +45,7 @@
                             <th>النوع</th>
                             <th>الفصل</th>
                             <th>الطلاب</th>
-                            <th>الكلاسات</th>
+                            <th>الصفوف</th>
                             <th>السعر</th>
                             <th>الإجراءات</th>
                         </tr>

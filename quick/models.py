@@ -128,8 +128,8 @@ class QuickCourseTimeOption(models.Model):
 class QuickCourseSession(models.Model):
     course = models.ForeignKey(QuickCourse, on_delete=models.CASCADE, related_name='sessions')
     time_option = models.ForeignKey(QuickCourseTimeOption, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_sessions')
-    title = models.CharField(max_length=200, verbose_name='اسم الكلاس')
-    code = models.CharField(max_length=40, blank=True, verbose_name='رمز الكلاس')
+    title = models.CharField(max_length=200, verbose_name='اسم الصف')
+    code = models.CharField(max_length=40, blank=True, verbose_name='رمز الصف')
     min_capacity = models.PositiveIntegerField(default=1, verbose_name='الحد الأدنى للافتتاح')
     capacity = models.PositiveIntegerField(default=0, verbose_name='الحد الأقصى')
     start_date = models.DateField(verbose_name='تاريخ البداية')
@@ -228,7 +228,7 @@ class QuickCourseSessionEnrollment(models.Model):
 
     class Meta:
         verbose_name = 'توزيع طالب على كلاس سريع'
-        verbose_name_plural = 'توزيعات الطلاب على الكلاسات السريعة'
+        verbose_name_plural = 'توزيعات الطلاب على الصفوف السريعة'
         ordering = ['session__start_date', 'session__start_time', 'id']
 
     def __str__(self):
@@ -242,7 +242,7 @@ class QuickCourseSessionEnrollment(models.Model):
             existing_session_id = getattr(self, 'pk', None)
             current_count = self.session.session_enrollments.exclude(pk=existing_session_id).count()
             if current_count >= self.session.capacity:
-                raise ValidationError('هذا الكلاس وصل إلى السعة القصوى.')
+                raise ValidationError('هذا الصف وصل إلى السعة القصوى.')
 
 
 class QuickCourseSessionAttendance(models.Model):
@@ -265,7 +265,7 @@ class QuickCourseSessionAttendance(models.Model):
 
     class Meta:
         verbose_name = 'حضور كلاس سريع'
-        verbose_name_plural = 'حضور الكلاسات السريعة'
+        verbose_name_plural = 'حضور الصفوف السريعة'
         ordering = ['-attendance_date', 'session__start_time', 'id']
         unique_together = ['session', 'enrollment', 'attendance_date']
 
@@ -276,7 +276,7 @@ class QuickCourseSessionAttendance(models.Model):
         if self.session.course_id != self.enrollment.course_id:
             raise ValidationError('سجل الحضور لا يطابق دورة التسجيل.')
         if self.attendance_date < self.session.start_date or self.attendance_date > self.session.end_date:
-            raise ValidationError('تاريخ الحضور خارج مدة الكلاس.')
+            raise ValidationError('تاريخ الحضور خارج مدة الصف.')
         if not self.day_number:
             self.day_number = self.session.get_day_number_for_date(self.attendance_date) or 1
 

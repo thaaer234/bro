@@ -12,8 +12,8 @@
             </div>
         </div>
         <div class="header-actions">
-            <a href="{% url 'quick:classroom_list' %}" class="btn btn-outline-secondary"><i class="fas fa-school"></i> الكلاسات تبعي</a>
-            <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn--ghost">إدارة الكلاسات</a>
+            <a href="{% url 'quick:classroom_list' %}" class="btn btn-outline-secondary"><i class="fas fa-school"></i> الصفوف تبعي</a>
+            <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn--ghost">إدارة الصفوف</a>
             <form method="post" action="{% url 'quick:course_generate_schedule' course.id %}" class="d-inline">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary"><i class="fas fa-wand-magic-sparkles"></i> توليد البرنامج التلقائي</button>
@@ -46,7 +46,7 @@
                 {% for room in rooms %}
                 <div class="border rounded p-2 mb-2">{{ room.name }}</div>
                 {% empty %}
-                <div class="text-muted">لا توجد كلاسات/قاعات معرفة بعد. أضفها من قسم "الكلاسات تبعي".</div>
+                <div class="text-muted">لا توجد كلاسات/قاعات معرفة بعد. أضفها من قسم "الصفوف تبعي".</div>
                 {% endfor %}
             </div>
         </div>

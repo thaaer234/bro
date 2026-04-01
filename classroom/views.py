@@ -560,7 +560,7 @@ def export_classroom_students_to_excel(request, classroom_id):
 
 from django.views.generic import UpdateView
 
-# ثم أضف الكلاس الخاص بالتعديل
+# ثم أضف الصف الخاص بالتعديل
 class UpdateClassroomView(UpdateView):
     model = Classroom
     form_class = ClassroomForm

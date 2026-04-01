@@ -17,8 +17,8 @@ class Migration(migrations.Migration):
             name='QuickCourseSession',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200, verbose_name='اسم الكلاس')),
-                ('code', models.CharField(blank=True, max_length=40, verbose_name='رمز الكلاس')),
+                ('title', models.CharField(max_length=200, verbose_name='اسم الصف')),
+                ('code', models.CharField(blank=True, max_length=40, verbose_name='رمز الصف')),
                 ('capacity', models.PositiveIntegerField(default=0, verbose_name='السعة')),
                 ('start_date', models.DateField(verbose_name='تاريخ البداية')),
                 ('total_days', models.PositiveIntegerField(default=1, verbose_name='عدد الأيام')),
@@ -51,7 +51,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'verbose_name': 'توزيع طالب على كلاس سريع',
-                'verbose_name_plural': 'توزيعات الطلاب على الكلاسات السريعة',
+                'verbose_name_plural': 'توزيعات الطلاب على الصفوف السريعة',
                 'ordering': ['session__start_date', 'session__start_time', 'id'],
             },
         ),
@@ -71,7 +71,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'verbose_name': 'حضور كلاس سريع',
-                'verbose_name_plural': 'حضور الكلاسات السريعة',
+                'verbose_name_plural': 'حضور الصفوف السريعة',
                 'ordering': ['-attendance_date', 'session__start_time', 'id'],
                 'unique_together': {('session', 'enrollment', 'attendance_date')},
             },

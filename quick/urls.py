@@ -54,6 +54,7 @@ urlpatterns = [
     path('reports/late-payments/print/', require_employee_perm('accounting_outstanding')(views.QuickLatePaymentCoursesPrintView.as_view()), name='late_payment_courses_print'),
     path('reports/student-intersections/', require_employee_perm('students_view')(views.QuickStudentIntersectionView.as_view()), name='student_intersections'),
     path('reports/schedules/quick-courses/', require_employee_perm('course_accounting_view')(views.QuickCourseSchedulePrintView.as_view()), name='quick_course_schedule_print'),
+    path('reports/conflicts/quick-courses/', require_employee_perm('course_accounting_view')(views.QuickCourseConflictReportView.as_view()), name='quick_course_conflicts_report'),
 
     path('reports/duplicate-students/', require_superuser(views.quick_duplicate_students_report), name='duplicate_students_report'),
     path('reports/merge-students/', require_superuser(views.quick_duplicate_students_report), name='merge_students_tool'),

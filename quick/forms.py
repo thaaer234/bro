@@ -296,8 +296,8 @@ class QuickSessionAssignStudentsForm(forms.Form):
 
 
 class QuickSessionTransferForm(forms.Form):
-    source_session = forms.ModelChoiceField(queryset=QuickCourseSession.objects.none(), label="من الكلاس")
-    target_session = forms.ModelChoiceField(queryset=QuickCourseSession.objects.none(), label="إلى الكلاس")
+    source_session = forms.ModelChoiceField(queryset=QuickCourseSession.objects.none(), label="من الصف")
+    target_session = forms.ModelChoiceField(queryset=QuickCourseSession.objects.none(), label="إلى الصف")
     enrollment_ids = forms.ModelMultipleChoiceField(
         queryset=QuickEnrollment.objects.none(),
         widget=forms.CheckboxSelectMultiple,
@@ -339,7 +339,7 @@ class QuickSessionTransferForm(forms.Form):
                 if getattr(getattr(enrollment, "session_assignment", None), "session_id", None) != source.id
             ]
             if invalid:
-                raise ValidationError("بعض الطلاب المحددين ليسوا ضمن الكلاس المصدر.")
+                raise ValidationError("بعض الطلاب المحددين ليسوا ضمن الصف المصدر.")
         return cleaned
 
 

@@ -2054,8 +2054,8 @@ class OutstandingStudentsByClassroomView(LoginRequiredMixin, TemplateView):
             print(f"          خطأ في حساب المتبقي: {e}")
             return Decimal('0')
 
-# في views.py أضف هذا الكلاس
-# في accounts/views.py - تأكد من وجود هذا الكلاس
+# في views.py أضف هذا الصف
+# في accounts/views.py - تأكد من وجود هذا الصف
 class ClassroomDetailView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/classroom_detail.html'
     
@@ -2255,7 +2255,7 @@ class ClassroomDetailView(LoginRequiredMixin, TemplateView):
         
         return False
 
-# في accounts/views.py - أضف هذا الكلاس أيضاً
+# في accounts/views.py - أضف هذا الصف أيضاً
 class WithdrawnStudentsView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/withdrawn_students.html'
     

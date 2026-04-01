@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>برنامج الكلاسات السريعة</title>
+    <title>برنامج الصفوف السريعة</title>
     <style>
         @page {
             size: A4 landscape;
@@ -627,10 +627,10 @@
     <div class="report">
         <div class="toolbar">
             <div class="toolbar__title">
-                <span class="toolbar__pill">برنامج الكلاسات السريعة</span>
+                <span class="toolbar__pill">برنامج الصفوف السريعة</span>
                 <div>
                     <strong>تقرير طباعة جاهز للاعتماد</strong>
-                    <div class="toolbar__meta">{{ generated_at|date:"Y-m-d H:i" }}</div>
+                    <div class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }}</div>
                 </div>
             </div>
             <div class="toolbar__actions">
@@ -648,15 +648,15 @@
                         </div>
                         <div>
                             <span class="brand__eyebrow">AL YAMAN INSTITUTE</span>
-                            <h1 class="brand__title">برنامج الكلاسات السريعة</h1>
-                            <p class="brand__subtitle">تقرير مصمم للطباعة والعرض الإداري، يوضّح توزيع الكلاسات، القاعات، الفترات الزمنية، والسعات الفعلية ضمن صفحة واحدة واضحة وأنيقة.</p>
+                            <h1 class="brand__title">برنامج الصفوف السريعة</h1>
+                            <p class="brand__subtitle">تقرير مصمم للطباعة والعرض الإداري، يوضّح توزيع الصفوف، القاعات، الفترات الزمنية، والسعات الفعلية ضمن صفحة واحدة واضحة وأنيقة.</p>
                         </div>
                     </div>
 
                     <div class="hero__aside">
                         <div class="meta-card">
                             <div class="meta-card__label">تاريخ تجهيز التقرير</div>
-                            <div class="meta-card__value">{{ generated_at|date:"Y-m-d H:i" }}</div>
+                            <div class="meta-card__value">{{ generated_at|date:"Y-m-d h:i A" }}</div>
                         </div>
                         <div class="meta-card">
                             <div class="meta-card__label">نوع الدورات المعروضة</div>
@@ -673,14 +673,14 @@
                     <span class="stat__hint">إجمالي الدورات الداخلة في التقرير</span>
                 </div>
                 <div class="stat">
-                    <span class="stat__label">عدد الكلاسات</span>
+                    <span class="stat__label">عدد الصفوف</span>
                     <strong class="stat__value">{{ total_sessions }}</strong>
-                    <span class="stat__hint">الكلاسات المولدة والقابلة للطباعة</span>
+                    <span class="stat__hint">الصفوف المولدة والقابلة للطباعة</span>
                 </div>
                 <div class="stat stat--gold">
                     <span class="stat__label">الطلاب الموزعون</span>
                     <strong class="stat__value">{{ total_students }}</strong>
-                    <span class="stat__hint">العدد الفعلي داخل الكلاسات المعروضة</span>
+                    <span class="stat__hint">العدد الفعلي داخل الصفوف المعروضة</span>
                 </div>
                 <div class="stat stat--gold">
                     <span class="stat__label">الدورات المحددة</span>
@@ -718,7 +718,7 @@
                         <thead>
                             <tr>
                                 <th style="width: 25%;">الدورة</th>
-                                <th style="width: 13%;">الكلاس</th>
+                                <th style="width: 13%;">الصف</th>
                                 <th style="width: 18%;">الفترة</th>
                                 <th style="width: 12%;">الوقت</th>
                                 <th style="width: 14%;">القاعة</th>
@@ -748,9 +748,9 @@
                                 </td>
                                 <td>
                                     <div class="time-block">
-                                        <span class="time-main">{{ session.start_time|time:"H:i" }}</span>
+                                        <span class="time-main">{{ session.start_time|time:"h:i A" }}</span>
                                         {% if session.end_time %}
-                                        <span class="time-sub">{{ session.end_time|time:"H:i" }}</span>
+                                        <span class="time-sub">{{ session.end_time|time:"h:i A" }}</span>
                                         {% else %}
                                         <span class="time-sub">بدون نهاية محددة</span>
                                         {% endif %}

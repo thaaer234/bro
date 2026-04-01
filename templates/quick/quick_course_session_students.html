@@ -8,14 +8,14 @@
             <div class="page-header__icon"><i class="fas fa-users"></i></div>
             <div>
                 <h1 class="page-title">{{ session.title }}</h1>
-                <p class="page-subtitle">{{ course.name }} | الطلاب الموزعون على الكلاس</p>
+                <p class="page-subtitle">{{ course.name }} | الطلاب الموزعون على الصف</p>
             </div>
         </div>
-        <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn--ghost"><i class="fas fa-arrow-right"></i> العودة لإدارة الكلاسات</a>
+        <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn--ghost"><i class="fas fa-arrow-right"></i> العودة لإدارة الصفوف</a>
     </div>
 
     <div class="card">
-        <div class="card-header"><h3>إضافة طلاب إلى الكلاس</h3></div>
+        <div class="card-header"><h3>إضافة طلاب إلى الصف</h3></div>
         <form method="post" action="{% url 'quick:course_session_assign_students' session.id %}" class="card-body">
             {% csrf_token %}
             <div class="border rounded p-3" style="max-height:280px; overflow:auto;">
@@ -28,7 +28,7 @@
     </div>
 
     <div class="card mt-4">
-        <div class="card-header"><h3>طلاب الكلاس</h3></div>
+        <div class="card-header"><h3>طلاب الصف</h3></div>
         <div class="card-body">
             <table class="table table-hover align-middle">
                 <thead><tr><th>الطالب</th><th>الهاتف</th><th>تاريخ التسجيل</th></tr></thead>

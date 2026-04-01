@@ -8,14 +8,14 @@
             <div class="page-header__icon"><i class="fas fa-layer-group"></i></div>
             <div>
                 <h1 class="page-title">{{ course.name }}</h1>
-                <p class="page-subtitle">ملف الدورة: إدارة الكلاسات، السعات، ونقل الطلاب</p>
+                <p class="page-subtitle">ملف الدورة: إدارة الصفوف، السعات، ونقل الطلاب</p>
             </div>
         </div>
         <div class="header-actions">
             <a href="{% url 'quick:course_time_options_manage' course.id %}" class="btn btn-info"><i class="fas fa-clock"></i> الأوقات المتاحة</a>
-            <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn-primary"><i class="fas fa-calendar-days"></i> إدارة الكلاسات</a>
+            <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn-primary"><i class="fas fa-calendar-days"></i> إدارة الصفوف</a>
             <a href="{% url 'quick:course_update' course.id %}" class="btn btn-warning"><i class="fas fa-edit"></i> تعديل الدورة</a>
-            <a href="{% url 'quick:quick_course_schedule_print' %}?course_ids={{ course.id }}" class="btn btn-outline-info"><i class="fas fa-print"></i> برنامج الكلاسات</a>
+            <a href="{% url 'quick:quick_course_schedule_print' %}?course_ids={{ course.id }}" class="btn btn-outline-info"><i class="fas fa-print"></i> برنامج الصفوف</a>
         </div>
     </div>
 
@@ -27,7 +27,7 @@
                     <div class="col-md-3"><strong>النوع:</strong> {{ course.get_course_type_display }}</div>
                     <div class="col-md-3"><strong>الفصل:</strong> {{ course.academic_year.name }}</div>
                     <div class="col-md-3"><strong>الطلاب:</strong> {{ active_enrollments|length }}</div>
-                    <div class="col-md-3"><strong>الكلاسات:</strong> {{ session_rows|length }}</div>
+                    <div class="col-md-3"><strong>الصفوف:</strong> {{ session_rows|length }}</div>
                 </div>
             </div>
         </div>
@@ -35,8 +35,8 @@
         <div class="card">
             <div class="card-header"><h3>ملخص التشغيل</h3></div>
             <div class="card-body">
-                <p class="mb-3">من هذه الصفحة تدخل إلى شاشة إدارة الكلاسات، وهناك تضيف التواريخ والأوقات والسعات، ثم تشغّل التوزيع التلقائي حسب أقدمية التسجيل.</p>
-                <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn-primary">فتح شاشة إدارة الكلاسات</a>
+                <p class="mb-3">من هذه الصفحة تدخل إلى شاشة إدارة الصفوف، وهناك تضيف التواريخ والأوقات والسعات، ثم تشغّل التوزيع التلقائي حسب أقدمية التسجيل.</p>
+                <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn-primary">فتح شاشة إدارة الصفوف</a>
             </div>
         </div>
     </div>
@@ -48,7 +48,7 @@
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>الكلاس</th>
+                            <th>الصف</th>
                             <th>الفترة</th>
                             <th>الدوام</th>
                             <th>السعة</th>
