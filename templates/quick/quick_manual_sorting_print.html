@@ -134,10 +134,21 @@
             font-weight: 800;
         }
         th:first-child {
+            width: 24px;
+            background: #d7e3f1;
+            color: #16324f;
+        }
+        th:nth-child(2) {
             width: 62px;
             background: #0f766e;
         }
         td:first-child {
+            background: #eef4fb;
+            text-align: center;
+            font-weight: 800;
+            font-size: 7px;
+        }
+        td:nth-child(2) {
             background: #f8fafc;
             text-align: right;
             font-weight: 700;
@@ -304,6 +315,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>الطالب</th>
                             {% for column in course_columns %}
                             <th>
@@ -316,6 +328,7 @@
                     <tbody>
                         {% for row in student_rows_all %}
                         <tr>
+                            <td>{{ forloop.counter }}</td>
                             <td>
                                 <span class="student-name">{{ row.student.full_name }}</span>
                                 <span class="student-meta">{{ row.student.phone|default:"-" }}</span>

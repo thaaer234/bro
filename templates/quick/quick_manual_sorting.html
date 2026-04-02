@@ -172,6 +172,16 @@ body.page-manual_sorting .main-content {
 }
 .manual-sort-table thead th:first-child,
 .manual-sort-table tbody td:first-child {
+    width: 30px;
+    min-width: 30px;
+    max-width: 30px;
+    text-align: center;
+    font-size: .58rem;
+    font-weight: 800;
+}
+.manual-sort-table thead th:first-child,
+.manual-sort-table thead th:nth-child(2),
+.manual-sort-table tbody td:nth-child(2) {
     position: sticky;
     right: 0;
     z-index: 4;
@@ -180,9 +190,16 @@ body.page-manual_sorting .main-content {
     max-width: 84px;
 }
 .manual-sort-table thead th:first-child {
+    background: linear-gradient(180deg, #d7e3f1, #c9d8ea);
+    color: #16324f;
+}
+.manual-sort-table thead th:nth-child(2) {
     background: linear-gradient(180deg, #0f766e, #0b5f59);
 }
 .manual-sort-table tbody td:first-child {
+    background: #eef4fb;
+}
+.manual-sort-table tbody td:nth-child(2) {
     background: #f8fafc;
 }
 .manual-sort-table td {
@@ -311,7 +328,8 @@ body.page-manual_sorting .main-content {
         font-size: 1.5rem;
     }
     .manual-sort-table thead th:first-child,
-    .manual-sort-table tbody td:first-child {
+    .manual-sort-table thead th:nth-child(2),
+    .manual-sort-table tbody td:nth-child(2) {
         width: 74px;
         min-width: 74px;
         max-width: 74px;
@@ -416,6 +434,7 @@ body.page-manual_sorting .main-content {
                     <table class="table manual-sort-table align-middle">
                         <thead>
                             <tr>
+                                <th>#</th>
                                 <th>
                                     <div class="course-head">
                                         <span class="course-head__title">الطالب</span>
@@ -434,6 +453,7 @@ body.page-manual_sorting .main-content {
                         <tbody>
                             {% for row in student_rows_page %}
                             <tr>
+                                <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
                                 <td>
                                     <div class="student-card">
                                         <div class="student-card__name">{{ row.student.full_name }}</div>

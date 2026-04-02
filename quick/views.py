@@ -2696,8 +2696,10 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         student_row['enrolled_courses_count'] += 1
 
     student_rows = []
+    deprioritized_subjects = {'التاريخ', 'الجغرافيا', 'الفلسفة'}
     for student_row in student_rows_by_id.values():
         cells = []
+        student_subjects = set()
         for column in course_columns:
             course = column['course']
             enrollment = student_row['enrollments_by_course'].get(course.id)
@@ -2711,6 +2713,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
 
             assignment = getattr(enrollment, 'session_assignment', None)
             manual_selection = getattr(enrollment, 'manual_sorting_selection', None) if manual_selection_enabled else None
+            student_subjects.add(column['subject_name'])
             selected_session_id = None
             if column['single_session_id']:
                 selected_session_id = column['single_session_id']
@@ -2734,10 +2737,12 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             })
 
         student_row['cells'] = cells
+        student_row['has_deprioritized_subject'] = any(subject in deprioritized_subjects for subject in student_subjects)
         student_rows.append(student_row)
 
     student_rows.sort(
         key=lambda item: (
+            item['has_deprioritized_subject'],
             -item['enrolled_courses_count'],
             item['student'].full_name,
             item['student'].id,
