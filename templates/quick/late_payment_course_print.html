@@ -5,35 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>تقرير المتأخرين عن السداد - {{ course_type_report_label }}</title>
-    <style>
-        body { font-family: Tahoma, Arial, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; }
-        .page { max-width: 1100px; margin: 24px auto; background: #fff; border-radius: 18px; padding: 28px; box-shadow: 0 20px 40px -30px rgba(15, 23, 42, 0.45); }
-        .hero { display: flex; justify-content: space-between; gap: 20px; align-items: center; background: linear-gradient(135deg, #0f3d5e 0%, #1f7a8c 100%); color: #fff; border-radius: 18px; padding: 20px; }
-        .hero img { width: 72px; height: 72px; object-fit: contain; }
-        .actions { text-align: center; margin: 18px 0; }
-        .btn { display: inline-block; padding: 10px 18px; border-radius: 999px; text-decoration: none; border: 0; cursor: pointer; font-weight: 700; }
-        .btn-print { background: #0f3d5e; color: #fff; }
-        .btn-back { background: #e2e8f0; color: #0f172a; }
-        .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
-        .summary-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px; }
-        .summary-card .label { color: #64748b; font-size: 13px; }
-        .summary-card .value { font-size: 20px; font-weight: 700; margin-top: 6px; }
-        .section-title { margin: 24px 0 12px; font-size: 22px; color: #0f3d5e; }
-        .course-block { border: 1px solid #e2e8f0; border-radius: 16px; margin-bottom: 18px; overflow: hidden; }
-        .course-head { background: #f8fafc; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-        .date-block { padding: 14px 16px; border-top: 1px solid #e2e8f0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 10px; border: 1px solid #e2e8f0; font-size: 13px; }
-        th { background: #0f3d5e; color: #fff; }
-        .text-center { text-align: center; }
-        .text-end { text-align: left; }
-        .muted { color: #64748b; }
-        @media print {
-            .actions { display: none; }
-            .page { box-shadow: none; margin: 0; max-width: none; }
-            @page { size: A4; margin: 10mm; }
-        }
-    </style>
+        <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
 </head>
 <body>
     <div class="actions">

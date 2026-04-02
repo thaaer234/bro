@@ -1,184 +1,137 @@
 {% extends 'accounts/base.html' %}
-
-{% load emp_perms %}
 {% load crispy_forms_tags %}
 
-{% block title %}إيصالات الطلاب والمصروفات / Student Receipts & Expenses{% endblock %}
+{% block title %}الإيصالات والمصاريف{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>إيصالات الطلاب والمصروفات / Student Receipts & Expenses</h2>
-</div>
-
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
-        <li class="breadcrumb-item active">إيصالات ومصروفات / Receipts & Expenses</li>
-    </ol>
-</nav>
-
-<!-- Cash Balance Card -->
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card bg-primary text-white">
-            <div class="card-body text-center">
-                <h3 class="card-title">
-                    <i class="fas fa-wallet"></i>
-                    رصيد الصندوق الحالي / Current Cash Balance
-                </h3>
-                <div class="display-4 fw-bold">{{ cash_balance|floatformat:2 }}</div>
-                <small>آخر تحديث: الآن / Last updated: Now</small>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Today's Summary -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card bg-success text-white">
-            <div class="card-body text-center">
-                <h6 class="card-title">إيصالات اليوم / Today's Receipts</h6>
-                <div class="fs-3 fw-bold">{{ today_receipts_total|floatformat:2 }}</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card bg-danger text-white">
-            <div class="card-body text-center">
-                <h6 class="card-title">مصروفات اليوم / Today's Expenses</h6>
-                <div class="fs-3 fw-bold">{{ today_expenses_total|floatformat:2 }}</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card {% if net_today >= 0 %}bg-info{% else %}bg-warning{% endif %} text-white">
-            <div class="card-body text-center">
-                <h6 class="card-title">صافي اليوم / Today's Net</h6>
-                <div class="fs-3 fw-bold">{{ net_today|floatformat:2 }}</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Entry Forms (Student receipt moved to student profile; removed from here) -->
-<div class="row">
-    <!-- Student Receipt Disabled -->
-    {% comment %} <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-info-circle"></i>
-                    إيصال طالب جديد / New Student Receipt
-                </h5>
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'accounts:student_receipt_create' %}">
-                    {% csrf_token %}
-                    {% crispy receipt_form %}
-                </form>
-            </div>
-        </div>
-    </div> {% endcomment %}
-
-    <!-- Expense Entry Form -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-minus-circle"></i>
-                    مصروف جديد / New Expense
-                </h5>
-            </div>
-            <div class="card-body">
-                <form method="post" action="{% url 'accounts:expense_create' %}">
-    {% csrf_token %}
-    {{ expense_form.as_p }}  <!-- أو as_table أو as_ul -->
-    <button type="submit" class="btn btn-danger">إنشاء مصروف</button>
-</form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Transactions -->
-<div class="row mt-4">
-    <!-- Recent Receipts -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <!--<h5 class="mb-0">آخر الإيصالات / Recent Receipts</h5>-->
-            </div>
-            {% comment %} <div class="card-body">
-                {% if recent_receipts %}
-                    <!--<div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>الرقم / Number</th>
-                                    <th>الطالب / Student</th>
-                                    <th>المبلغ / Amount</th>
-                                    <th>التاريخ / Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for receipt in recent_receipts %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ receipt.get_absolute_url }}">{{ receipt.receipt_number }}</a>
-                                    </td>
-                                    <td>{{ receipt.student_name }}</td>
-                                    <td class="text-end">{{ receipt.amount|floatformat:2 }}</td>
-                                    <td>{{ receipt.date }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}-->
-                    <p class="text-muted text-center">لا توجد إيصالات / No receipts yet</p>
-                {% endif %}
-            </div> {% endcomment %}
+<section class="accounts-section">
+    <div class="accounts-header">
+        <div class="accounts-header__copy">
+            <span class="page-toolbar__eyebrow"><i class="fas fa-receipt"></i> Cash Flow Desk</span>
+            <h2>إيصالات الطلاب والمصروفات</h2>
+            <p>شاشة تشغيل مركزة للنقدية الحالية، ملخص اليوم، وإدخال المصروفات السريع.</p>
         </div>
     </div>
 
-    <!-- Recent Expenses -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">آخر المصروفات / Recent Expenses</h5>
+    <nav class="accounts-breadcrumb" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة المحاسبة</a></li>
+            <li class="breadcrumb-item active">الإيصالات والمصاريف</li>
+        </ol>
+    </nav>
+
+    <div class="accounts-balance-banner">
+        <div class="accounts-header">
+            <div class="accounts-header__copy">
+                <h3 class="text-white m-0">رصيد الصندوق الحالي</h3>
+                <p class="text-white-50 m-0">آخر تحديث: الآن</p>
             </div>
-            <div class="card-body">
+            <div class="accounts-balance-banner__value">{{ cash_balance|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <div class="accounts-kpi-grid">
+        <article class="accounts-kpi-card is-positive">
+            <div class="accounts-kpi-card__top">
+                <div>
+                    <p class="accounts-kpi-card__label">إيصالات اليوم</p>
+                    <h3 class="accounts-kpi-card__value">{{ today_receipts_total|floatformat:2 }}</h3>
+                </div>
+                <span class="accounts-kpi-card__icon"><i class="fas fa-arrow-down-wide-short"></i></span>
+            </div>
+        </article>
+        <article class="accounts-kpi-card is-danger">
+            <div class="accounts-kpi-card__top">
+                <div>
+                    <p class="accounts-kpi-card__label">مصروفات اليوم</p>
+                    <h3 class="accounts-kpi-card__value">{{ today_expenses_total|floatformat:2 }}</h3>
+                </div>
+                <span class="accounts-kpi-card__icon"><i class="fas fa-arrow-up-wide-short"></i></span>
+            </div>
+        </article>
+        <article class="accounts-kpi-card {% if net_today >= 0 %}is-positive{% else %}is-warning{% endif %}">
+            <div class="accounts-kpi-card__top">
+                <div>
+                    <p class="accounts-kpi-card__label">صافي اليوم</p>
+                    <h3 class="accounts-kpi-card__value">{{ net_today|floatformat:2 }}</h3>
+                </div>
+                <span class="accounts-kpi-card__icon"><i class="fas fa-chart-mixed"></i></span>
+            </div>
+        </article>
+    </div>
+
+    <div class="accounts-form-layout">
+        <div class="accounts-form-card">
+            <h3 class="accounts-form-card__title">إدخال مصروف جديد</h3>
+            <p class="accounts-form-card__subtitle">أدخل المصروف مباشرة دون مغادرة لوحة النقدية.</p>
+            <form method="post" action="{% url 'accounts:expense_create' %}">
+                {% csrf_token %}
+                {{ expense_form.as_p }}
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-minus-circle"></i>
+                        إنشاء مصروف
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <aside class="accounts-side-card">
+            <h3 class="accounts-side-card__title">ملاحظات تشغيلية</h3>
+            <ul class="accounts-info-list">
+                <li><i class="fas fa-wallet"></i><span>رصيد الصندوق يُحدّث مع كل حركة مالية جديدة.</span></li>
+                <li><i class="fas fa-user-graduate"></i><span>إيصالات الطلاب الفعلية أصبحت مرتبطة أكثر بملفات الطلاب.</span></li>
+                <li><i class="fas fa-receipt"></i><span>استخدم هذه الشاشة للمتابعة السريعة للمصروفات والتدفق النقدي.</span></li>
+            </ul>
+        </aside>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="accounts-table-card h-100">
+                <h3 class="accounts-table-card__title">آخر المصروفات</h3>
                 {% if recent_expenses %}
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>الرقم / Number</th>
-                                    <th>الوصف / Description</th>
-                                    <th>المبلغ / Amount</th>
-                                    <th>التاريخ / Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for expense in recent_expenses %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ expense.get_absolute_url }}">{{ expense.expense_number }}</a>
-                                    </td>
-                                    <td>{{ expense.description|truncatechars:30 }}</td>
-                                    <td class="text-end">{{ expense.amount|floatformat:2 }}</td>
-                                    <td>{{ expense.date }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>الرقم</th>
+                                <th>الوصف</th>
+                                <th class="text-end">المبلغ</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in recent_expenses %}
+                            <tr>
+                                <td><a href="{{ expense.get_absolute_url }}">{{ expense.expense_number }}</a></td>
+                                <td>{{ expense.description|truncatechars:40 }}</td>
+                                <td class="text-end">{{ expense.amount|floatformat:2 }}</td>
+                                <td>{{ expense.date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <p class="text-muted text-center">لا توجد مصروفات / No expenses yet</p>
+                <div class="accounts-empty">
+                    <i class="fas fa-receipt"></i>
+                    <h3>لا توجد مصروفات بعد</h3>
+                </div>
                 {% endif %}
             </div>
         </div>
+
+        <div class="col-lg-6">
+            <div class="accounts-side-card h-100">
+                <h3 class="accounts-side-card__title">حالة الإيصالات</h3>
+                <div class="accounts-empty">
+                    <i class="fas fa-circle-info"></i>
+                    <h3>إيصالات الطلاب تُدار من صفحات الطلاب</h3>
+                    <p class="text-muted">تم الإبقاء على هذه الشاشة كلوحة تدفق نقدي ومصروفات، مع الحفاظ على منطق النظام الحالي.</p>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
 {% endblock %}

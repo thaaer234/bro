@@ -2,6 +2,11 @@
 
 {% load emp_perms %}
 {% load static %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/classroom.css' %}">
+{% endblock %}
 {% block content %}
 
 <div class="module-header">
@@ -234,68 +239,6 @@
         </div>
     </div>
 </div>
-
-<style>
-.stat-card {
-    border: none;
-    border-radius: 10px;
-    transition: transform 0.2s;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-}
-
-.student-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    color: white;
-    font-size: 14px;
-}
-
-.student-avatar img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.avatar-male {
-    background: linear-gradient(135deg, #3498db, #2980b9);
-}
-
-.avatar-female {
-    background: linear-gradient(135deg, #e84393, #fd79a8);
-}
-
-.avatar-default {
-    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-}
-
-.action-buttons .btn {
-    border-radius: 5px;
-    padding: 4px 8px;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-}
-
-.badge {
-    font-size: 11px;
-    padding: 5px 8px;
-    border-radius: 10px;
-}
-
-.card-footer {
-    border-top: 1px solid #e9ecef;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

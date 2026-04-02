@@ -1,752 +1,228 @@
 {% extends 'accounts/base.html' %}
-
-{% load emp_perms %}
 {% load static %}
+{% load emp_perms %}
 
-{% block title %}لوحة التحكم / Dashboard{% endblock %}
-
-{% block extra_css %}
-<style>
-:root {
-    --primary: #764ba2;
-    --secondary: #5f3789;
-    --success: #8e63b7;
-    --info: #9872c1;
-    --warning: #b79ad6;
-    --danger: #9a4f80;
-    --light: #f8f5fc;
-    --dark: #352146;
-    --gradient-primary: linear-gradient(135deg, #5f3789 0%, #764ba2 100%);
-    --gradient-success: linear-gradient(135deg, #8e63b7 0%, #764ba2 100%);
-    --gradient-warning: linear-gradient(135deg, #b79ad6 0%, #8e63b7 100%);
-    --gradient-info: linear-gradient(135deg, #9872c1 0%, #764ba2 100%);
-    --shadow: 0 10px 28px rgba(118, 75, 162, 0.10);
-    --shadow-hover: 0 18px 40px rgba(118, 75, 162, 0.16);
-    --border-radius: 16px;
-}
-
-body {
-    background-color: #f7f3fb;
-    font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', sans-serif;
-}
-
-.dashboard-header {
-    background: var(--gradient-primary);
-    color: white;
-    border-radius: var(--border-radius);
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow);
-}
-
-.dashboard-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.dashboard-card {
-    background: white;
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    box-shadow: var(--shadow);
-    transition: all 0.3s ease;
-    border: none;
-    position: relative;
-    overflow: hidden;
-}
-
-.dashboard-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-hover);
-}
-
-.dashboard-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-}
-
-.dashboard-card.primary::before {
-    background: var(--gradient-primary);
-}
-
-.dashboard-card.success::before {
-    background: var(--gradient-success);
-}
-
-.dashboard-card.warning::before {
-    background: var(--gradient-warning);
-}
-
-.dashboard-card.info::before {
-    background: var(--gradient-info);
-}
-
-.card-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-}
-
-.card-icon.primary {
-    background: rgba(118, 75, 162, 0.1);
-    color: var(--primary);
-}
-
-.card-icon.success {
-    background: rgba(142, 99, 183, 0.12);
-    color: var(--success);
-}
-
-.card-icon.warning {
-    background: rgba(183, 154, 214, 0.18);
-    color: var(--warning);
-}
-
-.card-icon.info {
-    background: rgba(152, 114, 193, 0.14);
-    color: var(--info);
-}
-
-.card-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin: 0.5rem 0;
-}
-
-.card-title {
-    font-size: 0.9rem;
-    color: #6c757d;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-}
-
-.card-change {
-    display: flex;
-    align-items: center;
-    font-size: 0.85rem;
-}
-
-.card-change.positive {
-    color: #28a745;
-}
-
-.card-change.negative {
-    color: #dc3545;
-}
-
-.mini-stat-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.25rem;
-    box-shadow: var(--shadow);
-    text-align: center;
-    transition: all 0.3s ease;
-    border: none;
-}
-
-.mini-stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-hover);
-}
-
-.mini-stat-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 0.75rem;
-    font-size: 1.25rem;
-}
-
-.mini-stat-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0.25rem 0;
-}
-
-.mini-stat-title {
-    font-size: 0.8rem;
-    color: #6c757d;
-}
-
-.quick-actions {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.quick-action-btn {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem 1rem;
-    text-align: center;
-    box-shadow: var(--shadow);
-    transition: all 0.3s ease;
-    border: none;
-    text-decoration: none;
-    color: inherit;
-    display: block;
-}
-
-.quick-action-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-hover);
-    color: inherit;
-    text-decoration: none;
-}
-
-.quick-action-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 0.75rem;
-    font-size: 1.25rem;
-    background: rgba(118, 75, 162, 0.1);
-    color: var(--primary);
-}
-
-.quick-action-title {
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-
-.quick-action-desc {
-    font-size: 0.8rem;
-    color: #6c757d;
-}
-
-.chart-container {
-    background: white;
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    box-shadow: var(--shadow);
-    margin-bottom: 2rem;
-    height: 300px;
-}
-
-.performance-indicator {
-    background: white;
-    border-radius: 12px;
-    padding: 1.25rem;
-    box-shadow: var(--shadow);
-    text-align: center;
-    transition: all 0.3s ease;
-    border: none;
-}
-
-.performance-indicator:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-hover);
-}
-
-.indicator-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin: 0.5rem 0;
-}
-
-.indicator-title {
-    font-size: 0.85rem;
-    color: #6c757d;
-}
-
-.indicator-change {
-    font-size: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.recent-activity {
-    background: white;
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    box-shadow: var(--shadow);
-    margin-bottom: 2rem;
-}
-
-.activity-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid #f1f1f1;
-}
-
-.activity-item:last-child {
-    border-bottom: none;
-}
-
-.activity-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 1rem;
-    font-size: 1rem;
-}
-
-.activity-content {
-    flex: 1;
-}
-
-.activity-title {
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-
-.activity-desc {
-    font-size: 0.85rem;
-    color: #6c757d;
-}
-
-.activity-time {
-    font-size: 0.75rem;
-    color: #adb5bd;
-}
-
-.badge {
-    border-radius: 20px;
-    padding: 0.35rem 0.75rem;
-    font-weight: 500;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.stat-item {
-    background: white;
-    border-radius: 12px;
-    padding: 1.25rem;
-    box-shadow: var(--shadow);
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.stat-item:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-hover);
-}
-
-.stat-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin: 0.5rem 0;
-}
-
-.stat-title {
-    font-size: 0.85rem;
-    color: #6c757d;
-}
-
-.progress-bar {
-    height: 6px;
-    border-radius: 3px;
-    background: #e9ecef;
-    overflow: hidden;
-    margin-top: 0.5rem;
-}
-
-.progress-fill {
-    height: 100%;
-    border-radius: 3px;
-}
-
-. {
-    font-weight: 700;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-in {
-    animation: fadeIn 0.5s ease forwards;
-}
-
-.delay-1 { animation-delay: 0.1s; }
-.delay-2 { animation-delay: 0.2s; }
-.delay-3 { animation-delay: 0.3s; }
-.delay-4 { animation-delay: 0.4s; }
-.delay-5 { animation-delay: 0.5s; }
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .dashboard-cards {
-        grid-template-columns: 1fr;
-    }
-    
-    .quick-actions {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .chart-container {
-        height: 250px;
-    }
-}
-</style>
-{% endblock %}
+{% block title %}لوحة المحاسبة{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1 class="mb-1">لوحة التحكم / Dashboard</h1>
-            <p class="mb-0 opacity-75">نظرة عامة على الأداء المالي والعمليات / Financial Performance & Operations Overview</p>
-        </div>
-        <div class="text-end">
-            <div class="fs-6 opacity-75">{{ current_date|date:"d M Y" }}</div>
-            <div class="fs-6 opacity-75">{{ current_date|date:"h:i A" }}</div>
-        </div>
-    </div>
-</div>
-
-<!-- Main Financial Overview Cards -->
-<div class="dashboard-cards">
-    <div class="dashboard-card primary fade-in">
-        <div class="card-icon primary">
-            <i class="fas fa-wallet"></i>
-        </div>
-        <div class="card-title">رصيد الصندوق / Fund Balance</div>
-        <div class="card-value text-primary ">{{ fund_balance|floatformat:2 }}</div>
-
-        <div class="card-change positive">
-            <i class="fas fa-arrow-up me-1"></i>
-            <span>النقدية والبنوك / Cash & Banks</span>
-        </div>
-    </div>
-    
-    <div class="dashboard-card success fade-in delay-1">
-        <div class="card-icon success">
-            <i class="fas fa-building"></i>
-        </div>
-        <div class="card-title">إجمالي الأصول المتداولة / Current Assets</div>
-        <div class="card-value text-success " data-value="{{ current_assets|floatformat:0 }}">0</div>
-        <div class="card-change positive">
-            <i class="fas fa-arrow-up me-1"></i>
-            <span>الأصول السائلة / Liquid Assets</span>
-        </div>
-    </div>
-    
-    <div class="dashboard-card warning fade-in delay-2">
-        <div class="card-icon warning">
-            <i class="fas fa-hand-holding-usd"></i>
-        </div>
-        <div class="card-title">سلف الموظفين / Employee Advances</div>
-        <div class="card-value text-warning " data-value="{{ employee_advances|floatformat:0 }}">0</div>
-        <div class="card-change negative">
-            <i class="fas fa-arrow-down me-1"></i>
-            <span>السلف المستحقة / Outstanding Advances</span>
-        </div>
-    </div>
-    
-    <div class="dashboard-card info fade-in delay-3">
-        <div class="card-icon info">
-            <i class="fas fa-chart-line"></i>
-        </div>
-        <div class="card-title">صافي الدخل / Net Income</div>
-        <div class="card-value {% if net_income >= 0 %}text-success{% else %}text-danger{% endif %} " data-value="{{ net_income|floatformat:0 }}">0</div>
-        <div class="card-change {% if net_income >= 0 %}positive{% else %}negative{% endif %}">
-            <i class="fas fa-arrow-{% if net_income >= 0 %}up{% else %}down{% endif %} me-1"></i>
-            <span>الإيرادات - المصروفات / Revenue - Expenses</span>
-        </div>
-    </div>
-</div>
-
-{% if employee_cash_accounts %}
-<div class="mt-4">
-    <h3 class="mb-3">رصيد صناديق الموظفين</h3>
-    <div class="dashboard-cards">
-        {% for account in employee_cash_accounts %}
-        {% cycle 'primary' 'success' 'warning' 'info' as card_color silent %}
-            <div class="dashboard-card {{ card_color }} fade-in">
-                <div class="card-icon {{ card_color }}">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="card-title">{{ account.title }}</div>
-                <div class="card-value">{{ account.balance|floatformat:2 }}</div>
-                <div class="text-muted small">كود الحساب: {{ account.code }}</div>
+<section class="accounts-section">
+    <div class="accounts-form-card">
+        <div class="accounts-header">
+            <div class="accounts-header__copy">
+                <h2>لوحة التحكم المالية</h2>
+                <p>ملخص تنفيذي سريع للحسابات والسيولة والنشاط اليومي داخل قسم المحاسبة.</p>
             </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
-<!-- Quick Stats Grid -->
-<div class="stats-grid">
-    <div class="stat-item fade-in delay-1">
-        <i class="fas fa-sitemap fa-2x text-primary mb-2"></i>
-        <div class="stat-title">إجمالي الحسابات / Total Accounts</div>
-        <div class="stat-value text-primary " data-value="{{ account_count }}">0</div>
-    </div>
-    
-    <div class="stat-item fade-in delay-2">
-        <i class="fas fa-book fa-2x text-success mb-2"></i>
-        <div class="stat-title">إجمالي القيود / Total Entries</div>
-        <div class="stat-value text-success" data-value="{{ total_entries }}">0</div>
-    </div>
-    
-    <div class="stat-item fade-in delay-3">
-        <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
-        <div class="stat-title">قيود غير مرحلة / Unposted Entries</div>
-        <div class="stat-value text-warning " data-value="{{ unposted_entries }}">0</div>
-    </div>
-    
-    <div class="stat-item fade-in delay-4">
-        <i class="fas fa-graduation-cap fa-2x text-info mb-2"></i>
-        <div class="stat-title">الدورات النشطة / Active Courses</div>
-        <div class="stat-value text-info " data-value="{{ total_courses }}">0</div>
-    </div>
-</div>
-
-<!-- Quick Actions -->
-<div class="mb-4">
-    <h3 class="mb-3">إجراءات سريعة / Quick Actions</h3>
-    <div class="quick-actions">
-        <a href="{% url 'accounts:journal_entry_create' %}" class="quick-action-btn fade-in">
-            <div class="quick-action-icon">
-                <i class="fas fa-plus-circle"></i>
-            </div>
-            <div class="quick-action-title">قيد جديد / New Entry</div>
-            <div class="quick-action-desc">إنشاء قيد يومي جديد</div>
-        </a>
-        
-        <a href="{% url 'accounts:account_create' %}" class="quick-action-btn fade-in delay-1">
-            <div class="quick-action-icon">
-                <i class="fas fa-sitemap"></i>
-            </div>
-            <div class="quick-action-title">حساب جديد / New Account</div>
-            <div class="quick-action-desc">إضافة حساب جديد إلى الدليل</div>
-        </a>
-        
-        <a href="{% url 'accounts:receipts_expenses' %}" class="quick-action-btn fade-in delay-2">
-            <div class="quick-action-icon">
-                <i class="fas fa-receipt"></i>
-            </div>
-            <div class="quick-action-title">إيصالات / Receipts</div>
-            <div class="quick-action-desc">إدارة الإيصالات والمصروفات</div>
-        </a>
-        
-        <a href="{% url 'accounts:trial_balance' %}" class="quick-action-btn fade-in delay-3">
-            <div class="quick-action-icon">
-                <i class="fas fa-balance-scale"></i>
-            </div>
-            <div class="quick-action-title">ميزان المراجعة / Trial Balance</div>
-            <div class="quick-action-desc">عرض تقرير ميزان المراجعة</div>
-        </a>
-
-        {% if user.is_superuser or 'admin_logs' in emp_perms %}
-        <a href="{% url 'security_dashboard' %}" class="quick-action-btn fade-in delay-4">
-            <div class="quick-action-icon" style="background: rgba(230, 57, 70, 0.1); color: #e63946;">
-                <i class="fas fa-shield-halved"></i>
-            </div>
-            <div class="quick-action-title">مركز الأمن / Security</div>
-            <div class="quick-action-desc">مراقبة الحوادث والحظر والتقارير</div>
-        </a>
-        {% endif %}
-    </div>
-</div>
-
-<div class="row">
-    <!-- Charts Section -->
-    <div class="col-lg-8">
-        <div class="chart-container fade-in">
-            <h5 class="mb-3">
-                <i class="fas fa-chart-pie text-primary me-2"></i>
-                توزيع الأصول / Asset Distribution
-            </h5>
-            <canvas id="assetChart" height="250"></canvas>
-        </div>
-        
-        <div class="chart-container fade-in delay-1">
-            <h5 class="mb-3">
-                <i class="fas fa-chart-bar text-success me-2"></i>
-                الإيرادات مقابل المصروفات / Revenue vs Expenses
-            </h5>
-            <canvas id="revenueExpenseChart" height="250"></canvas>
-        </div>
-    </div>
-    
-    <!-- Sidebar with Performance Indicators and Recent Activity -->
-    <div class="col-lg-4">
-        <!-- Performance Indicators -->
-        <div class="mb-4">
-            <h5 class="mb-3">مؤشرات الأداء / Performance Indicators</h5>
-            
-            <div class="performance-indicator mb-3 fade-in">
-                <div class="indicator-title">نسبة التداول / Current Ratio</div>
-                <div class="indicator-value text-primary">{{ current_ratio|floatformat:2 }}</div>
-                <div class="indicator-change positive">
-                    <i class="fas fa-arrow-up me-1"></i>
-                    <span>صحي / Healthy</span>
-                </div>
-            </div>
-            
-            <div class="performance-indicator mb-3 fade-in delay-1">
-                <div class="indicator-title">هامش الربح / Profit Margin</div>
-                <div class="indicator-value text-success">{{ profit_margin|floatformat:1 }}%</div>
-                <div class="indicator-change positive">
-                    <i class="fas fa-arrow-up me-1"></i>
-                    <span>مرتفع / High</span>
-                </div>
-            </div>
-            
-            <div class="performance-indicator mb-3 fade-in delay-2">
-                <div class="indicator-title">نسبة الدين / Debt Ratio</div>
-                <div class="indicator-value text-warning">{{ debt_ratio|floatformat:1 }}%</div>
-                <div class="indicator-change negative">
-                    <i class="fas fa-arrow-down me-1"></i>
-                    <span>منخفضة / Low</span>
-                </div>
-            </div>
-            
-            <div class="performance-indicator fade-in delay-3">
-                <div class="indicator-title">رأس المال العامل / Working Capital</div>
-                <div class="indicator-value text-info">{{ working_capital|floatformat:0 }}</div>
-                <div class="indicator-change positive">
-                    <i class="fas fa-arrow-up me-1"></i>
-                    <span>جيد / Good</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Recent Activity -->
-        <div class="recent-activity fade-in delay-4">
-            <h5 class="mb-3">النشاط الأخير / Recent Activity</h5>
-            
-            {% if recent_entries %}
-                {% for entry in recent_entries|slice:":5" %}
-                <div class="activity-item">
-                    <div class="activity-icon bg-light text-primary">
-                        <i class="fas fa-book"></i>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-title">{{ entry.reference }}</div>
-                        <div class="activity-desc">{{ entry.description|truncatechars:30 }}</div>
-                    </div>
-                    <div class="activity-time">{{ entry.date|timesince }}</div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="text-center text-muted py-3">
-                    <i class="fas fa-book fa-2x mb-2"></i>
-                    <p>لا توجد نشاطات حديثة / No recent activity</p>
-                </div>
-            {% endif %}
-            
-            <div class="text-center mt-3">
-                <a href="{% url 'accounts:journal_entry_list' %}" class="btn btn-outline-primary btn-sm">
-                    عرض الكل / View All
+            <div class="accounts-actions">
+                <a href="{% url 'accounts:journal_entry_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    قيد جديد
+                </a>
+                <a href="{% url 'accounts:reports' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-column"></i>
+                    التقارير
                 </a>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Current Assets Breakdown -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="chart-container fade-in">
-            <h5 class="mb-3">
-                <i class="fas fa-coins text-success me-2"></i>
-                تفصيل الأصول المتداولة / Current Assets Breakdown
-            </h5>
-            <div class="row">
-                <div class="col-md-3 mb-3">
-                    <div class="mini-stat-card">
-                        <div class="mini-stat-icon bg-light text-success">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <div class="mini-stat-title">النقدية / Cash</div>
-                        <div class="mini-stat-value text-success " data-value="{{ cash_amount|floatformat:0 }}">0</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill bg-success" style="width: {{ cash_percentage }}%"></div>
-                        </div>
-                    </div>
+    <div class="accounts-kpi-grid">
+        <article class="accounts-kpi-card is-positive">
+            <div class="accounts-kpi-card__top">
+                <div>
+                    <p class="accounts-kpi-card__label">رصيد الصندوق</p>
+                    <h3 class="accounts-kpi-card__value">{{ fund_balance|floatformat:2 }}</h3>
                 </div>
-                <div class="col-md-3 mb-3">
-                    <div class="mini-stat-card">
-                        <div class="mini-stat-icon bg-light text-info">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                        </div>
-                        <div class="mini-stat-title">الذمم المدينة / A/R</div>
-                        <div class="mini-stat-value text-info " data-value="{{ receivables_amount|floatformat:0 }}">0</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill bg-info" style="width: {{ receivables_percentage }}%"></div>
-                        </div>
-                    </div>
+                <span class="accounts-kpi-card__icon"><i class="fas fa-wallet"></i></span>
+            </div>
+            <p class="accounts-kpi-card__meta">النقدية والبنوك المتاحة حالياً</p>
+        </article>
+
+        <article class="accounts-kpi-card">
+            <div class="accounts-kpi-card__top">
+                <div>
+                    <p class="accounts-kpi-card__label">الأصول المتداولة</p>
+                    <h3 class="accounts-kpi-card__value metric-value" data-value="{{ current_assets|floatformat:0 }}">0</h3>
                 </div>
-                <div class="col-md-3 mb-3">
-                    <div class="mini-stat-card">
-                        <div class="mini-stat-icon bg-light text-warning">
-                            <i class="fas fa-boxes"></i>
-                        </div>
-                        <div class="mini-stat-title">المخزون / Inventory</div>
-                        <div class="mini-stat-value text-warning " data-value="{{ inventory_amount|floatformat:0 }}">0</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill bg-warning" style="width: {{ inventory_percentage }}%"></div>
-                        </div>
-                    </div>
+                <span class="accounts-kpi-card__icon"><i class="fas fa-building-columns"></i></span>
+            </div>
+            <p class="accounts-kpi-card__meta">الأصول السائلة والقابلة للتحويل السريع</p>
+        </article>
+
+        <article class="accounts-kpi-card is-warning">
+            <div class="accounts-kpi-card__top">
+                <div>
+                    <p class="accounts-kpi-card__label">سلف الموظفين</p>
+                    <h3 class="accounts-kpi-card__value metric-value" data-value="{{ employee_advances|floatformat:0 }}">0</h3>
                 </div>
-                <div class="col-md-3 mb-3">
-                    <div class="mini-stat-card">
-                        <div class="mini-stat-icon bg-light text-danger">
-                            <i class="fas fa-hand-holding-usd"></i>
-                        </div>
-                        <div class="mini-stat-title">السلف / Advances</div>
-                        <div class="mini-stat-value text-danger " data-value="{{ advances_amount|floatformat:0 }}">0</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill bg-danger" style="width: {{ advances_percentage }}%"></div>
-                        </div>
+                <span class="accounts-kpi-card__icon"><i class="fas fa-hand-holding-dollar"></i></span>
+            </div>
+            <p class="accounts-kpi-card__meta">السلف المستحقة والمتابعة المالية</p>
+        </article>
+
+        <article class="accounts-kpi-card {% if net_income < 0 %}is-danger{% else %}is-positive{% endif %}">
+            <div class="accounts-kpi-card__top">
+                <div>
+                    <p class="accounts-kpi-card__label">صافي الدخل</p>
+                    <h3 class="accounts-kpi-card__value metric-value" data-value="{{ net_income|floatformat:0 }}">0</h3>
+                </div>
+                <span class="accounts-kpi-card__icon"><i class="fas fa-chart-line"></i></span>
+            </div>
+            <p class="accounts-kpi-card__meta">الإيرادات مطروحاً منها المصروفات</p>
+        </article>
+    </div>
+
+    {% if employee_cash_accounts %}
+    <div class="accounts-table-card">
+        <div class="accounts-header">
+            <div class="accounts-header__copy">
+                <h3>أرصدة صناديق الموظفين</h3>
+                <p>ملخص سريع لكل صندوق تابع للموظفين.</p>
+            </div>
+        </div>
+        <div class="accounts-summary-grid">
+            {% for account in employee_cash_accounts %}
+            <article class="accounts-summary-card">
+                <span class="accounts-summary-card__icon"><i class="fas fa-vault"></i></span>
+                <div>
+                    <p class="accounts-summary-card__label">{{ account.title }}</p>
+                    <h4 class="accounts-summary-card__value">{{ account.balance|floatformat:2 }}</h4>
+                    <p class="accounts-summary-card__meta">كود الحساب: {{ account.code }}</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="accounts-summary-grid">
+        <article class="accounts-summary-card">
+            <span class="accounts-summary-card__icon"><i class="fas fa-sitemap"></i></span>
+            <div>
+                <p class="accounts-summary-card__label">إجمالي الحسابات</p>
+                <h4 class="accounts-summary-card__value metric-value" data-value="{{ account_count }}">0</h4>
+            </div>
+        </article>
+        <article class="accounts-summary-card">
+            <span class="accounts-summary-card__icon"><i class="fas fa-book-open"></i></span>
+            <div>
+                <p class="accounts-summary-card__label">إجمالي القيود</p>
+                <h4 class="accounts-summary-card__value metric-value" data-value="{{ total_entries }}">0</h4>
+            </div>
+        </article>
+        <article class="accounts-summary-card">
+            <span class="accounts-summary-card__icon"><i class="fas fa-hourglass-half"></i></span>
+            <div>
+                <p class="accounts-summary-card__label">قيود غير مرحلة</p>
+                <h4 class="accounts-summary-card__value metric-value" data-value="{{ unposted_entries }}">0</h4>
+            </div>
+        </article>
+        <article class="accounts-summary-card">
+            <span class="accounts-summary-card__icon"><i class="fas fa-graduation-cap"></i></span>
+            <div>
+                <p class="accounts-summary-card__label">الدورات النشطة</p>
+                <h4 class="accounts-summary-card__value metric-value" data-value="{{ total_courses }}">0</h4>
+            </div>
+        </article>
+    </div>
+
+    <div class="accounts-quick-grid">
+        <a href="{% url 'accounts:journal_entry_create' %}" class="accounts-quick-card">
+            <span class="accounts-quick-card__icon"><i class="fas fa-plus-circle"></i></span>
+            <h3 class="accounts-quick-card__title">قيد جديد</h3>
+            <p class="accounts-quick-card__desc">إدخال قيد يومي جديد بسرعة ضمن shell موحد.</p>
+        </a>
+        <a href="{% url 'accounts:account_create' %}" class="accounts-quick-card">
+            <span class="accounts-quick-card__icon"><i class="fas fa-sitemap"></i></span>
+            <h3 class="accounts-quick-card__title">حساب جديد</h3>
+            <p class="accounts-quick-card__desc">إضافة حساب جديد إلى دليل الحسابات.</p>
+        </a>
+        <a href="{% url 'accounts:receipts_expenses' %}" class="accounts-quick-card">
+            <span class="accounts-quick-card__icon"><i class="fas fa-receipt"></i></span>
+            <h3 class="accounts-quick-card__title">الإيصالات والمصاريف</h3>
+            <p class="accounts-quick-card__desc">تسجيل ومراجعة النقدية الداخلة والخارجة.</p>
+        </a>
+        <a href="{% url 'accounts:trial_balance' %}" class="accounts-quick-card">
+            <span class="accounts-quick-card__icon"><i class="fas fa-scale-balanced"></i></span>
+            <h3 class="accounts-quick-card__title">ميزان المراجعة</h3>
+            <p class="accounts-quick-card__desc">مراجعة سريعة لتوازن الحسابات وحركتها.</p>
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="accounts-form-card">
+                <h3 class="accounts-form-card__title">توزيع الأصول</h3>
+                <p class="accounts-form-card__subtitle">قراءة مرئية سريعة لبنية الأصول الحالية.</p>
+                <canvas id="assetChart" height="250"></canvas>
+            </div>
+            <div class="accounts-form-card mt-4">
+                <h3 class="accounts-form-card__title">الإيرادات مقابل المصروفات</h3>
+                <p class="accounts-form-card__subtitle">مقارنة مباشرة بين الأداء الحالي والسابق.</p>
+                <canvas id="revenueExpenseChart" height="250"></canvas>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="accounts-side-card">
+                <h3 class="accounts-side-card__title">مؤشرات الأداء</h3>
+                <div class="accounts-metric-band">
+                    <div class="accounts-metric-band__item">
+                        <strong>{{ current_ratio|floatformat:2 }}</strong>
+                        <span>نسبة التداول</span>
+                    </div>
+                    <div class="accounts-metric-band__item">
+                        <strong>{{ profit_margin|floatformat:1 }}%</strong>
+                        <span>هامش الربح</span>
+                    </div>
+                    <div class="accounts-metric-band__item">
+                        <strong>{{ debt_ratio|floatformat:1 }}%</strong>
+                        <span>نسبة الدين</span>
+                    </div>
+                    <div class="accounts-metric-band__item">
+                        <strong>{{ working_capital|floatformat:0 }}</strong>
+                        <span>رأس المال العامل</span>
                     </div>
                 </div>
             </div>
+
+            <div class="accounts-side-card mt-4">
+                <h3 class="accounts-side-card__title">النشاط الأخير</h3>
+                {% if recent_entries %}
+                <div class="accounts-info-list">
+                    {% for entry in recent_entries|slice:":5" %}
+                    <div class="activity-item">
+                        <span class="activity-icon"><i class="fas fa-book"></i></span>
+                        <div>
+                            <div class="fw-bold">{{ entry.reference }}</div>
+                            <div class="text-muted">{{ entry.description|truncatechars:40 }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-3">
+                    <a href="{% url 'accounts:journal_entry_list' %}" class="btn btn-outline-primary w-100">عرض جميع القيود</a>
+                </div>
+                {% else %}
+                <div class="accounts-empty">
+                    <i class="fas fa-book"></i>
+                    <h3>لا يوجد نشاط حديث</h3>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Additional Information -->
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="recent-activity fade-in">
-            <h5 class="mb-3">
-                <i class="fas fa-graduation-cap text-primary me-2"></i>
-                الإيرادات المقدمة حسب الدورات / Prepaid Revenues by Course
-            </h5>
-            {% if prepaid_revenues %}
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="accounts-table-card h-100">
+                <h3 class="accounts-table-card__title">الإيرادات المقدمة حسب الدورات</h3>
+                {% if prepaid_revenues %}
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover">
+                    <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>الدورة / Course</th>
-                                <th class="text-end">المبلغ / Amount</th>
+                                <th>الدورة</th>
+                                <th class="text-end">الرصيد</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -759,145 +235,123 @@ body {
                         </tbody>
                     </table>
                 </div>
-            {% else %}
-                <p class="text-muted text-center py-3">لا توجد إيرادات مقدمة / No prepaid revenues</p>
-            {% endif %}
+                {% else %}
+                <div class="accounts-empty">
+                    <i class="fas fa-chart-column"></i>
+                    <h3>لا توجد إيرادات مقدمة</h3>
+                </div>
+                {% endif %}
+            </div>
         </div>
-    </div>
-    
-    <div class="col-md-6">
-        <div class="recent-activity fade-in delay-1">
-            <h5 class="mb-3">
-                <i class="fas fa-chart-pie text-info me-2"></i>
-                إحصائيات الدورات / Course Statistics
-            </h5>
-            <div class="row text-center">
-                <div class="col-4">
-                    <div class="border rounded p-3 mb-2">
-                        <small class="text-muted">الدورات / Courses</small>
-                        <div class="fw-bold text-primary fs-4">{{ total_courses }}</div>
-                    </div>
-                </div>
-                <div class="col-4">
-                    <div class="border rounded p-3 mb-2">
-                        <small class="text-muted">الطلاب / Students</small>
-                        <div class="fw-bold text-success fs-4">{{ total_students }}</div>
-                    </div>
-                </div>
-                <div class="col-4">
-                    <div class="border rounded p-3 mb-2">
-                        <small class="text-muted">التسجيلات النشطة / Active enrollments</small>
-                        <div class="fw-bold text-warning fs-4">{{ active_enrollments }}</div>
-                    </div>
+        <div class="col-lg-5">
+            <div class="accounts-side-card h-100">
+                <h3 class="accounts-side-card__title">إحصائيات الدورات</h3>
+                <div class="accounts-summary-grid">
+                    <article class="accounts-summary-card">
+                        <span class="accounts-summary-card__icon"><i class="fas fa-book-open"></i></span>
+                        <div>
+                            <p class="accounts-summary-card__label">الدورات</p>
+                            <h4 class="accounts-summary-card__value">{{ total_courses }}</h4>
+                        </div>
+                    </article>
+                    <article class="accounts-summary-card">
+                        <span class="accounts-summary-card__icon"><i class="fas fa-users"></i></span>
+                        <div>
+                            <p class="accounts-summary-card__label">الطلاب</p>
+                            <h4 class="accounts-summary-card__value">{{ total_students }}</h4>
+                        </div>
+                    </article>
+                    <article class="accounts-summary-card">
+                        <span class="accounts-summary-card__icon"><i class="fas fa-circle-check"></i></span>
+                        <div>
+                            <p class="accounts-summary-card__label">التسجيلات النشطة</p>
+                            <h4 class="accounts-summary-card__value">{{ active_enrollments }}</h4>
+                        </div>
+                    </article>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- System Info -->
-<div class="alert alert-info mt-4 fade-in">
-    <div class="d-flex">
-        <div class="me-3">
-            <i class="fas fa-info-circle fa-2x"></i>
-        </div>
-        <div>
-            <h5 class="alert-heading">نظام الاستحقاق المحاسبي / Accrual Accounting System</h5>
-            <p class="mb-0">
-                جميع العمليات تتم على أساس الاستحقاق مع تحديث تلقائي لأرصدة الحسابات الأب
-                <br>
-                <small>All operations are accrual-based with automatic parent account balance updates</small>
-            </p>
-        </div>
+    <div class="alert alert-info">
+        <strong>نظام الاستحقاق المحاسبي:</strong>
+        جميع العمليات تعمل على أساس الاستحقاق مع إعادة بناء أرصدة الحسابات المرتبطة تلقائياً.
     </div>
-</div>
+</section>
+{% endblock %}
 
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Animate numbers
 document.addEventListener('DOMContentLoaded', function() {
-    // Animate numbers
-    const animatedNumbers = document.querySelectorAll('.');
-    
-    animatedNumbers.forEach(element => {
-        const target = parseInt(element.getAttribute('data-value'));
-        const duration = 1500; // Animation duration in ms
-        const step = target / (duration / 16); // Calculate step for 60fps
+    document.querySelectorAll('.metric-value').forEach(function(element) {
+        const target = parseFloat(element.dataset.value || '0');
+        const duration = 1100;
+        const step = target / Math.max(duration / 16, 1);
         let current = 0;
-        
-        const timer = setInterval(() => {
+
+        const timer = setInterval(function() {
             current += step;
-            if (current >= target) {
+            if ((step >= 0 && current >= target) || (step < 0 && current <= target)) {
                 current = target;
                 clearInterval(timer);
             }
-            
-            // Format number with commas
             element.textContent = Math.floor(current).toLocaleString();
         }, 16);
     });
-    
-    // Asset Distribution Chart
-    const assetCtx = document.getElementById('assetChart').getContext('2d');
-    new Chart(assetCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['الأصول المتداولة / Current Assets', 'الأصول الثابتة / Fixed Assets', 'أخرى / Other'],
-            datasets: [{
-                data: [{{ current_assets|default:0 }}, {{ fixed_assets|default:0 }}, {{ other_assets|default:0 }}],
-                backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    rtl: true
-                }
-            },
-            cutout: '65%'
-        }
-    });
 
-    // Revenue vs Expense Chart
-    const revenueCtx = document.getElementById('revenueExpenseChart').getContext('2d');
-    new Chart(revenueCtx, {
-        type: 'bar',
-        data: {
-            labels: ['هذا الشهر / This Month', 'الشهر الماضي / Last Month'],
-            datasets: [{
-                label: 'الإيرادات / Revenue',
-                data: [{{ current_month_revenue|default:0 }}, {{ last_month_revenue|default:0 }}],
-                backgroundColor: '#36A2EB',
-                borderRadius: 8
-            }, {
-                label: 'المصروفات / Expenses',
-                data: [{{ current_month_expenses|default:0 }}, {{ last_month_expenses|default:0 }}],
-                backgroundColor: '#FF6384',
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        drawBorder: false
+    const assetCtx = document.getElementById('assetChart');
+    if (assetCtx) {
+        new Chart(assetCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['الأصول المتداولة', 'الأصول الثابتة', 'أخرى'],
+                datasets: [{
+                    data: [{{ current_assets|default:0 }}, {{ fixed_assets|default:0 }}, {{ other_assets|default:0 }}],
+                    backgroundColor: ['#2f6bff', '#31c9ff', '#f053c4'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', rtl: true } },
+                cutout: '68%'
+            }
+        });
+    }
+
+    const revenueCtx = document.getElementById('revenueExpenseChart');
+    if (revenueCtx) {
+        new Chart(revenueCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['هذا الشهر', 'الشهر الماضي'],
+                datasets: [
+                    {
+                        label: 'الإيرادات',
+                        data: [{{ current_month_revenue|default:0 }}, {{ last_month_revenue|default:0 }}],
+                        backgroundColor: '#2f6bff',
+                        borderRadius: 10
+                    },
+                    {
+                        label: 'المصروفات',
+                        data: [{{ current_month_expenses|default:0 }}, {{ last_month_expenses|default:0 }}],
+                        backgroundColor: '#ff6b7d',
+                        borderRadius: 10
                     }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { drawBorder: false } },
+                    x: { grid: { display: false } }
                 }
             }
-        }
-    });
+        });
+    }
 });
 </script>
 {% endblock %}

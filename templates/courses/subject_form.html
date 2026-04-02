@@ -2,6 +2,11 @@
 
 {% load emp_perms %}
 {% load static %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/courses.css' %}">
+{% endblock %}
 {% block content %}
 
 <div class="module-header">
@@ -279,154 +284,6 @@
         </div>
     </div>
 </div>
-
-<style>
-.form-label {
-    color: #495057;
-    margin-bottom: 0.5rem;
-}
-
-.card {
-    border: none;
-    border-radius: 10px;
-}
-
-.card-header {
-    border-radius: 10px 10px 0 0 !important;
-}
-
-/* تنسيق بطاقات المدرسين */
-.teacher-card .card {
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-    cursor: pointer;
-}
-
-.teacher-card.selected .card {
-    border-color: #28a745;
-    background-color: #f8fff9;
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
-}
-
-.teacher-card:hover .card {
-    border-color: #007bff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
-}
-
-.teacher-avatar {
-    width: 60px;
-    height: 60px;
-}
-
-.teacher-avatar img,
-.avatar-placeholder {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.avatar-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 20px;
-}
-
-.teacher-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-.teacher-specialization {
-    font-size: 12px;
-    min-height: 32px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.teacher-checkbox {
-    transform: scale(1.1);
-}
-
-/* قائمة المدرسين المختارين */
-.selected-teachers-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-height: 50px;
-    padding: 12px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border: 1px dashed #dee2e6;
-}
-
-.selected-teacher-tag {
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    animation: fadeIn 0.3s ease;
-}
-
-.selected-teacher-tag .remove-teacher {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 2px;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-}
-
-.selected-teacher-tag .remove-teacher:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* شريط البحث */
-.teacher-search-container {
-    max-width: 400px;
-}
-
-/* تأثيرات الحركة */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* التجاوب */
-@media (max-width: 768px) {
-    .teacher-card .col-md-6 {
-        flex: 0 0 100%;
-        max-width: 100%;
-    }
-}
-
-/* تنسيق النص العربي */
-.teacher-name, .teacher-specialization {
-    line-height: 1.4;
-}
-
-.form-control-lg {
-    font-size: 1.1rem;
-    padding: 0.75rem 1rem;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

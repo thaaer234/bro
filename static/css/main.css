@@ -41,8 +41,26 @@ html {
     scroll-behavior: smooth;
 }
 
+.skip-link {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 3000;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    background: #0b5ed7;
+    color: #fff;
+    transform: translateY(-160%);
+    transition: transform 0.2s ease;
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+    color: #fff;
+}
+
 body {
-    font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', sans-serif;
+    font-family: 'Cairo', 'Tajawal', sans-serif;
     background-image: url('../img/back.png');
     color: var(--black);
     direction: rtl;
@@ -53,6 +71,16 @@ body {
 a {
     text-decoration: none;
     color: var(--primary-color);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid #0b5ed7;
+    outline-offset: 2px;
 }
 
 .btn {
@@ -83,12 +111,12 @@ a {
 }
 
 .btn-secondary {
-    background-color: var(--secondary-color);
+    background-color: #4b5563;
     color: var(--white);
 }
 
 .btn-secondary:hover {
-    background-color: #27ae60;
+    background-color: #374151;
 }
 
 .btn-danger {
@@ -102,11 +130,12 @@ a {
 
 .btn-warning {
     background-color: var(--warning-color);
-    color: var(--white);
+    color: #1f2937;
 }
 
 .btn-warning:hover {
-    background-color: #d35400;
+    background-color: #d97706;
+    color: #111827;
 }
 
 .btn-info {
@@ -205,6 +234,19 @@ a {
     cursor: pointer;
     position: relative;
     gap: 1rem;
+}
+
+.menu-group-title {
+    width: calc(100% - 2rem);
+    margin: 0.2rem 1rem;
+    background: transparent;
+    border: 0;
+    text-align: inherit;
+}
+
+.profile-image-container {
+    display: inline-flex;
+    border-radius: 999px;
 }
 
 .menu-item:hover {

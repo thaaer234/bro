@@ -1,0 +1,489 @@
+@import url('./system-rebuild.css');
+
+body.app-accounts,
+body.app-body--accounts {
+    --section-accent: #2f6bff;
+    --section-accent-strong: #1d4fd7;
+    --accounts-accent-soft: rgba(47, 107, 255, 0.1);
+    --accounts-good-soft: rgba(31, 211, 155, 0.12);
+    --accounts-warn-soft: rgba(246, 185, 74, 0.15);
+    --accounts-danger-soft: rgba(255, 107, 125, 0.14);
+}
+
+body.app-accounts .page-toolbar__eyebrow,
+body.app-accounts .workspace-pill i,
+body.app-accounts .card-title,
+body.app-accounts .stat-label,
+body.app-accounts .form-label,
+body.app-accounts label {
+    color: var(--section-accent) !important;
+}
+
+.accounts-section {
+    display: grid;
+    gap: 1rem;
+}
+
+.accounts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.accounts-header__copy {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.accounts-header__copy h2,
+.accounts-header__copy h3 {
+    margin: 0;
+}
+
+.accounts-header__copy p {
+    margin: 0;
+    color: var(--text-2);
+}
+
+.accounts-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.accounts-kpi-grid,
+.accounts-report-grid,
+.accounts-quick-grid,
+.accounts-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.accounts-kpi-card,
+.accounts-report-card,
+.accounts-quick-card,
+.accounts-summary-card,
+.accounts-form-card,
+.accounts-table-card,
+.accounts-side-card,
+.accounts-empty {
+    position: relative;
+    overflow: hidden;
+    padding: 1.15rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(244, 248, 255, 0.93));
+    box-shadow: var(--shadow-md);
+}
+
+.accounts-kpi-card::before,
+.accounts-report-card::before,
+.accounts-quick-card::before,
+.accounts-summary-card::before,
+.accounts-form-card::before,
+.accounts-table-card::before,
+.accounts-side-card::before,
+.accounts-empty::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top right, rgba(47, 107, 255, 0.12), transparent 0 24%),
+        radial-gradient(circle at bottom left, rgba(240, 83, 196, 0.06), transparent 0 20%);
+    pointer-events: none;
+}
+
+.accounts-kpi-card > *,
+.accounts-report-card > *,
+.accounts-quick-card > *,
+.accounts-summary-card > *,
+.accounts-form-card > *,
+.accounts-table-card > *,
+.accounts-side-card > *,
+.accounts-empty > * {
+    position: relative;
+    z-index: 1;
+}
+
+.accounts-kpi-card {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.accounts-kpi-card__top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.8rem;
+    align-items: flex-start;
+}
+
+.accounts-kpi-card__icon,
+.accounts-report-card__icon,
+.accounts-quick-card__icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(47, 107, 255, 0.14), rgba(49, 201, 255, 0.18));
+    color: var(--section-accent-strong);
+    font-size: 1.15rem;
+}
+
+.accounts-kpi-card__label,
+.accounts-summary-card__label {
+    margin: 0;
+    color: var(--text-2);
+    font-weight: 700;
+    font-size: 0.92rem;
+}
+
+.accounts-kpi-card__value,
+.accounts-summary-card__value {
+    margin: 0;
+    color: var(--text-1);
+    font-size: clamp(1.55rem, 2vw, 2.35rem);
+    font-weight: 800;
+    line-height: 1.05;
+}
+
+.accounts-kpi-card__meta,
+.accounts-summary-card__meta {
+    margin: 0;
+    color: var(--text-3);
+    font-size: 0.86rem;
+}
+
+.accounts-kpi-card.is-positive {
+    border-color: rgba(31, 211, 155, 0.18);
+}
+
+.accounts-kpi-card.is-positive .accounts-kpi-card__icon {
+    background: linear-gradient(135deg, rgba(31, 211, 155, 0.12), rgba(214, 255, 242, 0.92));
+    color: #0e7b5c;
+}
+
+.accounts-kpi-card.is-warning {
+    border-color: rgba(246, 185, 74, 0.22);
+}
+
+.accounts-kpi-card.is-warning .accounts-kpi-card__icon {
+    background: linear-gradient(135deg, rgba(246, 185, 74, 0.16), rgba(255, 247, 227, 0.96));
+    color: #996100;
+}
+
+.accounts-kpi-card.is-danger {
+    border-color: rgba(255, 107, 125, 0.2);
+}
+
+.accounts-kpi-card.is-danger .accounts-kpi-card__icon {
+    background: linear-gradient(135deg, rgba(255, 107, 125, 0.14), rgba(255, 239, 242, 0.96));
+    color: #ac3048;
+}
+
+.accounts-summary-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.accounts-summary-card__icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(47, 107, 255, 0.14), rgba(226, 236, 255, 0.95));
+    color: var(--section-accent-strong);
+}
+
+.accounts-quick-card,
+.accounts-report-card {
+    display: grid;
+    gap: 0.8rem;
+    align-content: start;
+    min-height: 100%;
+}
+
+.accounts-quick-card__title,
+.accounts-report-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-1);
+}
+
+.accounts-quick-card__desc,
+.accounts-report-card__desc {
+    margin: 0;
+    color: var(--text-2);
+    line-height: 1.8;
+}
+
+.accounts-form-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.72fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.accounts-form-card__title,
+.accounts-side-card__title,
+.accounts-table-card__title {
+    margin: 0 0 0.85rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-1);
+}
+
+.accounts-form-card__subtitle,
+.accounts-side-card__subtitle,
+.accounts-table-card__subtitle {
+    margin: -0.25rem 0 1rem;
+    color: var(--text-2);
+}
+
+.accounts-info-list {
+    display: grid;
+    gap: 0.8rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.accounts-info-list li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    color: var(--text-2);
+    line-height: 1.7;
+}
+
+.accounts-info-list i {
+    margin-top: 0.2rem;
+    color: var(--section-accent);
+}
+
+.accounts-breadcrumb {
+    margin-bottom: 0 !important;
+}
+
+.accounts-breadcrumb .breadcrumb {
+    margin: 0;
+}
+
+.accounts-table-card .card-header,
+.accounts-form-card .card-header {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(95, 121, 196, 0.12) !important;
+}
+
+.accounts-table-card .table thead th,
+.accounts-table-card table thead th {
+    background: linear-gradient(135deg, #2446a4, #2f6bff 55%, #5ec9ff) !important;
+}
+
+.accounts-inline-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.9rem;
+}
+
+.accounts-metric-band {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.9rem;
+}
+
+.accounts-metric-band__item {
+    padding: 1rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.78);
+    text-align: center;
+}
+
+.accounts-metric-band__item strong {
+    display: block;
+    font-size: 1.45rem;
+    color: var(--text-1);
+}
+
+.accounts-metric-band__item span {
+    color: var(--text-2);
+    font-size: 0.86rem;
+}
+
+.journal-filters-card,
+.journal-stats-card {
+    border-radius: var(--radius-lg) !important;
+}
+
+.journal-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.9rem;
+}
+
+.journal-filters-grid.secondary {
+    margin-top: 0.9rem;
+}
+
+.journal-filter-search {
+    grid-column: span 2;
+}
+
+.journal-stats-card .card-body {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.journal-stats-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(47, 107, 255, 0.12);
+    color: var(--section-accent-strong);
+}
+
+.journal-stats-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-1);
+    line-height: 1;
+}
+
+.journal-stats-label {
+    color: var(--text-2);
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+
+.transaction-row {
+    padding: 1rem;
+    border-radius: 22px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.72);
+    margin-bottom: 1rem;
+}
+
+.transaction-row.delete-row {
+    opacity: 0.55;
+}
+
+.delete-checkbox {
+    margin-bottom: 0.85rem;
+}
+
+.delete-entry-dialog {
+    position: fixed;
+    inset: 0;
+    background: rgba(39, 55, 97, 0.24);
+    backdrop-filter: blur(12px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 1300;
+}
+
+#deleteEntryModal[style*="display: flex"] .delete-entry-dialog,
+#deleteEntryModal[style*="display:flex"] .delete-entry-dialog {
+    display: flex;
+}
+
+.delete-entry-dialog .modal-content {
+    width: min(640px, 100%);
+}
+
+.delete-password-wrap {
+    position: relative;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    inset-inline-start: 0.7rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-2);
+}
+
+.accounts-empty {
+    text-align: center;
+    display: grid;
+    gap: 0.75rem;
+    justify-items: center;
+    min-height: 240px;
+    align-content: center;
+}
+
+.accounts-empty i {
+    font-size: 2.4rem;
+    color: var(--section-accent);
+}
+
+.accounts-balance-banner {
+    padding: 1.4rem;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, #2f6bff, #5d7eff 56%, #6fcaf8);
+    color: #fff;
+    box-shadow: var(--shadow-md);
+}
+
+.accounts-balance-banner__value {
+    font-size: clamp(2rem, 3vw, 3rem);
+    font-weight: 800;
+    line-height: 1;
+}
+
+@media (max-width: 991.98px) {
+    .accounts-form-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .journal-filter-search {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .accounts-header,
+    .accounts-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .accounts-actions > *,
+    .accounts-header > *,
+    .accounts-form-layout .btn,
+    .accounts-form-layout .btn-group,
+    .accounts-balance-banner,
+    .accounts-report-grid,
+    .accounts-kpi-grid,
+    .accounts-quick-grid,
+    .accounts-summary-grid {
+        width: 100%;
+    }
+
+    .accounts-kpi-grid,
+    .accounts-report-grid,
+    .accounts-quick-grid,
+    .accounts-summary-grid,
+    .accounts-metric-band {
+        grid-template-columns: 1fr;
+    }
+}

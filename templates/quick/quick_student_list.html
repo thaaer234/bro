@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+{% endblock %}
 {% block content %}
 <div class="module-header">
     <h2><i class="fas fa-users"></i> إدارة الطلاب السريعين</h2>
@@ -12,6 +17,9 @@
 	        {% endif %}
             <a href="{% url 'quick:student_intersections' %}" class="btn btn-outline-info">
                 <i class="fas fa-diagram-project"></i> الطلاب المشتركين
+            </a>
+            <a href="{% url 'quick:manual_sorting' %}" class="btn btn-outline-warning">
+                <i class="fas fa-table-cells-large"></i> فرز شبه يدوي
             </a>
 	        <a href="{% url 'quick:student_create' %}" class="btn btn-primary">
             <i class="fas fa-plus"></i> إضافة طالب سريع
@@ -196,23 +204,6 @@
         </form>
     </div>
 </div>
-
-<style>
-.badge-sm {
-    font-size: 0.7em;
-    padding: 2px 6px;
-}
-.btn-group .btn {
-    margin: 0 2px;
-}
-.header-actions {
-    display: flex;
-    gap: 10px;
-}
-.text-danger {
-    color: #dc3545 !important;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

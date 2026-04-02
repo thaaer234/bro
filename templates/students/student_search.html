@@ -1,7 +1,7 @@
 {% extends "students/base_student.html" %}
 
 {% block student_content %}
-<div class="module-header">
+<div class="module-header premium-hero">
     <h2>بحث عن الطلاب</h2>
     <div>
         <a href="{% url 'students:student_list' %}" class="btn btn-secondary">
@@ -13,7 +13,7 @@
 {% include "partials/_alerts.html" %}
 
 <!-- شريط البحث -->
-<div class="card mb-4">
+<div class="card mb-4 surface-panel">
     <div class="card-body">
         <h5 class="card-title"><i class="fas fa-search me-2"></i>بحث متقدم في الطلاب</h5>
         <form method="GET" action="{% url 'students:student_search' %}">
@@ -42,7 +42,7 @@
 
 {% if search_query %}
 <!-- فلاتر الجدول -->
-<div class="filters-container">
+<div class="filters-container surface-panel">
     <div class="filter-row">
         <div class="filter-group">
             <label for="id-filter">فلتر حسب الرقم:</label>
@@ -84,7 +84,7 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card surface-panel">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0"><i class="fas fa-search me-2"></i>نتائج البحث عن "{{ search_query }}"</h5>
     </div>

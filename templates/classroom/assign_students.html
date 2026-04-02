@@ -2,6 +2,11 @@
 
 {% load emp_perms %}
 {% load static %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/classroom.css' %}">
+{% endblock %}
 {% block content %}
 
 <div class="module-header">
@@ -265,31 +270,5 @@ document.addEventListener('DOMContentLoaded', function() {
     updateSelectedCount();
 });
 </script>
-
-<style>
-.student-avatar img, .student-avatar div {
-    width: 30px;
-    height: 30px;
-    object-fit: cover;
-}
-
-.selected-count {
-    display: none;
-    padding: 8px 16px;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-}
-
-.card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    border: 1px solid rgba(0, 0, 0, 0.125);
-}
-
-.card-header {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
-}
-</style>
 
 {% endblock %}

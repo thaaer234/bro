@@ -1,770 +1,150 @@
-{% load emp_perms %}
 {% load static %}
-{% block content %}
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - معهد اليمان</title>
-    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    <title>تسجيل الدخول | معهد اليمان</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/auth-refresh.css' %}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/sections/registration.css' %}">
+    <link rel="stylesheet" href="{% static 'css/premium-redesign.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            background-image:url("{% static 'img/back.png' %}");
-            font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .auth-container {
-            width: 100%;
-            max-width: 450px;
-            animation: fadeIn 0.8s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .auth-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            transition: transform 0.3s ease;
-        }
-
-        .auth-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .logo {
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-            text-align: center;
-            margin-bottom: 30px;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 30px;
-            border-radius: 25px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-            max-width: 90%; 
-        }
-        
-        .logo2 {
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 30px;
-            border-radius: 25px;
-        }
-        
-        .logo2 img {
-            width: 180px;
-            height: auto;
-            animation: float 3s ease-in-out infinite;
-        }
- 
-        .logo img {
-            width: 180px;
-            height: auto;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            animation: float 3s ease-in-out infinite;
-            object-fit: cover;
-        }
-
-        .logo h1 {
-            font-size: 24px;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .auth-form {
-            padding: 30px;
-        }
-
-        .auth-form h2 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 25px;
-            font-size: 22px;
-            font-weight: 600;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-        }
-        .input-with-icon input,
-        .form-control {
-            width: 100%;
-            padding: 16px 20px;
-            border: 2px solid #E2E8F0;
-            border-radius: 14px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: white;
-            color: var(--dark);
-            font-family: 'Cocon Next Arabic', 'Tajawal', 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-
-        }
-        .input-with-icon input:focus,
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
-            transform: translateY(-2px);
-        }
-
-        /* تصميم زر إظهار/إخفاء كلمة المرور */
-        .input-with-icon,
-        .password-toggle {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-        /*    transform: translateY(-50%);*/
-            background: none;
-            border: none;
-            color: #777;
-            cursor: pointer;
-            padding: 8px;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        .input-with-icon:hover,
-        .password-toggle:hover {
-            color: #4f6df5;
-            background-color: rgba(79, 109, 245, 0.1);
-        }
-
-        .password-toggle:active {
-            transform: translateY(-50%) scale(0.95);
-        }
-
-        .form-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .remember-me {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #555;
-        }
-
-        .remember-me input {
-            width: 16px;
-            height: 16px;
-        }
-
-        .forgot-password {
-            color: #4f6df5;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .forgot-password:hover {
-            color: #3a56e8;
-            text-decoration: underline;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #4f6df5 0%, #3a56e8 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #3a56e8 0%, #2a46d8 100%);
-            box-shadow: 0 5px 15px rgba(58, 86, 232, 0.3);
-        }
-
-        .auth-footer {
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-            font-size: 14px;
-        }
-
-        .auth-footer a {
-            color: #4f6df5;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-
-        .auth-footer a:hover {
-            color: #3a56e8;
-            text-decoration: underline;
-        }
-
-        .error-message {
-            background-color: #fee;
-            color: #c33;
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 15px;
-            text-align: center;
-            border: 1px solid #fcc;
-            display: none;
-        }
-
-        .alert {
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .alert-success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            border: 1px solid #c8e6c9;
-        }
-
-        .alert-error {
-            background-color: #ffebee;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
-        }
-
-        hr {
-            border: none;
-            height: 1px;
-            background: #e0e0e0;
-            margin: 20px 0;
-        }
-
-        /* تصميم متجاوب */
-        @media (max-width: 480px) {
-            .auth-container {
-                max-width: 100%;
-            }
-            
-            .auth-form {
-                padding: 20px;
-            }
-            
-            .form-options {
-                flex-direction: column;
-                gap: 15px;
-                align-items: flex-start;
-            }
-            
-            .logo {
-                padding: 20px 15px;
-            }
-            
-            .logo img {
-                width: 60px;
-                height: 60px;
-            }
-            
-            .logo h1 {
-                font-size: 20px;
-            }
-            
-            .password-toggle {
-                width: 35px;
-                height: 35px;
-            }
-        }
-    </style>
-    <style>
-        /* شاشة التحميل المحدثة */
-        #splash-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url("{% static 'img/back.png' %}") no-repeat center center;
-            background-size: cover;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 9999;
-            transition: opacity 0.8s ease;
-        }
-        
-        .logo-container {
-            text-align: center;
-            margin-bottom: 30px;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 30px;
-            border-radius: 25px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-            max-width: 90%;
-        }
-        
-        .logo {
-            width: 180px;
-            height: auto;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            animation: float 3s ease-in-out infinite;
-            object-fit: cover;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-15px) scale(1.05); }
-        }
-        
-        .app-name {
-            color: #4f6df5;
-            font-size: 32px;
-            margin-top: 25px;
-            font-weight: bold;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .app-subtitle {
-            color: #3a56e8;
-            font-size: 18px;
-            margin-top: 10px;
-            font-weight: 500;
-        }
-        
-        .loading-container {
-            width: 80%;
-            max-width: 400px;
-            margin-top: 30px;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 20px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            backdrop-filter: blur(10px);
-        }
-        
-        .loading-bar-container {
-            width: 100%;
-            height: 10px;
-            background: rgba(79, 109, 245, 0.2);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-        
-        .loading-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #4f6df5, #3a56e8);
-            border-radius: 10px;
-            width: 0%;
-            transition: width 0.5s ease;
-            box-shadow: 0 0 15px rgba(79, 109, 245, 0.5);
-        }
-        
-        .loading-details {
-            display: flex;
-            justify-content: space-between;
-            color: #4f6df5;
-            font-size: 14px;
-            margin-top: 10px;
-            font-weight: 500;
-        }
-        
-        .loading-step {
-            color: #3a56e8;
-            font-size: 16px;
-            margin: 15px 0;
-            text-align: center;
-            min-height: 24px;
-            font-weight: 500;
-        }
-        
-        .connection-speed {
-            position: absolute;
-            bottom: 30px;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 14px;
-            text-align: center;
-            width: 100%;
-            background: rgba(79, 109, 245, 0.7);
-            padding: 8px 15px;
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
-            max-width: 200px;
-            margin: 0 auto;
-        }
-        
-        .pulse-dots {
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
-        }
-        
-        .dot {
-            width: 12px;
-            height: 12px;
-            background: #4f6df5;
-            border-radius: 50%;
-            margin: 0 5px;
-            animation: pulse 1.5s infinite;
-        }
-        
-        .dot:nth-child(2) {
-            animation-delay: 0.3s;
-        }
-        
-        .dot:nth-child(3) {
-            animation-delay: 0.6s;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-        
-        /* محتوى التطبيق */
-        #main-content {
-            display: none;
-            padding: 20px;
-        }
-    </style>
 </head>
-<body class="auth-page">
+<body class="auth-page auth-body-premium">
+    <div class="auth-page-shell">
+        <div class="auth-layout">
+            <section class="auth-showcase surface-panel">
+                <div>
+                    <span class="welcome-kicker"><i class="fas fa-star"></i> Arabic-first Workspace</span>
+                    <div class="auth-showcase__brand mt-3">
+                        <img src="{% static 'img/logo.png' %}" alt="شعار معهد اليمان" class="auth-showcase__logo">
+                        <div>
+                            <h1 class="auth-showcase__title">معهد اليمان</h1>
+                            <div class="text-muted">منصة إدارة تعليمية حديثة وهوية تشغيل موحدة</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-showcase__copy">
+                    <p>واجهة دخول معاد تصميمها لتكون أسرع، أوضح، وأكثر فخامة على الشاشات العربية مع الحفاظ الكامل على تدفق تسجيل الدخول الحالي وحقول الأمان الموجودة.</p>
+                </div>
+                <div class="auth-metrics">
+                    <div class="auth-metric">
+                        <strong>RTL</strong>
+                        <span class="text-muted">تخطيط عربي متقن</span>
+                    </div>
+                    <div class="auth-metric">
+                        <strong>Secure</strong>
+                        <span class="text-muted">سلوك الأمان محفوظ</span>
+                    </div>
+                    <div class="auth-metric">
+                        <strong>Fast</strong>
+                        <span class="text-muted">وصول مباشر للمنصة</span>
+                    </div>
+                </div>
+            </section>
 
-    <!-- شاشة التحميل -->
-    <div id="splash-screen">
-        <div class="logo-container">
-            <img src="{% static 'img/logo.png' %}" alt="شعار النظام" class="logo" onerror="this.style.display='none'">
-            <div class="app-name">نظام المعهد</div>
-            <div class="app-subtitle">نظام الإدارة المتكامل</div>
-        </div>
-        
-        <div class="pulse-dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-        
-        <div class="loading-container">
-            <div class="loading-step" id="loading-step">جاري تهيئة النظام...</div>
-            
-            <div class="loading-bar-container">
-                <div class="loading-bar" id="loading-bar"></div>
-            </div>
-            
-            <div class="loading-details">
-                <span id="loading-percentage">0%</span>
-                <span id="loading-speed">جاري الاتصال...</span>
-            </div>
-        </div>
-        
-        <div class="connection-speed" id="connection-speed">
-            سرعة الاتصال: <span id="speed-value">--</span>
-        </div>
-    </div>
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="logo2">
-                <img src="{% static 'img/logo.png' %}" alt="معهد اليمان">
-                <h1>معهد اليمان</h1>
-            </div>
-            
-            <form id="loginForm" class="auth-form" method="POST">
-                {% csrf_token %}    
-                <input type="hidden" id="security_screenshot" name="security_screenshot">
-                <h2>تسجيل الدخول</h2>
-                
-                <!-- رسائل التنبيه -->
-                {% include "partials/_alerts.html" %}
-                
-                <!-- حقول النموذج -->
-                <div class="form-group">
-                    <label for="username">اسم المستخدم</label>
-                    <input type="text" id="username" name="username" class="form-control" placeholder="أدخل اسم المستخدم" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">كلمة المرور</label>
-                    <input type="password" id="password" name="password" class="form-control" placeholder="أدخل كلمة المرور" required>
-                    <button type="button" class="password-toggle" id="passwordToggle" aria-label="إظهار كلمة المرور">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-                
-                <!-- خيارات إضافية -->
-                {% comment %}
-                <div class="form-options">
-                    <label class="remember-me">
-                        <input name="rememberme" type="checkbox"> تذكرني
-                    </label>
-                    <a href="#" class="forgot-password">نسيت كلمة المرور؟</a>
-                </div>
-                {% endcomment %}
-                
-                <hr>
-                
-                <!-- زر التسجيل -->
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary" name="btnlogin">
-                        تسجيل الدخول <i class="fas fa-sign-in-alt"></i>
-                    </button>
+            <section class="auth-card">
+                <div class="logo2">
+                    <img src="{% static 'img/logo.png' %}" alt="شعار معهد اليمان">
+                    <h1>تسجيل الدخول</h1>
                 </div>
 
-                <!-- رابط التسجيل -->
-                {% comment %}
-                <div class="auth-footer">
-                    ليس لديك حساب؟ <a href="{% url 'signup' %}">سجل الآن</a>
-                </div>
-                {% endcomment %}
-                
-                <!-- رسالة الخطأ -->
-                <div id="loginError" class="error-message"></div>
-            </form>
+                <form id="loginForm" class="auth-form" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" id="security_screenshot" name="security_screenshot">
+                    {% include "partials/_alerts.html" %}
+
+                    <div class="form-group">
+                        <label for="username">اسم المستخدم</label>
+                        <input type="text" id="username" name="username" class="form-control" placeholder="أدخل اسم المستخدم" required>
+                    </div>
+
+                    <div class="form-group password-field">
+                        <label for="password">كلمة المرور</label>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="أدخل كلمة المرور" required>
+                        <button type="button" class="password-toggle" id="passwordToggle" aria-label="إظهار كلمة المرور">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" name="btnlogin">
+                            <i class="fas fa-right-to-bracket"></i>
+                            تسجيل الدخول
+                        </button>
+                        <a href="{% url 'registration:password_reset_request' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-key"></i>
+                            طلب إعادة تعيين كلمة المرور
+                        </a>
+                    </div>
+
+                    <div class="auth-support">مشكلة في الوصول؟ تواصل مع المشرف أو استخدم مسار إعادة التعيين المعتمد.</div>
+                    <div id="loginError" class="alert alert-danger hidden" aria-live="polite"></div>
+                </form>
+            </section>
         </div>
     </div>
 
     <script>
-        // منع الرجوع إلى الصفحة السابقة
-        history.pushState(null, null, location.href);
-        window.onpopstate = function () {
-            history.go(1);
-        };
+    history.pushState(null, null, location.href);
+    window.onpopstate = function () { history.go(1); };
 
-        // التحقق من النموذج قبل الإرسال
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('loginError');
-            const screenshotInput = document.getElementById('security_screenshot');
-            const submitButton = this.querySelector('button[type="submit"]');
-            
-            if (!username || !password) {
-                e.preventDefault();
-                errorDiv.textContent = 'يرجى ملء جميع الحقول المطلوبة';
-                errorDiv.style.display = 'block';
-            } else {
-                e.preventDefault();
-                errorDiv.style.display = 'none';
-                if (submitButton) {
-                    submitButton.disabled = true;
-                }
-                try {
-                    if (typeof html2canvas === 'function') {
-                        const captureTarget = document.querySelector('.auth-card') || document.body;
-                        const captureScale = Math.min(window.devicePixelRatio || 1.5, 2);
-                        const canvas = await html2canvas(captureTarget, {
-                            useCORS: true,
-                            backgroundColor: '#ffffff',
-                            scale: captureScale,
-                            logging: false,
-                            scrollX: 0,
-                            scrollY: 0,
-                            removeContainer: true
-                        });
-                        screenshotInput.value = canvas.toDataURL('image/png');
-                    } else {
-                        screenshotInput.value = '';
-                    }
-                } catch (captureError) {
-                    screenshotInput.value = '';
-                } finally {
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                    }
-                }
-                this.submit();
-            }
-        });
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('loginError');
+        const screenshotInput = document.getElementById('security_screenshot');
+        const submitButton = this.querySelector('button[type="submit"]');
 
-        // إضافة تأثيرات للعناصر عند التركيز
-        const inputs = document.querySelectorAll('.form-control');
-        inputs.forEach(input => {
-            input.addEventListener('focus', function() {
-                this.parentElement.classList.add('focused');
-            });
-            
-            input.addEventListener('blur', function() {
-                if (!this.value) {
-                    this.parentElement.classList.remove('focused');
-                }
-            });
-        });
-
-        // وظيفة إظهار/إخفاء كلمة المرور
-        const passwordToggle = document.getElementById('passwordToggle');
-        const passwordInput = document.getElementById('password');
-        
-        passwordToggle.addEventListener('click', function() {
-            // تغيير نوع حقل الإدخال بين password و text
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            
-            // تغيير أيقونة العين والتسمية التوضيحية
-            const icon = this.querySelector('i');
-            if (type === 'text') {
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-                this.setAttribute('aria-label', 'إخفاء كلمة المرور');
-            } else {
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-                this.setAttribute('aria-label', 'إظهار كلمة المرور');
-            }
-        });
-    </script>
-    <script>
-        // محاكاة سرعات الإنترنت المختلفة
-        const internetSpeeds = [
-            { name: "بطيئة", min: 1000, max: 2000, speed: "2G" },
-            { name: "متوسطة", min: 500, max: 1000, speed: "3G" },
-            { name: "سريعة", min: 200, max: 500, speed: "4G" },
-            { name: "فائقة", min: 50, max: 200, speed: "5G" }
-        ];
-        
-        // خطوات التحميل مع أوقات مختلفة حسب سرعة الإنترنت
-        const loadingSteps = [
-            { text: "جاري الاتصال بالخادم...", duration: 0.15 },
-            { text: "تحميل البيانات الأساسية...", duration: 0.25 },
-            { text: "تهيئة واجهة المستخدم...", duration: 0.20 },
-            { text: "تحميل المكتبات...", duration: 0.15 },
-            { text: "جاري الإنهاء...", duration: 0.25 }
-        ];
-        
-        // اختيار سرعة إنترنت عشوائية (يمكن تغييرها)
-        const randomSpeed = internetSpeeds[Math.floor(Math.random() * internetSpeeds.length)];
-        
-        // عناصر DOM
-        const splashScreen = document.getElementById('splash-screen');
-        const loadingBar = document.getElementById('loading-bar');
-        const loadingPercentage = document.getElementById('loading-percentage');
-        const loadingStep = document.getElementById('loading-step');
-        const loadingSpeed = document.getElementById('loading-speed');
-        const speedValue = document.getElementById('speed-value');
-        const mainContent = document.getElementById('main-content');
-        
-        // عرض سرعة الإنترنت
-        speedValue.textContent = randomSpeed.speed;
-        loadingSpeed.textContent = `سرعة ${randomSpeed.name}`;
-        
-        // محاكاة التحميل
-        let currentProgress = 0;
-        const totalDuration = 6000; // 6 ثواني
-        let currentStep = 0;
-        
-        function simulateLoading() {
-            const step = loadingSteps[currentStep];
-            if (step) {
-                loadingStep.textContent = step.text;
-                
-                const stepDuration = totalDuration * step.duration;
-                const stepIncrement = step.duration * 100;
-                
-                let stepProgress = 0;
-                const stepInterval = setInterval(() => {
-                    stepProgress += (100 / (stepDuration / 50));
-                    
-                    if (stepProgress >= 100) {
-                        clearInterval(stepInterval);
-                        currentProgress += stepIncrement;
-                        loadingBar.style.width = currentProgress + '%';
-                        loadingPercentage.textContent = Math.round(currentProgress) + '%';
-                        
-                        currentStep++;
-                        if (currentStep < loadingSteps.length) {
-                            // إضافة تأخير عشوائي بين الخطوات لمحاكاة الإنترنت
-                            const randomDelay = Math.random() * (randomSpeed.max - randomSpeed.min) + randomSpeed.min;
-                            setTimeout(simulateLoading, randomDelay);
-                        } else {
-                            // إنهاء التحميل
-                            finishLoading();
-                        }
-                    }
-                }, 50);
-            }
+        if (!username || !password) {
+            e.preventDefault();
+            errorDiv.textContent = 'يرجى تعبئة جميع الحقول المطلوبة.';
+            errorDiv.classList.remove('hidden');
+            return;
         }
-        
-        function finishLoading() {
-            // التأكد من أن الشريط مكتمل 100%
-            loadingBar.style.width = '100%';
-            loadingPercentage.textContent = '100%';
-            loadingStep.textContent = 'جاهز!';
-            
-            // انتظر نصف ثانية ثم ابدأ بالإخفاء
-            setTimeout(() => {
-                splashScreen.style.opacity = '0';
-                
-                setTimeout(() => {
-                    splashScreen.style.display = 'none';
-                    mainContent.style.display = 'block';
-                    
-                    // هنا يمكنك إضافة أي كود إضافي بعد تحميل التطبيق
-                    console.log('تم تحميل التطبيق بنجاح!');
-                    
-                }, 800); // وقت fade out
-                
-            }, 500); // انتظار قبل البدء بالإخفاء
-        }
-        
-        // بدء التحميل عندما تكون الصفحة جاهزة
-        document.addEventListener('DOMContentLoaded', function() {
-            // بدء محاكاة التحميل بعد تأخير بسيط
-            setTimeout(simulateLoading, 500);
-        });
-        
-        // إذا حدث خطأ في تحميل الصورة
-        window.addEventListener('error', function(e) {
-            if (e.target.tagName === 'IMG') {
-                console.log('خطأ في تحميل الصورة:', e.target.src);
-                // يمكنك إضافة صورة بديلة هنا إذا أردت
+
+        e.preventDefault();
+        errorDiv.classList.add('hidden');
+        if (submitButton) { submitButton.disabled = true; }
+
+        try {
+            if (typeof html2canvas === 'function') {
+                const captureTarget = document.querySelector('.auth-card') || document.body;
+                const captureScale = Math.min(window.devicePixelRatio || 1.5, 2);
+                const canvas = await html2canvas(captureTarget, {
+                    useCORS: true,
+                    backgroundColor: '#0a1221',
+                    scale: captureScale,
+                    logging: false,
+                    scrollX: 0,
+                    scrollY: 0,
+                    removeContainer: true
+                });
+                screenshotInput.value = canvas.toDataURL('image/png');
+            } else {
+                screenshotInput.value = '';
             }
-        }, true);
+        } catch (captureError) {
+            screenshotInput.value = '';
+        } finally {
+            if (submitButton) { submitButton.disabled = false; }
+        }
+
+        this.submit();
+    });
+
+    const passwordToggle = document.getElementById('passwordToggle');
+    const passwordInput = document.getElementById('password');
+    passwordToggle.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        const icon = this.querySelector('i');
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    });
     </script>
 </body>
 </html>
-
-{% endblock %}

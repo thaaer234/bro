@@ -2,6 +2,7 @@
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView
 from django.views.generic.edit import FormView
 from django.urls import reverse, reverse_lazy
+from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Value, DecimalField, Count
 from django.db.models.functions import Coalesce
 from django.db import transaction
@@ -55,6 +56,7 @@ from .models import (
     QuickCourseSessionAttendance,
     QuickCourseSessionEnrollment,
     QuickEnrollment,
+    QuickManualSortingSelection,
     QuickReceiptPrintJob,
     QuickStudent,
     QuickStudentReceipt,
@@ -2506,6 +2508,456 @@ class QuickStudentIntersectionView(LoginRequiredMixin, TemplateView):
             'has_selection': bool(selected_courses),
             'intersection_mode': 'single' if len(selected_courses) == 1 else 'multi',
             'is_exact_intersection': len(selected_courses) > 1,
+        })
+        return context
+
+
+def _resolve_quick_course_type_value(raw_value, allow_all=True):
+    valid_course_types = {value for value, _ in QuickCourse.COURSE_TYPE_CHOICES}
+    if allow_all and raw_value == 'ALL':
+        return 'ALL'
+    if raw_value in valid_course_types:
+        return raw_value
+    return 'INTENSIVE'
+
+
+def _extract_quick_teacher_short_name(course_name):
+    course_name = str(course_name or '').strip()
+    if not course_name:
+        return ''
+
+    teacher_full_name = ''
+    if '(' in course_name and ')' in course_name:
+        inner_text = course_name.rsplit('(', 1)[-1].split(')', 1)[0].strip()
+        teacher_full_name = inner_text
+        for prefix in ('الأستاذة', 'الاستاذة', 'الأستاذ', 'الاستاذ'):
+            if teacher_full_name.startswith(prefix):
+                teacher_full_name = teacher_full_name[len(prefix):].strip()
+                break
+    teacher_tokens = [token for token in teacher_full_name.split() if token]
+    if teacher_tokens:
+        return teacher_tokens[0]
+    return course_name
+
+
+def _extract_quick_course_subject(course_name):
+    course_name = str(course_name or '').strip()
+    if not course_name:
+        return ''
+
+    base_name = course_name.split('(', 1)[0].strip()
+    removable_tokens = {
+        'مكثفة',
+        'التاسع',
+        'تاسع',
+        'بكالوريا',
+        'البكالوريا',
+        'الصف',
+        'اللغة',
+    }
+    subject_tokens = [token for token in base_name.split() if token and token not in removable_tokens]
+    return ' '.join(subject_tokens).strip() or base_name
+
+
+def _get_quick_manual_stage_options():
+    return [
+        {'value': 'NON_NINTH', 'label': 'البكالوريا'},
+        {'value': 'NINTH', 'label': 'تاسع'},
+    ]
+
+
+def _quick_manual_selection_table_exists():
+    try:
+        return QuickManualSortingSelection._meta.db_table in connection.introspection.table_names()
+    except Exception:
+        return False
+
+
+def _filter_quick_courses_by_stage(courses, stage):
+    if stage == 'NINTH':
+        return courses.filter(name__icontains='تاسع')
+    if stage == 'NON_NINTH':
+        return courses.exclude(name__icontains='تاسع')
+    return courses
+
+
+def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINTH'):
+    course_type = _resolve_quick_course_type_value(course_type, allow_all=True)
+    stage = (stage or 'NON_NINTH').upper()
+    valid_stages = {item['value'] for item in _get_quick_manual_stage_options()}
+    if stage not in valid_stages:
+        stage = 'NON_NINTH'
+    course_type_options = _get_course_type_options()
+    course_type_labels = {item['value']: item['label'] for item in course_type_options}
+    stage_options = _get_quick_manual_stage_options()
+    stage_labels = {item['value']: item['label'] for item in stage_options}
+
+    courses = QuickCourse.objects.filter(is_active=True)
+    if course_type != 'ALL':
+        courses = courses.filter(course_type=course_type)
+    courses = _filter_quick_courses_by_stage(courses, stage)
+    courses = list(
+        courses.select_related('academic_year')
+        .annotate(
+            active_enrollments_count=Count(
+                'enrollments',
+                filter=Q(enrollments__is_completed=False, enrollments__student__is_active=True),
+                distinct=True,
+            )
+        )
+        .filter(active_enrollments_count__gt=0)
+        .order_by('name', 'id')
+    )
+
+    course_ids = [course.id for course in courses]
+    sessions = list(
+        QuickCourseSession.objects.filter(course_id__in=course_ids, is_active=True)
+        .select_related('course')
+        .order_by('course__name', 'start_date', 'start_time', 'id')
+    )
+
+    sessions_by_course = defaultdict(list)
+    current_loads = {}
+    for session in sessions:
+        sessions_by_course[session.course_id].append(session)
+        current_loads[session.id] = session.enrolled_count
+
+    course_columns = []
+    for course in courses:
+        option_rows = []
+        active_sessions = sessions_by_course.get(course.id, [])
+        for period_number, session in enumerate(active_sessions, start=1):
+            option_rows.append({
+                'id': session.id,
+                'period_number': period_number,
+                'label': f"الفترة {period_number}",
+                'session': session,
+                'timing': (
+                    f"{session.start_time.strftime('%I:%M %p')} - "
+                    f"{session.end_time.strftime('%I:%M %p') if session.end_time else 'مفتوح'}"
+                ),
+            })
+        course_columns.append({
+            'course': course,
+            'short_teacher_name': _extract_quick_teacher_short_name(course.name),
+            'subject_name': _extract_quick_course_subject(course.name),
+            'sessions': option_rows,
+            'sessions_count': len(option_rows),
+            'single_session_id': option_rows[0]['id'] if len(option_rows) == 1 else None,
+            'single_period_number': option_rows[0]['period_number'] if len(option_rows) == 1 else None,
+            'has_sessions': bool(option_rows),
+        })
+
+    course_columns.sort(
+        key=lambda item: (
+            -item['sessions_count'],
+            item['short_teacher_name'],
+            item['course'].name,
+            item['course'].id,
+        )
+    )
+    course_column_map = {item['course'].id: item for item in course_columns}
+
+    enrollments_qs = QuickEnrollment.objects.filter(
+        course_id__in=course_ids,
+        is_completed=False,
+        student__is_active=True,
+    )
+    select_related_fields = [
+        'student',
+        'student__created_by',
+        'student__student',
+        'course',
+        'session_assignment',
+        'session_assignment__session',
+    ]
+    manual_selection_enabled = _quick_manual_selection_table_exists()
+    if manual_selection_enabled:
+        select_related_fields.extend([
+            'manual_sorting_selection',
+            'manual_sorting_selection__session',
+        ])
+    enrollments = list(
+        enrollments_qs.select_related(*select_related_fields).order_by('student__full_name', 'course__name', 'id')
+    )
+
+    student_rows_by_id = {}
+    for enrollment in enrollments:
+        student = enrollment.student
+        student_row = student_rows_by_id.setdefault(
+            student.id,
+            {
+                'student': student,
+                'enrollments_by_course': {},
+                'enrolled_courses_count': 0,
+            },
+        )
+        student_row['enrollments_by_course'][enrollment.course_id] = enrollment
+        student_row['enrolled_courses_count'] += 1
+
+    student_rows = []
+    for student_row in student_rows_by_id.values():
+        cells = []
+        for column in course_columns:
+            course = column['course']
+            enrollment = student_row['enrollments_by_course'].get(course.id)
+            if enrollment is None:
+                cells.append({
+                    'course_id': course.id,
+                    'is_enrolled': False,
+                    'status_label': 'غير مسجل',
+                })
+                continue
+
+            assignment = getattr(enrollment, 'session_assignment', None)
+            manual_selection = getattr(enrollment, 'manual_sorting_selection', None) if manual_selection_enabled else None
+            selected_session_id = None
+            if column['single_session_id']:
+                selected_session_id = column['single_session_id']
+            elif manual_selection and getattr(manual_selection, 'session_id', None) in {item['id'] for item in column['sessions']}:
+                selected_session_id = manual_selection.session_id
+
+            cells.append({
+                'course_id': course.id,
+                'enrollment': enrollment,
+                'is_enrolled': True,
+                'status_label': 'مسجل',
+                'sessions': column['sessions'],
+                'has_sessions': column['has_sessions'],
+                'selected_session_id': selected_session_id,
+                'selected_period_number': next(
+                    (item['period_number'] for item in column['sessions'] if item['id'] == selected_session_id),
+                    None,
+                ),
+                'current_session_id': getattr(assignment, 'session_id', None),
+                'manual_selected_session_id': getattr(manual_selection, 'session_id', None),
+            })
+
+        student_row['cells'] = cells
+        student_rows.append(student_row)
+
+    student_rows.sort(
+        key=lambda item: (
+            -item['enrolled_courses_count'],
+            item['student'].full_name,
+            item['student'].id,
+        )
+    )
+
+    return {
+        'course_type': course_type,
+        'course_type_label': course_type_labels.get(course_type, course_type),
+        'course_type_options': course_type_options,
+        'stage': stage,
+        'stage_label': stage_labels.get(stage, stage),
+        'stage_options': stage_options,
+        'courses': courses,
+        'course_columns': course_columns,
+        'course_column_map': course_column_map,
+        'student_rows': student_rows,
+        'current_loads': current_loads,
+        'manual_selection_enabled': manual_selection_enabled,
+        'generated_at': timezone.localtime(),
+    }
+
+
+class QuickManualSortingView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_manual_sorting.html'
+    page_size = 30
+
+    def _get_payload(self):
+        course_type = self.request.GET.get('course_type') or self.request.POST.get('course_type') or 'INTENSIVE'
+        stage = self.request.GET.get('stage') or self.request.POST.get('stage') or 'NON_NINTH'
+        return _build_quick_manual_sorting_payload(course_type=course_type, stage=stage)
+
+    def _get_page_obj(self, rows):
+        paginator = Paginator(rows, self.page_size)
+        page_number = self.request.GET.get('page') or self.request.POST.get('page') or 1
+        return paginator.get_page(page_number)
+
+    def _build_context(self, payload):
+        page_obj = self._get_page_obj(payload['student_rows'])
+        base_query = urlencode({'course_type': payload['course_type'], 'stage': payload['stage']})
+        print_url = f"{reverse('quick:manual_sorting_print')}?{base_query}" if payload['courses'] else ''
+        student_list_url = reverse('quick:student_list')
+        return {
+            **payload,
+            'page_obj': page_obj,
+            'student_rows_page': list(page_obj.object_list),
+            'base_query': base_query,
+            'print_url': print_url,
+            'student_list_url': student_list_url,
+            'total_students': len(payload['student_rows']),
+            'total_courses': len(payload['course_columns']),
+            'students_on_page': len(page_obj.object_list),
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(self._build_context(self._get_payload()))
+        return context
+
+    def post(self, request, *args, **kwargs):
+        payload = self._get_payload()
+        page_obj = self._get_page_obj(payload['student_rows'])
+        rows_on_page = list(page_obj.object_list)
+        course_column_map = payload['course_column_map']
+        changes = []
+        validation_errors = []
+
+        for row in rows_on_page:
+            for cell in row['cells']:
+                if not cell.get('is_enrolled'):
+                    continue
+
+                enrollment = cell['enrollment']
+                column = course_column_map.get(cell['course_id'])
+                if not column:
+                    continue
+
+                available_session_ids = {item['id'] for item in column['sessions']}
+                raw_value = (request.POST.get(f'assignment_{enrollment.id}') or '').strip()
+                new_session_id = None
+
+                if raw_value:
+                    try:
+                        new_session_id = int(raw_value)
+                    except (TypeError, ValueError):
+                        validation_errors.append(f"اختيار غير صالح للطالب {row['student'].full_name} في دورة {enrollment.course.name}.")
+                        continue
+                    if new_session_id not in available_session_ids:
+                        validation_errors.append(f"الفترة المختارة لا تتبع دورة {enrollment.course.name} للطالب {row['student'].full_name}.")
+                        continue
+                elif column['single_session_id']:
+                    new_session_id = column['single_session_id']
+                else:
+                    # Multi-session courses stay blank by default. If this row was
+                    # previously fixed from this screen, blank means "clear my fix".
+                    if cell.get('manual_selected_session_id'):
+                        changes.append({
+                            'student_name': row['student'].full_name,
+                            'course_name': enrollment.course.name,
+                            'enrollment': enrollment,
+                            'current_session_id': cell.get('current_session_id'),
+                            'manual_selected_session_id': cell.get('manual_selected_session_id'),
+                            'new_session_id': None,
+                        })
+                    continue
+
+                current_session_id = cell.get('current_session_id')
+                manual_selected_session_id = cell.get('manual_selected_session_id')
+                if current_session_id == new_session_id and manual_selected_session_id == new_session_id:
+                    continue
+
+                changes.append({
+                    'student_name': row['student'].full_name,
+                    'course_name': enrollment.course.name,
+                    'enrollment': enrollment,
+                    'current_session_id': current_session_id,
+                    'manual_selected_session_id': manual_selected_session_id,
+                    'new_session_id': new_session_id,
+                })
+
+        simulated_loads = dict(payload['current_loads'])
+        session_lookup = {
+            item['id']: item['session']
+            for column in payload['course_columns']
+            for item in column['sessions']
+        }
+
+        for change in changes:
+            old_session_id = change['current_session_id']
+            new_session_id = change['new_session_id']
+            if old_session_id:
+                simulated_loads[old_session_id] = max(0, simulated_loads.get(old_session_id, 0) - 1)
+            if new_session_id:
+                next_load = simulated_loads.get(new_session_id, 0) + 1
+                session = session_lookup.get(new_session_id)
+                if session and session.capacity and next_load > session.capacity:
+                    validation_errors.append(
+                        f"لا يمكن وضع الطالب {change['student_name']} في {session.title} لأن السعة امتلأت."
+                    )
+                    continue
+                simulated_loads[new_session_id] = next_load
+
+        if validation_errors:
+            for error in validation_errors[:8]:
+                messages.error(request, error)
+            if len(validation_errors) > 8:
+                messages.error(request, f"يوجد {len(validation_errors) - 8} أخطاء إضافية لم تُعرض هنا.")
+            return self.render_to_response(self._build_context(payload))
+
+        saved_count = 0
+        manual_selection_enabled = payload.get('manual_selection_enabled', False)
+        with transaction.atomic():
+            for change in changes:
+                enrollment = change['enrollment']
+                current_assignment = getattr(enrollment, 'session_assignment', None)
+                new_session_id = change['new_session_id']
+
+                if new_session_id is None:
+                    manual_selection = getattr(enrollment, 'manual_sorting_selection', None) if manual_selection_enabled else None
+                    if manual_selection_enabled and manual_selection:
+                        manual_selection.delete()
+                    if current_assignment and change.get('manual_selected_session_id') == current_assignment.session_id:
+                        current_assignment.delete()
+                        saved_count += 1
+                    continue
+
+                if current_assignment:
+                    if current_assignment.session_id != new_session_id:
+                        current_assignment.session_id = new_session_id
+                        current_assignment.assigned_by = request.user
+                        current_assignment.save(update_fields=['session', 'assigned_by'])
+                        saved_count += 1
+                else:
+                    QuickCourseSessionEnrollment.objects.create(
+                        enrollment=enrollment,
+                        session_id=new_session_id,
+                        assigned_by=request.user,
+                    )
+                    saved_count += 1
+
+                if manual_selection_enabled:
+                    previous_manual_session_id = change.get('manual_selected_session_id')
+                    manual_selection, created = QuickManualSortingSelection.objects.update_or_create(
+                        enrollment=enrollment,
+                        defaults={
+                            'session_id': new_session_id,
+                            'selected_by': request.user,
+                        },
+                    )
+                    if (created or previous_manual_session_id != new_session_id) and current_assignment and current_assignment.session_id == new_session_id:
+                        saved_count += 1
+
+        if saved_count:
+            messages.success(request, f'تم حفظ {saved_count} تعديل في صفحة الفرز الحالية.')
+        else:
+            messages.info(request, 'لا يوجد تغييرات جديدة للحفظ في هذه الصفحة.')
+
+        redirect_url = reverse('quick:manual_sorting')
+        redirect_query = urlencode({
+            'course_type': payload['course_type'],
+            'stage': payload['stage'],
+            'page': page_obj.number,
+        })
+        return redirect(f'{redirect_url}?{redirect_query}')
+
+
+class QuickManualSortingPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_manual_sorting_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        payload = _build_quick_manual_sorting_payload(
+            course_type=self.request.GET.get('course_type') or 'INTENSIVE',
+            stage=self.request.GET.get('stage') or 'NON_NINTH',
+        )
+        context.update({
+            **payload,
+            'student_rows_all': payload['student_rows'],
+            'total_students': len(payload['student_rows']),
+            'total_courses': len(payload['course_columns']),
         })
         return context
 

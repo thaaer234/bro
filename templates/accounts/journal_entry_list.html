@@ -1,431 +1,147 @@
 {% extends 'accounts/base.html' %}
 {% load student_filters %}
 
-{% block title %}قيود اليومية{% endblock %}
+{% block title %}القيود اليومية{% endblock %}
 
 {% block content %}
-<style>
-.journal-filters-card {
-    border: 1px solid #e2e8f0;
-    border-radius: 22px;
-    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
-    overflow: hidden;
-}
-
-.journal-filters-card .card-body {
-    padding: 1rem;
-    background:
-        radial-gradient(circle at top right, rgba(191, 219, 254, 0.28), transparent 34%),
-        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-}
-
-.journal-filters-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 0.9rem;
-    padding-bottom: 0.85rem;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.journal-filters-title {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 800;
-    color: #0f172a;
-}
-
-.journal-filters-subtitle {
-    margin: 0.2rem 0 0;
-    font-size: 0.84rem;
-    color: #64748b;
-}
-
-.journal-filters-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 2.2fr) repeat(3, minmax(145px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-}
-
-.journal-filters-grid.secondary {
-    grid-template-columns: repeat(4, minmax(140px, 1fr)) minmax(210px, 0.95fr);
-    margin-bottom: 0;
-}
-
-.journal-filter-field {
-    min-width: 0;
-}
-
-.journal-filters-card .form-label {
-    display: block;
-    font-size: 0.78rem;
-    margin-bottom: 0.35rem;
-    font-weight: 800;
-    color: #334155;
-}
-
-.journal-filters-card .form-control,
-.journal-filters-card .form-select {
-    min-height: 42px;
-    font-size: 0.91rem;
-    border-radius: 14px;
-    border: 1px solid #cbd5e1;
-    background: #fff;
-    box-shadow: none;
-}
-
-.journal-filters-card .form-control:focus,
-.journal-filters-card .form-select:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.12);
-}
-
-.journal-filter-search .form-control {
-    padding-inline: 14px;
-}
-
-.journal-filters-card .filter-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.55rem;
-    align-items: end;
-    height: 100%;
-}
-
-.journal-filters-card .filter-actions .btn {
-    min-height: 42px;
-    font-size: 0.9rem;
-    font-weight: 800;
-    border-radius: 14px;
-}
-
-.journal-stats-card {
-    border: 1px solid #e2e8f0;
-    border-radius: 22px;
-    overflow: hidden;
-    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.05);
-    background: #fff;
-}
-
-.journal-stats-card .card-body {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 1rem 1.05rem;
-}
-
-.journal-stats-icon {
-    width: 52px;
-    height: 52px;
-    flex: 0 0 52px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 16px;
-    font-size: 1.1rem;
-}
-
-.journal-stats-card.total .journal-stats-icon {
-    background: #eff6ff;
-    color: #2563eb;
-}
-
-.journal-stats-card.posted .journal-stats-icon {
-    background: #ecfdf5;
-    color: #059669;
-}
-
-.journal-stats-card.unposted .journal-stats-icon {
-    background: #fff7ed;
-    color: #ea580c;
-}
-
-.journal-stats-card.month .journal-stats-icon {
-    background: #eef2ff;
-    color: #4f46e5;
-}
-
-.journal-stats-text {
-    min-width: 0;
-}
-
-.journal-stats-label {
-    margin: 0 0 0.25rem;
-    font-size: 0.83rem;
-    font-weight: 700;
-    color: #64748b;
-}
-
-.journal-stats-value {
-    margin: 0;
-    font-size: 1.55rem;
-    line-height: 1;
-    font-weight: 800;
-    color: #0f172a;
-    letter-spacing: -0.03em;
-}
-
-.delete-password-wrap {
-    position: relative;
-}
-
-.delete-password-wrap .form-control {
-    padding-left: 48px;
-}
-
-.toggle-password-btn {
-    position: absolute;
-    left: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    border: none;
-    background: transparent;
-    color: #64748b;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-}
-
-.toggle-password-btn:hover {
-    background: #f1f5f9;
-    color: #0f172a;
-}
-
-@media (max-width: 991.98px) {
-    .journal-filters-grid,
-    .journal-filters-grid.secondary {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 575.98px) {
-    .journal-filters-card .card-body {
-        padding: 0.75rem;
-    }
-
-    .journal-filters-head {
-        align-items: start;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .journal-filters-grid,
-    .journal-filters-grid.secondary {
-        grid-template-columns: 1fr;
-        gap: 0.65rem;
-    }
-
-    .journal-filters-card .form-control,
-    .journal-filters-card .form-select,
-    .journal-filters-card .btn {
-        min-height: 38px;
-        font-size: 0.88rem;
-    }
-
-    .journal-filters-card .filter-actions {
-        grid-template-columns: 1fr;
-    }
-
-    .journal-filters-card .filter-actions .btn {
-        width: 100%;
-    }
-
-    .journal-stats-card .card-body {
-        padding: 0.9rem;
-    }
-
-    .journal-stats-icon {
-        width: 46px;
-        height: 46px;
-        flex-basis: 46px;
-        border-radius: 14px;
-    }
-
-    .journal-stats-value {
-        font-size: 1.3rem;
-    }
-}
-</style>
-
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div>
-        <h2 class="mb-1">قيود اليومية</h2>
-        <div class="text-muted">بحث وعرض وإدارة القيود المحاسبية</div>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-        {% if request.user.is_superuser %}
-        <form method="post" action="{% url 'accounts:fix_journal_mojibake' %}" class="d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="btn btn-warning" onclick="return confirm('سيتم إصلاح النصوص العربية المعطوبة في القيود والمعاملات. هل تريد المتابعة؟');">
-                <i class="fas fa-language"></i>
-                إصلاح النصوص
-            </button>
-        </form>
-        {% endif %}
-        <a href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&export=excel" class="btn btn-success">
-            <i class="fas fa-file-excel"></i>
-            تصدير Excel
-        </a>
-        <a href="{% url 'accounts:journal_entry_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i>
-            قيد جديد
-        </a>
-    </div>
-</div>
-
-<nav aria-label="breadcrumb" class="mb-4">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة المحاسبة</a></li>
-        <li class="breadcrumb-item active">قيود اليومية</li>
-    </ol>
-</nav>
-
-<div class="card mb-4 journal-filters-card">
-    <div class="card-body">
-        <div class="journal-filters-head">
-            <div>
-                <h3 class="journal-filters-title">فلترة القيود اليومية</h3>
-                <p class="journal-filters-subtitle">ابحث بسرعة حسب المرجع أو الوصف أو الحساب أو المستخدم، ثم ضيق النتائج بالتاريخ والحالة والمبلغ.</p>
-            </div>
+<section class="accounts-section">
+    <div class="accounts-header">
+        <div class="accounts-header__copy">
+            <span class="page-toolbar__eyebrow"><i class="fas fa-book-open"></i> Journal Entries</span>
+            <h2>القيود اليومية</h2>
+            <p>بحث، فرز، ومراجعة القيود المحاسبية ضمن شاشة تشغيل موحدة عالية الكثافة.</p>
         </div>
+        <div class="accounts-actions">
+            {% if request.user.is_superuser %}
+            <form method="post" action="{% url 'accounts:fix_journal_mojibake' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="btn btn-warning" onclick="return confirm('سيتم إصلاح النصوص العربية المعطوبة في القيود والمعاملات. هل تريد المتابعة؟');">
+                    <i class="fas fa-language"></i>
+                    إصلاح النصوص
+                </button>
+            </form>
+            {% endif %}
+            <a href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&export=excel" class="btn btn-success">
+                <i class="fas fa-file-excel"></i>
+                تصدير Excel
+            </a>
+            <a href="{% url 'accounts:journal_entry_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                قيد جديد
+            </a>
+        </div>
+    </div>
+
+    <nav class="accounts-breadcrumb" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة المحاسبة</a></li>
+            <li class="breadcrumb-item active">القيود اليومية</li>
+        </ol>
+    </nav>
+
+    <div class="accounts-form-card journal-filters-card">
+        <h3 class="accounts-form-card__title">فلاتر القيود</h3>
+        <p class="accounts-form-card__subtitle">ابحث حسب المرجع أو الوصف أو المستخدم، ثم ضيق النتائج بالتاريخ والحالة والمبلغ.</p>
         <form method="get">
             <div class="journal-filters-grid">
-            <div class="journal-filter-field journal-filter-search">
-                <label for="q" class="form-label">بحث داخل القيود</label>
-                <input
-                    id="q"
-                    type="text"
-                    name="q"
-                    class="form-control"
-                    value="{{ search_query }}"
-                    placeholder="ابحث بالمرجع أو وصف القيد أو وصف الحركة أو كود الحساب أو اسم الحساب أو المستخدم">
-            </div>
-            <div class="journal-filter-field">
-                <label for="status" class="form-label">الحالة</label>
-                <select id="status" name="status" class="form-select">
-                    <option value="">الكل</option>
-                    <option value="posted" {% if status_filter == 'posted' %}selected{% endif %}>مرحل</option>
-                    <option value="unposted" {% if status_filter == 'unposted' %}selected{% endif %}>غير مرحل</option>
-                </select>
-            </div>
-            <div class="journal-filter-field">
-                <label for="entry_type" class="form-label">نوع القيد</label>
-                <select id="entry_type" name="entry_type" class="form-select">
-                    <option value="">الكل</option>
-                    {% for value, label in entry_type_choices %}
-                    <option value="{{ value }}" {% if entry_type_filter == value %}selected{% endif %}>{{ label|fix_arabic_text }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="journal-filter-field">
-                <label for="created_by" class="form-label">أنشئ بواسطة</label>
-                <select id="created_by" name="created_by" class="form-select">
-                    <option value="">الكل</option>
-                    {% for user_row in created_by_users %}
-                    <option value="{{ user_row.created_by_id }}" {% if created_by_filter == user_row.created_by_id|stringformat:"s" %}selected{% endif %}>
-                        {{ user_row.created_by__first_name }} {{ user_row.created_by__last_name }}{% if not user_row.created_by__first_name and not user_row.created_by__last_name %}{{ user_row.created_by__username }}{% endif %}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            </div>
-            <div class="journal-filters-grid secondary">
-            <div class="journal-filter-field">
-                <label for="date_from" class="form-label">من تاريخ</label>
-                <input id="date_from" type="date" name="date_from" class="form-control" value="{{ date_from }}">
-            </div>
-            <div class="journal-filter-field">
-                <label for="date_to" class="form-label">إلى تاريخ</label>
-                <input id="date_to" type="date" name="date_to" class="form-control" value="{{ date_to }}">
-            </div>
-            <div class="journal-filter-field">
-                <label for="amount_min" class="form-label">المبلغ من</label>
-                <input id="amount_min" type="number" step="0.01" name="amount_min" class="form-control" value="{{ amount_min }}" placeholder="0">
-            </div>
-            <div class="journal-filter-field">
-                <label for="amount_max" class="form-label">المبلغ إلى</label>
-                <input id="amount_max" type="number" step="0.01" name="amount_max" class="form-control" value="{{ amount_max }}" placeholder="0">
-            </div>
-            <div class="journal-filter-field">
-                <div class="filter-actions">
-                <button type="submit" class="btn btn-dark">
-                    <i class="fas fa-search"></i>
-                    بحث
-                </button>
-                <a href="{% url 'accounts:journal_entry_list' %}" class="btn btn-outline-secondary">
-                    تصفير
-                </a>
+                <div class="journal-filter-field journal-filter-search">
+                    <label for="q" class="form-label">بحث داخل القيود</label>
+                    <input id="q" type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="ابحث بالمرجع أو الوصف أو الحساب أو المستخدم">
+                </div>
+                <div class="journal-filter-field">
+                    <label for="status" class="form-label">الحالة</label>
+                    <select id="status" name="status" class="form-select">
+                        <option value="">الكل</option>
+                        <option value="posted" {% if status_filter == 'posted' %}selected{% endif %}>مرحل</option>
+                        <option value="unposted" {% if status_filter == 'unposted' %}selected{% endif %}>غير مرحل</option>
+                    </select>
+                </div>
+                <div class="journal-filter-field">
+                    <label for="entry_type" class="form-label">نوع القيد</label>
+                    <select id="entry_type" name="entry_type" class="form-select">
+                        <option value="">الكل</option>
+                        {% for value, label in entry_type_choices %}
+                        <option value="{{ value }}" {% if entry_type_filter == value %}selected{% endif %}>{{ label|fix_arabic_text }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="journal-filter-field">
+                    <label for="created_by" class="form-label">أنشئ بواسطة</label>
+                    <select id="created_by" name="created_by" class="form-select">
+                        <option value="">الكل</option>
+                        {% for user_row in created_by_users %}
+                        <option value="{{ user_row.created_by_id }}" {% if created_by_filter == user_row.created_by_id|stringformat:"s" %}selected{% endif %}>
+                            {{ user_row.created_by__first_name }} {{ user_row.created_by__last_name }}{% if not user_row.created_by__first_name and not user_row.created_by__last_name %}{{ user_row.created_by__username }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
+
+            <div class="journal-filters-grid secondary">
+                <div class="journal-filter-field">
+                    <label for="date_from" class="form-label">من تاريخ</label>
+                    <input id="date_from" type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="journal-filter-field">
+                    <label for="date_to" class="form-label">إلى تاريخ</label>
+                    <input id="date_to" type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <div class="journal-filter-field">
+                    <label for="amount_min" class="form-label">المبلغ من</label>
+                    <input id="amount_min" type="number" step="0.01" name="amount_min" class="form-control" value="{{ amount_min }}" placeholder="0">
+                </div>
+                <div class="journal-filter-field">
+                    <label for="amount_max" class="form-label">المبلغ إلى</label>
+                    <input id="amount_max" type="number" step="0.01" name="amount_max" class="form-control" value="{{ amount_max }}" placeholder="0">
+                </div>
+                <div class="journal-filter-field d-flex align-items-end">
+                    <div class="filter-actions w-100">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> بحث</button>
+                        <a href="{% url 'accounts:journal_entry_list' %}" class="btn btn-outline-secondary">تصفير</a>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
-</div>
 
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card h-100 journal-stats-card total">
-            <div class="card-body">
-                <div class="journal-stats-icon">
-                    <i class="fas fa-layer-group"></i>
-                </div>
-                <div class="journal-stats-text">
-                    <div class="journal-stats-label">إجمالي النتائج</div>
-                    <div class="journal-stats-value">{{ filtered_total }}</div>
-                </div>
+    <div class="accounts-summary-grid">
+        <article class="accounts-summary-card journal-stats-card total">
+            <span class="accounts-summary-card__icon"><i class="fas fa-layer-group"></i></span>
+            <div>
+                <p class="accounts-summary-card__label">إجمالي النتائج</p>
+                <h4 class="accounts-summary-card__value">{{ filtered_total }}</h4>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100 journal-stats-card posted">
-            <div class="card-body">
-                <div class="journal-stats-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="journal-stats-text">
-                    <div class="journal-stats-label">قيود مرحلة</div>
-                    <div class="journal-stats-value">{{ posted_count }}</div>
-                </div>
+        </article>
+        <article class="accounts-summary-card journal-stats-card posted">
+            <span class="accounts-summary-card__icon"><i class="fas fa-circle-check"></i></span>
+            <div>
+                <p class="accounts-summary-card__label">قيود مرحلة</p>
+                <h4 class="accounts-summary-card__value">{{ posted_count }}</h4>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100 journal-stats-card unposted">
-            <div class="card-body">
-                <div class="journal-stats-icon">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="journal-stats-text">
-                    <div class="journal-stats-label">قيود غير مرحلة</div>
-                    <div class="journal-stats-value">{{ unposted_count }}</div>
-                </div>
+        </article>
+        <article class="accounts-summary-card journal-stats-card unposted">
+            <span class="accounts-summary-card__icon"><i class="fas fa-clock"></i></span>
+            <div>
+                <p class="accounts-summary-card__label">قيود غير مرحلة</p>
+                <h4 class="accounts-summary-card__value">{{ unposted_count }}</h4>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100 journal-stats-card month">
-            <div class="card-body">
-                <div class="journal-stats-icon">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-                <div class="journal-stats-text">
-                    <div class="journal-stats-label">هذا الشهر</div>
-                    <div class="journal-stats-value">{{ this_month_count }}</div>
-                </div>
+        </article>
+        <article class="accounts-summary-card journal-stats-card month">
+            <span class="accounts-summary-card__icon"><i class="fas fa-calendar-days"></i></span>
+            <div>
+                <p class="accounts-summary-card__label">هذا الشهر</p>
+                <h4 class="accounts-summary-card__value">{{ this_month_count }}</h4>
             </div>
-        </div>
+        </article>
     </div>
-</div>
 
-<div class="card">
-    <div class="card-body p-0">
+    <div class="accounts-table-card">
         {% if journal_entries %}
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         <th>المرجع</th>
                         <th>التاريخ</th>
@@ -439,9 +155,7 @@
                 <tbody>
                     {% for entry in journal_entries %}
                     <tr>
-                        <td>
-                            <a href="{{ entry.get_absolute_url }}" class="fw-bold text-decoration-none">{{ entry.reference }}</a>
-                        </td>
+                        <td><a href="{{ entry.get_absolute_url }}" class="fw-bold">{{ entry.reference }}</a></td>
                         <td>{{ entry.date|date:"Y-m-d" }}</td>
                         <td>{{ entry.description|fix_arabic_text|default:"-"|truncatechars:120 }}</td>
                         <td class="text-end">{{ entry.total_amount|floatformat:2 }}</td>
@@ -449,29 +163,17 @@
                             {% if entry.is_posted %}
                             <span class="badge bg-success">مرحل</span>
                             {% else %}
-                            <span class="badge bg-warning text-dark">غير مرحل</span>
+                            <span class="badge bg-warning">غير مرحل</span>
                             {% endif %}
                         </td>
                         <td>{{ entry.created_by.get_full_name|default:entry.created_by.username }}</td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="{{ entry.get_absolute_url }}" class="btn btn-outline-info" title="عرض">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                                <a href="{{ entry.get_absolute_url }}" class="btn btn-outline-info" title="عرض"><i class="fas fa-eye"></i></a>
                                 {% if not entry.is_posted %}
-                                <a href="{% url 'accounts:journal_entry_update' entry.pk %}" class="btn btn-outline-primary" title="تعديل">
-                                    <i class="fas fa-edit"></i>
-                                </a>
+                                <a href="{% url 'accounts:journal_entry_update' entry.pk %}" class="btn btn-outline-primary" title="تعديل"><i class="fas fa-pen"></i></a>
                                 {% endif %}
-                                <button
-                                    type="button"
-                                    class="btn btn-outline-danger"
-                                    title="حذف"
-                                    data-entry-delete
-                                    data-action="{% url 'accounts:journal_entry_delete' entry.pk %}"
-                                    data-next="{{ request.get_full_path }}"
-                                    data-reference="{{ entry.reference }}"
-                                    data-description="{{ entry.description|fix_arabic_text|default:'-'|escape }}">
+                                <button type="button" class="btn btn-outline-danger" title="حذف" data-entry-delete data-action="{% url 'accounts:journal_entry_delete' entry.pk %}" data-next="{{ request.get_full_path }}" data-reference="{{ entry.reference }}" data-description="{{ entry.description|fix_arabic_text|default:'-'|escape }}">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -482,65 +184,30 @@
             </table>
         </div>
         {% else %}
-        <div class="text-center text-muted py-5">
-            <i class="fas fa-book fa-3x mb-3"></i>
-            <h4>لا توجد قيود مطابقة</h4>
-            <p>غيّر كلمات البحث أو أنشئ قيداً جديداً.</p>
+        <div class="accounts-empty">
+            <i class="fas fa-book-open"></i>
+            <h3>لا توجد قيود مطابقة</h3>
+            <p class="text-muted">غيّر الفلاتر أو أنشئ قيداً جديداً.</p>
         </div>
         {% endif %}
     </div>
-</div>
 
-{% if is_paginated %}
-<nav class="mt-4" aria-label="Pagination">
-    <ul class="pagination justify-content-center">
-        {% if page_obj.has_previous %}
-        <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&page=1">الأولى</a></li>
-        <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&page={{ page_obj.previous_page_number }}">السابق</a></li>
-        {% endif %}
-        <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
-        {% if page_obj.has_next %}
-        <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&page={{ page_obj.next_page_number }}">التالي</a></li>
-        <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&page={{ page_obj.paginator.num_pages }}">الأخيرة</a></li>
-        {% endif %}
-    </ul>
-</nav>
-{% endif %}
-
-<style>
-#deleteEntryModal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 2147483000;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    background: rgba(15, 23, 42, 0.68);
-    backdrop-filter: blur(6px);
-}
-
-#deleteEntryModal .delete-entry-dialog {
-    width: min(620px, calc(100vw - 32px));
-    max-height: calc(100vh - 32px);
-    overflow-y: auto;
-    border-radius: 22px;
-    background: #fff;
-    box-shadow: 0 32px 80px rgba(15, 23, 42, 0.38);
-}
-
-#deleteEntryModal .modal-content {
-    border: none;
-    border-radius: 22px;
-}
-
-@media (max-width: 640px) {
-    #deleteEntryModal .delete-entry-dialog {
-        width: calc(100vw - 20px);
-        max-height: calc(100vh - 20px);
-    }
-}
-</style>
+    {% if is_paginated %}
+    <nav class="mt-2" aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&page=1">الأولى</a></li>
+            <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&page={{ page_obj.previous_page_number }}">السابق</a></li>
+            {% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&page={{ page_obj.next_page_number }}">التالي</a></li>
+            <li class="page-item"><a class="page-link" href="?q={{ search_query|urlencode }}&status={{ status_filter|urlencode }}&entry_type={{ entry_type_filter|urlencode }}&created_by={{ created_by_filter|urlencode }}&date_from={{ date_from|urlencode }}&date_to={{ date_to|urlencode }}&amount_min={{ amount_min|urlencode }}&amount_max={{ amount_max|urlencode }}&page={{ page_obj.paginator.num_pages }}">الأخيرة</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</section>
 
 <div id="deleteEntryModal" tabindex="-1" aria-hidden="true">
     <div class="delete-entry-dialog">
@@ -554,10 +221,8 @@
                     {% csrf_token %}
                     <input type="hidden" name="next" id="deleteEntryNext" value="{{ request.get_full_path }}">
                     <p class="mb-2">سيتم حذف القيد التالي نهائياً بعد التحقق من كلمة المرور:</p>
-                    <div class="alert alert-danger py-2">
-                        سيؤدي الحذف إلى إزالة القيد وكل حركاته المرتبطة ثم إعادة بناء الأرصدة المحاسبية.
-                    </div>
-                    <div class="border rounded p-3 bg-light mb-3">
+                    <div class="alert alert-danger py-2">سيؤدي الحذف إلى إزالة القيد وكل حركاته المرتبطة ثم إعادة بناء الأرصدة المحاسبية.</div>
+                    <div class="surface-panel mb-3">
                         <div><strong>المرجع:</strong> <span id="deleteEntryReference">-</span></div>
                         <div class="mt-2"><strong>الوصف:</strong> <span id="deleteEntryDescription">-</span></div>
                     </div>
@@ -571,10 +236,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-close-delete-entry>إلغاء</button>
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i>
-                        حذف القيد
-                    </button>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> حذف القيد</button>
                 </div>
             </form>
         </div>
@@ -586,21 +248,24 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const modalElement = document.getElementById('deleteEntryModal');
-    if (!modalElement) {
-        return;
-    }
+    if (!modalElement) { return; }
 
+    const dialog = modalElement.querySelector('.delete-entry-dialog');
     const form = document.getElementById('deleteEntryForm');
     const nextInput = document.getElementById('deleteEntryNext');
     const passwordInput = document.getElementById('deleteEntryPassword');
     const togglePasswordButton = document.getElementById('toggleDeleteEntryPassword');
     const referenceLabel = document.getElementById('deleteEntryReference');
     const descriptionLabel = document.getElementById('deleteEntryDescription');
+
     const closeModal = function () {
-        modalElement.style.display = 'none';
+        dialog.style.display = 'none';
+        modalElement.setAttribute('aria-hidden', 'true');
     };
+
     const openModal = function () {
-        modalElement.style.display = 'flex';
+        dialog.style.display = 'flex';
+        modalElement.setAttribute('aria-hidden', 'false');
         passwordInput.focus();
     };
 
@@ -609,10 +274,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const isPassword = passwordInput.type === 'password';
             passwordInput.type = isPassword ? 'text' : 'password';
             this.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-            this.setAttribute('aria-label', isPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
-            this.innerHTML = isPassword
-                ? '<i class="fas fa-eye-slash"></i>'
-                : '<i class="fas fa-eye"></i>';
+            this.innerHTML = isPassword ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
         });
     }
 
@@ -626,7 +288,6 @@ document.addEventListener('DOMContentLoaded', function () {
             passwordInput.type = 'password';
             if (togglePasswordButton) {
                 togglePasswordButton.setAttribute('aria-pressed', 'false');
-                togglePasswordButton.setAttribute('aria-label', 'إظهار كلمة المرور');
                 togglePasswordButton.innerHTML = '<i class="fas fa-eye"></i>';
             }
             openModal();
@@ -638,15 +299,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     modalElement.addEventListener('click', function (event) {
-        if (event.target === modalElement) {
-            closeModal();
-        }
+        if (event.target === modalElement) { closeModal(); }
     });
 
     document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && modalElement.style.display === 'flex') {
-            closeModal();
-        }
+        if (event.key === 'Escape' && dialog.style.display === 'flex') { closeModal(); }
     });
 });
 </script>

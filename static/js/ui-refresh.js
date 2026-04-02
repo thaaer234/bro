@@ -8,7 +8,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         sidebar.classList.toggle('is-open');
-        document.body.classList.toggle('sidebar-open', sidebar.classList.contains('is-open'));
+        const isOpen = sidebar.classList.contains('is-open');
+        document.body.classList.toggle('sidebar-open', isOpen);
+        if (toggleButton) {
+            toggleButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
     };
 
     if (toggleButton) {
@@ -24,9 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (group.querySelector('.menu-item.active')) {
             group.classList.add('expanded');
         }
+        title.setAttribute('aria-expanded', group.classList.contains('expanded') ? 'true' : 'false');
 
         title.addEventListener('click', () => {
             group.classList.toggle('expanded');
+            title.setAttribute('aria-expanded', group.classList.contains('expanded') ? 'true' : 'false');
         });
     });
 
@@ -41,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!clickedInsideSidebar && !clickedToggle) {
             sidebar.classList.remove('is-open');
             document.body.classList.remove('sidebar-open');
+            if (toggleButton) {
+                toggleButton.setAttribute('aria-expanded', 'false');
+            }
         }
     });
 
@@ -48,6 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.key === 'Escape' && sidebar) {
             sidebar.classList.remove('is-open');
             document.body.classList.remove('sidebar-open');
+            if (toggleButton) {
+                toggleButton.setAttribute('aria-expanded', 'false');
+                toggleButton.focus();
+            }
         }
     });
 });

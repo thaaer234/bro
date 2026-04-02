@@ -4,11 +4,11 @@
 {% load static %}
 
 {% block student_content %}
-<div class="module-header">
+<div class="module-header premium-hero">
     <h2>إدارة الطلاب</h2>
     {% if user.is_authenticated %}
     {% if user.is_superuser %}
-    <a href="{% url 'students:student_cards_print' %}" class="btn btn-success" style="margin-left: 8px;">
+    <a href="{% url 'students:student_cards_print' %}" class="btn btn-success">
         <i class="fas fa-id-card"></i> بطاقات الطلاب
     </a>
     {% endif %}
@@ -24,7 +24,7 @@
 <hr>
 
 <!-- فلاتر الجدول - تعمل على جميع الطلاب -->
-<div class="filters-container">
+<div class="filters-container surface-panel">
     <div class="filter-row">
         <div class="filter-group">
             <label for="id-filter">فلتر حسب الرقم:</label>

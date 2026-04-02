@@ -1,0 +1,8 @@
+@import url('./system-rebuild.css');
+
+body.auth-page,
+body.auth-body-premium,
+.auth-page-shell {
+    --section-accent: #0f766e;
+    --section-accent-strong: #143b40;
+}

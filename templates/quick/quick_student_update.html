@@ -2,6 +2,11 @@
 {% load widget_tweaks %}
 {% load static %}
 
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+{% endblock %}
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -207,108 +212,6 @@
         </div>
     </div>
 </div>
-
-<style>
-.section-title {
-    position: relative;
-    padding-bottom: 10px;
-}
-
-.section-title h5 {
-    font-weight: 600;
-    margin-bottom: 5px;
-}
-
-.section-divider {
-    height: 3px;
-    background: linear-gradient(90deg, #007bff, transparent);
-    border-radius: 3px;
-}
-
-.avatar-placeholder {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-}
-
-.form-control, .form-select {
-    border-radius: 10px;
-    border: 2px solid #e9ecef;
-    transition: all 0.3s ease;
-}
-
-.form-control:focus, .form-select:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    transform: translateY(-2px);
-}
-
-.form-label {
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 8px;
-}
-
-.info-item {
-    border-left: 4px solid #007bff;
-}
-
-.btn-lg {
-    border-radius: 10px;
-    font-weight: 600;
-    padding: 12px 30px;
-}
-
-.card {
-    border: none;
-    border-radius: 15px;
-}
-
-.card-header {
-    border-radius: 15px 15px 0 0 !important;
-    border-bottom: none;
-}
-
-.invalid-feedback {
-    font-size: 0.875em;
-    margin-top: 5px;
-}
-
-.text-danger {
-    color: #dc3545 !important;
-}
-
-.bg-light {
-    background-color: #f8f9fa !important;
-}
-
-/* تحسينات للشاشات الصغيرة */
-@media (max-width: 768px) {
-    .form-actions .d-flex {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .action-buttons, .navigation-buttons {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    
-    .action-buttons .btn, .navigation-buttons .btn {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-}
-
-.gap-3 {
-    gap: 1rem;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

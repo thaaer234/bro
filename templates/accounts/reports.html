@@ -1,187 +1,107 @@
 {% extends 'accounts/base.html' %}
 
-
-{% load emp_perms %}
-{% block title %}التقارير / Reports{% endblock %}
+{% block title %}التقارير المالية{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>التقارير المالية / Financial Reports</h2>
-</div>
+<section class="accounts-section">
+    <div class="accounts-header">
+        <div class="accounts-header__copy">
+            <span class="page-toolbar__eyebrow"><i class="fas fa-chart-column"></i> Reports Center</span>
+            <h2>التقارير المالية</h2>
+            <p>بوابة موحدة للوصول إلى أهم التقارير المالية والمحاسبية داخل النظام.</p>
+        </div>
+    </div>
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
-        <li class="breadcrumb-item active">التقارير / Reports</li>
-    </ol>
-</nav>
+    <nav class="accounts-breadcrumb" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة المحاسبة</a></li>
+            <li class="breadcrumb-item active">التقارير</li>
+        </ol>
+    </nav>
 
-<div class="row">
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-balance-scale fa-3x text-primary"></i>
-                </div>
-                <h5 class="card-title">ميزان المراجعة</h5>
-                <h6 class="card-subtitle mb-2 text-muted">Trial Balance</h6>
-                <p class="card-text">
-                    عرض جميع الحسابات مع أرصدتها المدينة والدائنة للتأكد من توازن الدفاتر
-                </p>
-                <p class="card-text small text-muted">
-                    Display all accounts with their debit and credit balances to ensure books are balanced
-                </p>
-                <a href="{% url 'accounts:trial_balance' %}" class="btn btn-primary" style="background-color: #3498db;">
-                    <i class="fas fa-eye"></i> عرض التقرير / View Report
+    <div class="accounts-report-grid">
+        <article class="accounts-report-card">
+            <span class="accounts-report-card__icon"><i class="fas fa-scale-balanced"></i></span>
+            <h3 class="accounts-report-card__title">ميزان المراجعة</h3>
+            <p class="accounts-report-card__desc">عرض جميع الحسابات مع أرصدتها المدينة والدائنة للتأكد من توازن الدفاتر.</p>
+            <a href="{% url 'accounts:trial_balance' %}" class="btn btn-primary">عرض التقرير</a>
+        </article>
+
+        <article class="accounts-report-card">
+            <span class="accounts-report-card__icon"><i class="fas fa-chart-line"></i></span>
+            <h3 class="accounts-report-card__title">قائمة الدخل</h3>
+            <p class="accounts-report-card__desc">متابعة الإيرادات والمصروفات وصافي الدخل لفترة محددة.</p>
+            <a href="{% url 'accounts:income_statement' %}" class="btn btn-primary">عرض التقرير</a>
+        </article>
+
+        <article class="accounts-report-card">
+            <span class="accounts-report-card__icon"><i class="fas fa-building-columns"></i></span>
+            <h3 class="accounts-report-card__title">الميزانية العمومية</h3>
+            <p class="accounts-report-card__desc">قراءة الأصول والخصوم وحقوق الملكية عند نقطة زمنية محددة.</p>
+            <a href="{% url 'accounts:balance_sheet' %}" class="btn btn-primary">عرض التقرير</a>
+        </article>
+
+        <article class="accounts-report-card">
+            <span class="accounts-report-card__icon"><i class="fas fa-file-invoice-dollar"></i></span>
+            <h3 class="accounts-report-card__title">كشف حساب مالي</h3>
+            <p class="accounts-report-card__desc">اختيار حساب وفترة زمنية لعرض الحركة التفصيلية والرصيد المتحرك.</p>
+            <a href="{% url 'accounts:account_statement' %}" class="btn btn-primary">عرض التقرير</a>
+        </article>
+    </div>
+
+    <div class="accounts-form-card">
+        <div class="accounts-header">
+            <div class="accounts-header__copy">
+                <h3>دفاتر الأستاذ</h3>
+                <p>ابحث سريعاً عن حساب لفتح دفتر الأستاذ الخاص به.</p>
+            </div>
+        </div>
+        <div class="row g-3 align-items-center">
+            <div class="col-lg-7">
+                <form method="get" action="{% url 'accounts:chart_of_accounts' %}">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="ابحث عن حساب" name="search">
+                        <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i> بحث</button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-lg-5 text-lg-end">
+                <a href="{% url 'accounts:chart_of_accounts' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-sitemap"></i>
+                    عرض جميع الحسابات
                 </a>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-chart-line fa-3x text-success"></i>
-                </div>
-                <h5 class="card-title">قائمة الدخل</h5>
-                <h6 class="card-subtitle mb-2 text-muted">Income Statement</h6>
-                <p class="card-text">
-                    عرض الإيرادات والمصروفات وصافي الدخل لفترة محددة
-                </p>
-                <p class="card-text small text-muted">
-                    Display revenues, expenses, and net income for a specific period
-                </p>
-                <a href="{% url 'accounts:income_statement' %}" class="btn btn-success" style="background-color: #2ecc71;">
-                    <i class="fas fa-eye"></i> عرض التقرير / View Report
-                </a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-building fa-3x text-info"></i>
-                </div>
-                <h5 class="card-title">الميزانية العمومية</h5>
-                <h6 class="card-subtitle mb-2 text-muted">Balance Sheet</h6>
-                <p class="card-text">
-                    عرض الأصول والخصوم وحقوق الملكية في تاريخ محدد
-                </p>
-                <p class="card-text small text-muted">
-                    Display assets, liabilities, and equity at a specific date
-                </p>
-                <a href="{% url 'accounts:balance_sheet' %}" class="btn btn-info" style="background-color: #3498db;">
-                    <i class="fas fa-eye"></i> عرض التقرير / View Report
-                </a>
-            </div>
-        </div>
-    </div>
 
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-file-invoice-dollar fa-3x text-warning"></i>
-                </div>
-                <h5 class="card-title">كشف حساب مالي</h5>
-                <h6 class="card-subtitle mb-2 text-muted">Account Statement</h6>
-                <p class="card-text">
-                    اختيار كود الحساب مع تحديد فترة زمنية، وإظهار كل العمليات والرصيد المتحرك يشمل الحسابات الفرعية.
-                </p>
-                <p class="card-text small text-muted">
-                    عرض وتصدير Excel للعمليات خلال الفترة المحددة.
-                </p>
-                <a href="{% url 'accounts:account_statement' %}" class="btn btn-warning text-white" style="color: chocolate;">
-                    <i class="fas fa-eye"></i> عرض التقرير
-                </a>
+    <div class="accounts-form-card">
+        <h3 class="accounts-form-card__title">إرشادات التقارير</h3>
+        <div class="accounts-report-grid">
+            <div class="accounts-side-card">
+                <h4 class="accounts-side-card__title">ميزان المراجعة</h4>
+                <ul class="accounts-info-list">
+                    <li><i class="fas fa-check"></i><span>يجب أن يكون إجمالي المدين مساوياً لإجمالي الدائن.</span></li>
+                    <li><i class="fas fa-info-circle"></i><span>يعرض كل الحسابات النشطة ضمن الفترة.</span></li>
+                    <li><i class="fas fa-rotate"></i><span>يتحدث تلقائياً مع كل قيد جديد.</span></li>
+                </ul>
+            </div>
+            <div class="accounts-side-card">
+                <h4 class="accounts-side-card__title">قائمة الدخل</h4>
+                <ul class="accounts-info-list">
+                    <li><i class="fas fa-arrow-up"></i><span>الإيرادات تزيد صافي الدخل.</span></li>
+                    <li><i class="fas fa-arrow-down"></i><span>المصروفات تقلل صافي الدخل.</span></li>
+                    <li><i class="fas fa-calculator"></i><span>صافي الدخل = الإيرادات - المصروفات.</span></li>
+                </ul>
+            </div>
+            <div class="accounts-side-card">
+                <h4 class="accounts-side-card__title">الميزانية العمومية</h4>
+                <ul class="accounts-info-list">
+                    <li><i class="fas fa-building"></i><span>الأصول تمثل ما يملكه الكيان.</span></li>
+                    <li><i class="fas fa-credit-card"></i><span>الخصوم تمثل الالتزامات.</span></li>
+                    <li><i class="fas fa-user-tie"></i><span>حقوق الملكية تعكس رأس المال والأرباح.</span></li>
+                </ul>
             </div>
         </div>
     </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">دفاتر الأستاذ / General Ledgers</h5>
-                <p class="card-text">
-                    عرض تفاصيل المعاملات لحساب معين مع الرصيد الجاري
-                    <br>
-                    <small class="text-muted">View detailed transactions for a specific account with running balance</small>
-                </p>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <form method="get" action="{% url 'accounts:chart_of_accounts' %}">
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="ابحث عن حساب / Search for account" name="search">
-                                <button class="btn btn-outline-secondary" type="submit">
-                                    <i class="fas fa-search"></i> بحث / Search
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="col-md-6">
-                        <a href="{% url 'accounts:chart_of_accounts' %}" class="btn btn-outline-primary">
-                            <i class="fas fa-sitemap"></i> عرض جميع الحسابات / View All Accounts
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">إرشادات التقارير / Report Guidelines</h5>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>ميزان المراجعة / Trial Balance</h6>
-                        <ul class="list-unstyled small">
-                            <li><i class="fas fa-check text-success"></i> يجب أن يكون إجمالي المدين = إجمالي الدائن</li>
-                            <li><i class="fas fa-info text-info"></i> يعرض جميع الحسابات النشطة</li>
-                            <li><i class="fas fa-calendar text-warning"></i> يتم تحديثه تلقائياً مع كل قيد</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <h6>قائمة الدخل / Income Statement</h6>
-                        <ul class="list-unstyled small">
-                            <li><i class="fas fa-arrow-up text-success"></i> الإيرادات: تزيد من صافي الدخل</li>
-                            <li><i class="fas fa-arrow-down text-danger"></i> المصروفات: تقلل من صافي الدخل</li>
-                            <li><i class="fas fa-calculator text-info"></i> صافي الدخل = الإيرادات - المصروفات</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <h6>الميزانية العمومية / Balance Sheet</h6>
-                        <ul class="list-unstyled small">
-                            <li><i class="fas fa-building text-success"></i> الأصول: ما تملكه الشركة</li>
-                            <li><i class="fas fa-credit-card text-warning"></i> الخصوم: ما على الشركة</li>
-                            <li><i class="fas fa-user-tie text-info"></i> حقوق الملكية: رأس المال والأرباح</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <h6>دفتر الأستاذ / General Ledger</h6>
-                        <ul class="list-unstyled small">
-                            <li><i class="fas fa-list text-primary"></i> تفاصيل جميع معاملات الحساب</li>
-                            <li><i class="fas fa-chart-line text-success"></i> الرصيد الجاري بعد كل معاملة</li>
-                            <li><i class="fas fa-link text-info"></i> مرتبط بقيود اليومية</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+</section>
 {% endblock %}

@@ -7,18 +7,18 @@
 :root {
     --ui-font-body: 'Cairo', 'Tajawal', sans-serif;
     --ui-font-display: 'Cocon Next Arabic', 'Cairo', sans-serif;
-    --ui-bg: #f6f2fb;
+    --ui-bg: #edf4f3;
     --ui-surface: rgba(255, 255, 255, 0.90);
-    --ui-border: rgba(118, 75, 162, 0.12);
-    --ui-border-strong: rgba(118, 75, 162, 0.20);
-    --ui-text: #2f2341;
-    --ui-text-soft: #766987;
-    --ui-heading: #38254e;
-    --ui-primary: #764ba2;
-    --ui-primary-strong: #5f3789;
-    --ui-accent: #9c7ac4;
-    --ui-shadow-sm: 0 10px 30px rgba(118, 75, 162, 0.10);
-    --ui-shadow-md: 0 22px 60px rgba(118, 75, 162, 0.16);
+    --ui-border: rgba(15, 118, 110, 0.10);
+    --ui-border-strong: rgba(15, 118, 110, 0.18);
+    --ui-text: #21353a;
+    --ui-text-soft: #5f767b;
+    --ui-heading: #16343a;
+    --ui-primary: #0f766e;
+    --ui-primary-strong: #115e59;
+    --ui-accent: #c89b43;
+    --ui-shadow-sm: 0 10px 30px rgba(15, 118, 110, 0.10);
+    --ui-shadow-md: 0 22px 60px rgba(22, 52, 58, 0.16);
     --ui-radius-sm: 14px;
     --ui-radius-md: 22px;
     --ui-radius-lg: 30px;
@@ -39,9 +39,9 @@ body.app-body {
     font-family: var(--ui-font-body);
     color: var(--ui-text);
     background:
-        radial-gradient(circle at top left, rgba(118, 75, 162, 0.16), transparent 28%),
-        radial-gradient(circle at top right, rgba(156, 122, 196, 0.14), transparent 24%),
-        linear-gradient(180deg, rgba(251, 248, 255, 0.94) 0%, rgba(243, 237, 249, 0.94) 100%),
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.14), transparent 28%),
+        radial-gradient(circle at top right, rgba(200, 155, 67, 0.12), transparent 22%),
+        linear-gradient(180deg, rgba(249, 252, 252, 0.96) 0%, rgba(237, 244, 243, 0.96) 100%),
         url('../img/back.png');
     background-size: auto, auto, auto, cover;
     background-position: top left, top right, center, center;
@@ -72,7 +72,7 @@ body.app-body::before {
     height: 3rem;
     border: 0;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--ui-primary), #5f3789);
+    background: linear-gradient(135deg, var(--ui-primary), var(--ui-primary-strong));
     color: #fff;
     box-shadow: var(--ui-shadow-sm);
     display: none;
@@ -88,9 +88,9 @@ body.app-body::before {
     padding: 1.25rem 1rem 1rem;
     color: #f7f7f4;
     background:
-        radial-gradient(circle at top, rgba(183, 154, 214, 0.18), transparent 26%),
-        linear-gradient(180deg, #352146 0%, #5f3789 44%, #764ba2 100%);
-    box-shadow: -24px 0 60px rgba(52, 33, 70, 0.20);
+        radial-gradient(circle at top, rgba(200, 155, 67, 0.16), transparent 24%),
+        linear-gradient(180deg, #17353b 0%, #0f766e 52%, #15958b 100%);
+    box-shadow: -24px 0 60px rgba(22, 52, 58, 0.20);
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 1100;
@@ -144,7 +144,7 @@ body.app-body::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #9c7ac4, #764ba2);
+    background: linear-gradient(135deg, #13877f, #0f766e);
     color: #fff;
     box-shadow: 0 14px 30px rgba(118, 75, 162, 0.24);
 }
@@ -222,9 +222,9 @@ body.app-body::before {
 
 .menu-item.active {
     color: #fff;
-    background: linear-gradient(135deg, rgba(118, 75, 162, 0.96), rgba(95, 55, 137, 0.92));
+    background: linear-gradient(135deg, rgba(15, 118, 110, 0.96), rgba(17, 94, 89, 0.92));
     border-color: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 16px 30px rgba(118, 75, 162, 0.24);
+    box-shadow: 0 16px 30px rgba(15, 118, 110, 0.24);
 }
 
 .menu-group {
@@ -306,8 +306,8 @@ body.app-body::before {
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-radius-lg);
     background:
-        linear-gradient(135deg, rgba(255,255,255,0.86), rgba(255,255,255,0.72)),
-        linear-gradient(135deg, rgba(118, 75, 162, 0.08), rgba(156, 122, 196, 0.10));
+        linear-gradient(135deg, rgba(255,255,255,0.90), rgba(255,255,255,0.78)),
+        linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(200, 155, 67, 0.08));
     box-shadow: var(--ui-shadow-sm);
     backdrop-filter: blur(14px);
 }
@@ -351,16 +351,16 @@ body.app-body::before {
     gap: 0.55rem;
     padding: 0.7rem 1rem;
     border-radius: 999px;
-    background: rgba(118, 75, 162, 0.08);
+    background: rgba(15, 118, 110, 0.08);
     color: var(--ui-primary-strong);
-    border: 1px solid rgba(118, 75, 162, 0.14);
+    border: 1px solid rgba(15, 118, 110, 0.14);
     font-weight: 700;
 }
 
 .quick-access-chip--muted {
-    background: rgba(156, 122, 196, 0.12);
-    color: #5f3789;
-    border-color: rgba(118, 75, 162, 0.12);
+    background: rgba(200, 155, 67, 0.12);
+    color: #7b5f1c;
+    border-color: rgba(200, 155, 67, 0.18);
 }
 
 .alert-messages,
@@ -460,7 +460,7 @@ body.app-body::before {
     height: 3.4rem;
     margin-bottom: 0.9rem;
     border-radius: 18px;
-    background: linear-gradient(135deg, rgba(118, 75, 162, 0.12), rgba(156, 122, 196, 0.16));
+    background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(200, 155, 67, 0.14));
     color: var(--ui-primary);
     font-size: 1.25rem;
 }
@@ -512,7 +512,7 @@ body.app-body::before {
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 14px;
-    background: linear-gradient(135deg, var(--ui-primary), #5f3789);
+    background: linear-gradient(135deg, var(--ui-primary), var(--ui-primary-strong));
     color: #fff;
     font-weight: 700;
 }
@@ -554,14 +554,14 @@ body.app-body::before {
 .badge-add,
 .badge-success,
 .badge-primary {
-    background: rgba(118, 75, 162, 0.12);
-    color: #5f3789;
+    background: rgba(15, 118, 110, 0.12);
+    color: #115e59;
 }
 
 .badge-change,
 .badge-warning {
-    background: rgba(156, 122, 196, 0.14);
-    color: #6c4a94;
+    background: rgba(200, 155, 67, 0.16);
+    color: #7b5f1c;
 }
 
 .badge-delete,
@@ -602,7 +602,7 @@ table thead th {
 
 .table tbody tr:hover,
 table tbody tr:hover {
-    background: rgba(15, 118, 110, 0.05);
+    background: rgba(15, 118, 110, 0.06);
 }
 
 .tabs {
@@ -622,7 +622,7 @@ table tbody tr:hover {
 }
 
 .tab.active {
-    background: linear-gradient(135deg, var(--ui-primary), #0f9c92);
+    background: linear-gradient(135deg, var(--ui-primary), var(--ui-primary-strong));
     color: #fff;
     border-color: transparent;
 }
@@ -643,7 +643,7 @@ input[type='button'] {
 .btn-primary,
 .btn-success,
 .btn-info {
-    background: linear-gradient(135deg, var(--ui-primary), #11998e);
+    background: linear-gradient(135deg, var(--ui-primary), var(--ui-primary-strong));
     border-color: transparent;
     color: #fff;
 }
@@ -663,8 +663,8 @@ input[type='button'] {
 .btn-secondary,
 .btn-outline,
 .btn-outline-secondary {
-    background: rgba(255, 255, 255, 0.9);
-    border-color: var(--ui-border-strong);
+    background: rgba(248, 251, 251, 0.96);
+    border-color: rgba(22, 52, 58, 0.14);
     color: var(--ui-heading);
 }
 
@@ -682,7 +682,7 @@ select,
 textarea {
     min-height: 46px;
     border-radius: 14px !important;
-    border: 1px solid rgba(18, 52, 59, 0.12) !important;
+    border: 1px solid rgba(22, 52, 58, 0.12) !important;
     background: rgba(255, 255, 255, 0.9) !important;
     color: var(--ui-text) !important;
 }
@@ -693,8 +693,8 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-    border-color: rgba(15, 118, 110, 0.38) !important;
-    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12) !important;
+    border-color: rgba(15, 118, 110, 0.36) !important;
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10) !important;
     outline: 0;
 }
 

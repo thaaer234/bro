@@ -1,36 +1,27 @@
 {% extends "error_base.html" %}
-{% load static %}
 
-{% block title %}خطأ في الخادم{% endblock %}
+{% block title %}500{% endblock %}
+{% block error_theme %}error-theme--danger{% endblock %}
 
 {% block content %}
-<div class="error-container">
-    <div class="error-content">
-        <div class="error-graphic">
-            <svg class="error-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-                <g id="Floor">
-                    <ellipse style="fill:#F5F5F5;" cx="250.555" cy="365.116" rx="240.314" ry="124.365"/>
-                </g>
-                <text x="250" y="280" text-anchor="middle" font-family="Arial" font-size="80" font-weight="bold" fill="#FF6B6B">5</text>
-                <circle cx="200" cy="250" r="30" fill="#FF6B6B" opacity="0.5"/>
-                <text x="300" y="280" text-anchor="middle" font-family="Arial" font-size="80" font-weight="bold" fill="#FF6B6B">0</text>
-                <circle cx="350" cy="250" r="30" fill="#FF6B6B" opacity="0.5"/>
-                <text x="250" y="280" text-anchor="middle" font-family="Arial" font-size="80" font-weight="bold" fill="#FF6B6B">0</text>
-            </svg>
-        </div>
-        <h1 class="error-title">500</h1>
-        <div class="error-code">خطأ: 500</div>
-        <h2 class="error-message">خطأ داخلي في الخادم</h2>
-        <p class="error-description">
-            حدث خطأ غير متوقع في الخادم. 
-            فريق الدعم الفني قد تم إعلامه وسيعمل على حل المشكلة قريباً.
-            نعتذر للإزعاج.
-        </p>
-        <div class="action-buttons">
-            <a href="/" class="btn btn-primary">العودة إلى الصفحة الرئيسية</a>
-            <a href="/contact" class="btn btn-secondary">اتصل بنا</a>
-            <button onclick="window.location.reload()" class="btn btn-secondary">إعادة تحميل الصفحة</button>
+<section class="error-compact">
+    <div class="error-minimal">
+        <div class="error-minimal__halo"></div>
+        <div class="error-minimal__code" aria-label="500">500</div>
+    </div>
+    <div class="error-compact__content">
+        <p class="error-compact__desc">حدث خطأ داخلي أثناء معالجة الطلب.</p>
+        <p class="error-compact__hint">تلميح: ارجع خطوة وحاول من جديد بعد قليل.</p>
+        <div class="error-compact__actions">
+            <button type="button" class="btn btn-primary" onclick="history.back()">
+                <i class="fas fa-arrow-right"></i>
+                العودة
+            </button>
+            <a href="{% url 'login' %}" class="btn btn-outline-primary">
+                <i class="fas fa-right-to-bracket"></i>
+                تسجيل الدخول
+            </a>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}

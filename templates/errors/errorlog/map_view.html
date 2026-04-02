@@ -3,36 +3,6 @@
 
 {% block extrastyle %}
 {{ block.super }}
-<style>
-    .map-container {
-        height: 600px;
-        margin: 20px 0;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    
-    .location-info {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-    
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
-        margin-top: 15px;
-    }
-    
-    .info-item {
-        background: white;
-        padding: 15px;
-        border-radius: 6px;
-        border-left: 4px solid #417690;
-    }
-</style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 {% endblock %}
 

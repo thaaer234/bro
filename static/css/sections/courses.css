@@ -1,0 +1,6 @@
+@import url('./system-rebuild.css');
+
+body.app-courses {
+    --section-accent: #0f766e;
+    --section-accent-strong: #114d52;
+}

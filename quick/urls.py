@@ -53,6 +53,8 @@ urlpatterns = [
     path('reports/late-payments/<int:course_id>/bulk-withdraw/', require_employee_perm('students_withdraw')(views.bulk_withdraw_quick_students), name='bulk_withdraw_quick_students'),
     path('reports/late-payments/print/', require_employee_perm('accounting_outstanding')(views.QuickLatePaymentCoursesPrintView.as_view()), name='late_payment_courses_print'),
     path('reports/student-intersections/', require_employee_perm('students_view')(views.QuickStudentIntersectionView.as_view()), name='student_intersections'),
+    path('reports/manual-sorting/', require_employee_perm('students_view')(views.QuickManualSortingView.as_view()), name='manual_sorting'),
+    path('reports/manual-sorting/print/', require_employee_perm('students_view')(views.QuickManualSortingPrintView.as_view()), name='manual_sorting_print'),
     path('reports/schedules/quick-courses/', require_employee_perm('course_accounting_view')(views.QuickCourseSchedulePrintView.as_view()), name='quick_course_schedule_print'),
     path('reports/conflicts/quick-courses/', require_employee_perm('course_accounting_view')(views.QuickCourseConflictReportView.as_view()), name='quick_course_conflicts_report'),
 

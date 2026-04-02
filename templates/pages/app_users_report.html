@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endblock %}
 {% block content %}
 <div class="container mt-4 app-users-report">
   <div class="report-hero mb-4">
@@ -165,41 +170,4 @@
   </div>
 </div>
 
-<style>
-.app-users-report .report-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 20px;
-  border-radius: 16px;
-  background: linear-gradient(120deg, #f0fff9 0%, #fff6ef 100%);
-  border: 1px solid #c8e6de;
-}
-.app-users-report .report-hero h3 { margin: 0 0 4px; }
-.app-users-report .report-hero p { margin: 0; color: #667085; }
-.mini-card {
-  border-radius: 12px;
-  padding: 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-}
-.mini-title { color: #64748b; font-size: 0.85rem; }
-.mini-value { font-size: 1.2rem; font-weight: 700; }
-.highlight-card {
-  border: 1px solid #b6f0e1;
-  background: linear-gradient(120deg, #ecfff9 0%, #fff3e9 100%);
-}
-.top-user {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-}
-.top-user .name { font-weight: 700; }
-.top-user .meta { color: #64748b; font-size: 0.85rem; }
-.top-user .count { font-size: 1.5rem; font-weight: 800; color: #0c7f68; }
-</style>
 {% endblock %}

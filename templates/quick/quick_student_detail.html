@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+{% endblock %}
 {% block content %}
 <div class="page">
     <div class="page-header">
@@ -112,82 +117,6 @@
     </div>
 </div>
 
-<style>
-.header-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 8px 16px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-warning {
-    background-color: #ffc107;
-    color: #212529;
-    border: 1px solid #ffc107;
-}
-
-.btn-warning:hover {
-    background-color: #e0a800;
-    transform: translateY(-2px);
-}
-
-.btn-info {
-    background-color: #17a2b8;
-    color: white;
-    border: 1px solid #17a2b8;
-}
-
-.btn-info:hover {
-    background-color: #138496;
-    transform: translateY(-2px);
-}
-
-.btn-primary {
-    background-color: #007bff;
-    color: white;
-    border: 1px solid #007bff;
-}
-
-.btn-primary:hover {
-    background-color: #0069d9;
-    transform: translateY(-2px);
-}
-
-.btn-outline-secondary {
-    background-color: transparent;
-    color: #6c757d;
-    border: 1px solid #6c757d;
-}
-
-.btn-outline-secondary:hover {
-    background-color: #6c757d;
-    color: white;
-    transform: translateY(-2px);
-}
-
-/* تحسينات للشاشات الصغيرة */
-@media (max-width: 768px) {
-    .header-actions {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .header-actions .btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-</style>
 {% endblock %}
 
 {% block extra_js %}

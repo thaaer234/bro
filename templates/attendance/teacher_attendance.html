@@ -3,6 +3,11 @@
 {% load attendance_filters %}
 {% load emp_perms %}
 {% load static %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/attendance.css' %}">
+{% endblock %}
 {% block content %}
 <div class="module-header">
     <div class="header-actions">    
@@ -172,20 +177,6 @@
         </div>
     </div>
 </div>
-
-<style>
-.btn-group {
-    display: flex;
-    gap: 5px;
-}
-.btn-group .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
-.card {
-    margin-bottom: 1rem;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

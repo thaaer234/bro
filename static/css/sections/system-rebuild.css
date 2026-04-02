@@ -1,0 +1,128 @@
+@import url('../premium-redesign.css');
+
+:root {
+    --section-accent: var(--ui-primary);
+    --section-accent-strong: var(--ui-primary-strong);
+}
+
+body.app-body,
+body.auth-page,
+body.error-body-premium,
+.auth-page-shell {
+    --ui-primary: var(--section-accent);
+    --ui-primary-strong: var(--section-accent-strong);
+}
+
+.page-toolbar__eyebrow,
+.workspace-pill i,
+.workspace-stat__label,
+.card-title,
+.stat-label,
+.filter-group label,
+.form-label,
+label,
+.welcome-kicker {
+    color: var(--section-accent) !important;
+}
+
+.btn-primary,
+.btn-success,
+.btn-info,
+.btn-dark,
+.submit-btn,
+.save-btn,
+.btn-filter,
+.welcome-btn-primary,
+.tab.active,
+.tab-btn.active {
+    background: linear-gradient(135deg, var(--section-accent), var(--section-accent-strong)) !important;
+}
+
+.page-toolbar,
+.module-header,
+.dashboard-header,
+.premium-hero,
+.table-container,
+.card,
+.filters-container,
+.filter-section,
+.current-filters,
+.chart-container,
+.recent-activity,
+.stat-card,
+.stat-item,
+.dashboard-card,
+.performance-indicator,
+.quick-action-btn,
+.activity-item,
+.auth-card,
+.feature-card,
+.brand-card,
+.brand-metric,
+.modal-content {
+    border-color: rgba(20, 44, 51, 0.08) !important;
+}
+
+.table thead th,
+table thead th,
+#teachersTable th,
+#studentsTable th,
+#employeesTable th {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--section-accent-strong) 86%, black), var(--section-accent) 68%, color-mix(in srgb, var(--section-accent) 74%, white)) !important;
+}
+
+.card-icon,
+.stat-icon,
+.quick-action-icon,
+.activity-icon,
+.journal-stats-icon,
+.user-avatar {
+    color: var(--section-accent) !important;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--section-accent) 14%, white), rgba(190,145,64,0.16)) !important;
+}
+
+.table a,
+table a,
+#teachersTable a,
+#studentsTable a,
+#employeesTable a {
+    color: var(--section-accent) !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-input:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: color-mix(in srgb, var(--section-accent) 42%, white) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--section-accent) 12%, transparent) !important;
+}
+
+.menu-item.active {
+    background: linear-gradient(135deg, var(--ui-accent), color-mix(in srgb, var(--ui-accent) 72%, black)) !important;
+}
+
+body.app-students .stats-grid,
+body.app-pages .dashboard-cards,
+body.app-employ .dashboard-cards,
+body.app-accounts .dashboard-cards {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+}
+
+body.app-students .filters-container,
+body.app-employ .filters,
+body.app-attendance .filters-container,
+body.app-pages .filter-section,
+body.app-accounts .filter-section {
+    padding: 1.1rem !important;
+}
+
+body.app-students .filter-row,
+body.app-employ .form-row,
+body.app-accounts .journal-filters-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.9rem !important;
+}

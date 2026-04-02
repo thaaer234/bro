@@ -2,6 +2,11 @@
 
 {% load emp_perms %}
 {% load static %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/courses.css' %}">
+{% endblock %}
 {% block content %}
 <div class="module-header">
     <div class="d-flex justify-content-between align-items-center">
@@ -388,88 +393,6 @@
         </div>
     </div>
 </div>
-
-<style>
-.stat-card {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.stat-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 15px;
-    color: white;
-    font-size: 24px;
-}
-
-.courses-icon { background: #3498db; }
-.programs-icon { background: #2ecc71; }
-.students-icon { background: #9b59b6; }
-.revenue-icon { background: #f39c12; }
-
-.stat-info h3 {
-    margin: 0;
-    font-size: 28px;
-    font-weight: bold;
-    color: #2c3e50;
-}
-
-.stat-info span {
-    color: #7f8c8d;
-    font-size: 14px;
-}
-
-.course-icon, .program-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #e3f2fd;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.program-icon {
-    background-color: #e8f5e8;
-}
-
-.category-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-}
-
-.nav-tabs .nav-link {
-    border: none;
-    color: #6c757d;
-    font-weight: 500;
-}
-
-.nav-tabs .nav-link.active {
-    color: #495057;
-    background-color: #fff;
-    border-bottom: 3px solid #007bff;
-}
-
-.action-buttons .btn {
-    border-radius: 5px;
-    padding: 4px 8px;
-}
-
-.student-count .progress {
-    background-color: #ecf0f1;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

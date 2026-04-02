@@ -3,484 +3,180 @@
 {% load emp_perms %}
 {% load student_filters %}
 
+{% block title %}إدارة الطلاب | معهد اليمان{% endblock %}
+
 {% block content %}
-<style>
-/* تنسيق عام للجدول والحاوية */
-.table-container {
-    padding: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    margin: 20px;
-    overflow: hidden;
-}
+<section class="module-stack">
+    <div class="module-header premium-hero">
+        <div>
+            <span class="page-toolbar__eyebrow"><i class="fas fa-users"></i> Students Hub</span>
+            <h2>إدارة الطلاب</h2>
+            <p>لوحة موحدة لعرض الطلاب والبحث حسب الفروع والدورات مع الحفاظ على جميع الروابط والإجراءات الحالية.</p>
+        </div>
+        <div class="header-actions">
+            {% if user|has_perm:"students_create" %}
+            <a href="{% url 'students:student_type_choice' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                إضافة طالب جديد
+            </a>
+            {% endif %}
+        </div>
+    </div>
 
-/* تنسيق الجدول */
-#studentsTable {
-    width: 100%;
-    border-collapse: collapse;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(10px);
-    animation: fadeIn 0.8s ease;
-}
+    {% include "partials/_alerts.html" %}
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+    <div class="surface-panel">
+        <form method="GET" action="{% url 'students:student' %}" id="searchForm">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="ابحث عن طالب بالاسم أو الرقم أو الهاتف أو البريد" value="{{ search_query }}">
+                <div class="header-actions">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                        بحث
+                    </button>
+                    {% if search_query %}
+                    <a href="{% url 'students:student' %}" class="btn btn-secondary">
+                        <i class="fas fa-rotate-left"></i>
+                        إلغاء البحث
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
 
-/* تنسيق رأس الجدول */
-#studentsTable thead {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
+    {% if search_query %}
+    <div class="card">
+        <div class="card-body">
+            <div class="module-header">
+                <h2>نتائج البحث عن "{{ search_query }}"</h2>
+            </div>
+            <div class="table-container">
+                {% include "students/partials/_students_table.html" %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body">
+            <div class="module-header">
+                <h2>الفصول الدراسية</h2>
+                <p>اختر السنة ثم الفرع أو الدورة لعرض الطلاب أسفل الصفحة.</p>
+            </div>
+            <div class="dashboard-cards">
+                {% for academic_year in academic_years %}
+                <button type="button" class="dashboard-card text-start" onclick="toggleBranches('branches-{{ academic_year.id }}')">
+                    <div class="card-icon"><i class="fas fa-calendar-days"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="card-value" style="font-size:1.1rem;">{{ academic_year.name }} - {{ academic_year.year }}</div>
+                        <div class="card-title">إجمالي الطلاب: {{ academic_year_stats|dict_key:academic_year.id }}</div>
+                        <div class="workspace-pills mt-2">
+                            <span class="workspace-pill"><i class="fas fa-user-graduate"></i> نظاميون {{ academic_year_regular_stats|dict_key:academic_year.id }}</span>
+                            <span class="workspace-pill"><i class="fas fa-bolt"></i> سريعون {{ academic_year_quick_stats|dict_key:academic_year.id }}</span>
+                        </div>
+                        <div id="branches-{{ academic_year.id }}" class="branches-container mt-3" style="display:none;">
+                            {% for branch in branch_stats %}
+                            {% if branch.academic_year_id == academic_year.id %}
+                            <div class="surface-panel mb-2" onclick="event.stopPropagation(); loadStudents('{{ academic_year.id }}', '{{ branch.name }}', 'regular')">
+                                <div class="d-flex justify-content-between align-items-center gap-3">
+                                    <span>فرع {{ branch.name }}</span>
+                                    <span class="badge badge-info">{{ branch.regular_count }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
 
-#studentsTable th {
-    padding: 18px 15px;
-    text-align: right;
-    color: white;
-    font-weight: 600;
-    font-size: 16px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border: none;
-    position: relative;
-    cursor: pointer;
-    user-select: none;
-}
-
-#studentsTable th:hover {
-    background: linear-gradient(135deg, #3a9dec 0%, #00d9e6 100%);
-}
-
-#studentsTable th.sort-asc::after {
-    content: ' ▲';
-    font-size: 12px;
-}
-
-#studentsTable th.sort-desc::after {
-    content: ' ▼';
-    font-size: 12px;
-}
-
-/* تنسيق خلايا الجدول */
-#studentsTable td {
-    padding: 16px 15px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    text-align: right;
-    font-size: 15px;
-    transition: all 0.3s ease;
-    color: #333;
-}
-
-#studentsTable tbody tr {
-    transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.9);
-}
-
-#studentsTable tbody tr:hover {
-    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
-    transform: translateX(-5px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-/* تنسيق الأزرار */
-.btn {
-    padding: 8px 15px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 14px;
-    margin: 0 3px;
-    display: inline-block;
-    text-align: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.btn-info {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    color: white;
-}
-
-.btn-warning {
-    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
-    color: white;
-}
-
-.btn-danger {
-    background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
-    color: white;
-}
-
-.btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-}
-
-/* تنسيق الفصول الدراسية */
-.academic-year-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.academic-year-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.academic-year-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.year-stats {
-    display: flex;
-    gap: 15px;
-    margin-top: 10px;
-    flex-wrap: wrap;
-}
-
-.stat-badge {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 14px;
-}
-
-.branches-container {
-    display: none;
-    margin-top: 15px;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-
-.branch-card {
-    background: rgba(255, 255, 255, 0.9);
-    color: #333;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.branch-card:hover {
-    background: white;
-    transform: translateX(5px);
-}
-
-.student-badge {
-    font-size: 12px;
-    padding: 3px 8px;
-    margin-right: 5px;
-}
-
-.badge-regular {
-    background: #17a2b8;
-    color: white;
-}
-
-.badge-warning {
-    background: #ffc107;
-    color: #000;
-}
-
-/* تنسيق الفلاتر */
-.filters-container {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.filter-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-bottom: 10px;
-}
-
-.filter-group {
-    flex: 1;
-    min-width: 180px;
-}
-
-.filter-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 600;
-    color: #2c5282;
-}
-
-.filter-group select,
-.filter-group input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background: white;
-    transition: all 0.3s ease;
-}
-
-.filter-group select:focus,
-.filter-group input:focus {
-    outline: none;
-    border-color: #4facfe;
-    box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.2);
-}
-
-.filter-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-/* تنسيق رأس الوحدة */
-.module-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding: 15px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 10px;
-    color: white;
-}
-
-.module-header h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-}
-
-/* تأثيرات للجوال */
-@media (max-width: 768px) {
-    .table-container {
-        margin: 10px;
-        padding: 15px;
-    }
-    
-    #studentsTable {
-        font-size: 14px;
-    }
-    
-    .btn {
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-    
-    .filter-row {
-        flex-direction: column;
-    }
-    
-    .academic-year-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-}
-</style>
-
-<div class="module-header">
-    <h2>إدارة الطلاب</h2>
-    {% if user|has_perm:"students_create" %}
-    <button class="btn btn-primary" id="addStudentBtn">
-        <a href="{% url 'students:student_type_choice' %}" style="color:white;">
-            <i class="fas fa-plus"></i> إضافة طالب جديد
-        </a>
-    </button>
-    {% endif %}
-</div>
-
-{% include "partials/_alerts.html" %}
-<hr>
-
-<!-- شريط البحث -->
-<div class="search-bar" style="margin-bottom: 20px;">
-    <form method="GET" action="{% url 'students:student' %}" id="searchForm">
-        <div class="input-group">
-            <input type="text" name="search" class="form-control" placeholder="ابحث عن طالب بالاسم أو الرقم أو الهاتف أو البريد..." value="{{ search_query }}">
-            <div class="input-group-append">
-                <button class="btn btn-primary" type="submit">
-                    <i class="fas fa-search"></i> بحث
+                            {% for course in quick_courses %}
+                            {% if course.academic_year_id == academic_year.id %}
+                            <div class="surface-panel mb-2" onclick="event.stopPropagation(); loadStudents('{{ academic_year.id }}', '{{ course.id }}', 'quick')">
+                                <div class="d-flex justify-content-between align-items-center gap-3">
+                                    <span>دورة {{ course.name }}</span>
+                                    <span class="badge badge-warning">{{ course.student_count }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
                 </button>
-                {% if search_query %}
-                <a href="{% url 'students:student' %}" class="btn btn-secondary">
-                    <i class="fas fa-times"></i> إلغاء البحث
-                </a>
-                {% endif %}
-            </div>
-        </div>
-    </form>
-</div>
-
-<!-- إذا كان هناك بحث، نعرض النتائج فقط -->
-{% if search_query %}
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="fas fa-search me-2"></i>نتائج البحث عن "{{ search_query }}"</h5>
-    </div>
-    <div class="card-body">
-        <div class="table-container">
-            {% include "students/partials/_students_table.html" %}
-        </div>
-    </div>
-</div>
-
-<!-- إذا لم يكن هناك بحث، نعرض الفصول الدراسية -->
-{% else %}
-
-<!-- عرض الفصول الدراسية -->
-<div class="card mb-4">
-    <div class="card-header bg-info text-white">
-        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>الفصول الدراسية</h5>
-    </div>
-    <div class="card-body">
-        {% for academic_year in academic_years %}
-        <div class="academic-year-card" onclick="toggleBranches('branches-{{ academic_year.id }}')">
-            <div class="academic-year-header">
-                <h4>{{ academic_year.name }} - {{ academic_year.year }}</h4>
-                <span class="badge bg-light text-dark">
-                    {{ academic_year_stats|dict_key:academic_year.id }} طالب
-                </span>
-            </div>
-            <div class="year-stats">
-                <span class="stat-badge">
-                    <i class="fas fa-user-graduate me-1"></i> نظاميون: {{ academic_year_regular_stats|dict_key:academic_year.id }}
-                </span>
-                <span class="stat-badge">
-                    <i class="fas fa-bolt me-1"></i> سريعون: {{ academic_year_quick_stats|dict_key:academic_year.id }}
-                </span>
-            </div>
-            
-            <!-- الفروع لهذا الفصل الدراسي -->
-            <div id="branches-{{ academic_year.id }}" class="branches-container">
-                <h6 class="text-white mb-3">الفروع والدورات:</h6>
-                
-                <!-- عرض الفروع للنظاميين -->
-                {% for branch in branch_stats %}
-                {% if branch.academic_year_id == academic_year.id %}
-                <div class="branch-card" onclick="loadStudents('{{ academic_year.id }}', '{{ branch.name }}', 'regular')">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>فرع {{ branch.name }}</span>
-                        <div>
-                            <span class="badge badge-regular student-badge">{{ branch.regular_count }}</span>
-                            <i class="fas fa-chevron-left"></i>
-                        </div>
-                    </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-xmark fa-2x"></i>
+                    <h3>لا توجد فصول دراسية</h3>
                 </div>
-                {% endif %}
-                {% endfor %}
-                
-                <!-- الدورات السريعة -->
-                {% for course in quick_courses %}
-                {% if course.academic_year_id == academic_year.id %}
-                <div class="branch-card" onclick="loadStudents('{{ academic_year.id }}', '{{ course.id }}', 'quick')">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>دورة {{ course.name }}</span>
-                        <div>
-                            <span class="badge badge-warning student-badge">{{ course.student_count }}</span>
-                            <i class="fas fa-chevron-left"></i>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
                 {% endfor %}
             </div>
         </div>
-        {% empty %}
-        <div class="text-center text-muted py-4">
-            <i class="fas fa-calendar-times fa-2x mb-3"></i>
-            <p>لا توجد فصول دراسية</p>
-        </div>
-        {% endfor %}
     </div>
-</div>
 
-<!-- حاوية لعرض الطلاب حسب الفرع أو الدورة -->
-<div id="studentsContainer">
-    <!-- سيتم ملؤها via JavaScript -->
-</div>
+    <div id="studentsContainer"></div>
+    {% endif %}
 
-{% endif %}
-
-<!-- فلاتر الجدول -->
-<div class="filters-container">
-    <div class="filter-row">
-        <div class="filter-group">
-            <label for="id-filter">فلتر حسب الرقم:</label>
-            <input type="text" id="id-filter" placeholder="ابحث برقم الطالب...">
+    <div class="filters-container">
+        <div class="module-header">
+            <h2>فلاتر الجدول</h2>
         </div>
-        <div class="filter-group">
-            <label for="name-filter">فلتر حسب الاسم:</label>
-            <input type="text" id="name-filter" placeholder="ابحث باسم الطالب...">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="id-filter">الرقم</label>
+                <input type="text" id="id-filter" placeholder="ابحث برقم الطالب">
+            </div>
+            <div class="filter-group">
+                <label for="name-filter">الاسم</label>
+                <input type="text" id="name-filter" placeholder="ابحث باسم الطالب">
+            </div>
+            <div class="filter-group">
+                <label for="phone-filter">الهاتف</label>
+                <input type="text" id="phone-filter" placeholder="ابحث برقم الهاتف">
+            </div>
         </div>
-        <div class="filter-group">
-            <label for="phone-filter">فلتر حسب رقم الهاتف:</label>
-            <input type="text" id="phone-filter" placeholder="ابحث برقم الهاتف...">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="type-filter">النوع</label>
+                <select id="type-filter">
+                    <option value="">جميع الأنواع</option>
+                    <option value="regular">نظامي</option>
+                    <option value="quick">سريع</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="branch-filter">الفرع</label>
+                <select id="branch-filter">
+                    <option value="">جميع الفروع</option>
+                    <option value="العلمي">العلمي</option>
+                    <option value="الأدبي">الأدبي</option>
+                    <option value="الصف التاسع">الصف التاسع</option>
+                    <option value="التمهيدي">التمهيدي</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="status-filter">الحالة</label>
+                <select id="status-filter">
+                    <option value="">جميع الحالات</option>
+                    <option value="active">نشط</option>
+                    <option value="inactive">غير نشط</option>
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button class="btn btn-secondary" id="reset-filters">
+                <i class="fas fa-rotate-left"></i>
+                إعادة تعيين الفلاتر
+            </button>
         </div>
     </div>
-    <div class="filter-row">
-        <div class="filter-group">
-            <label for="type-filter">فلتر حسب النوع:</label>
-            <select id="type-filter">
-                <option value="">جميع الأنواع</option>
-                <option value="regular">نظامي</option>
-                <option value="quick">سريع</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label for="branch-filter">فلتر حسب الفرع:</label>
-            <select id="branch-filter">
-                <option value="">جميع الفروع</option>
-                <option value="العلمي">العلمي</option>
-                <option value="الأدبي">الأدبي</option>
-                <option value="الصف التاسع">الصف التاسع</option>
-                <option value="التمهيدي">التمهيدي</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label for="status-filter">فلتر حسب الحالة:</label>
-            <select id="status-filter">
-                <option value="">جميع الحالات</option>
-                <option value="active">نشط</option>
-                <option value="inactive">غير نشط</option>
-            </select>
-        </div>
-    </div>
-    <div class="filter-actions">
-        <button class="btn btn-secondary" id="reset-filters">
-            <i class="fas fa-redo"></i> إعادة تعيين الفلاتر
-        </button>
-    </div>
-</div>
+</section>
 
 <script>
-// دالة لإظهار/إخفاء الفروع
 function toggleBranches(branchesId) {
     const branches = document.getElementById(branchesId);
     const allBranches = document.querySelectorAll('.branches-container');
-    
-    // إخفاء جميع الفروع الأخرى
     allBranches.forEach(branch => {
         if (branch.id !== branchesId) {
             branch.style.display = 'none';
         }
     });
-    
-    // إظهار/إخفاء الفروع المحددة
+    if (!branches) { return; }
     if (branches.style.display === 'block') {
         branches.style.display = 'none';
         document.getElementById('studentsContainer').innerHTML = '';
@@ -489,67 +185,49 @@ function toggleBranches(branchesId) {
     }
 }
 
-// دالة لتحميل الطلاب حسب الفرع أو الدورة
 function loadStudents(academicYearId, filterValue, studentType) {
     let url = `{% url 'students:student' %}?academic_year=${academicYearId}&type=${studentType}`;
-    
     if (studentType === 'regular') {
         url += `&branch=${filterValue}`;
     } else if (studentType === 'quick') {
         url += `&course=${filterValue}`;
     }
-    
+
     fetch(url)
         .then(response => response.text())
         .then(html => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             const table = doc.querySelector('.table-responsive');
-            
-            if (table) {
-                let title = '';
-                if (studentType === 'regular') {
-                    title = `طلاب فرع ${filterValue}`;
-                } else if (studentType === 'quick') {
-                    title = `طلاب الدورة السريعة`;
-                }
-                
-                document.getElementById('studentsContainer').innerHTML = `
-                    <div class="card">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0">
-                                <i class="fas fa-users me-2"></i>
-                                ${title} - فصل دراسي ${academicYearId}
-                                <button class="btn btn-sm btn-light float-left" onclick="closeStudentsContainer()">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </h5>
+            if (!table) { return; }
+
+            const title = studentType === 'regular' ? `طلاب فرع ${filterValue}` : 'طلاب الدورة السريعة';
+            document.getElementById('studentsContainer').innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <div class="module-header">
+                            <h2>${title} - فصل ${academicYearId}</h2>
+                            <button class="btn btn-secondary" type="button" onclick="closeStudentsContainer()">
+                                <i class="fas fa-xmark"></i>
+                                إغلاق
+                            </button>
                         </div>
-                        <div class="card-body">
-                            <div class="table-container">
-                                ${table.innerHTML}
-                            </div>
-                        </div>
+                        <div class="table-container">${table.innerHTML}</div>
                     </div>
-                `;
-                
-                // إعادة تفعيل الفلاتر والترتيب
-                initializeTableFilters();
-                initializeDeleteButtons();
-            }
+                </div>
+            `;
+            initializeTableFilters();
+            initializeDeleteButtons();
         })
         .catch(error => console.error('Error:', error));
 }
 
-// دالة لإغلاق حاوية الطلاب
 function closeStudentsContainer() {
     document.getElementById('studentsContainer').innerHTML = '';
 }
 
-// دالة لتهيئة الفلاتر
 function initializeTableFilters() {
     const tableRows = Array.from(document.querySelectorAll('#studentsTable tbody tr'));
-    
     function filterTable() {
         const idFilter = document.getElementById('id-filter')?.value.toLowerCase() || '';
         const nameFilter = document.getElementById('name-filter')?.value.toLowerCase() || '';
@@ -557,9 +235,7 @@ function initializeTableFilters() {
         const typeFilter = document.getElementById('type-filter')?.value || '';
         const branchFilter = document.getElementById('branch-filter')?.value || '';
         const statusFilter = document.getElementById('status-filter')?.value || '';
-        
-        let visibleRows = 0;
-        
+
         tableRows.forEach(row => {
             const id = row.cells[0].textContent.toLowerCase();
             const type = row.cells[1].textContent.includes('سريع') ? 'quick' : 'regular';
@@ -567,86 +243,68 @@ function initializeTableFilters() {
             const phone = row.cells[3].textContent.toLowerCase();
             const branch = row.cells[4].textContent;
             const status = row.cells[5].textContent.includes('نشط') ? 'active' : 'inactive';
-            
-            const showRow = 
+
+            const showRow =
                 id.includes(idFilter) &&
                 name.includes(nameFilter) &&
                 phone.includes(phoneFilter) &&
                 (typeFilter === '' || type === typeFilter) &&
                 (branchFilter === '' || branch === branchFilter) &&
                 (statusFilter === '' || status === statusFilter);
-            
+
             row.style.display = showRow ? '' : 'none';
-            if (showRow) visibleRows++;
         });
     }
-    
-    // إضافة مستمعي الأحداث للفلاتر
-    const filters = ['id-filter', 'name-filter', 'phone-filter', 'type-filter', 'branch-filter', 'status-filter'];
-    filters.forEach(filterId => {
+
+    ['id-filter', 'name-filter', 'phone-filter', 'type-filter', 'branch-filter', 'status-filter'].forEach(filterId => {
         const element = document.getElementById(filterId);
-        if (element) {
-            element.addEventListener('input', filterTable);
-            element.addEventListener('change', filterTable);
-        }
+        if (!element) { return; }
+        element.addEventListener('input', filterTable);
+        element.addEventListener('change', filterTable);
     });
-    
-    // إعادة تعيين الفلاتر
-    const resetBtn = document.getElementById('reset-filters');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', function() {
-            filters.forEach(filterId => {
-                const element = document.getElementById(filterId);
-                if (element) element.value = '';
-            });
-            filterTable();
+
+    document.getElementById('reset-filters')?.addEventListener('click', function() {
+        ['id-filter', 'name-filter', 'phone-filter', 'type-filter', 'branch-filter', 'status-filter'].forEach(filterId => {
+            const element = document.getElementById(filterId);
+            if (element) { element.value = ''; }
         });
-    }
+        filterTable();
+    });
 }
 
-// دالة لتهيئة أزرار الحذف
 function initializeDeleteButtons() {
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const studentId = this.getAttribute('data-id');
             const isQuick = this.closest('tr').querySelector('.student-badge').textContent.includes('سريع');
-            
-            if (confirm('هل أنت متأكد من رغبتك في حذف هذا الطالب؟')) {
-                let deleteUrl = '';
-                if (isQuick) {
-                    deleteUrl = `/quick/student/${studentId}/delete/`;
+            if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الطالب؟')) { return; }
+
+            const deleteUrl = isQuick ? `/quick/student/${studentId}/delete/` : `/students/delete/${studentId}/`;
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
                 } else {
-                    deleteUrl = `/students/delete/${studentId}/`;
+                    alert('حدث خطأ أثناء الحذف');
                 }
-                
-                fetch(deleteUrl, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('حدث خطأ أثناء الحذف');
-                    }
-                });
-            }
+            });
         });
     });
 }
 
-// تهيئة الصفحة عند التحميل
 document.addEventListener('DOMContentLoaded', function() {
-    // إذا كان هناك معلمات في URL، نحمل الطلاب مباشرة
     const urlParams = new URLSearchParams(window.location.search);
     const academicYear = urlParams.get('academic_year');
     const branch = urlParams.get('branch');
     const course = urlParams.get('course');
     const studentType = urlParams.get('type');
-    
+
     if (academicYear && (branch || course || studentType)) {
         if (studentType === 'quick' && course) {
             loadStudents(academicYear, course, 'quick');
@@ -654,8 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadStudents(academicYear, branch, 'regular');
         }
     }
-    
-    // تهيئة الفلاتر للجدول المعروض
+
     initializeTableFilters();
     initializeDeleteButtons();
 });

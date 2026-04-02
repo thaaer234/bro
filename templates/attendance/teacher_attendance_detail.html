@@ -2,6 +2,11 @@
 
 {% load static %}
 {% load attendance_filters %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/attendance.css' %}">
+{% endblock %}
 {% block content %}
 <div class="module-header">
     <h2>تفاصيل حضور المدرسين - {{ date }}</h2>
@@ -155,13 +160,4 @@
 </div>
 {% endif %}
 
-<style>
-.card {
-    margin-bottom: 1rem;
-}
-.card-title {
-    font-size: 1.5rem;
-    font-weight: bold;
-}
-</style>
 {% endblock %}

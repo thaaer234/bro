@@ -46,3 +46,19 @@ class RecursionProtectionMiddleware:
         finally:
             if '_recursion_guard' in context:
                 del context['_recursion_guard']
+
+
+class NoIndexMiddleware:
+    """
+    Add crawler-blocking headers for this private internal site.
+    """
+
+    HEADER_VALUE = "noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate"
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        response["X-Robots-Tag"] = self.HEADER_VALUE
+        return response

@@ -247,6 +247,31 @@ class QuickCourseSessionEnrollment(models.Model):
                 raise ValidationError('هذا الصف وصل إلى السعة القصوى.')
 
 
+class QuickManualSortingSelection(models.Model):
+    enrollment = models.OneToOneField('QuickEnrollment', on_delete=models.CASCADE, related_name='manual_sorting_selection')
+    session = models.ForeignKey(QuickCourseSession, on_delete=models.CASCADE, related_name='manual_sorting_selections')
+    selected_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='quick_manual_sorting_selections',
+    )
+    selected_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'تثبيت فرز شبه يدوي'
+        verbose_name_plural = 'تثبيتات الفرز شبه اليدوي'
+        ordering = ['-selected_at', 'id']
+
+    def __str__(self):
+        return f"{self.enrollment.student.full_name} -> {self.session.title}"
+
+    def clean(self):
+        if self.session.course_id != self.enrollment.course_id:
+            raise ValidationError('لا يمكن تثبيت الطالب على كلاس من دورة مختلفة.')
+
+
 class QuickCourseSessionAttendance(models.Model):
     STATUS_CHOICES = [
         ('present', 'حاضر'),

@@ -1,5 +1,10 @@
 {% extends 'base.html' %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+{% endblock %}
+
+
 {% block content %}
 <div class="module-header d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -280,146 +285,6 @@
 </div>
 
 <!-- التنسيقات المخصصة -->
-<style>
-/* تنسيقات عامة */
-.page-title {
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-.card {
-    border-radius: 10px;
-}
-
-.bg-gradient-success {
-    background: linear-gradient(135deg, #42e695 0%, #3bb2b8 100%);
-}
-
-/* مربع المعلومات */
-.teacher-summary {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-left: 4px solid #198754;
-}
-
-.info-box {
-    padding: 10px;
-}
-
-.info-box .info-label {
-    font-size: 0.9rem;
-    color: #6c757d;
-    margin-bottom: 5px;
-}
-
-.info-box .info-value {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 1.1rem;
-}
-
-/* أقسام النموذج */
-.form-section {
-    padding: 20px;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-}
-
-.section-title {
-    color: #2c3e50;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #f0f0f0;
-    font-weight: 600;
-}
-
-/* معاينة الراتب */
-.salary-preview {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px dashed #ced4da;
-}
-
-.preview-item {
-    text-align: center;
-    padding: 10px;
-}
-
-.preview-label {
-    display: block;
-    color: #6c757d;
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-}
-
-.preview-value {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 700;
-}
-
-/* بطاقات المعلومات */
-.info-card {
-    border-radius: 8px;
-    background: #f8f9fa;
-    transition: all 0.3s;
-    height: 100%;
-}
-
-.info-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-/* إدخالات النموذج */
-.form-control-lg, .form-select-lg {
-    border-radius: 8px;
-    border: 1px solid #ced4da;
-}
-
-.form-control:focus, .form-select:focus {
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-.input-group-text {
-    background-color: #f8f9fa;
-    border: 1px solid #ced4da;
-}
-
-/* تحسينات للتجاوب */
-@media (max-width: 768px) {
-    .form-section {
-        padding: 15px;
-    }
-    
-    .preview-value {
-        font-size: 1.2rem;
-    }
-    
-    .btn-lg {
-        padding: 0.5rem 1rem;
-        font-size: 1rem;
-    }
-}
-
-/* التحقق من النموذج */
-.was-validated .form-control:invalid,
-.was-validated .form-select:invalid {
-    border-color: #dc3545;
-}
-
-.was-validated .form-control:valid,
-.was-validated .form-select:valid {
-    border-color: #198754;
-}
-
-/* الألوان */
-.text-primary { color: #0d6efd !important; }
-.text-success { color: #198754 !important; }
-.text-warning { color: #ffc107 !important; }
-.text-info { color: #0dcaf0 !important; }
-</style>
-
 <!-- سكريبت لحساب المعاينة -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {

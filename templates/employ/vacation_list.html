@@ -2,6 +2,11 @@
 
 {% load emp_perms %}
 {% load static %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+{% endblock %}
 {% block content %}
 <div class="module-header">
     <h2>إدارة الإجازات</h2>
@@ -76,34 +81,4 @@
     </table>
 </div>
 
-<style>
-.filters {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #f9f9f9;
-    border-radius: 5px;
-}
-
-.form-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    align-items: end;
-}
-
-.form-col {
-    flex: 1;
-    min-width: 200px;
-}
-
-.badge {
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-}
-
-.badge-success { background: #28a745; color: white; }
-.badge-warning { background: #ffc107; color: black; }
-.badge-danger { background: #dc3545; color: white; }
-</style>
 {% endblock %}

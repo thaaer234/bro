@@ -2,6 +2,11 @@
 
 {% load emp_perms %}
 {% load static %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/attendance.css' %}">
+{% endblock %}
 {% block content %}
 
 <div class="module-header">
@@ -61,36 +66,4 @@
     <a href="{% url 'attendance:attendance' %}" class="btn btn-secondary mt-3 ml-2">العودة للسجل</a>
 </form>
 
-<style>
-.attendance-container {
-    display: flex;
-    gap: 20px;
-}
-.attendance-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.attendance-option input[type="radio"] {
-    transform: scale(1.3);
-    cursor: pointer;
-}
-.present-option {
-    background-color: rgba(40, 167, 69, 0.1);
-    border: 1px solid #28a745;
-    color: #28a745;
-}
-.absent-option {
-    background-color: rgba(220, 53, 69, 0.1);
-    border: 1px solid #dc3545;
-    color: #dc3545;
-}
-.attendance-option input[type="radio"]:checked + * {
-    font-weight: bold;
-}
-</style>
 {% endblock %}

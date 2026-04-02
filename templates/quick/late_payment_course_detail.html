@@ -1,105 +1,11 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+{% endblock %}
+
+
 {% block content %}
-<style>
-.late-detail-page {
-    background:
-        radial-gradient(circle at top left, rgba(31, 122, 140, 0.14), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(244, 162, 97, 0.12), transparent 22%),
-        #f6f8fc;
-    border-radius: 24px;
-    padding: 24px;
-}
-
-.late-detail-card {
-    border: 0;
-    border-radius: 22px;
-    box-shadow: 0 24px 50px -32px rgba(15, 23, 42, 0.42);
-    background: #fff;
-}
-
-.late-detail-hero {
-    background: linear-gradient(135deg, #0f3d5e 0%, #1f7a8c 100%);
-    color: #fff;
-}
-
-.late-detail-hero .card-body,
-.late-detail-card .card-body {
-    padding: 22px;
-}
-
-.late-date-group {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 18px;
-    padding: 18px;
-    background: #fff;
-}
-
-.late-group-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    gap: 14px;
-    margin-bottom: 14px;
-}
-
-.late-meta-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 12px;
-    border-radius: 999px;
-    background: rgba(15, 61, 94, 0.08);
-    color: #0f3d5e;
-    font-size: 0.84rem;
-    font-weight: 700;
-}
-
-.late-detail-table thead th {
-    background: #123d5d;
-    color: #fff;
-    border: 0;
-    padding: 13px 12px;
-}
-
-.late-detail-table tbody td {
-    padding: 14px 12px;
-    vertical-align: middle;
-    border-color: rgba(15, 23, 42, 0.08);
-}
-
-.late-detail-table tbody tr:hover {
-    background: rgba(15, 61, 94, 0.04);
-}
-
-.late-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: end;
-    flex-wrap: wrap;
-    gap: 14px;
-}
-
-.late-empty {
-    text-align: center;
-    color: #64748b;
-    padding: 54px 20px;
-}
-
-@media (max-width: 767px) {
-    .late-detail-page {
-        padding: 16px;
-        border-radius: 18px;
-    }
-
-    .late-group-header,
-    .late-toolbar {
-        flex-direction: column;
-        align-items: stretch;
-    }
-}
-</style>
-
 <div class="container-fluid late-detail-page">
     <div class="card late-detail-card late-detail-hero mb-4">
         <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">

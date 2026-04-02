@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% load student_filters %}
 
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+{% endblock %}
 {% block content %}
 <div class="container py-4" dir="rtl">
     <div class="card shadow-sm border-0 mb-4">
@@ -188,11 +193,4 @@
     </div>
 </div>
 
-<style>
-@media print {
-    .btn {
-        display: none !important;
-    }
-}
-</style>
 {% endblock %}

@@ -1,22 +1,27 @@
-{% load emp_perms %}
 {% if messages %}
+<section class="alert-messages" aria-live="polite" aria-atomic="true">
     {% for msg in messages %}
-        <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
-            <strong>
-                {% if msg.tags == 'danger' %}
-                    خطأ / Error
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-start gap-3">
+            <span class="workspace-pill" style="padding:.45rem .7rem;">
+                {% if msg.tags == 'danger' or msg.tags == 'error' %}
+                <i class="fas fa-triangle-exclamation"></i>
+                <span>خطأ</span>
                 {% elif msg.tags == 'success' %}
-                    نجح / Success
+                <i class="fas fa-circle-check"></i>
+                <span>تم</span>
                 {% elif msg.tags == 'warning' %}
-                    تحذير / Warning
-                {% elif msg.tags == 'info' %}
-                    معلومات / Info
+                <i class="fas fa-bell"></i>
+                <span>تنبيه</span>
                 {% else %}
-                    {{ msg.tags|title }}
+                <i class="fas fa-circle-info"></i>
+                <span>معلومة</span>
                 {% endif %}
-            :</strong>
-            {{ msg }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </span>
+            <div class="flex-grow-1">{{ msg }}</div>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="إغلاق"></button>
         </div>
+    </div>
     {% endfor %}
+</section>
 {% endif %}

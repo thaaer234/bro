@@ -2,6 +2,11 @@
 
 {% load emp_perms %}
 {% load static %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/courses.css' %}">
+{% endblock %}
 {% block content %}
 
 <div class="module-header">
@@ -210,56 +215,6 @@
         </div>
     </div>
 </div>
-
-<style>
-.stat-card {
-    border: none;
-    border-radius: 10px;
-    transition: transform 0.2s;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-}
-
-.subject-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #e3f2fd;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.teacher-tag {
-    font-size: 11px;
-    padding: 4px 8px;
-}
-
-.teacher-list {
-    max-width: 200px;
-}
-
-.badge {
-    font-size: 11px;
-    padding: 6px 10px;
-    border-radius: 10px;
-}
-
-.action-buttons .btn {
-    border-radius: 5px;
-    padding: 4px 8px;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-}
-
-.card-footer {
-    border-top: 1px solid #e9ecef;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

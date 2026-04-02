@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/exams.css' %}">
+{% endblock %}
 {% block title %}تعديل علامات اختبار - {{ exam.name }}{% endblock %}
 
 {% block content %}
@@ -164,25 +169,4 @@ document.getElementById('examGradesForm').addEventListener('submit', function(e)
 });
 </script>
 
-<style>
-.percentage {
-    font-weight: bold;
-    font-size: 0.9em;
-}
-
-/* تحسين مظهر حقول الإدخال */
-input[name$="-grade"], 
-input[name$="-notes"] {
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    width: 100%;
-}
-
-input[name$="-grade"]:focus, 
-input[name$="-notes"]:focus {
-    border-color: #4f81bd;
-    box-shadow: 0 0 0 0.2rem rgba(79, 129, 189, 0.25);
-}
-</style>
 {% endblock %}
