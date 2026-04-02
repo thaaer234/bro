@@ -8,7 +8,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 12mm;
+            margin: 5mm;
         }
         body {
             margin: 0;
@@ -17,7 +17,7 @@
             color: #10243d;
         }
         .print-shell {
-            padding: 18px;
+            padding: 6px;
         }
         .toolbar {
             display: flex;
@@ -25,7 +25,7 @@
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
-            margin-bottom: 18px;
+            margin-bottom: 8px;
         }
         .toolbar__title {
             display: grid;
@@ -68,7 +68,7 @@
             overflow: hidden;
         }
         .hero {
-            padding: 24px;
+            padding: 12px 14px;
             color: #fff;
             background:
                 radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 30%),
@@ -87,14 +87,14 @@
         .stats {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 12px;
-            padding: 18px 24px 0;
+            gap: 8px;
+            padding: 10px 12px 0;
         }
         .stat {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 18px;
-            padding: 14px 16px;
+            padding: 8px 10px;
         }
         .stat__label {
             display: block;
@@ -107,7 +107,7 @@
             color: #10243d;
         }
         .table-wrap {
-            padding: 14px;
+            padding: 8px 10px;
         }
         table {
             width: 100%;
@@ -221,7 +221,7 @@
             justify-content: space-between;
             gap: 10px;
             flex-wrap: wrap;
-            padding: 0 24px 24px;
+            padding: 0 10px 10px;
             color: #667085;
             font-size: 12px;
         }
@@ -238,6 +238,19 @@
             .sheet {
                 box-shadow: none;
                 border-radius: 0;
+            }
+            .hero {
+                padding: 8px 10px;
+            }
+            .stats {
+                padding: 6px 8px 0;
+                gap: 6px;
+            }
+            .table-wrap {
+                padding: 6px 8px;
+            }
+            .footer {
+                padding: 0 8px 6px;
             }
             tr, td, th {
                 page-break-inside: avoid;
