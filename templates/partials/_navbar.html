@@ -8,7 +8,7 @@
 <aside id="site-sidebar" class="sidebar" aria-label="القائمة الجانبية الرئيسية">
     <div class="sidebar-header">
         <div class="logo-container">
-            <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <img src="{% static 'img/logo.png' %}" alt="معهد اليمن" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="logo-fallback" style="display:none;">
                 <i class="fas fa-graduation-cap" aria-hidden="true"></i>
             </div>
@@ -43,10 +43,6 @@
             </small>
         </div>
 
-        <div class="sidebar-badge-row">
-            <span class="sidebar-badge"><i class="fas fa-layer-group"></i> منصة تشغيل</span>
-            <span class="sidebar-badge sidebar-badge--accent"><i class="fas fa-bolt"></i> واجهة متسارعة</span>
-        </div>
     </div>
 
     <nav class="sidebar-menu" aria-label="أقسام النظام">
@@ -74,11 +70,66 @@
         </a>
         {% endif %}
 
-        {% if user.is_superuser or 'students_view' in emp_perms %}
-        <a href="{% url 'students:student' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'students' %}active{% endif %}">
-            <i class="fas fa-user-graduate"></i>
-            <span>الطلاب</span>
+        <a href="{% url 'manuals:home' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' %}active{% endif %}">
+            <i class="fas fa-book-open-reader"></i>
+            <span>دليل المستخدم</span>
         </a>
+
+        <a href="{% url 'manuals:handbook' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' and request.resolver_match.url_name == 'handbook' %}active{% endif %}">
+            <i class="fas fa-book-atlas"></i>
+            <span>دليل التشغيل</span>
+        </a>
+
+        {% if user.is_superuser or 'students_view' in emp_perms or 'quick_students_view' in emp_perms or 'students_create' in emp_perms or 'quick_students_create' in emp_perms or 'course_accounting_view' in emp_perms %}
+        <div class="menu-group">
+            <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="students-submenu">
+                <i class="fas fa-user-graduate"></i>
+                <span>الطلاب</span>
+                <i class="fas fa-chevron-down group-arrow"></i>
+            </button>
+            <div id="students-submenu" class="sub-menu">
+                {% if user.is_superuser or 'students_view' in emp_perms %}
+                <a href="{% url 'students:student' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'students' and request.resolver_match.url_name == 'student' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    <span>الطلاب النظاميون</span>
+                </a>
+                {% endif %}
+                {% if user.is_superuser or 'students_create' in emp_perms %}
+                <a href="{% url 'students:student_type_choice' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'students' and request.resolver_match.url_name == 'student_type_choice' %}active{% endif %}">
+                    <i class="fas fa-user-plus"></i>
+                    <span>إضافة طالب</span>
+                </a>
+                {% endif %}
+                {% if user.is_superuser or 'students_view' in emp_perms or 'quick_students_view' in emp_perms %}
+                <a href="{% url 'quick:student_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'student_list' %}active{% endif %}">
+                    <i class="fas fa-bolt"></i>
+                    <span>الطلاب السريعون</span>
+                </a>
+                {% endif %}
+                {% if user.is_superuser or 'students_create' in emp_perms or 'quick_students_create' in emp_perms %}
+                <a href="{% url 'quick:student_create' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'student_create' %}active{% endif %}">
+                    <i class="fas fa-user-plus"></i>
+                    <span>إضافة طالب سريع</span>
+                </a>
+                {% endif %}
+                {% if user.is_superuser or 'course_accounting_view' in emp_perms %}
+                <a href="{% url 'quick:course_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'course_list' %}active{% endif %}">
+                    <i class="fas fa-layer-group"></i>
+                    <span>دورات النظام السريع</span>
+                </a>
+                {% endif %}
+                {% if user.is_superuser or 'students_view' in emp_perms %}
+                <a href="{% url 'quick:student_intersections' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'student_intersections' %}active{% endif %}">
+                    <i class="fas fa-shuffle"></i>
+                    <span>تقاطع الطلاب</span>
+                </a>
+                <a href="{% url 'quick:manual_sorting' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'manual_sorting' %}active{% endif %}">
+                    <i class="fas fa-sort"></i>
+                    <span>الفرز اليدوي</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
         {% endif %}
 
         {% if user.is_superuser or 'teachers_view' in emp_perms %}
@@ -131,7 +182,7 @@
         </div>
         {% endif %}
 
-        {% if user.is_superuser or 'classroom_view' in emp_perms or 'examss_view' in emp_perms %}
+        {% if user.is_superuser or 'classroom_view' in emp_perms or 'exams_view' in emp_perms %}
         <div class="menu-group">
             <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="education-submenu">
                 <i class="fas fa-school"></i>
@@ -182,7 +233,7 @@
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'hr_advances' in emp_perms %}
-                <a href="{% url 'accounts:advance_list' %}" class="menu-item sub-item {% if request.resolver_match and 'advance' in request.resolver_match.url_name %}active{% endif %}">
+                <a href="{% url 'accounts:advance_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name and 'advance' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="fas fa-hand-holding-dollar"></i>
                     <span>سلف الموظفين</span>
                 </a>
@@ -205,10 +256,12 @@
         </a>
         {% endif %}
 
+        {% if user.is_superuser or 'accounting_receipts' in emp_perms or 'accounting_expenses' in emp_perms %}
         <a href="{% url 'accounts:receipts_expenses' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name and 'receipt' in request.resolver_match.url_name %}active{% elif request.resolver_match and request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name and 'expense' in request.resolver_match.url_name %}active{% endif %}">
             <i class="fas fa-receipt"></i>
             <span>الإيصالات والمصاريف</span>
         </a>
+        {% endif %}
 
         <div class="sidebar-shortcuts">
             <div class="sidebar-shortcuts__title">وصول سريع</div>
@@ -219,6 +272,10 @@
             <a href="{% url 'registration:profile' %}" class="sidebar-shortcut">
                 <i class="fas fa-id-badge"></i>
                 <span>الملف الشخصي</span>
+            </a>
+            <a href="{% url 'manuals:handbook' %}" class="sidebar-shortcut">
+                <i class="fas fa-book"></i>
+                <span>الدليل التفصيلي</span>
             </a>
         </div>
 
@@ -235,7 +292,7 @@
 <aside id="site-sidebar" class="sidebar" aria-label="القائمة الجانبية الرئيسية">
     <div class="sidebar-header">
         <div class="logo-container">
-            <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <img src="{% static 'img/logo.png' %}" alt="معهد اليمن" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="logo-fallback" style="display:none;">
                 <i class="fas fa-graduation-cap"></i>
             </div>

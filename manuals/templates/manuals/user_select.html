@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}دليل مستخدم واحد | معهد الإيمان{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="guide-shell manuals-home-shell">
+    <div class="guide-hero">
+        <div class="guide-hero__copy">
+            <span class="guide-kicker"><i class="fas fa-user-shield"></i> دليل حسب الصلاحيات</span>
+            <h1>إنشاء دفتر لمستخدم واحد</h1>
+            <p>اختر الموظف أو المستخدم أولاً، ثم سيتم توليد دفتر خاص به يركز على الأقسام المشتركة وما تسمح له به صلاحياته داخل النظام.</p>
+            <div class="guide-actions">
+                <a href="{% url 'manuals:home' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-right"></i>
+                    العودة إلى الدليل
+                </a>
+            </div>
+        </div>
+        <div class="guide-hero__visual">
+            <article class="guide-hero-showcase">
+                <div class="guide-hero-showcase__main">
+                    <img src="{% static 'img/manual-center/sidebar-screen.png' %}" alt="القائمة الجانبية">
+                </div>
+                <div class="guide-hero-showcase__stack">
+                    <img src="{% static 'img/manual-center/hr-screen.png' %}" alt="الموارد البشرية">
+                    <img src="{% static 'img/manual-center/quick-students-screen.png' %}" alt="الاستقبال">
+                </div>
+            </article>
+        </div>
+        <div class="guide-hero__stats">
+            <article class="guide-stat-card">
+                <strong>{{ manual_target_users|length }}</strong>
+                <span>مستخدم متاح للاختيار</span>
+            </article>
+            {% if manual_selected_user %}
+            <article class="guide-stat-card">
+                <strong>{{ manual_selected_user.username }}</strong>
+                <span>المستخدم الحالي</span>
+            </article>
+            {% endif %}
+        </div>
+    </div>
+
+    <section class="guide-section manual-filter-panel">
+        <div class="guide-section__head">
+            <h2>اختيار المستخدم</h2>
+            <p>بعد الاختيار سيتم فتح الدفتر الخاص بهذا المستخدم مع الأقسام المشتركة والأقسام التي تغطيها صلاحياته الفعلية.</p>
+        </div>
+        <form method="get" action="{% url 'manuals:user_handbook' %}" class="manual-filter-form">
+            <label class="manual-filter-field">
+                <span>المستخدم أو الموظف</span>
+                <select name="user" required>
+                    {% for item in manual_target_users %}
+                    <option value="{{ item.id }}"{% if manual_selected_user and manual_selected_user.id == item.id %} selected{% endif %}>
+                        {{ item.full_name }} | {{ item.username }} | {{ item.position }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="manual-filter-field">
+                <span>كلمة المرور</span>
+                <input type="text" name="password" value="{{ manual_selected_password }}" placeholder="تدخل يدويًا عند الحاجة">
+            </label>
+            <div class="manual-filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-book-open"></i>
+                    فتح الدفتر الخاص
+                </button>
+            </div>
+        </form>
+        <div class="manual-filter-summary">
+            <span class="quick-access-chip quick-access-chip--accent">كلمة المرور هنا اختيارية وتدخل يدويًا للطباعة فقط</span>
+            <span class="quick-access-chip">النظام لا يعرض كلمة المرور الأصلية المخزنة</span>
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <div class="guide-section__head">
+            <h2>كيف يعمل هذا الدليل</h2>
+            <p>الدليل الفردي لا يعرض كل النظام، بل يعرض المشترك الأساسي مثل الدخول والتنقل والأخطاء، ثم يضيف الأقسام المسموحة للمستخدم وفق صلاحياته.</p>
+        </div>
+        <div class="guide-card-grid">
+            {% for item in manual_target_users %}
+            <article class="guide-card">
+                <div class="guide-card__meta">
+                    <span class="guide-card__tag">{{ item.position }}</span>
+                    <span class="guide-card__count">{{ item.username }}</span>
+                </div>
+                <h3>{{ item.full_name }}</h3>
+                <p>يمكن توليد دفتر مخصص لهذا المستخدم يركز على الأقسام والمهام اليومية المناسبة له.</p>
+                <a href="{% url 'manuals:user_handbook' %}?user={{ item.id }}{% if manual_selected_password %}&password={{ manual_selected_password|urlencode }}{% endif %}" class="btn btn-outline-primary">
+                    <i class="fas fa-file-lines"></i>
+                    توليد الدفتر
+                </a>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+</section>
+{% endblock %}

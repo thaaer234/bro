@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}دليل {{ manual_target_name }} | معهد الإيمان{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="handbook-shell manual-handbook-shell manuals-handbook-shell">
+    <div class="handbook-toolbar no-print">
+        <a href="{% url 'manuals:user_select' %}" class="btn btn-outline-primary">
+            <i class="fas fa-users"></i>
+            اختيار مستخدم آخر
+        </a>
+        <a href="{% url 'manuals:user_handbook' %}?user={{ manual_selected_user.id }}{% if manual_target_password and manual_target_password != 'غير متاح في النظام' %}&password={{ manual_target_password|urlencode }}{% endif %}" class="btn btn-outline-primary">
+            <i class="fas fa-rotate-left"></i>
+            إعادة ضبط الدفتر
+        </a>
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            طباعة دفتر المستخدم
+        </button>
+    </div>
+
+    <section class="guide-section manual-filter-panel handbook-filter-panel no-print">
+        <div class="guide-section__head">
+            <h2>تصفية دفتر المستخدم</h2>
+            <p>يمكنك تصفية الدفتر الحالي داخل صلاحيات المستخدم المختار فقط.</p>
+        </div>
+        <form method="get" class="manual-filter-form">
+            <input type="hidden" name="user" value="{{ manual_selected_user.id }}">
+            {% if manual_target_password and manual_target_password != 'غير متاح في النظام' %}
+            <input type="hidden" name="password" value="{{ manual_target_password }}">
+            {% endif %}
+            <label class="manual-filter-field">
+                <span>بحث نصي</span>
+                <input type="search" name="q" value="{{ manual_search_query }}" placeholder="مثال: كشف حساب، حضور، راتب">
+            </label>
+            <label class="manual-filter-field">
+                <span>القسم</span>
+                <select name="group">
+                    <option value="">كل الأقسام المسموح بها</option>
+                    {% for option in manual_group_options %}
+                    <option value="{{ option.value }}"{% if option.value == manual_selected_group %} selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <div class="manual-filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-magnifying-glass"></i>
+                    تطبيق
+                </button>
+            </div>
+        </form>
+        <div class="manual-filter-summary">
+            <span class="quick-access-chip quick-access-chip--accent">الأقسام المتاحة: {{ manual_user_departments|join:" / " }}</span>
+            <span class="quick-access-chip">الشاشات: {{ manual_screen_total }}</span>
+            <span class="quick-access-chip">الأخطاء: {{ manual_error_pages|length }}</span>
+        </div>
+    </section>
+
+    <article class="handbook-book">
+        <section class="handbook-page handbook-cover handbook-cover--manual handbook-cover--employee">
+            <div class="handbook-cover__content">
+                <div class="handbook-cover__frame" aria-hidden="false">
+                    <div class="handbook-cover__frame-top">
+                        <div class="handbook-cover__frame-brand">
+                            <span class="handbook-cover__frame-en">system of the alyaman institute</span>
+                            <span class="handbook-cover__frame-ar">نظام معهد اليمان</span>
+                        </div>
+                        <div class="handbook-cover__frame-mini">
+                            <strong>{{ manual_target_username }}</strong>
+                            <span>individual handbook</span>
+                        </div>
+                    </div>
+
+                    <div class="handbook-cover__frame-stage">
+                        <div class="handbook-cover__frame-band"></div>
+                        <div class="handbook-cover__frame-circles">
+                            <span class="handbook-cover__frame-circle handbook-cover__frame-circle--outer"></span>
+                            <span class="handbook-cover__frame-circle handbook-cover__frame-circle--inner"></span>
+                            <div class="handbook-cover__frame-logo">
+                                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                            </div>
+                        </div>
+                        <div class="handbook-cover__frame-copy">
+                            <span class="handbook-cover__frame-year">{% now "Y" %}</span>
+                            <h1>USER GUIDE</h1>
+                            <strong>دفتر الاستخدام</strong>
+                            <p>Operational handbook prepared according to the employee's actual permissions inside the system.</p>
+                        </div>
+                    </div>
+
+                    <div class="handbook-cover__frame-footer">
+                        <div class="handbook-cover__frame-card">
+                            <span class="handbook-cover__frame-label">Employee</span>
+                            <strong>{{ manual_target_name }}</strong>
+                            <span>{{ manual_target_position }}</span>
+                        </div>
+                        <div class="handbook-cover__frame-meta">
+                            <span>{{ manual_target_system_code }}</span>
+                            <span>{% now "Y / m / d" %}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="handbook-cover__poster">
+                    <div class="handbook-cover__poster-top">
+                        <div class="handbook-cover__poster-brand">
+                            <span class="handbook-cover__poster-en">system of the alyaman institute</span>
+                            <span class="handbook-cover__poster-ar">نظام معهد اليمان</span>
+                            <small>custom operations handbook</small>
+                        </div>
+                    </div>
+
+                    <div class="handbook-cover__poster-orbit">
+                        <span class="handbook-cover__poster-ring handbook-cover__poster-ring--one"></span>
+                        <span class="handbook-cover__poster-ring handbook-cover__poster-ring--two"></span>
+                        <div class="handbook-cover__poster-logo">
+                            <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                        </div>
+                        <div class="handbook-cover__poster-centertext">
+                            <span class="handbook-cover__poster-year">{% now "Y" %}</span>
+                            <strong>دفتر الاستخدام</strong>
+                            <span>دليل تشغيل مخصص</span>
+                        </div>
+                    </div>
+
+                    <div class="handbook-cover__poster-bottom">
+                        <div class="handbook-cover__poster-summary">
+                            <span class="handbook-cover__poster-code">ALYAMAN</span>
+                            <h1>USER GUIDE</h1>
+                            <ul class="handbook-cover__poster-points">
+                                <li>{{ manual_target_name }}</li>
+                                <li>{{ manual_target_position }}</li>
+                                <li>{% now "Y / m / d" %}</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="handbook-cover__poster-corner">
+                        <strong>{{ manual_target_username }}</strong>
+                        <span>individual handbook</span>
+                    </div>
+                </div>
+                <div class="handbook-cover__bilingual-brand">
+                    <span class="handbook-cover__brand-en">system of the alyaman institute</span>
+                    <span class="handbook-cover__brand-ar">نظام معهد اليمان</span>
+                </div>
+                <div class="handbook-cover__hero-logo">
+                    <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                </div>
+                <h1>دفتر المستخدم</h1>
+                <p class="handbook-cover__subtitle">دليل تشغيل وظيفي مخصص</p>
+                <div class="handbook-cover__nameplate">
+                    <strong>{{ manual_target_name }}</strong>
+                    <span>{{ manual_target_position }}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="handbook-page handbook-page--intro handbook-page--identity handbook-page--numbered">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">بطاقة الوصول</span>
+                <h2>بيانات الدخول والوصول السريع</h2>
+                <p>هذه الصفحة مخصصة لربط الدفتر بالحساب الصحيح داخل النظام، مع إظهار رابط النظام وبيانات المستخدم الأساسية.</p>
+            </div>
+            <div class="manual-template-grid manual-template-grid--identity">
+                <article class="manual-template-card">
+                    <div class="manual-template-card__head">
+                        <h3>بيانات المستخدم</h3>
+                    </div>
+                    <p><strong>الاسم:</strong> {{ manual_target_name }}</p>
+                    <p><strong>اسم المستخدم:</strong> {{ manual_target_username }}</p>
+                    <p><strong>المسمى الوظيفي:</strong> {{ manual_target_position }}</p>
+                    <p><strong>رقم الهاتف:</strong> {{ manual_target_phone }}</p>
+                    <p><strong>البريد الإلكتروني:</strong> {{ manual_target_email }}</p>
+                    <p><strong>كلمة المرور:</strong> {{ manual_target_password }}</p>
+                </article>
+                <article class="manual-template-card">
+                    <div class="manual-template-card__head">
+                        <h3>QR النظام</h3>
+                    </div>
+                    <figure class="manual-template-shot">
+                        <img src="{{ manual_target_qr }}" alt="QR النظام">
+                        <figcaption>
+                            <strong>{{ manual_target_system_url }}</strong>
+                            <p>امسح الرمز للوصول السريع إلى النظام الرسمي: alyaman-institute.com</p>
+                        </figcaption>
+                    </figure>
+                    <p><strong>رمز النظام:</strong> {{ manual_target_system_code }}</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="handbook-page handbook-page--toc handbook-page--numbered">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">الفهرس</span>
+                <h2>فهرس الدفتر بأرقام الصفحات</h2>
+                <p>ابدأ من هذه الصفحة للانتقال السريع إلى الجزء المطلوب من الدليل.</p>
+            </div>
+            <div class="manual-toc">
+                {% for item in manual_toc_entries %}
+                <article class="manual-toc__row">
+                    <span class="manual-toc__kind">{{ item.kind }}</span>
+                    <strong>{{ item.title }}</strong>
+                    <span class="manual-toc__dots"></span>
+                    <span class="manual-toc__page">{{ item.page }}</span>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% for workflow in manual_workflows %}
+        <section class="handbook-page handbook-page--chapter handbook-page--numbered">
+            <div class="handbook-chapter-head">
+                <div>
+                    <span class="handbook-page__eyebrow">مرحلة {{ forloop.counter }}</span>
+                    <h2>{{ workflow.title }}</h2>
+                    <p>{{ workflow.intro }}</p>
+                </div>
+            </div>
+            <div class="handbook-visual-grid handbook-visual-grid--single">
+                <figure class="handbook-visual-card">
+                    <img src="{{ workflow.screenshot.path }}" alt="{{ workflow.screenshot.title }}">
+                    <figcaption>
+                        <strong>{{ workflow.screenshot.title }}</strong>
+                        <p>{{ workflow.screenshot.caption }}</p>
+                    </figcaption>
+                </figure>
+            </div>
+            <div class="manual-step-cards">
+                {% for step in workflow.steps %}
+                <article class="manual-step-card">
+                    <span class="manual-step-card__number">{{ forloop.counter }}</span>
+                    <p>{{ step }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        {% for screen in manual_screens %}
+        <section class="handbook-page handbook-page--chapter handbook-page--numbered">
+            <div class="handbook-chapter-head">
+                <div>
+                    <span class="handbook-page__eyebrow">{{ screen.group }}</span>
+                    <h2>{{ screen.title }}</h2>
+                    <p>{{ screen.goal }}</p>
+                </div>
+                <div class="manual-screen-meta">
+                    <span><strong>المستخدم:</strong> {{ screen.used_by }}</span>
+                    <span dir="ltr"><strong>المسار:</strong> {{ screen.path }}</span>
+                </div>
+            </div>
+            <div class="handbook-visual-grid handbook-visual-grid--single">
+                <figure class="handbook-visual-card">
+                    <img src="{{ screen.screenshot.path }}" alt="{{ screen.screenshot.title }}">
+                    <figcaption>
+                        <strong>{{ screen.screenshot.title }}</strong>
+                        <p>{{ screen.screenshot.caption }}</p>
+                    </figcaption>
+                </figure>
+            </div>
+            <div class="manual-button-grid">
+                {% for button in screen.buttons %}
+                <article class="manual-button-card">
+                    <div class="manual-button-card__head">
+                        <span class="manual-button-card__index">{{ forloop.counter }}</span>
+                        <h3>{{ button.label }}</h3>
+                    </div>
+                    <p><strong>المكان:</strong> {{ button.location }}</p>
+                    <p><strong>من يستخدمه:</strong> {{ button.used_by }}</p>
+                    <p><strong>متى يستخدم:</strong> {{ button.when }}</p>
+                    <p><strong>الوظيفة:</strong> {{ button.purpose }}</p>
+                    <p><strong>النتيجة بعد الضغط:</strong> {{ button.result }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        {% for item in manual_error_pages %}
+        <section class="handbook-page handbook-page--chapter handbook-page--error handbook-page--numbered">
+            <div class="handbook-chapter-head">
+                <div>
+                    <span class="handbook-page__eyebrow">{{ item.group }}</span>
+                    <h2>{{ item.title }}</h2>
+                    <p>{{ item.goal }}</p>
+                </div>
+                <div class="manual-screen-meta">
+                    <span><strong>المستخدم:</strong> {{ item.used_by }}</span>
+                    <span><strong>المسار:</strong> {{ item.path }}</span>
+                </div>
+            </div>
+            <div class="handbook-visual-grid handbook-visual-grid--single">
+                <figure class="handbook-visual-card">
+                    <img src="{{ item.screenshot.path }}" alt="{{ item.screenshot.title }}">
+                    <figcaption>
+                        <strong>{{ item.screenshot.title }}</strong>
+                        <p>{{ item.screenshot.caption }}</p>
+                    </figcaption>
+                </figure>
+            </div>
+            <div class="manual-button-grid">
+                {% for button in item.buttons %}
+                <article class="manual-button-card">
+                    <div class="manual-button-card__head">
+                        <span class="manual-button-card__index">{{ forloop.counter }}</span>
+                        <h3>{{ button.label }}</h3>
+                    </div>
+                    <p><strong>المكان:</strong> {{ button.location }}</p>
+                    <p><strong>من يستخدمه:</strong> {{ button.used_by }}</p>
+                    <p><strong>متى يستخدم:</strong> {{ button.when }}</p>
+                    <p><strong>الوظيفة:</strong> {{ button.purpose }}</p>
+                    <p><strong>النتيجة بعد الضغط:</strong> {{ button.result }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        <section class="handbook-page handbook-page--closing">
+            <div class="manual-closing-sheet">
+                <div class="manual-closing-sheet__top">
+                    <h2>{{ closing_brand_name }}</h2>
+                </div>
+                <div class="manual-closing-sheet__body">
+                    <div class="manual-closing-sheet__brand">
+                        <span class="manual-closing-sheet__brand-kicker">Developed For</span>
+                        <h3>نظام معهد اليمان</h3>
+                        <p>دفتر استخدام وتشغيل مخصص للطباعة والتسليم الداخلي</p>
+                    </div>
+                    <div class="manual-closing-sheet__profile">
+                        {% if closing_developer_photo %}
+                        <img src="{{ closing_developer_photo }}" alt="{{ closing_developer_name }}" class="manual-closing-sheet__avatar">
+                        {% else %}
+                        <div class="manual-closing-sheet__avatar manual-closing-sheet__avatar--fallback">T</div>
+                        {% endif %}
+                        <h3>{{ closing_developer_name }}</h3>
+                        <span class="manual-closing-sheet__line"></span>
+                        <strong>{{ closing_role }}</strong>
+                        <p>{{ closing_stack }}</p>
+                    </div>
+                </div>
+                <div class="manual-closing-sheet__qrs">
+                    <figure class="manual-closing-qr manual-closing-qr--green">
+                        <img src="{{ closing_developer_site_qr }}" alt="QR موقع المطور">
+                        <figcaption>موقع المطور</figcaption>
+                    </figure>
+                </div>
+                <div class="manual-closing-sheet__skills">
+                    {% for skill in closing_skills %}
+                    <article class="manual-closing-skill">
+                        <span class="manual-closing-skill__icon">
+                            {% if forloop.first %}<i class="fas fa-code"></i>{% elif forloop.counter == 2 %}<i class="fas fa-window-maximize"></i>{% else %}<i class="fas fa-database"></i>{% endif %}
+                        </span>
+                        <strong>{{ skill }}</strong>
+                    </article>
+                    {% endfor %}
+                </div>
+                <div class="manual-closing-sheet__footer">
+                    <span><i class="fas fa-globe"></i> {{ closing_developer_site_url }}</span>
+                    <span><i class="fas fa-phone"></i> {{ closing_developer_phone }}</span>
+                    <span><i class="fas fa-envelope"></i> {{ closing_developer_email }}</span>
+                    <span><i class="fas fa-book"></i> {{ closing_brand_name }}</span>
+                </div>
+            </div>
+        </section>
+    </article>
+</section>
+{% endblock %}

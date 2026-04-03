@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}الدليل الشامل التفصيلي | معهد اليمن{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="handbook-shell">
+    <div class="handbook-toolbar">
+        <a href="{% url 'pages:user_guide' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-right"></i>
+            العودة إلى دليل المستخدم
+        </a>
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            طباعة الدليل
+        </button>
+    </div>
+
+    <article class="handbook-book">
+        <section class="handbook-page handbook-cover">
+            <div class="handbook-cover__brand">
+                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                <span>منصة الإدارة الذكية</span>
+            </div>
+            <div class="handbook-cover__content">
+                <p class="handbook-cover__eyebrow">User Handbook</p>
+                <h1>دليل المستخدم الشامل التفصيلي</h1>
+                <p>
+                    مرجع تشغيل منسق على هيئة دفتر A4 يشرح الأقسام، الصفحات، الأزرار، ومسارات الاستخدام العملية داخل النظام.
+                </p>
+                <div class="handbook-cover__meta">
+                    <span>الأقسام: {{ guide_module_count }}</span>
+                    <span>الميزات: {{ guide_feature_count }}</span>
+                    <span>التاريخ: {% now "Y/m/d" %}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="handbook-page handbook-page--intro">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">محتويات الدفتر</span>
+                <h2>الفهرس التنفيذي</h2>
+            </div>
+            <div class="handbook-index">
+                {% for module in guide_modules %}
+                <div class="handbook-index__item">
+                    <span>{{ forloop.counter }}. {{ module.title }}</span>
+                    <small>{{ module.audience }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="handbook-note">
+                يبدأ استخدام النظام عادة من القائمة الجانبية. كل قسم في هذا الدفتر يشرح صفحة البداية، أهم الأزرار،
+                ومتى يجب استخدام كل مسار أثناء العمل اليومي.
+            </div>
+            <figure class="handbook-hero-shot">
+                <img src="{% static 'img/user-guide/sidebar-overview.png' %}" alt="القائمة الجانبية الموحدة">
+                <figcaption>الخريطة البصرية الأساسية للتنقل بين أقسام النظام.</figcaption>
+            </figure>
+        </section>
+
+        {% for module in guide_modules %}
+        <section class="handbook-page handbook-page--chapter">
+            <div class="handbook-chapter-head">
+                <div>
+                    <span class="handbook-page__eyebrow">القسم {{ forloop.counter }}</span>
+                    <h2>{{ module.title }}</h2>
+                    <p>{{ module.summary }}</p>
+                </div>
+                <div class="handbook-chapter-meta">
+                    <span>الفئة: {{ module.audience }}</span>
+                    <span>الميزات: {{ module.feature_total }}</span>
+                </div>
+            </div>
+
+            {% if module.screenshots %}
+            <div class="handbook-visual-grid">
+                {% for shot in module.screenshots %}
+                <figure class="handbook-visual-card">
+                    <img src="{{ shot.path }}" alt="{{ shot.title }}">
+                    <figcaption>
+                        <strong>{{ shot.title }}</strong>
+                        <p>{{ shot.caption }}</p>
+                    </figcaption>
+                </figure>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="handbook-feature-stack">
+                {% for feature in module.features %}
+                <article class="handbook-feature-card">
+                    <div class="handbook-feature-card__header">
+                        <div class="handbook-feature-card__icon"><i class="fas {{ feature.icon }}"></i></div>
+                        <div>
+                            <h3>{{ feature.name }}</h3>
+                            <span dir="ltr">{{ feature.path }}</span>
+                        </div>
+                    </div>
+                    <p>{{ feature.purpose }}</p>
+                    <div class="handbook-actions">
+                        {% for action in feature.actions %}
+                        <span>{{ action }}</span>
+                        {% endfor %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        <section class="handbook-page handbook-page--workflows">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">العمل اليومي</span>
+                <h2>المسارات التشغيلية المقترحة</h2>
+            </div>
+            <div class="handbook-workflow-stack">
+                {% for workflow in guide_workflows %}
+                <article class="handbook-workflow-card">
+                    <h3>{{ workflow.title }}</h3>
+                    <ol>
+                        {% for step in workflow.steps %}
+                        <li>{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="handbook-page handbook-page--gallery">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">ملاحق بصرية</span>
+                <h2>سكرينات من النظام</h2>
+            </div>
+            <div class="handbook-gallery">
+                {% for shot in guide_screenshots %}
+                <figure class="handbook-gallery__item">
+                    <img src="{{ shot.path }}" alt="{{ shot.title }}">
+                    <figcaption>
+                        <strong>{{ shot.title }}</strong>
+                        <p>{{ shot.caption }}</p>
+                    </figcaption>
+                </figure>
+                {% endfor %}
+            </div>
+        </section>
+    </article>
+</section>
+{% endblock %}

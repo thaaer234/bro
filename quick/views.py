@@ -3613,11 +3613,14 @@ class QuickCourseSessionStudentsView(LoginRequiredMixin, TemplateView):
             session.session_enrollments.select_related('enrollment__student')
             .order_by('enrollment__student__full_name')
         )
+        assign_form = QuickSessionAssignStudentsForm(session=session)
         context.update({
             'session': session,
             'course': session.course,
             'assignments': assignments,
-            'assign_form': QuickSessionAssignStudentsForm(session=session),
+            'assign_form': assign_form,
+            'assigned_count': len(assignments),
+            'available_enrollment_count': assign_form.fields['enrollment_ids'].queryset.count(),
             'today': timezone.localdate(),
         })
         return context

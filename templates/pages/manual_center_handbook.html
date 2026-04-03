@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}دفتر دليل التشغيل الشامل | معهد اليمن{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="handbook-shell manual-handbook-shell">
+    <div class="handbook-toolbar">
+        <a href="{% url 'pages:manual_center' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-right"></i>
+            العودة إلى مركز الدليل
+        </a>
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            طباعة الدفتر
+        </button>
+    </div>
+
+    <article class="handbook-book">
+        <section class="handbook-page handbook-cover handbook-cover--manual">
+            <div class="handbook-cover__brand">
+                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                <span>Expert Operations Manual</span>
+            </div>
+            <div class="handbook-cover__content">
+                <p class="handbook-cover__eyebrow">Master User Handbook</p>
+                <h1>دفتر دليل التشغيل الشامل</h1>
+                <p>مرجع عملي يبدأ من تسجيل الدخول ويشرح كيف تعمل داخل النظام كمستخدم متمرس عبر جميع الأقسام الرئيسية.</p>
+                <div class="handbook-cover__meta">
+                    <span>الفصول: {{ manual_chapter_count }}</span>
+                    <span>المسارات: {{ manual_route_total }}</span>
+                    <span>التاريخ: {% now "Y/m/d" %}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="handbook-page handbook-page--intro">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">الفهرس</span>
+                <h2>تسلسل الاستخدام من البداية إلى الملاحق</h2>
+            </div>
+            <div class="handbook-index">
+                {% for chapter in manual_chapters %}
+                <div class="handbook-index__item">
+                    <span>{{ forloop.counter }}. {{ chapter.title }}</span>
+                    <small>{{ chapter.summary }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% for chapter in manual_chapters %}
+        <section class="handbook-page handbook-page--chapter">
+            <div class="handbook-chapter-head">
+                <div>
+                    <span class="handbook-page__eyebrow">الفصل {{ forloop.counter }}</span>
+                    <h2>{{ chapter.title }}</h2>
+                    <p>{{ chapter.summary }}</p>
+                </div>
+            </div>
+
+            {% if chapter.shots %}
+            <div class="handbook-visual-grid">
+                {% for shot in chapter.shots %}
+                <figure class="handbook-visual-card">
+                    <img src="{{ shot.path }}" alt="{{ shot.title }}">
+                    <figcaption>
+                        <strong>{{ shot.title }}</strong>
+                        <p>{{ shot.caption }}</p>
+                    </figcaption>
+                </figure>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="manual-step-cards">
+                {% for step in chapter.steps %}
+                <article class="manual-step-card">
+                    <span class="manual-step-card__number">{{ forloop.counter }}</span>
+                    <p>{{ step }}</p>
+                </article>
+                {% endfor %}
+            </div>
+
+            <div class="handbook-feature-stack">
+                {% for page in chapter.focus_pages %}
+                <article class="handbook-feature-card">
+                    <div class="handbook-feature-card__header">
+                        <div class="handbook-feature-card__icon"><i class="fas {{ chapter.icon }}"></i></div>
+                        <div>
+                            <h3>{{ page.label }}</h3>
+                            <span dir="ltr">{{ page.path }}</span>
+                        </div>
+                    </div>
+                    <p>{{ page.purpose }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        {% for group in manual_route_groups %}
+        <section class="handbook-page handbook-page--appendix">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">ملحق المسارات</span>
+                <h2>{{ group.title }}</h2>
+                <p>هذا الملحق يعرض المسارات البرمجية الأساسية داخل التطبيق مع وصف تشغيل سريع لكل مسار.</p>
+            </div>
+            <div class="manual-route-table">
+                <div class="manual-route-table__head">
+                    <span>الاسم البرمجي</span>
+                    <span>المسار</span>
+                    <span>الوصف السريع</span>
+                </div>
+                {% for route in group.routes %}
+                <div class="manual-route-table__row">
+                    <strong>{{ route.name }}</strong>
+                    <span dir="ltr">{{ route.path }}</span>
+                    <span>{{ route.hint }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    </article>
+</section>
+{% endblock %}

@@ -84,6 +84,7 @@ urlpatterns = [
 
     # التطبيقات الأخرى - يجب أن تكون قبل المسار العام
     path('pages/', include('pages.urls')),
+    path('manuals/', include('manuals.urls')),
     path('students/', include('students.urls')),
     path('employ/', include('employ.urls')),
     path('attendance/', include('attendance.urls')),

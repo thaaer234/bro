@@ -5,94 +5,333 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>تقرير المتأخرين عن السداد - {{ course_type_report_label }}</title>
-        <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        :root {
+            --primary: #8a5a00;
+            --primary-dark: #6b4500;
+            --accent: #ffb648;
+            --surface: #ffffff;
+            --surface-soft: #fff9ef;
+            --border: #f0dfbf;
+            --text: #3e2d0b;
+            --muted: #8a7652;
+            --danger: #b93535;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f7f2e9;
+            color: var(--text);
+            font-family: "Cairo", Tahoma, sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .print-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            padding: 14px;
+            background: rgba(247, 242, 233, 0.94);
+            backdrop-filter: blur(8px);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 0 16px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .report-page {
+            width: min(1100px, calc(100% - 24px));
+            margin: 0 auto 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(98, 74, 16, 0.08);
+            overflow: hidden;
+        }
+
+        .report-hero {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            padding: 24px 28px;
+            background: linear-gradient(135deg, #7b4f00, #b97800 58%, #ffb648);
+            color: #fff;
+        }
+
+        .report-hero img {
+            width: 76px;
+            height: 76px;
+            object-fit: contain;
+            padding: 8px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .report-hero h1 {
+            margin: 0 0 6px;
+            font-size: 28px;
+        }
+
+        .report-hero .meta {
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        .report-body {
+            padding: 22px;
+        }
+
+        .summary-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-bottom: 20px;
+        }
+
+        .summary-card,
+        .course-block {
+            padding: 16px;
+            border-radius: 18px;
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+        }
+
+        .summary-label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .summary-value {
+            margin-top: 6px;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .section-title {
+            margin: 24px 0 12px;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .table-card {
+            overflow: hidden;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            margin-bottom: 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            padding: 12px 10px;
+            background: linear-gradient(135deg, #7b4f00, #b97800);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        tbody td {
+            padding: 11px 10px;
+            border-bottom: 1px solid #f2e6d0;
+            vertical-align: middle;
+        }
+
+        tbody tr:nth-child(even) td {
+            background: #fffcf7;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-end {
+            text-align: left;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .course-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+
+        .date-block {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #e6d4b6;
+        }
+
+        .money {
+            color: var(--danger);
+            font-weight: 800;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+            }
+
+            .print-toolbar {
+                display: none !important;
+            }
+
+            .report-page {
+                width: 100%;
+                margin: 0;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .summary-card,
+            .table-card,
+            .course-block {
+                break-inside: avoid;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="actions">
-        <button class="btn btn-print" onclick="window.print()">طباعة</button>
-        <a class="btn btn-back" href="{% url 'quick:late_payment_courses' %}?course_type={{ course_type }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}">عودة</a>
+    <div class="print-toolbar">
+        <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+        <a class="btn btn-secondary" href="{% url 'quick:late_payment_courses' %}?course_type={{ course_type }}{% if start_date %}&start_date={{ start_date|date:'Y-m-d' }}{% endif %}{% if end_date %}&end_date={{ end_date|date:'Y-m-d' }}{% endif %}"><i class="fas fa-arrow-right"></i> عودة</a>
     </div>
 
-    <div class="page">
-        <div class="hero">
+    <div class="report-page">
+        <div class="report-hero">
             <div>
-                <h1>تقرير المتأخرين عن السداد للدورات السريعة</h1>
-                <div class="muted" style="color: rgba(255,255,255,0.8);">الفترة: {{ start_date|default:"البداية" }} إلى {{ end_date|default:"اليوم" }}</div>
-                <div class="muted" style="color: rgba(255,255,255,0.8);">تاريخ التقرير: {{ print_date }}</div>
+                <h1>تقرير المتأخرين عن السداد</h1>
+                <div class="meta">التصنيف: {{ course_type_report_label }}</div>
+                <div class="meta">الفترة: {{ start_date|default:"البداية" }} إلى {{ end_date|default:"اليوم" }}</div>
+                <div class="meta">تاريخ التقرير: {{ print_date }}</div>
             </div>
             <img src="{% static 'img/logo.png' %}" alt="logo">
         </div>
 
-        <div class="summary">
-            <div class="summary-card"><div class="label">عدد الدورات</div><div class="value">{{ totals.total_courses }}</div></div>
-            <div class="summary-card"><div class="label">غير المسددين</div><div class="value">{{ totals.total_outstanding_students }}</div></div>
-            <div class="summary-card"><div class="label">إجمالي المتبقي</div><div class="value">{{ totals.total_outstanding_amount|floatformat:0 }} ل.س</div></div>
-            <div class="summary-card"><div class="label">إجمالي الطلاب</div><div class="value">{{ totals.total_students }}</div></div>
-        </div>
-
-        <h2 class="section-title">ملخص الدورات</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>الدورة</th>
-                    <th class="text-center">غير المسددين</th>
-                    <th class="text-center">إجمالي الطلاب</th>
-                    <th class="text-end">المتبقي</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in courses %}
-                <tr>
-                    <td>{{ item.course.name }}</td>
-                    <td class="text-center">{{ item.outstanding_students }}</td>
-                    <td class="text-center">{{ item.total_students }}</td>
-                    <td class="text-end">{{ item.total_outstanding|floatformat:0 }} ل.س</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-center">لا توجد بيانات</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <h2 class="section-title">تفصيل الطلاب حسب الدورة وتاريخ التسجيل</h2>
-        {% for course_group in detail_groups %}
-        <div class="course-block">
-            <div class="course-head">
-                <div>
-                    <strong>{{ course_group.course.name }}</strong>
-                    <div class="muted">غير المسددين: {{ course_group.total_students }}</div>
-                </div>
-                <div><strong>{{ course_group.total_outstanding|floatformat:0 }} ل.س</strong></div>
+        <div class="report-body">
+            <div class="summary-grid">
+                <div class="summary-card"><div class="summary-label">عدد الدورات</div><div class="summary-value">{{ totals.total_courses }}</div></div>
+                <div class="summary-card"><div class="summary-label">غير المسددين</div><div class="summary-value">{{ totals.total_outstanding_students }}</div></div>
+                <div class="summary-card"><div class="summary-label">إجمالي المتبقي</div><div class="summary-value">{{ totals.total_outstanding_amount|floatformat:0 }} ل.س</div></div>
+                <div class="summary-card"><div class="summary-label">إجمالي الطلاب</div><div class="summary-value">{{ totals.total_students }}</div></div>
             </div>
-            {% for date_group in course_group.date_groups %}
-            <div class="date-block">
-                <div><strong>تاريخ التسجيل: {{ date_group.date|date:"Y-m-d" }}</strong> | <span class="muted">{{ date_group.total_students }} طالب | أقدم تأخير {{ date_group.max_days_since_enrollment }} يوم</span></div>
+
+            <h2 class="section-title">ملخص الدورات</h2>
+            <div class="table-card">
                 <table>
                     <thead>
                         <tr>
-                            <th>الطالب</th>
-                            <th>الهاتف</th>
-                            <th class="text-center">منذ كم يوم</th>
+                            <th>الدورة</th>
+                            <th class="text-center">غير المسددين</th>
+                            <th class="text-center">إجمالي الطلاب</th>
                             <th class="text-end">المتبقي</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for row in date_group.students %}
+                        {% for item in courses %}
                         <tr>
-                            <td>{{ row.student_name }}</td>
-                            <td>{{ row.phone }}</td>
-                            <td class="text-center">{{ row.days_since_enrollment }}</td>
-                            <td class="text-end">{{ row.remaining|floatformat:0 }} ل.س</td>
+                            <td>{{ item.course.name }}</td>
+                            <td class="text-center">{{ item.outstanding_students }}</td>
+                            <td class="text-center">{{ item.total_students }}</td>
+                            <td class="text-end money">{{ item.total_outstanding|floatformat:0 }} ل.س</td>
                         </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center">لا توجد بيانات</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            <h2 class="section-title">تفصيل الطلاب حسب الدورة وتاريخ التسجيل</h2>
+            {% for course_group in detail_groups %}
+            <div class="course-block">
+                <div class="course-head">
+                    <div>
+                        <strong>{{ course_group.course.name }}</strong>
+                        <div class="muted">غير المسددين: {{ course_group.total_students }}</div>
+                    </div>
+                    <div class="money">{{ course_group.total_outstanding|floatformat:0 }} ل.س</div>
+                </div>
+
+                {% for date_group in course_group.date_groups %}
+                <div class="date-block">
+                    <div>
+                        <strong>تاريخ التسجيل: {{ date_group.date|date:"Y-m-d" }}</strong>
+                        <span class="muted"> | {{ date_group.total_students }} طالب | أقدم تأخير {{ date_group.max_days_since_enrollment }} يوم</span>
+                    </div>
+                    <div class="table-card" style="margin-top:10px; margin-bottom:0;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>الطالب</th>
+                                    <th>الهاتف</th>
+                                    <th class="text-center">منذ كم يوم</th>
+                                    <th class="text-end">المتبقي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in date_group.students %}
+                                <tr>
+                                    <td>{{ row.student_name }}</td>
+                                    <td>{{ row.phone }}</td>
+                                    <td class="text-center">{{ row.days_since_enrollment }}</td>
+                                    <td class="text-end money">{{ row.remaining|floatformat:0 }} ل.س</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% empty %}
+            <div class="summary-card">لا يوجد طلاب غير مسددين ضمن الفلترة الحالية.</div>
             {% endfor %}
         </div>
-        {% empty %}
-        <div class="muted">لا يوجد طلاب غير مسددين ضمن الفلترة الحالية.</div>
-        {% endfor %}
     </div>
 </body>
 </html>

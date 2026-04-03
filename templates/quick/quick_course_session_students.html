@@ -11,40 +11,159 @@
                 <p class="page-subtitle">{{ course.name }} | الطلاب الموزعون على الصف</p>
             </div>
         </div>
-        <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn--ghost"><i class="fas fa-arrow-right"></i> العودة لإدارة الصفوف</a>
+        <div class="header-actions">
+            <a href="{% url 'quick:course_detail' course.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-book-open"></i> ملف الدورة
+            </a>
+            <a href="{% url 'quick:course_session_attendance' session.id %}" class="btn btn-success">
+                <i class="fas fa-user-check"></i> حضور هذه الجلسة
+            </a>
+            <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn--ghost">
+                <i class="fas fa-arrow-right"></i> العودة لإدارة الصفوف
+            </a>
+        </div>
     </div>
 
-    <div class="card">
-        <div class="card-header"><h3>إضافة طلاب إلى الصف</h3></div>
+    <div class="grid">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-primary">الطلاب داخل الصف: {{ assigned_count }}</span>
+                    <span class="badge bg-info text-dark">المتاح للتوزيع: {{ available_enrollment_count }}</span>
+                    <span class="badge bg-secondary">تاريخ اليوم: {{ today|date:"Y-m-d" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3>إضافة طلاب إلى الصف</h3>
+        </div>
         <form method="post" action="{% url 'quick:course_session_assign_students' session.id %}" class="card-body">
             {% csrf_token %}
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="assign-select-all">
+                    <i class="fas fa-check-double"></i> تحديد الكل
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="assign-clear-all">
+                    <i class="fas fa-eraser"></i> إلغاء التحديد
+                </button>
+            </div>
             <div class="border rounded p-3" style="max-height:280px; overflow:auto;">
                 {{ assign_form.enrollment_ids }}
             </div>
             <div class="form-actions mt-3">
-                <button type="submit" class="btn btn--primary"><i class="fas fa-user-plus"></i> توزيع المحددين</button>
+                <button type="submit" class="btn btn--primary">
+                    <i class="fas fa-user-plus"></i> توزيع المحددين
+                </button>
             </div>
         </form>
     </div>
 
     <div class="card mt-4">
-        <div class="card-header"><h3>طلاب الصف</h3></div>
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h3 class="mb-0">طلاب الصف</h3>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <input type="search" id="session-students-filter" class="form-control" placeholder="ابحث بالاسم أو الهاتف" style="min-width: 240px;">
+                <span class="text-muted small">نتائج ظاهرة: <strong id="session-students-visible-count">{{ assigned_count }}</strong></span>
+            </div>
+        </div>
         <div class="card-body">
-            <table class="table table-hover align-middle">
-                <thead><tr><th>الطالب</th><th>الهاتف</th><th>تاريخ التسجيل</th></tr></thead>
+            <table class="table table-hover align-middle" id="session-students-table">
+                <thead>
+                    <tr>
+                        <th>الطالب</th>
+                        <th>الهاتف</th>
+                        <th>تاريخ التسجيل</th>
+                        <th>إجراءات سريعة</th>
+                    </tr>
+                </thead>
                 <tbody>
                     {% for assignment in assignments %}
                     <tr>
-                        <td>{{ assignment.enrollment.student.full_name }}</td>
-                        <td>{{ assignment.enrollment.student.phone }}</td>
+                        <td>
+                            <a href="{% url 'quick:student_profile' assignment.enrollment.student.id %}" class="fw-bold text-decoration-none">
+                                {{ assignment.enrollment.student.full_name }}
+                            </a>
+                        </td>
+                        <td>{{ assignment.enrollment.student.phone|default:"-" }}</td>
                         <td>{{ assignment.enrollment.enrollment_date|date:"Y-m-d" }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'quick:student_profile' assignment.enrollment.student.id %}" class="btn btn-sm btn-info" title="الملف">
+                                    <i class="fas fa-user"></i>
+                                </a>
+                                <a href="{% url 'quick:student_statement' assignment.enrollment.student.id %}" class="btn btn-sm btn-secondary" title="كشف الحساب">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                </a>
+                                <a href="{% url 'quick:course_session_attendance' session.id %}" class="btn btn-sm btn-success" title="الحضور">
+                                    <i class="fas fa-user-check"></i>
+                                </a>
+                            </div>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="3" class="text-center text-muted py-4">لا يوجد طلاب موزعون بعد.</td></tr>
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">لا يوجد طلاب موزعون بعد.</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const assignSelectAll = document.getElementById('assign-select-all');
+    const assignClearAll = document.getElementById('assign-clear-all');
+    const assignCheckboxes = Array.from(document.querySelectorAll('input[name="enrollment_ids"]'));
+
+    if (assignSelectAll) {
+        assignSelectAll.addEventListener('click', function () {
+            assignCheckboxes.forEach(function (checkbox) {
+                checkbox.checked = true;
+            });
+        });
+    }
+
+    if (assignClearAll) {
+        assignClearAll.addEventListener('click', function () {
+            assignCheckboxes.forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+        });
+    }
+
+    const filterInput = document.getElementById('session-students-filter');
+    const table = document.getElementById('session-students-table');
+    const visibleCount = document.getElementById('session-students-visible-count');
+
+    if (!filterInput || !table || !visibleCount) {
+        return;
+    }
+
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+    function applyFilter() {
+        const query = filterInput.value.trim().toLowerCase();
+        let shown = 0;
+
+        rows.forEach(function (row) {
+            const text = row.innerText.toLowerCase();
+            const isEmpty = row.children.length === 1;
+            const visible = isEmpty || !query || text.includes(query);
+            row.style.display = visible ? '' : 'none';
+            if (visible && !isEmpty) {
+                shown += 1;
+            }
+        });
+
+        visibleCount.textContent = shown;
+    }
+
+    filterInput.addEventListener('input', applyFilter);
+});
+</script>
 {% endblock %}

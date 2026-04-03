@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}دفتر دليل الاستخدام | معهد اليمن{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="handbook-shell manual-handbook-shell manuals-handbook-shell">
+    <div class="handbook-toolbar">
+        <a href="{% url 'manuals:home' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-right"></i>
+            العودة إلى الدليل
+        </a>
+        <a href="{% url 'manuals:markdown' %}" class="btn btn-outline-primary">
+            <i class="fas fa-file-arrow-down"></i>
+            تنزيل MD
+        </a>
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            طباعة الدفتر
+        </button>
+    </div>
+
+    <section class="guide-section manual-filter-panel handbook-filter-panel">
+        <div class="guide-section__head">
+            <h2>تصفية الدفتر</h2>
+            <p>هذه الفلاتر تساعدك على توليد نسخة مركزة من الدفتر لقسم محدد أو لعبارة محددة قبل الطباعة أو المراجعة.</p>
+        </div>
+        <form method="get" class="manual-filter-form">
+            <label class="manual-filter-field">
+                <span>بحث نصي</span>
+                <input type="search" name="q" value="{{ manual_search_query }}" placeholder="مثال: كشف حساب، إجازة، حضور">
+            </label>
+            <label class="manual-filter-field">
+                <span>القسم</span>
+                <select name="group">
+                    <option value="">كل الأقسام</option>
+                    {% for option in manual_group_options %}
+                    <option value="{{ option.value }}"{% if option.value == manual_selected_group %} selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <div class="manual-filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-magnifying-glass"></i>
+                    تطبيق
+                </button>
+                <a href="{% url 'manuals:handbook' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-rotate-left"></i>
+                    تصفير
+                </a>
+            </div>
+        </form>
+        <div class="manual-filter-summary">
+            <span class="quick-access-chip quick-access-chip--accent">القوالب المعروضة: {{ manual_template_total }}</span>
+            <span class="quick-access-chip">العناصر التفاعلية: {{ manual_template_control_total }}</span>
+        </div>
+        <div class="guide-chip-row">
+            {% for group in manual_focus_template_groups %}
+            <a href="#group-{{ group.anchor }}" class="quick-access-chip quick-access-chip--accent">{{ group.display_title }}</a>
+            {% endfor %}
+            {% for group in manual_non_focus_template_groups|slice:":6" %}
+            <a href="#group-{{ group.anchor }}" class="quick-access-chip">{{ group.display_title }}</a>
+            {% endfor %}
+            <a href="#closing-sheet" class="quick-access-chip"><i class="fas fa-flag-checkered"></i> الصفحة الأخيرة</a>
+        </div>
+    </section>
+
+    <article class="handbook-book">
+        <section class="handbook-page handbook-cover handbook-cover--manual" id="cover-page">
+            <div class="handbook-cover__brand">
+                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                <span>User Operations Handbook</span>
+            </div>
+            <div class="handbook-cover__content">
+                <p class="handbook-cover__eyebrow">دليل استخدام فعلي</p>
+                <h1>دفتر دليل الاستخدام التشغيلي</h1>
+                <p>مرجع مخصص لشرح الشاشات والأزرار كما يستخدمها الموظف داخل النظام: ما وظيفة الزر، متى تستخدمه، من يستخدمه، وأين يظهر في الشاشة.</p>
+                <div class="handbook-cover__meta">
+                    <span>الشاشات: {{ manual_screen_total }}</span>
+                    <span>الأزرار: {{ manual_button_total }}</span>
+                    <span>التاريخ: {% now "Y/m/d" %}</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="handbook-page handbook-page--intro" id="index-page">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">الفهرس</span>
+                <h2>الشاشات التي يغطيها الدفتر</h2>
+                <p>ابدأ من البداية ثم اقرأ الشاشات بحسب دورك الوظيفي أو التطبيق الذي تعمل عليه يوميًا.</p>
+            </div>
+            <div class="handbook-index">
+                {% for workflow in manual_workflows %}
+                <div class="handbook-index__item">
+                    <span>{{ forloop.counter }}. {{ workflow.title }}</span>
+                    <small>{{ workflow.intro }}</small>
+                </div>
+                {% endfor %}
+                {% for screen in manual_screens %}
+                <div class="handbook-index__item">
+                    <span>{{ forloop.counter }}. {{ screen.title }}</span>
+                    <small>{{ screen.goal }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="handbook-page handbook-page--appendix" id="coverage-matrix">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">التغطية الشاملة</span>
+                <h2>مصفوفة التطبيقات داخل الدليل</h2>
+                <p>هذه الصفحة تلخص حجم كل قسم داخل النظام من حيث القوالب والعناصر التفاعلية والشاشات الموثقة يدويًا، بينما بقيت خريطة المسارات في صفحة خريطة الموقع.</p>
+            </div>
+            <div class="manual-template-grid">
+                {% for app in manual_app_coverage %}
+                <article class="manual-template-card">
+                    <div class="manual-template-card__head">
+                        <h3>{{ app.display_title }}</h3>
+                        <span>{{ app.route_count }} مسار</span>
+                    </div>
+                    <p>{{ app.description }}</p>
+                    <div class="manual-template-summary">
+                        <span class="quick-access-chip">قوالب: {{ app.template_count }}</span>
+                        <span class="quick-access-chip">عناصر: {{ app.control_count }}</span>
+                        <span class="quick-access-chip">شاشات موثقة: {{ app.documented_screen_count }}</span>
+                        <span class="quick-access-chip">أزرار مشروحة: {{ app.documented_button_count }}</span>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="handbook-page handbook-page--appendix" id="department-index">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">فهرس حسب الأقسام</span>
+                <h2>محاسبية، رسبشن، توجيه، إدارة</h2>
+                <p>هذا الفهرس يربط الدليل من زاوية العمل اليومي، لا من زاوية التطبيقات فقط، حتى يعرف الموظف أين يبدأ بحسب دوره داخل المعهد.</p>
+            </div>
+            <div class="manual-template-grid">
+                {% for role in manual_roles %}
+                <article class="manual-template-card">
+                    <div class="manual-template-card__head">
+                        <h3>{{ role.title }}</h3>
+                    </div>
+                    <p>{{ role.summary }}</p>
+                    <div class="manual-template-summary">
+                        {% for route in role.routes %}
+                        <span class="quick-access-chip" dir="ltr">{{ route }}</span>
+                        {% endfor %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% for workflow in manual_workflows %}
+        <section class="handbook-page handbook-page--chapter" id="workflow-{{ workflow.slug }}">
+            <div class="handbook-chapter-head">
+                <div>
+                    <span class="handbook-page__eyebrow">مرحلة {{ forloop.counter }}</span>
+                    <h2>{{ workflow.title }}</h2>
+                    <p>{{ workflow.intro }}</p>
+                </div>
+            </div>
+            <div class="handbook-visual-grid handbook-visual-grid--single">
+                <figure class="handbook-visual-card">
+                    <img src="{{ workflow.screenshot.path }}" alt="{{ workflow.screenshot.title }}">
+                    <figcaption>
+                        <strong>{{ workflow.screenshot.title }}</strong>
+                        <p>{{ workflow.screenshot.caption }}</p>
+                    </figcaption>
+                </figure>
+            </div>
+            <div class="manual-step-cards">
+                {% for step in workflow.steps %}
+                <article class="manual-step-card">
+                    <span class="manual-step-card__number">{{ forloop.counter }}</span>
+                    <p>{{ step }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        {% for screen in manual_screens %}
+        <section class="handbook-page handbook-page--chapter" id="screen-{{ screen.slug }}">
+            <div class="handbook-chapter-head">
+                <div>
+                    <span class="handbook-page__eyebrow">{{ screen.group }}</span>
+                    <h2>{{ screen.title }}</h2>
+                    <p>{{ screen.goal }}</p>
+                </div>
+                <div class="manual-screen-meta">
+                    <span><strong>المستخدم:</strong> {{ screen.used_by }}</span>
+                    <span dir="ltr"><strong>المسار:</strong> {{ screen.path }}</span>
+                </div>
+            </div>
+            <div class="handbook-visual-grid handbook-visual-grid--single">
+                <figure class="handbook-visual-card">
+                    <img src="{{ screen.screenshot.path }}" alt="{{ screen.screenshot.title }}">
+                    <figcaption>
+                        <strong>{{ screen.screenshot.title }}</strong>
+                        <p>{{ screen.screenshot.caption }}</p>
+                    </figcaption>
+                </figure>
+            </div>
+            <div class="manual-button-grid">
+                {% for button in screen.buttons %}
+                <article class="manual-button-card">
+                    <div class="manual-button-card__head">
+                        <span class="manual-button-card__index">{{ forloop.counter }}</span>
+                        <h3>{{ button.label }}</h3>
+                    </div>
+                    <p><strong>المكان:</strong> {{ button.location }}</p>
+                    <p><strong>من يستخدمه:</strong> {{ button.used_by }}</p>
+                    <p><strong>متى يستخدم:</strong> {{ button.when }}</p>
+                    <p><strong>الوظيفة:</strong> {{ button.purpose }}</p>
+                    <p><strong>النتيجة بعد الضغط:</strong> {{ button.result }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        {% for group in manual_focus_template_groups %}
+        <section class="handbook-page handbook-page--appendix" id="group-{{ group.anchor }}">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">توسعة الأقسام الأساسية</span>
+                <h2>{{ group.display_title }}</h2>
+                <p>{{ group.description }} في هذا الفصل ستجد الصفحات نفسها صفحة صفحة، وتحت كل صفحة الأزرار والعناصر الموجودة فيها مع شرح وظيفتها ومتى تُستخدم.</p>
+            </div>
+            <div class="manual-template-grid">
+                {% for template in group.templates %}
+                <article class="manual-template-card">
+                    <div class="manual-template-card__head">
+                        <h3>{{ template.label }}</h3>
+                        <span>{{ template.control_count }} عناصر</span>
+                    </div>
+                    <p><strong>اسم الصفحة:</strong> {{ template.label }}</p>
+                    <p dir="ltr">{{ template.path }}</p>
+                    <p><strong>من يستخدمه:</strong> {{ template.used_by }}</p>
+                    <p><strong>الغرض:</strong> {{ template.purpose }}</p>
+                    <p><strong>متى تدخل عليه:</strong> {{ template.when }}</p>
+                    <p><strong>شرح الصفحة:</strong> {{ template.intro }}</p>
+                    {% if template.screenshot %}
+                    <figure class="manual-template-shot">
+                        <img src="{{ template.screenshot.path }}" alt="{{ template.screenshot.title }}">
+                        <figcaption>
+                            <strong>{{ template.screenshot.title }}</strong>
+                            <p>{{ template.screenshot.caption }}</p>
+                        </figcaption>
+                    </figure>
+                    {% endif %}
+                    <div class="manual-template-summary">
+                        {% for item in template.control_summary %}
+                        <span class="quick-access-chip">{{ item.kind }}: {{ item.count }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="manual-template-steps">
+                        {% for step in template.steps %}
+                        <article class="manual-template-step">
+                            <span class="manual-template-step__number">{{ forloop.counter }}</span>
+                            <p>{{ step }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                    <div class="manual-template-control-list">
+                        {% for control in template.controls %}
+                        <div class="manual-template-control">
+                            <div class="manual-template-control__head">
+                                <strong>{{ forloop.counter }}. {{ control.label }}</strong>
+                                <span>{{ control.kind }}</span>
+                            </div>
+                            <p><strong>المكان:</strong> {{ control.location }}</p>
+                            <p><strong>من يستخدمه:</strong> {{ control.used_by }}</p>
+                            <p><strong>متى يستخدم:</strong> {{ control.when }}</p>
+                            <p><strong>وظيفته:</strong> {{ control.purpose }}</p>
+                            <p><strong>النتيجة بعد الضغط:</strong> {{ control.result }}</p>
+                            {% if control.target %}
+                            <small dir="ltr">Target: {{ control.target }}</small>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="manual-template-control">
+                            <span>لا توجد عناصر تفاعلية ظاهرة بالاستخراج الآلي داخل هذا القالب.</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        {% for group in manual_non_focus_template_groups %}
+        <section class="handbook-page handbook-page--appendix" id="group-{{ group.anchor }}">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">أقسام إضافية</span>
+                <h2>{{ group.display_title }}</h2>
+                <p>يتضمن هذا القسم صفحات إضافية من النظام. لكل صفحة ستجد العناصر الموجودة فيها مع الغرض العملي منها ومتى يدخل عليها المستخدم.</p>
+            </div>
+            <div class="manual-template-grid">
+                {% for template in group.templates %}
+                <article class="manual-template-card">
+                    <div class="manual-template-card__head">
+                        <h3>{{ template.label }}</h3>
+                        <span>{{ template.control_count }} عناصر</span>
+                    </div>
+                    <p><strong>اسم الصفحة:</strong> {{ template.label }}</p>
+                    <p dir="ltr">{{ template.path }}</p>
+                    <p><strong>من يستخدمه:</strong> {{ template.used_by }}</p>
+                    <p><strong>الغرض:</strong> {{ template.purpose }}</p>
+                    <p><strong>متى تدخل عليه:</strong> {{ template.when }}</p>
+                    <p><strong>شرح الصفحة:</strong> {{ template.intro }}</p>
+                    {% if template.screenshot %}
+                    <figure class="manual-template-shot">
+                        <img src="{{ template.screenshot.path }}" alt="{{ template.screenshot.title }}">
+                        <figcaption>
+                            <strong>{{ template.screenshot.title }}</strong>
+                            <p>{{ template.screenshot.caption }}</p>
+                        </figcaption>
+                    </figure>
+                    {% endif %}
+                    <div class="manual-template-summary">
+                        {% for item in template.control_summary %}
+                        <span class="quick-access-chip">{{ item.kind }}: {{ item.count }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="manual-template-steps">
+                        {% for step in template.steps %}
+                        <article class="manual-template-step">
+                            <span class="manual-template-step__number">{{ forloop.counter }}</span>
+                            <p>{{ step }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                    <div class="manual-template-control-list">
+                        {% for control in template.controls %}
+                        <div class="manual-template-control">
+                            <div class="manual-template-control__head">
+                                <strong>{{ forloop.counter }}. {{ control.label }}</strong>
+                                <span>{{ control.kind }}</span>
+                            </div>
+                            <p><strong>المكان:</strong> {{ control.location }}</p>
+                            <p><strong>من يستخدمه:</strong> {{ control.used_by }}</p>
+                            <p><strong>متى يستخدم:</strong> {{ control.when }}</p>
+                            <p><strong>وظيفته:</strong> {{ control.purpose }}</p>
+                            <p><strong>النتيجة بعد الضغط:</strong> {{ control.result }}</p>
+                            {% if control.target %}
+                            <small dir="ltr">Target: {{ control.target }}</small>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="manual-template-control">
+                            <span>لا توجد عناصر تفاعلية ظاهرة بالاستخراج الآلي داخل هذا القالب.</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        <section class="handbook-page handbook-page--appendix" id="errors-guide">
+            <div class="handbook-page__header">
+                <span class="handbook-page__eyebrow">الأخطاء والتصرف الصحيح</span>
+                <h2>كيف تتصرف عند ظهور الخطأ داخل النظام</h2>
+                <p>هذا الفصل مشترك بين جميع المستخدمين لأنه يشرح أشهر الأخطاء التشغيلية، متى تظهر، وما هو التصرف الصحيح قبل طلب الدعم التقني.</p>
+            </div>
+            <div class="manual-template-grid">
+                {% for item in manual_errors %}
+                <article class="manual-template-card">
+                    <div class="manual-template-card__head">
+                        <h3>{{ item.title }}</h3>
+                    </div>
+                    <p><strong>متى يظهر:</strong> {{ item.when }}</p>
+                    <p><strong>طريقة التصرف:</strong> {{ item.action }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="handbook-page handbook-page--closing" id="closing-sheet">
+            <div class="manual-closing-sheet">
+                <div class="manual-closing-sheet__top">
+                    <h2>{{ closing_brand_name }}</h2>
+                </div>
+
+                <div class="manual-closing-sheet__body">
+                    <div class="manual-closing-sheet__brand">
+                        <img src="{% static 'img/logo.png' %}" alt="شعار معهد الإيمان">
+                        <p>معهد الإيمان<br>للعلوم واللغات</p>
+                    </div>
+
+                    <div class="manual-closing-sheet__profile">
+                        {% with profile=request.user.profile %}
+                            {% if profile and profile.get_optimized_picture_url %}
+                            <img src="{{ profile.get_optimized_picture_url }}" alt="{{ closing_developer_name }}" class="manual-closing-sheet__avatar">
+                            {% else %}
+                            <div class="manual-closing-sheet__avatar manual-closing-sheet__avatar--fallback">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            {% endif %}
+                        {% endwith %}
+                        <h3>{{ closing_developer_name }}</h3>
+                        <span class="manual-closing-sheet__line"></span>
+                        <strong>{{ closing_role }}</strong>
+                        <p>{{ closing_stack }}</p>
+                    </div>
+                </div>
+
+                <div class="manual-closing-sheet__qrs">
+                    <figure class="manual-closing-qr manual-closing-qr--warm">
+                        <img src="{{ closing_manual_qr }}" alt="QR الدليل المباشر">
+                        <figcaption>الدليل المباشر</figcaption>
+                    </figure>
+                    <figure class="manual-closing-qr manual-closing-qr--green">
+                        <img src="{{ closing_site_qr }}" alt="QR الموقع الرسمي">
+                        <figcaption>الموقع الرسمي</figcaption>
+                    </figure>
+                </div>
+
+                <div class="manual-closing-sheet__skills">
+                    {% for skill in closing_skills %}
+                    <article class="manual-closing-skill">
+                        <span class="manual-closing-skill__icon">
+                            {% if forloop.first %}
+                            <i class="fas fa-code"></i>
+                            {% elif forloop.counter == 2 %}
+                            <i class="fas fa-window-maximize"></i>
+                            {% else %}
+                            <i class="fas fa-database"></i>
+                            {% endif %}
+                        </span>
+                        <strong>{{ skill }}</strong>
+                    </article>
+                    {% endfor %}
+                </div>
+
+                <div class="manual-closing-sheet__footer">
+                    <span><i class="fas fa-globe"></i> {{ closing_site_url }}</span>
+                    <span><i class="fas fa-book-open"></i> {{ closing_manual_url }}</span>
+                </div>
+            </div>
+        </section>
+    </article>
+</section>
+{% endblock %}

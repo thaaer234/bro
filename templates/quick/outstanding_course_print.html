@@ -4,125 +4,404 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>تقرير أعداد الدورات السريعة - {{ course_type_report_label }}</title>
-        <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+    <title>تقرير المتبقي - {{ course_type_report_label }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        :root {
+            --primary: #1f6fff;
+            --primary-dark: #173b7a;
+            --accent: #11b7c9;
+            --surface: #ffffff;
+            --surface-soft: #f4f8ff;
+            --border: #d9e4f5;
+            --text: #17324d;
+            --muted: #6c7d94;
+            --danger: #c24747;
+            --warning: #9a6a00;
+            --success: #177a52;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #eef3fb;
+            color: var(--text);
+            font-family: "Cairo", Tahoma, sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .print-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            padding: 14px;
+            background: rgba(238, 243, 251, 0.92);
+            backdrop-filter: blur(8px);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 0 16px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .report-page {
+            width: min(1100px, calc(100% - 24px));
+            margin: 0 auto 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(23, 50, 77, 0.08);
+            overflow: hidden;
+        }
+
+        .report-hero {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            padding: 24px 28px;
+            background: linear-gradient(135deg, #173b7a, #1f6fff 58%, #11b7c9);
+            color: #fff;
+        }
+
+        .report-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .report-brand img {
+            width: 76px;
+            height: 76px;
+            object-fit: contain;
+            padding: 8px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .report-hero h1 {
+            margin: 0 0 6px;
+            font-size: 28px;
+        }
+
+        .report-hero p,
+        .report-meta {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.86);
+        }
+
+        .report-body {
+            padding: 22px;
+        }
+
+        .summary-grid,
+        .comparison-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin-bottom: 20px;
+        }
+
+        .summary-card,
+        .comparison-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+        }
+
+        .summary-label,
+        .comparison-label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .summary-value,
+        .comparison-value {
+            margin-top: 6px;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .section-title {
+            margin: 24px 0 12px;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .table-card {
+            overflow: hidden;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            margin-bottom: 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            padding: 12px 10px;
+            background: linear-gradient(135deg, #183a74, #285fbc);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+            text-align: right;
+        }
+
+        tbody td {
+            padding: 11px 10px;
+            border-bottom: 1px solid #e8eef8;
+            vertical-align: middle;
+        }
+
+        tbody tr:nth-child(even) td {
+            background: #f9fbff;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-end {
+            text-align: left;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 34px;
+            min-height: 30px;
+            padding: 0 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .pill-index {
+            background: rgba(31, 111, 255, 0.12);
+            color: var(--primary-dark);
+        }
+
+        .pill-price {
+            background: rgba(17, 183, 201, 0.14);
+            color: #0f6271;
+        }
+
+        .comparison-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .delta {
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .delta.up {
+            color: var(--success);
+        }
+
+        .delta.down {
+            color: var(--danger);
+        }
+
+        .delta.flat {
+            color: var(--warning);
+        }
+
+        .footer-note {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+            }
+
+            .print-toolbar {
+                display: none !important;
+            }
+
+            .report-page {
+                width: 100%;
+                margin: 0;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .report-body {
+                padding: 14px 0 0;
+            }
+
+            .table-card,
+            .summary-card,
+            .comparison-card {
+                break-inside: avoid;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="no-print">
-        <div class="actions">
-            <button class="btn btn-print" onclick="window.print()">طباعة التقرير</button>
-            <a class="btn btn-back" href="{% url 'quick:outstanding_courses' %}?course_type={{ course_type }}">عودة للتقرير</a>
-        </div>
+    <div class="print-toolbar">
+        <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> طباعة التقرير</button>
+        <a class="btn btn-secondary" href="{% url 'quick:outstanding_courses' %}?course_type={{ course_type }}"><i class="fas fa-arrow-right"></i> عودة</a>
     </div>
 
-    <div class="page">
-        <div class="hero">
-            <div class="brand">
-                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" />
+    <div class="report-page">
+        <div class="report-hero">
+            <div class="report-brand">
+                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
                 <div>
-                    <h1>تقرير أعداد الدورات السريعة</h1>
-                    <p>ملخص الدورات وإجماليات المدفوعات ({{ course_type_report_label }})</p>
+                    <h1>تقرير المتبقي للدورات السريعة</h1>
+                    <p>{{ course_type_report_label }}</p>
+                    <div class="report-meta">تاريخ التقرير: {{ print_date }}</div>
                 </div>
             </div>
         </div>
 
-        <div class="summary">
-            <div class="summary-card"><div class="label">إجمالي الدورات</div><div class="value">{{ totals.total_courses }}</div></div>
-            <div class="summary-card"><div class="label">إجمالي الطلاب</div><div class="value">{{ totals.total_students }}</div></div>
-            <div class="summary-card"><div class="label">الطلاب المسددين</div><div class="value">{{ totals.total_paid_students }}</div></div>
-            <div class="summary-card"><div class="label">الطلاب غير المسددين</div><div class="value">{{ totals.total_outstanding_students }}</div></div>
-            <div class="summary-card"><div class="label">إجمالي المدفوع</div><div class="value">{{ totals.total_paid_amount|floatformat:0 }} ل.س</div></div>
-            <div class="summary-card"><div class="label">إجمالي المتبقي</div><div class="value">{{ totals.total_outstanding_amount|floatformat:0 }} ل.س</div></div>
-        </div>
+        <div class="report-body">
+            <div class="summary-grid">
+                <div class="summary-card"><div class="summary-label">إجمالي الدورات</div><div class="summary-value">{{ totals.total_courses }}</div></div>
+                <div class="summary-card"><div class="summary-label">إجمالي الطلاب</div><div class="summary-value">{{ totals.total_students }}</div></div>
+                <div class="summary-card"><div class="summary-label">المسددون</div><div class="summary-value">{{ totals.total_paid_students }}</div></div>
+                <div class="summary-card"><div class="summary-label">غير المسددين</div><div class="summary-value">{{ totals.total_outstanding_students }}</div></div>
+                <div class="summary-card"><div class="summary-label">إجمالي المدفوع</div><div class="summary-value">{{ totals.total_paid_amount|floatformat:0 }} ل.س</div></div>
+                <div class="summary-card"><div class="summary-label">إجمالي المتبقي</div><div class="summary-value">{{ totals.total_outstanding_amount|floatformat:0 }} ل.س</div></div>
+            </div>
 
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th class="text-center">ترقيم</th>
-                        <th>الدورة</th>
-                        <th class="text-center">سعر الدورة</th>
-                        <th class="text-center">إجمالي الطلاب</th>
-                        <th class="text-center">مسددين</th>
-                        <th class="text-center">غير مسددين</th>
-                        <th class="text-end">رصيد الدورة</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in courses %}
-                    <tr>
-                        <td class="text-center"><span class="index-pill">{{ forloop.counter }}</span></td>
-                        <td>
-                            <strong>{{ row.course.name }}</strong>
-                            {% if row.course.name_ar %}
-                            <div class="muted">{{ row.course.name_ar }}</div>
-                            {% endif %}
-                        </td>
-                        <td class="text-center"><span class="price-pill">{{ row.course.price|floatformat:0 }} ل.س</span></td>
-                        <td class="text-center">{{ row.total_students }}</td>
-                        <td class="text-center">{{ row.paid_students }}</td>
-                        <td class="text-center">{{ row.outstanding_students }}</td>
-                        <td class="text-end">{{ row.total_paid|floatformat:0 }} ل.س</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="7" class="text-center">لا توجد بيانات لعرضها</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+            <h2 class="section-title">ملخص الدورات</h2>
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th>الدورة</th>
+                            <th class="text-center">السعر</th>
+                            <th class="text-center">إجمالي الطلاب</th>
+                            <th class="text-center">مسددون</th>
+                            <th class="text-center">غير مسددين</th>
+                            <th class="text-end">المدفوع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in courses %}
+                        <tr>
+                            <td class="text-center"><span class="pill pill-index">{{ forloop.counter }}</span></td>
+                            <td>
+                                <strong>{{ row.course.name }}</strong>
+                                {% if row.course.name_ar %}
+                                <div class="muted">{{ row.course.name_ar }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center"><span class="pill pill-price">{{ row.course.price|floatformat:0 }} ل.س</span></td>
+                            <td class="text-center">{{ row.total_students }}</td>
+                            <td class="text-center">{{ row.paid_students }}</td>
+                            <td class="text-center">{{ row.outstanding_students }}</td>
+                            <td class="text-end">{{ row.total_paid|floatformat:0 }} ل.س</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center">لا توجد بيانات لعرضها</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-        <h2 class="section-title">أعداد الطلاب حسب الجنس لكل دورة سريعة</h2>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th class="text-center">ترقيم</th>
-                        <th>الدورة</th>
-                        <th class="text-center">ذكور</th>
-                        <th class="text-center">إناث</th>
-                        <th class="text-center">الإجمالي</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in courses %}
-                    <tr>
-                        <td class="text-center"><span class="index-pill">{{ forloop.counter }}</span></td>
-                        <td>
-                            <strong>{{ row.course.name }}</strong>
-                            {% if row.course.name_ar %}
-                            <div class="muted">{{ row.course.name_ar }}</div>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">{{ row.male_students }}</td>
-                        <td class="text-center">{{ row.female_students }}</td>
-                        <td class="text-center">{{ row.total_students }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="5" class="text-center">لا توجد بيانات لعرضها</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+            <h2 class="section-title">إحصاء الطلاب حسب الجنس</h2>
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th>الدورة</th>
+                            <th class="text-center">ذكور</th>
+                            <th class="text-center">إناث</th>
+                            <th class="text-center">الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in courses %}
+                        <tr>
+                            <td class="text-center"><span class="pill pill-index">{{ forloop.counter }}</span></td>
+                            <td>
+                                <strong>{{ row.course.name }}</strong>
+                                {% if row.course.name_ar %}
+                                <div class="muted">{{ row.course.name_ar }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ row.male_students }}</td>
+                            <td class="text-center">{{ row.female_students }}</td>
+                            <td class="text-center">{{ row.total_students }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center">لا توجد بيانات لعرضها</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-        {% if totals.total_unknown_students %}
-        <div class="muted" style="margin-top: 6px;">
-            ملاحظة: {{ totals.total_unknown_students }} طالب أو طالبة بدون تحديد الجنس، لذلك قد لا يساوي مجموع الذكور والإناث الإجمالي.
-        </div>
-        {% endif %}
+            {% if totals.total_unknown_students %}
+            <div class="footer-note">ملاحظة: يوجد {{ totals.total_unknown_students }} طالب بدون تحديد جنس.</div>
+            {% endif %}
 
-        <div class="comparison">
-            <h2>مقارنة التقرير الحالي مع التقرير السابق</h2>
+            <h2 class="section-title">مقارنة مع التقرير السابق</h2>
             <div class="comparison-meta">
-                <div>تاريخ التقرير الحالي: {{ print_date }}</div>
-                <div>تاريخ التقرير السابق: {% if previous_report_time %}{{ previous_report_time }}{% else %}غير متوفر{% endif %}</div>
+                <div>التقرير الحالي: {{ print_date }}</div>
+                <div>التقرير السابق: {% if previous_report_time %}{{ previous_report_time }}{% else %}غير متوفر{% endif %}</div>
             </div>
 
             {% if comparison %}
             <div class="comparison-grid">
                 {% for item in comparison.items %}
-                <div class="comparison-item">
-                    <div class="label">{{ item.label }}</div>
-                    <div class="value">{{ item.current|floatformat:0 }}</div>
+                <div class="comparison-card">
+                    <div class="comparison-label">{{ item.label }}</div>
+                    <div class="comparison-value">{{ item.current|floatformat:0 }}</div>
                     <div class="delta {% if item.delta > 0 %}up{% elif item.delta < 0 %}down{% else %}flat{% endif %}">
                         الفرق: {{ item.delta|floatformat:0 }} ({{ item.trend }})
                     </div>
@@ -131,10 +410,10 @@
                 {% endfor %}
             </div>
             {% if comparison.total_tracked %}
-            <div class="muted" style="margin-top: 10px;">التحسينات: {{ comparison.improvement_count }} | التراجعات: {{ comparison.decline_count }}</div>
+            <div class="footer-note">التحسينات: {{ comparison.improvement_count }} | التراجعات: {{ comparison.decline_count }}</div>
             {% endif %}
             {% else %}
-            <div class="muted">لا يوجد تقرير سابق للمقارنة بعد. اطبع التقرير مرة أخرى لإظهار الفروقات والتحسينات.</div>
+            <div class="footer-note">لا يوجد تقرير سابق للمقارنة بعد.</div>
             {% endif %}
         </div>
     </div>

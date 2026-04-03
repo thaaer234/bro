@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff7f8"/><stop offset="100%" stop-color="#ffd7de"/></linearGradient></defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect x="120" y="110" width="1360" height="680" rx="34" fill="#ffffff" stroke="#f1c1cb" stroke-width="4"/>
+  <rect x="120" y="110" width="1360" height="76" rx="34" fill="#ad3f66"/>
+  <text x="1380" y="156" font-size="30" text-anchor="end" font-family="Cairo, Arial, sans-serif" fill="#fff">تعارض أو تكرار بيانات</text>
+  <rect x="240" y="250" width="1120" height="410" rx="28" fill="#fff9fa" stroke="#f0c7d1" stroke-width="3"/>
+  <text x="800" y="385" font-size="100" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" fill="#ad3f66">CONFLICT</text>
+  <text x="800" y="465" font-size="44" text-anchor="middle" font-family="Cairo, Arial, sans-serif" fill="#7d2e49">يوجد سجل مشابه أو تعارض في البيانات</text>
+  <text x="800" y="525" font-size="28" text-anchor="middle" font-family="Cairo, Arial, sans-serif" fill="#9a5871">افتح السجل الحالي أو تقرير التكرار قبل إنشاء سجل جديد</text>
+</svg>

@@ -15,6 +15,9 @@ from django.shortcuts import redirect, render
 import json
 from api.models import MobileUser
 from mobile.models import MobileDeviceToken
+from .user_guide import build_user_guide_context
+from .manual_center import build_manual_center_context
+from manuals.guide_data import build_manuals_context
 
 
 class IndexView(LoginRequiredMixin, TemplateView):
@@ -95,6 +98,26 @@ class welcome(TemplateView):
     template_name =   'pages/welcome.html'      
 
 
+class UserGuideView(LoginRequiredMixin, TemplateView):
+    def get(self, request, *args, **kwargs):
+        return redirect('manuals:home')
+
+
+class UserGuideHandbookView(LoginRequiredMixin, TemplateView):
+    def get(self, request, *args, **kwargs):
+        return redirect('manuals:handbook')
+
+
+class ManualCenterView(LoginRequiredMixin, TemplateView):
+    def get(self, request, *args, **kwargs):
+        return redirect('manuals:home')
+
+
+class ManualCenterHandbookView(LoginRequiredMixin, TemplateView):
+    def get(self, request, *args, **kwargs):
+        return redirect('manuals:handbook')
+
+
 from django.http import HttpResponse, JsonResponse
 import csv
 from django.contrib.admin.models import LogEntry
@@ -149,7 +172,11 @@ def export_activities(request):
 
 def sitemap_view(request):
     """عرض خريطة الموقع الشاملة"""
-    return render(request, 'pages/sitemap.html')
+    context = build_user_guide_context()
+    context.update({
+        "manual_route_groups": build_manuals_context().get("manual_route_groups", []),
+    })
+    return render(request, 'pages/sitemap.html', context)
 
 
 def app_users_report(request):

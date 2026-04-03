@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}دليل التشغيل | معهد اليمن{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="guide-shell manuals-home-shell">
+    <div class="guide-hero">
+        <div class="guide-hero__copy">
+            <span class="guide-kicker"><i class="fas fa-book-atlas"></i> تطبيق مستقل للدليل</span>
+            <h1>دليل الاستخدام التشغيلي</h1>
+            <p>هذا التطبيق مخصص لشرح النظام كما يستخدمه الموظف فعليًا: من تسجيل الدخول، إلى التنقل، ثم الأزرار الأساسية داخل شاشات الطلاب والدورات والمحاسبة والحضور والموارد البشرية والإدارة.</p>
+            <div class="guide-actions">
+                <a href="{% url 'manuals:handbook' %}" class="btn btn-primary">
+                    <i class="fas fa-book-open"></i>
+                    فتح الدفتر الشامل
+                </a>
+                <a href="{% url 'manuals:user_select' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-user-check"></i>
+                    دليل مستخدم واحد
+                </a>
+                <a href="{% url 'manuals:markdown' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-file-arrow-down"></i>
+                    تنزيل ملف MD
+                </a>
+            </div>
+        </div>
+        <div class="guide-hero__visual">
+            <article class="guide-hero-showcase">
+                <div class="guide-hero-showcase__main">
+                    <img src="{% static 'img/manual-center/welcome-screen.png' %}" alt="واجهة النظام">
+                </div>
+                <div class="guide-hero-showcase__stack">
+                    <img src="{% static 'img/manual-center/sidebar-screen.png' %}" alt="القائمة الجانبية">
+                    <img src="{% static 'img/manual-center/accounts-dashboard-screen.png' %}" alt="لوحة المحاسبة">
+                </div>
+            </article>
+        </div>
+        <div class="guide-hero__stats">
+            <article class="guide-stat-card">
+                <strong>{{ manual_screen_total }}</strong>
+                <span>شاشات موثقة</span>
+            </article>
+            <article class="guide-stat-card">
+                <strong>{{ manual_button_total }}</strong>
+                <span>زر/عنصر مشروح</span>
+            </article>
+            <article class="guide-stat-card">
+                <strong>{{ manual_route_total }}</strong>
+                <span>مسار مرجعي</span>
+            </article>
+            <article class="guide-stat-card">
+                <strong>{{ manual_template_total }}</strong>
+                <span>قالب مفهرس</span>
+            </article>
+            <article class="guide-stat-card">
+                <strong>{{ manual_template_control_total }}</strong>
+                <span>عنصر تفاعلي مفهرس</span>
+            </article>
+        </div>
+    </div>
+
+    <section class="guide-section manual-filter-panel">
+        <div class="guide-section__head">
+            <h2>بحث وفلاتر الدليل</h2>
+            <p>إذا كان هناك زر أو شاشة أو تطبيق تريد الوصول إليه بسرعة، استخدم البحث أو احصر النتائج ضمن قسم واحد.</p>
+        </div>
+        <form method="get" class="manual-filter-form">
+            <label class="manual-filter-field">
+                <span>بحث نصي</span>
+                <input type="search" name="q" value="{{ manual_search_query }}" placeholder="مثال: حضور، تقرير، كشف، تعديل">
+            </label>
+            <label class="manual-filter-field">
+                <span>القسم</span>
+                <select name="group">
+                    <option value="">كل الأقسام</option>
+                    {% for option in manual_group_options %}
+                    <option value="{{ option.value }}"{% if option.value == manual_selected_group %} selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <div class="manual-filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-magnifying-glass"></i>
+                    تطبيق
+                </button>
+                <a href="{% url 'manuals:home' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-rotate-left"></i>
+                    تصفير
+                </a>
+                <a href="{% url 'manuals:handbook' %}?q={{ manual_search_query|urlencode }}&group={{ manual_selected_group|urlencode }}" class="btn btn-outline-primary">
+                    <i class="fas fa-print"></i>
+                    فتح الدفتر بنفس الفلاتر
+                </a>
+            </div>
+        </form>
+        {% if manual_has_active_filters %}
+        <div class="manual-filter-summary">
+            <span class="quick-access-chip quick-access-chip--accent">النتائج الحالية: {{ manual_template_total }} قالب</span>
+            <span class="quick-access-chip">{{ manual_template_control_total }} عنصر تفاعلي</span>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="guide-section">
+        <div class="guide-section__head">
+            <h2>قفز سريع للأقسام الخمسة</h2>
+            <p>أضفت اختصارات مباشرة لأكثر الأقسام التي يجري توسيعها يدويًا داخل الدفتر والجرد.</p>
+        </div>
+        <div class="guide-chip-row">
+            {% for group in manual_focus_template_groups %}
+            <a href="{% url 'manuals:handbook' %}#group-{{ group.anchor }}" class="quick-access-chip quick-access-chip--accent">
+                <i class="fas fa-layer-group"></i>
+                {{ group.display_title }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <div class="guide-section__head">
+            <h2>مسار الاستخدام</h2>
+            <p>ترتيب العمل الطبيعي داخل النظام من لحظة الدخول وحتى الانتقال بين التطبيقات.</p>
+        </div>
+        <div class="manual-flow-grid">
+            {% for workflow in manual_workflows %}
+            <article class="manual-flow-card">
+                <figure class="manual-flow-card__visual">
+                    <img src="{{ workflow.screenshot.path }}" alt="{{ workflow.screenshot.title }}">
+                </figure>
+                <div class="manual-flow-card__body">
+                    <span class="manual-flow-card__index">المرحلة {{ forloop.counter }}</span>
+                    <h3>{{ workflow.title }}</h3>
+                    <p>{{ workflow.intro }}</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <div class="guide-section__head">
+            <h2>الشاشات الموثقة</h2>
+            <p>كل بطاقة تقود إلى شاشة تم شرح الأزرار الأساسية فيها داخل الدفتر.</p>
+        </div>
+        <div class="guide-card-grid">
+{% for screen in manual_screens %}
+            <article class="guide-card guide-card--visual">
+                <figure class="guide-card__visual">
+                    <img src="{{ screen.screenshot.path }}" alt="{{ screen.screenshot.title }}">
+                </figure>
+                <div class="guide-card__meta">
+                    <span class="guide-card__tag">{{ screen.group }}</span>
+                    <span class="guide-card__count">{{ screen.buttons|length }} عناصر</span>
+                </div>
+                <h3>{{ screen.title }}</h3>
+                <p>{{ screen.goal }}</p>
+                <small>{{ screen.screenshot.caption }}</small>
+                <small dir="ltr">{{ screen.path }}</small>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <div class="guide-section__head">
+            <h2>بحسب الدور</h2>
+            <p>الدفتر لا يشرح الشاشات فقط، بل يربطها أيضًا بطبيعة استخدام كل قسم داخل المعهد.</p>
+        </div>
+        <div class="guide-card-grid">
+            {% for role in manual_roles %}
+            <article class="guide-card">
+                <h3>{{ role.title }}</h3>
+                <p>{{ role.summary }}</p>
+                <div class="guide-chip-row">
+                    {% for route in role.routes %}
+                    <span class="quick-access-chip" dir="ltr">{{ route }}</span>
+                    {% endfor %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <div class="guide-section__head">
+            <h2>مصفوفة التغطية الشاملة</h2>
+            <p>هذه اللوحة توضح مدى تغطية كل تطبيق داخل الدليل: عدد المسارات، القوالب، العناصر التفاعلية، والشاشات المشروحة يدويًا.</p>
+        </div>
+        <div class="guide-card-grid">
+            {% for app in manual_app_coverage %}
+            <article class="guide-card">
+                <div class="guide-card__meta">
+                    <span class="guide-card__tag">{{ app.display_title }}</span>
+                    <span class="guide-card__count">{{ app.route_count }} مسار</span>
+                </div>
+                <h3>{{ app.template_count }} قالب | {{ app.control_count }} عنصر</h3>
+                <p>{{ app.description }}</p>
+                <div class="guide-chip-row">
+                    <span class="quick-access-chip">شاشات موثقة: {{ app.documented_screen_count }}</span>
+                    <span class="quick-access-chip">أزرار مشروحة: {{ app.documented_button_count }}</span>
+                </div>
+                <a href="/pages/sitemap/#{{ app.anchor }}" class="btn btn-outline-primary">
+                    <i class="fas fa-route"></i>
+                    خريطة المسارات
+                </a>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <div class="guide-section__head">
+            <h2>الأقسام الخمسة الموسعة</h2>
+            <p>هذه هي الدفعة التي طلبت توسيعها بعمق: النظام السريع، المحاسبة، الطلاب، الحضور، والموارد البشرية.</p>
+        </div>
+        <div class="guide-card-grid">
+            {% for group in manual_focus_template_groups %}
+            <article class="guide-card">
+                <div class="guide-card__meta">
+                    <span class="guide-card__tag">{{ group.display_title }}</span>
+                    <span class="guide-card__count">{{ group.template_count }} شاشة</span>
+                </div>
+                <h3>{{ group.control_count }} عنصر مفهرس</h3>
+                <p>{{ group.description }}</p>
+                <a href="{% url 'manuals:handbook' %}#group-{{ group.anchor }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i>
+                    افتح قسم {{ group.display_title }}
+                </a>
+            </article>
+            {% empty %}
+            <article class="guide-card">
+                <h3>لا توجد نتائج</h3>
+                <p>الفلاتر الحالية لا تطابق أي قسم من الأقسام الخمسة الموسعة.</p>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <div class="guide-section__head">
+            <h2>فهرسة القوالب</h2>
+            <p>هذا القسم يوسع الدليل ليشمل القوالب نفسها، بحيث يظهر لكل تطبيق عدد الشاشات المفهرسة وعدد الأزرار والروابط والنماذج المستخرجة منها.</p>
+        </div>
+        <div class="guide-card-grid">
+            {% for group in manual_template_groups %}
+            <article class="guide-card">
+                <div class="guide-card__meta">
+                    <span class="guide-card__tag">{{ group.display_title }}</span>
+                    <span class="guide-card__count">{{ group.template_count }} قوالب</span>
+                </div>
+                <h3>{{ group.control_count }} عنصر تفاعلي</h3>
+                <p>{{ group.description }}</p>
+                <a href="{% url 'manuals:handbook' %}#group-{{ group.anchor }}" class="btn btn-outline-primary">
+                    <i class="fas fa-list-check"></i>
+                    افتح الجرد
+                </a>
+            </article>
+            {% empty %}
+            <article class="guide-card">
+                <h3>لا توجد نتائج</h3>
+                <p>لم يتم العثور على قوالب مطابقة للفلاتر الحالية.</p>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="guide-section">
+        <div class="guide-section__head">
+            <h2>خريطة الموقع الكاملة</h2>
+            <p>فهرسة الروابط والمسارات نقلتها إلى خريطة الموقع، حتى يبقى الدفتر مركزًا على الصفحات والأزرار وشرح استخدامها.</p>
+        </div>
+        <div class="guide-actions">
+            <a href="/pages/sitemap/" class="btn btn-outline-primary">
+                <i class="fas fa-sitemap"></i>
+                افتح خريطة الموقع
+            </a>
+        </div>
+    </section>
+</section>
+{% endblock %}

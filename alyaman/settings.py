@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     
     # Project apps
     "pages.apps.PagesConfig",
+    "manuals.apps.ManualsConfig",
     "students",
     "employ",
     "attendance",

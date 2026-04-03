@@ -76,16 +76,22 @@
                 </small>
             </div>
 
-            <div class="sidebar-badge-row">
-                <span class="sidebar-badge"><i class="fas fa-layer-group"></i> منصة تشغيل</span>
-                <span class="sidebar-badge sidebar-badge--accent"><i class="fas fa-bolt"></i> واجهة متسارعة</span>
-            </div>
         </div>
 
         <nav class="sidebar-menu" aria-label="أقسام المحاسبة">
             <a href="{% url 'accounts:dashboard' %}" class="menu-item {% if request.resolver_match and request.resolver_match.url_name == 'dashboard' %}active{% endif %}" {% if request.resolver_match and request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>
                 <i class="fas fa-chart-line"></i>
                 <span>لوحة التحكم</span>
+            </a>
+
+            <a href="{% url 'manuals:home' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' %}active{% endif %}">
+                <i class="fas fa-book-open-reader"></i>
+                <span>دليل المستخدم</span>
+            </a>
+
+            <a href="{% url 'manuals:handbook' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' and request.resolver_match.url_name == 'handbook' %}active{% endif %}">
+                <i class="fas fa-book-atlas"></i>
+                <span>دليل التشغيل</span>
             </a>
 
             <div class="menu-group">
@@ -180,6 +186,56 @@
                 <span>المبالغ المستحقة</span>
             </a>
 
+            {% if user.is_superuser or 'students_view' in emp_perms or 'students_create' in emp_perms or 'course_accounting_view' in emp_perms %}
+            <div class="menu-group">
+                <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="accounts-quick-students-submenu">
+                    <i class="fas fa-bolt"></i>
+                    <span>النظام السريع للطلاب</span>
+                    <i class="fas fa-chevron-down group-arrow"></i>
+                </button>
+                <div id="accounts-quick-students-submenu" class="sub-menu">
+                    {% if user.is_superuser or 'students_view' in emp_perms %}
+                    <a href="{% url 'quick:student_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'student_list' %}active{% endif %}">
+                        <i class="fas fa-users"></i>
+                        <span>الطلاب السريعون</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or 'students_create' in emp_perms %}
+                    <a href="{% url 'quick:student_create' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'student_create' %}active{% endif %}">
+                        <i class="fas fa-user-plus"></i>
+                        <span>إضافة طالب سريع</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or 'course_accounting_view' in emp_perms %}
+                    <a href="{% url 'quick:course_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'course_list' %}active{% endif %}">
+                        <i class="fas fa-layer-group"></i>
+                        <span>دورات النظام السريع</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or 'accounting_outstanding' in emp_perms %}
+                    <a href="{% url 'quick:outstanding_courses' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'outstanding_courses' %}active{% endif %}">
+                        <i class="fas fa-coins"></i>
+                        <span>تقرير المتبقي</span>
+                    </a>
+                    <a href="{% url 'quick:late_payment_courses' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'late_payment_courses' %}active{% endif %}">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span>المتأخرون بالدفع</span>
+                    </a>
+                    {% endif %}
+                    {% if user.is_superuser or 'students_view' in emp_perms %}
+                    <a href="{% url 'quick:student_intersections' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'student_intersections' %}active{% endif %}">
+                        <i class="fas fa-shuffle"></i>
+                        <span>تقاطع الطلاب</span>
+                    </a>
+                    <a href="{% url 'quick:manual_sorting' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'manual_sorting' %}active{% endif %}">
+                        <i class="fas fa-sort"></i>
+                        <span>الفرز اليدوي</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="sidebar-shortcuts">
                 <div class="sidebar-shortcuts__title">وصول سريع</div>
                 <a href="{% url 'pages:index' %}" class="sidebar-shortcut">
@@ -193,6 +249,10 @@
                 <a href="{% url 'registration:profile' %}" class="sidebar-shortcut">
                     <i class="fas fa-id-badge"></i>
                     <span>الملف الشخصي</span>
+                </a>
+                <a href="{% url 'manuals:handbook' %}" class="sidebar-shortcut">
+                    <i class="fas fa-book"></i>
+                    <span>الدليل التفصيلي</span>
                 </a>
             </div>
 

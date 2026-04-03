@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}دليل المستخدم | معهد اليمن{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="guide-shell">
+    <article class="guide-hero">
+        <div class="guide-hero__copy">
+            <span class="guide-kicker"><i class="fas fa-map"></i> دليل المستخدم</span>
+            <h1 class="guide-title">خريطة تشغيل كاملة لأزرار النظام ومساراته الأساسية</h1>
+            <p class="guide-text">
+                هذا الدليل يجمع أقسام النظام بحسب العمل الفعلي: الاستقبال، التوجيه، المحاسبة، والإدارة. كل بطاقة تشرح
+                لماذا توجد الصفحة، ما أهم أزرارها، وكيف تُستخدم ضمن سير العمل اليومي.
+            </p>
+            <div class="guide-actions">
+                <a href="{% url 'pages:manual_center' %}" class="btn btn-warning">
+                    <i class="fas fa-book-atlas"></i>
+                    مركز دليل التشغيل الخبير
+                </a>
+                <a href="{% url 'pages:user_guide_handbook' %}" class="btn btn-primary">
+                    <i class="fas fa-book-open"></i>
+                    دليل المستخدم الشامل التفصيلي
+                </a>
+                <a href="{% url 'pages:sitemap' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-sitemap"></i>
+                    خريطة الموقع
+                </a>
+            </div>
+        </div>
+        <div class="guide-hero__stats">
+            <div class="guide-stat">
+                <span>الأقسام التشغيلية</span>
+                <strong>{{ guide_module_count }}</strong>
+            </div>
+            <div class="guide-stat">
+                <span>الميزات الموثقة</span>
+                <strong>{{ guide_feature_count }}</strong>
+            </div>
+            <div class="guide-stat">
+                <span>الأزرار والإجراءات</span>
+                <strong>{{ guide_action_count }}</strong>
+            </div>
+        </div>
+    </article>
+
+    <section class="guide-module-grid">
+        {% for module in guide_modules %}
+        <article class="guide-module-card">
+            <header class="guide-module-card__header">
+                <div class="guide-module-card__icon">
+                    <i class="fas {{ module.icon }}"></i>
+                </div>
+                <div>
+                    <span class="guide-module-card__audience">{{ module.audience }}</span>
+                    <h2>{{ module.title }}</h2>
+                </div>
+            </header>
+            <p class="guide-module-card__summary">{{ module.summary }}</p>
+            <div class="guide-feature-list">
+                {% for feature in module.features %}
+                <article class="guide-feature-item">
+                    <div class="guide-feature-item__title">
+                        <span class="guide-feature-item__icon"><i class="fas {{ feature.icon }}"></i></span>
+                        <div>
+                            <h3>{{ feature.name }}</h3>
+                            <a href="{{ feature.path }}" class="guide-feature-item__path" dir="ltr">{{ feature.path }}</a>
+                        </div>
+                    </div>
+                    <p>{{ feature.purpose }}</p>
+                    <div class="guide-tags">
+                        {% for action in feature.actions %}
+                        <span class="guide-tag">{{ action }}</span>
+                        {% endfor %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="guide-workflows">
+        <div class="guide-section-heading">
+            <span class="guide-kicker"><i class="fas fa-route"></i> مسارات العمل</span>
+            <h2>كيف يتحرك كل قسم داخل النظام</h2>
+        </div>
+        <div class="guide-workflow-grid">
+            {% for workflow in guide_workflows %}
+            <article class="guide-workflow-card">
+                <h3>{{ workflow.title }}</h3>
+                <ol>
+                    {% for step in workflow.steps %}
+                    <li>{{ step }}</li>
+                    {% endfor %}
+                </ol>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="guide-gallery">
+        <div class="guide-section-heading">
+            <span class="guide-kicker"><i class="fas fa-camera"></i> سكرينات النظام</span>
+            <h2>لقطات فعلية من الواجهات الأساسية</h2>
+        </div>
+        <div class="guide-gallery-grid">
+            {% for shot in guide_screenshots %}
+            <figure class="guide-shot-card">
+                <img src="{{ shot.path }}" alt="{{ shot.title }}">
+                <figcaption>
+                    <strong>{{ shot.title }}</strong>
+                    <p>{{ shot.caption }}</p>
+                </figcaption>
+            </figure>
+            {% endfor %}
+        </div>
+    </section>
+</section>
+{% endblock %}

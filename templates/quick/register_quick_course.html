@@ -1,4 +1,4 @@
-{% comment %} {% extends "base.html" %} {% endcomment %}
+{% extends "base.html" %}
 
 {% load static %}
 
@@ -157,6 +157,7 @@
 
 {% endblock %}
 
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const totalEl = document.getElementById('selected-total');
@@ -303,3 +304,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
+{% endblock %}

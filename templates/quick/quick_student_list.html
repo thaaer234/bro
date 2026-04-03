@@ -1,37 +1,35 @@
 {% extends "base.html" %}
 {% load static %}
 
-
-
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
 {% endblock %}
+
 {% block content %}
 <div class="module-header">
     <h2><i class="fas fa-users"></i> إدارة الطلاب السريعين</h2>
-	    <div class="header-actions">
-	        {% if user.is_superuser %}
-	        <a href="{% url 'quick:duplicate_students_report' %}" class="btn btn-dark">
-	            <i class="fas fa-clone"></i> الأسماء المكررة
-	        </a>
-	        {% endif %}
-            <a href="{% url 'quick:student_intersections' %}" class="btn btn-outline-info">
-                <i class="fas fa-diagram-project"></i> الطلاب المشتركين
-            </a>
-            <a href="{% url 'quick:manual_sorting' %}" class="btn btn-outline-warning">
-                <i class="fas fa-table-cells-large"></i> فرز شبه يدوي
-            </a>
-	        <a href="{% url 'quick:student_create' %}" class="btn btn-primary">
+    <div class="header-actions">
+        {% if user.is_superuser %}
+        <a href="{% url 'quick:duplicate_students_report' %}" class="btn btn-dark">
+            <i class="fas fa-clone"></i> الأسماء المكررة
+        </a>
+        {% endif %}
+        <a href="{% url 'quick:student_intersections' %}" class="btn btn-outline-info">
+            <i class="fas fa-diagram-project"></i> الطلاب المشتركون
+        </a>
+        <a href="{% url 'quick:manual_sorting' %}" class="btn btn-outline-warning">
+            <i class="fas fa-table-cells-large"></i> فرز شبه يدوي
+        </a>
+        <a href="{% url 'quick:student_create' %}" class="btn btn-primary">
             <i class="fas fa-plus"></i> إضافة طالب سريع
         </a>
-        <a href="{% url 'quick:auto_assign_years' %}" class="btn btn-warning" 
-           onclick="return confirm('هل تريد ربط جميع الطلاب السريعين غير المرتبطين تلقائياً بالفصول الدراسية؟')">
+        <a href="{% url 'quick:auto_assign_years' %}" class="btn btn-warning"
+           onclick="return confirm('هل تريد ربط جميع الطلاب السريعين غير المرتبطين تلقائيًا بالفصول الدراسية؟')">
             <i class="fas fa-link"></i> ربط تلقائي بالفصول
         </a>
     </div>
 </div>
 
-<!-- فلتر الفصول الدراسية -->
 <div class="card mb-4">
     <div class="card-body">
         <h5 class="card-title"><i class="fas fa-filter"></i> الفلاتر</h5>
@@ -40,7 +38,7 @@
                 جميع الفصول
             </a>
             {% for year in academic_years %}
-            <a href="?academic_year={{ year.id }}" 
+            <a href="?academic_year={{ year.id }}"
                class="btn btn-outline-primary btn-sm {% if request.GET.academic_year == year.id|stringformat:'i' %}active{% endif %}">
                 {{ year.name }}
             </a>
@@ -51,32 +49,50 @@
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <span class="text-muted"><i class="fas fa-venus-mars"></i> الجنس:</span>
                 {% with ay=request.GET.academic_year %}
-                <a href="{% url 'quick:student_list' %}{% if ay %}?academic_year={{ ay }}{% endif %}" 
+                <a href="{% url 'quick:student_list' %}{% if ay %}?academic_year={{ ay }}{% endif %}"
                    class="btn btn-outline-secondary btn-sm {% if not request.GET.gender %}active{% endif %}">
                     الكل
                 </a>
-                <a href="?{% if ay %}academic_year={{ ay }}&{% endif %}gender=male" 
+                <a href="?{% if ay %}academic_year={{ ay }}&{% endif %}gender=male"
                    class="btn btn-outline-secondary btn-sm {% if request.GET.gender == 'male' %}active{% endif %}">
                     ذكور
                 </a>
-                <a href="?{% if ay %}academic_year={{ ay }}&{% endif %}gender=female" 
+                <a href="?{% if ay %}academic_year={{ ay }}&{% endif %}gender=female"
                    class="btn btn-outline-secondary btn-sm {% if request.GET.gender == 'female' %}active{% endif %}">
                     إناث
                 </a>
-                <a href="?{% if ay %}academic_year={{ ay }}&{% endif %}gender=unknown" 
+                <a href="?{% if ay %}academic_year={{ ay }}&{% endif %}gender=unknown"
                    class="btn btn-outline-secondary btn-sm {% if request.GET.gender == 'unknown' %}active{% endif %}">
                     غير محدد
                 </a>
                 {% endwith %}
             </div>
         </div>
-        
-        <!-- إحصائيات سريعة -->
+
+        <div class="row g-3 mt-1 align-items-end">
+            <div class="col-md-5">
+                <label for="quick-student-search" class="form-label">بحث داخل الجدول</label>
+                <input type="search" id="quick-student-search" class="form-control" placeholder="ابحث بالاسم أو الهاتف أو الفصل">
+            </div>
+            <div class="col-md-7">
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="select-visible-students">
+                        <i class="fas fa-check-double"></i> تحديد الظاهر
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-selected-students">
+                        <i class="fas fa-eraser"></i> إلغاء التحديد
+                    </button>
+                    <span class="quick-access-chip">المحددون: <strong id="selected-students-count">0</strong></span>
+                    <span class="quick-access-chip quick-access-chip--accent">النتائج الظاهرة: <strong id="visible-students-count">{{ students.count }}</strong></span>
+                </div>
+            </div>
+        </div>
+
         <div class="mt-3">
             <small class="text-muted">
                 <i class="fas fa-info-circle"></i>
-                إجمالي الطلاب: {{ students.count }} | 
-                مرتبطون تلقائياً: {{ auto_assigned_count }} |
+                إجمالي الطلاب: {{ students.count }} |
+                مرتبطون تلقائيًا: {{ auto_assigned_count }} |
                 غير مرتبطين: {{ unassigned_count }}
             </small>
         </div>
@@ -85,122 +101,124 @@
 
 <div class="card">
     <div class="card-body">
-        <form method="post" class="mb-3 d-flex flex-wrap align-items-center gap-2">
+        <form method="post" id="quick-students-bulk-form">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <div class="input-group input-group-sm" style="max-width: 320px;">
-                <span class="input-group-text">تحديد الجنس للمحددين</span>
-                <select name="gender" class="form-select form-select-sm" required>
-                    <option value="" selected disabled>اختر الجنس</option>
-                    <option value="male">ذكور</option>
-                    <option value="female">إناث</option>
-                    <option value="unknown">غير محدد</option>
-                </select>
+
+            <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 320px;">
+                    <span class="input-group-text">تحديد الجنس للمحددين</span>
+                    <select name="gender" class="form-select form-select-sm" required>
+                        <option value="" selected disabled>اختر الجنس</option>
+                        <option value="male">ذكور</option>
+                        <option value="female">إناث</option>
+                        <option value="unknown">غير محدد</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="fas fa-save me-1"></i> تطبيق
+                </button>
             </div>
-            <button type="submit" class="btn btn-sm btn-primary">
-                <i class="fas fa-save me-1"></i> تطبيق
-            </button>
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th width="40">
-                            <input type="checkbox" id="select-all">
-                        </th>
-                        <th>#</th>
-                        <th>الاسم</th>
-                        <th>الهاتف</th>
-                        <th>الجنس</th>
-                        <th>البريد</th>
-                        <th>الفصل</th>
-                        <th>النوع</th>
-                        <th>الحالة</th>
-                        <th>الرصيد</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student in students %}
-                    <tr>
-                        <td>
-                            <input type="checkbox" name="student_ids" value="{{ student.id }}" class="select-student">
-                        </td>
-                        <td>{{ forloop.counter }}</td>
-                        <td>
-                            <strong>{{ student.full_name }}</strong>
-                            {% if student.student_type == 'QUICK' %}
-                            <span class="badge badge-warning badge-sm">سريع</span>
-                            {% endif %}
-                            {% if student.is_auto_assigned %}
-                            <span class="badge badge-info badge-sm" title="مرتبط تلقائياً"><i class="fas fa-robot"></i></span>
-                            {% endif %}
-                        </td>
-                        <td>{{ student.phone }}</td>
-                        <td>
-                            {% if student.student.gender == 'male' %}
-                                ذكر
-                            {% elif student.student.gender == 'female' %}
-                                أنثى
-                            {% else %}
-                                <span class="text-muted">غير محدد</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ student.email|default:"-" }}</td>
-                        <td>
-                            {% if student.academic_year %}
-                                {{ student.academic_year.name }}
-                            {% else %}
-                                <span class="text-danger" title="لم يتم الربط تلقائياً">
-                                    <i class="fas fa-unlink"></i> غير مرتبط
+
+            <div class="table-responsive">
+                <table class="table table-striped" id="quick-students-table">
+                    <thead>
+                        <tr>
+                            <th width="40"><input type="checkbox" id="select-all"></th>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>الهاتف</th>
+                            <th>الجنس</th>
+                            <th>البريد</th>
+                            <th>الفصل</th>
+                            <th>النوع</th>
+                            <th>الحالة</th>
+                            <th>الرصيد</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="student_ids" value="{{ student.id }}" class="select-student">
+                            </td>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ student.full_name }}</strong>
+                                {% if student.student_type == 'QUICK' %}
+                                <span class="badge badge-warning badge-sm">سريع</span>
+                                {% endif %}
+                                {% if student.is_auto_assigned %}
+                                <span class="badge badge-info badge-sm" title="مرتبط تلقائيًا"><i class="fas fa-robot"></i></span>
+                                {% endif %}
+                            </td>
+                            <td>{{ student.phone }}</td>
+                            <td>
+                                {% if student.student.gender == 'male' %}
+                                    ذكر
+                                {% elif student.student.gender == 'female' %}
+                                    أنثى
+                                {% else %}
+                                    <span class="text-muted">غير محدد</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ student.email|default:"-" }}</td>
+                            <td>
+                                {% if student.academic_year %}
+                                    {{ student.academic_year.name }}
+                                {% else %}
+                                    <span class="text-danger" title="لم يتم الربط تلقائيًا">
+                                        <i class="fas fa-unlink"></i> غير مرتبط
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {% if student.student_type == 'QUICK' %}badge-warning{% else %}badge-info{% endif %}">
+                                    {{ student.get_student_type_display }}
                                 </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge {% if student.student_type == 'QUICK' %}badge-warning{% else %}badge-info{% endif %}">
-                                {{ student.get_student_type_display }}
-                            </span>
-                        </td>
-                        <td>
-                            {% if student.is_active %}
-                            <span class="badge badge-success">نشط</span>
-                            {% else %}
-                            <span class="badge badge-secondary">غير نشط</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="{% if student.balance > 0 %}text-danger{% else %}text-success{% endif %}">
-                                {{ student.balance|floatformat:2 }} ل.س
-                            </span>
-                        </td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <!-- زر عرض البروفايل الجديد -->
-                                <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-sm btn-info" title="عرض البروفايل">
-                                    <i class="fas fa-user-circle"></i>
-                                </a>
-                                <!-- زر كشف الحساب -->
-                                <a href="{% url 'quick:student_statement' student.id %}" class="btn btn-sm btn-secondary" title="كشف الحساب">
-                                    <i class="fas fa-file-invoice-dollar"></i>
-                                </a>
-                                <!-- زر تسجيل دورة -->
-                                <a href="{% url 'quick:register_quick_course' student.pk %}" class="btn btn-sm btn-success" title="تسجيل في دورة">
-                                    <i class="fas fa-book"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="11" class="text-center text-muted py-4">
-                            <i class="fas fa-users fa-2x mb-3"></i>
-                            <br>
-                            لا توجد طلاب سريعين
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                            </td>
+                            <td>
+                                {% if student.is_active %}
+                                <span class="badge badge-success">نشط</span>
+                                {% else %}
+                                <span class="badge badge-secondary">غير نشط</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="{% if student.balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    {{ student.balance|floatformat:2 }} ل.س
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-sm btn-info" title="الملف">
+                                        <i class="fas fa-user-circle"></i>
+                                    </a>
+                                    <a href="{% url 'quick:student_statement' student.id %}" class="btn btn-sm btn-secondary" title="كشف الحساب">
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                    </a>
+                                    <a href="{% url 'quick:student_update' student.id %}" class="btn btn-sm btn-warning" title="تعديل البيانات">
+                                        <i class="fas fa-pen"></i>
+                                    </a>
+                                    <a href="{% url 'quick:register_quick_course' student.pk %}" class="btn btn-sm btn-success" title="تسجيل في دورة">
+                                        <i class="fas fa-book"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="11" class="text-center text-muted py-4">
+                                <i class="fas fa-users fa-2x mb-3"></i>
+                                <br>
+                                لا توجد طلاب سريعين
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </form>
     </div>
 </div>
@@ -208,23 +226,86 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const selectAll = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('.select-student');
-    if (!selectAll) {
-        return;
+    const selectVisible = document.getElementById('select-visible-students');
+    const clearSelected = document.getElementById('clear-selected-students');
+    const searchInput = document.getElementById('quick-student-search');
+    const table = document.getElementById('quick-students-table');
+    const selectedCount = document.getElementById('selected-students-count');
+    const visibleCount = document.getElementById('visible-students-count');
+    const checkboxes = Array.from(document.querySelectorAll('.select-student'));
+    const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+
+    function updateSelectionState() {
+        const checked = checkboxes.filter(item => item.checked).length;
+        selectedCount.textContent = checked;
+        const allChecked = checkboxes.length > 0 && checkboxes.every(item => item.checked);
+        if (selectAll) {
+            selectAll.checked = allChecked;
+        }
     }
 
-    selectAll.addEventListener('change', function() {
-        checkboxes.forEach(cb => {
-            cb.checked = selectAll.checked;
+    function applyRowFilter() {
+        if (!searchInput) {
+            return;
+        }
+        const query = searchInput.value.trim().toLowerCase();
+        let shown = 0;
+        rows.forEach(function(row) {
+            const isEmptyRow = row.children.length === 1;
+            const text = row.innerText.toLowerCase();
+            const visible = isEmptyRow || !query || text.includes(query);
+            row.style.display = visible ? '' : 'none';
+            if (visible && !isEmptyRow) {
+                shown += 1;
+            }
         });
-    });
+        visibleCount.textContent = shown;
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => {
+                if (cb.closest('tr').style.display !== 'none') {
+                    cb.checked = selectAll.checked;
+                }
+            });
+            updateSelectionState();
+        });
+    }
+
+    if (selectVisible) {
+        selectVisible.addEventListener('click', function() {
+            checkboxes.forEach(cb => {
+                if (cb.closest('tr').style.display !== 'none') {
+                    cb.checked = true;
+                }
+            });
+            updateSelectionState();
+        });
+    }
+
+    if (clearSelected) {
+        clearSelected.addEventListener('click', function() {
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+            });
+            updateSelectionState();
+        });
+    }
 
     checkboxes.forEach(cb => {
-        cb.addEventListener('change', function() {
-            const allChecked = Array.from(checkboxes).every(item => item.checked);
-            selectAll.checked = allChecked;
-        });
+        cb.addEventListener('change', updateSelectionState);
     });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            applyRowFilter();
+            updateSelectionState();
+        });
+    }
+
+    applyRowFilter();
+    updateSelectionState();
 });
 </script>
 {% endblock %}

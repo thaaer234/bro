@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}مركز دليل التشغيل | معهد اليمن{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="guide-shell manual-center-shell">
+    <article class="guide-hero manual-center-hero">
+        <div class="guide-hero__copy">
+            <span class="guide-kicker"><i class="fas fa-book-atlas"></i> مركز دليل التشغيل</span>
+            <h1 class="guide-title">دليل خبير يبدأ من تسجيل الدخول ويغطي الأقسام الأساسية خطوة بخطوة</h1>
+            <p class="guide-text">
+                هذا القسم مخصص كمرجع تشغيل مستقل. يبدأ من شاشة تسجيل الدخول، يشرح أسلوب التنقل، ثم ينتقل إلى الطلاب،
+                الدورات، الحضور، المحاسبة، الموارد البشرية، والإدارة مع سكرينات فعلية وملحق مسارات شامل.
+            </p>
+            <div class="guide-actions">
+                <a href="{% url 'pages:manual_center_handbook' %}" class="btn btn-primary">
+                    <i class="fas fa-file-lines"></i>
+                    فتح الدفتر الشامل للطباعة
+                </a>
+                <a href="{% url 'pages:user_guide' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-map"></i>
+                    العودة إلى الدليل المختصر
+                </a>
+            </div>
+        </div>
+        <div class="guide-hero__stats">
+            <div class="guide-stat">
+                <span>فصول الدليل</span>
+                <strong>{{ manual_chapter_count }}</strong>
+            </div>
+            <div class="guide-stat">
+                <span>المسارات الموثقة</span>
+                <strong>{{ manual_route_total }}</strong>
+            </div>
+        </div>
+    </article>
+
+    <section class="guide-module-grid">
+        {% for chapter in manual_chapters %}
+        <article class="guide-module-card">
+            <header class="guide-module-card__header">
+                <div class="guide-module-card__icon">
+                    <i class="fas {{ chapter.icon }}"></i>
+                </div>
+                <div>
+                    <span class="guide-module-card__audience">الفصل {{ forloop.counter }}</span>
+                    <h2>{{ chapter.title }}</h2>
+                </div>
+            </header>
+            <p class="guide-module-card__summary">{{ chapter.summary }}</p>
+            <ol class="manual-steps-list">
+                {% for step in chapter.steps %}
+                <li>{{ step }}</li>
+                {% endfor %}
+            </ol>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="guide-workflows">
+        <div class="guide-section-heading">
+            <span class="guide-kicker"><i class="fas fa-layer-group"></i> ملحق المسارات</span>
+            <h2>توزيع المسارات الأساسية بحسب التطبيقات</h2>
+        </div>
+        <div class="manual-route-group-grid">
+            {% for group in manual_route_groups %}
+            <article class="guide-workflow-card">
+                <h3>{{ group.title }}</h3>
+                <p class="guide-text">عدد المسارات: {{ group.count }}</p>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+</section>
+{% endblock %}

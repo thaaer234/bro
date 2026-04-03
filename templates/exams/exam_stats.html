@@ -1,25 +1,130 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
 {% load humanize %}
 
-{% block title %}إحصائيات الامتحان{% endblock %}
+{% block title %}إحصائيات الامتحان - {{ exam.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/exams.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <h1 class="mb-4">إحصائيات الامتحان</h1>
-            
-            <!-- إضافة محتوى الإحصائيات هنا -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">معلومات أساسية</h5>
+<section class="exam-stats-page">
+    <div class="module-header exam-stats-hero">
+        <div>
+            <span class="section-kicker">
+                <i class="fas fa-chart-pie"></i>
+                تحليلات الامتحان
+            </span>
+            <h1>{{ exam.name }}</h1>
+            <p>{{ exam.classroom.name }} | {{ exam.subject.name }} | العلامة القصوى: {{ exam.max_grade|floatformat:"-2" }}</p>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'exams:view_exam_grades' exam.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-list"></i>
+                عرض العلامات
+            </a>
+            <a href="{% url 'exams:edit_exam_grades' exam.id %}" class="btn btn-warning">
+                <i class="fas fa-pen"></i>
+                تعديل العلامات
+            </a>
+            <a href="{% url 'exams:exam_detail' exam.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i>
+                تفاصيل الامتحان
+            </a>
+        </div>
+    </div>
+
+    <div class="dashboard-cards exam-stats-grid">
+        <article class="dashboard-card exam-stat-card">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div>
+                <div class="stat-title">إجمالي الطلاب</div>
+                <div class="stat-value">{{ total_students }}</div>
+            </div>
+        </article>
+        <article class="dashboard-card exam-stat-card">
+            <div class="stat-icon"><i class="fas fa-check-double"></i></div>
+            <div>
+                <div class="stat-title">العلامات المدخلة</div>
+                <div class="stat-value">{{ entered_grades }}</div>
+            </div>
+        </article>
+        <article class="dashboard-card exam-stat-card">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div>
+                <div class="stat-title">المتوسط</div>
+                <div class="stat-value">{{ average|floatformat:2 }}</div>
+            </div>
+        </article>
+        <article class="dashboard-card exam-stat-card">
+            <div class="stat-icon"><i class="fas fa-arrow-trend-up"></i></div>
+            <div>
+                <div class="stat-title">أعلى علامة</div>
+                <div class="stat-value">{{ highest|floatformat:2 }}</div>
+            </div>
+        </article>
+        <article class="dashboard-card exam-stat-card">
+            <div class="stat-icon"><i class="fas fa-arrow-trend-down"></i></div>
+            <div>
+                <div class="stat-title">أدنى علامة</div>
+                <div class="stat-value">{{ lowest|floatformat:2 }}</div>
+            </div>
+        </article>
+    </div>
+
+    <div class="request-layout exam-stats-layout">
+        <div class="surface-panel exam-distribution-panel">
+            <div class="card-header">
+                <h3>توزيع النتائج</h3>
+            </div>
+            {% if distribution %}
+            <div class="exam-distribution-list">
+                {% for label, count in distribution.items %}
+                {% widthratio count total_students 100 as percent %}
+                <div class="exam-distribution-item">
+                    <div class="exam-distribution-meta">
+                        <strong>{{ label }}</strong>
+                        <span>{{ count }} طالب</span>
+                    </div>
+                    <div class="exam-distribution-bar">
+                        <span style="width: {{ percent }}%;"></span>
+                    </div>
+                    <div class="exam-distribution-percent">{{ percent }}%</div>
                 </div>
-                <div class="card-body">
-                    <p>سيتم عرض إحصائيات الامتحان هنا</p>
-                    <!-- يمكنك إضافة الجداول والرسوم البيانية -->
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state exam-empty-state">
+                <i class="fas fa-chart-column"></i>
+                <h3>لا توجد علامات مدخلة بعد</h3>
+                <p>أدخل العلامات أولاً ليظهر التحليل الإحصائي للامتحان.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="surface-panel exam-summary-panel">
+            <div class="card-header">
+                <h3>ملخص سريع</h3>
+            </div>
+            <div class="exam-summary-list">
+                <div class="exam-summary-row">
+                    <span>نسبة الإدخال</span>
+                    <strong>
+                        {% widthratio entered_grades total_students 100 as coverage %}
+                        {{ coverage }}%
+                    </strong>
+                </div>
+                <div class="exam-summary-row">
+                    <span>العلامة القصوى</span>
+                    <strong>{{ max_grade|floatformat:"-2" }}</strong>
+                </div>
+                <div class="exam-summary-row">
+                    <span>عدد العلامات غير المدخلة</span>
+                    <strong>{{ total_students|add:-entered_grades }}</strong>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}

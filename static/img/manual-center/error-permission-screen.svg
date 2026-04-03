@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff8f4"/>
+      <stop offset="100%" stop-color="#ffe1d6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect x="120" y="110" width="1360" height="680" rx="34" fill="#ffffff" stroke="#f4c6b5" stroke-width="4"/>
+  <rect x="120" y="110" width="1360" height="76" rx="34" fill="#a83d2f"/>
+  <circle cx="180" cy="148" r="10" fill="#ffd2c4"/>
+  <circle cx="214" cy="148" r="10" fill="#ffd2c4"/>
+  <circle cx="248" cy="148" r="10" fill="#ffd2c4"/>
+  <text x="1380" y="156" font-size="30" text-anchor="end" font-family="Cairo, Arial, sans-serif" fill="#fff">خطأ عدم الصلاحية</text>
+  <rect x="240" y="250" width="1120" height="410" rx="28" fill="#fff6f2" stroke="#f1b49b" stroke-width="3"/>
+  <text x="800" y="390" font-size="150" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" fill="#a83d2f">403</text>
+  <text x="800" y="470" font-size="44" text-anchor="middle" font-family="Cairo, Arial, sans-serif" fill="#672d26">الوصول إلى هذه الصفحة غير مسموح</text>
+  <text x="800" y="530" font-size="28" text-anchor="middle" font-family="Cairo, Arial, sans-serif" fill="#7a5b53">تأكد من الحساب أو اطلب الصلاحية من الإدارة</text>
+  <rect x="550" y="590" width="220" height="60" rx="18" fill="#a83d2f"/>
+  <rect x="820" y="590" width="230" height="60" rx="18" fill="#fff" stroke="#a83d2f" stroke-width="3"/>
+  <text x="660" y="630" font-size="28" text-anchor="middle" font-family="Cairo, Arial, sans-serif" fill="#fff">العودة</text>
+  <text x="935" y="630" font-size="28" text-anchor="middle" font-family="Cairo, Arial, sans-serif" fill="#a83d2f">تسجيل الدخول</text>
+</svg>

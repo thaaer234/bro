@@ -1,6 +1,6 @@
 {% load emp_perms %}
-<!DOCTYPE html>
 {% load static %}
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="utf-8" />
@@ -8,16 +8,217 @@
     <title>إيصال دفع طالب / Student Receipt</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
-</head>
+    <style>
+      @page {
+        size: auto;
+        margin: 3mm;
+      }
+
+      :root {
+        --preview-width: 80mm;
+        --brand-primary: #1d5fa8;
+        --brand-secondary: #3ea7c4;
+        --brand-soft: #eef7fb;
+        --brand-text: #24435c;
+        --brand-border: #cfe3ee;
+      }
+
+      body {
+        margin: 0 auto;
+        font-family: 'Tajawal', sans-serif;
+        font-size: 11px;
+        color: var(--brand-text);
+        background-color: #f8f9fa;
+        padding: 3px 0;
+        line-height: 1.4;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .receipt {
+        width: min(100%, var(--preview-width));
+        margin: 0 auto;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid var(--brand-border);
+      }
+
+      .header {
+        text-align: center;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--brand-primary);
+        margin-bottom: 6px;
+      }
+
+      .title {
+        font-size: 14px;
+        font-weight: bold;
+        color: var(--brand-text);
+        margin: 3px 0;
+        text-align: center;
+      }
+
+      .center {
+        text-align: center;
+      }
+
+      .bold {
+        font-weight: bold;
+      }
+
+      .mt {
+        margin-top: 5px;
+      }
+
+      .divider {
+        border-top: 1px dashed #bfd5e1;
+        margin: 6px 0;
+      }
+
+      .small {
+        font-size: 9px;
+        color: #6c8395;
+        margin-bottom: 1px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10px;
+        margin: 5px 0;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      th,
+      td {
+        padding: 4px 3px;
+        text-align: right;
+      }
+
+      th {
+        border-bottom: 1px solid #ddd;
+        font-weight: bold;
+        color: var(--brand-text);
+        background-color: #eef6fb;
+      }
+
+      tbody tr:nth-child(even) {
+        background-color: #fafafa;
+      }
+
+      tfoot td {
+        border-top: 1px solid var(--brand-primary);
+        font-weight: bold;
+        background-color: var(--brand-soft);
+        padding: 5px 3px;
+      }
+
+      .ltr {
+        direction: ltr;
+        text-align: left;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 6px 12px;
+        border: 1px solid var(--brand-primary);
+        background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+        color: white;
+        cursor: pointer;
+        border-radius: 4px;
+        font-weight: bold;
+        margin-top: 8px;
+        transition: all 0.3s;
+        font-size: 11px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      }
+
+      .btn:hover {
+        background: linear-gradient(135deg, #184f8b, #2c8faa);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .contact-info {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 4px;
+        font-size: 9px;
+        color: var(--brand-text);
+      }
+
+      .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+      }
+
+      .footer {
+        font-size: 8px;
+        color: #6c8395;
+        text-align: center;
+        margin-top: 6px;
+        padding-top: 4px;
+        border-top: 1px solid #eee;
+      }
+
+      .qr-code img {
+        border: 1px solid var(--brand-primary);
+        border-radius: 4px;
+        padding: 2px;
+        background: #fff;
+        width: 60px;
+        height: 60px;
+      }
+
+      .compact-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        margin-bottom: 6px;
+      }
+
+      .compact-item {
+        margin-bottom: 3px;
+      }
+
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+
+        body {
+          background-color: white;
+          margin: 0;
+          padding: 0;
+        }
+
+        .receipt {
+          width: 100% !important;
+          max-width: none !important;
+          box-shadow: none;
+          padding: 0;
+          border: none;
+          border-radius: 0;
+          margin: 0 auto;
+        }
+      }
+    </style>
+  </head>
   <body>
     <div class="receipt">
       <div class="center bold header">
-        <i class="fas fa-receipt" style="color:#3498db;"></i> إيصال دفع / Payment Receipt
+        <i class="fas fa-receipt" style="color:var(--brand-primary);"></i> إيصال دفع / Payment Receipt
       </div>
 
       <div class="center logo">
-        <img src="{% static 'img/logo.png' %}" alt="Logo" />
+        <img src="{% static 'img/logo.png' %}" alt="Logo" style="width: 70px;" />
       </div>
       <div class="title">معهد اليمان للعلوم واللغات</div>
 
@@ -28,27 +229,25 @@
 
       <div class="divider"></div>
 
-      <div class="row">
-        <div>
+      <div class="compact-info">
+        <div class="compact-item">
           <div class="small"><i class="far fa-file-alt"></i> رقم الإيصال / No.:</div>
           <div class="bold">{{ receipt.receipt_number|default:receipt.id }}</div>
         </div>
-        <div>
+        <div class="compact-item">
           <div class="small"><i class="far fa-calendar-alt"></i> التاريخ / Date:</div>
           <div class="bold">{{ receipt_date|date:'Y-m-d' }}</div>
         </div>
-      </div>
-
-      <div class="mt">
-        <div class="small"><i class="fas fa-user-shield"></i> المستخدم الذي أصدر الإيصال / Issued by:</div>
-        {% with cashier_name=receipt.created_by.get_full_name|default:receipt.created_by.username|default:request.user.get_full_name|default:request.user.username %}
-          <div class="bold">{{ cashier_name|default:"غير محدد" }}</div>
-        {% endwith %}
-      </div>
-
-      <div class="mt">
-        <div class="small"><i class="fas fa-user-graduate"></i> اسم الطالب / Student:</div>
-        <div class="bold">{{ receipt.quick_student.full_name|default:receipt.student_name }}</div>
+        <div class="compact-item">
+          <div class="small"><i class="fas fa-user-shield"></i> المستخدم / Issued by:</div>
+          {% with cashier_name=receipt.created_by.get_full_name|default:receipt.created_by.username|default:request.user.get_full_name|default:request.user.username %}
+            <div class="bold">{{ cashier_name|default:"غير محدد" }}</div>
+          {% endwith %}
+        </div>
+        <div class="compact-item">
+          <div class="small"><i class="fas fa-user-graduate"></i> الطالب / Student:</div>
+          <div class="bold">{{ receipt.quick_student.full_name|default:receipt.student_name }}</div>
+        </div>
       </div>
 
       <div class="mt">
@@ -61,25 +260,25 @@
       <table>
         <tbody>
           <tr>
-            <td><i class="fas fa-tag" style="color:#7f8c8d;"></i> سعر الدورة / Course Price</td>
+            <td><i class="fas fa-tag" style="color:#6c8395;"></i> سعر الدورة / Course Price</td>
             <td class="ltr">{{ course_price|floatformat:2 }} ل.س</td>
           </tr>
           <tr>
-            <td><i class="fas fa-percent" style="color:#7f8c8d;"></i> خصم % / Discount %</td>
+            <td><i class="fas fa-percent" style="color:#6c8395;"></i> خصم % / Discount %</td>
             <td class="ltr">{{ discount_percent|floatformat:2 }}%</td>
           </tr>
           <tr>
-            <td class="bold"><i class="fas fa-calculator" style="color:#2c3e50;"></i> الصافي المستحق / Net Due</td>
+            <td class="bold"><i class="fas fa-calculator" style="color:var(--brand-text);"></i> الصافي / Net Due</td>
             <td class="ltr bold">{{ net_due|floatformat:2 }} ل.س</td>
           </tr>
           <tr>
-            <td><i class="fas fa-money-check" style="color:#7f8c8d;"></i> الدفعة الحالية / This Payment</td>
+            <td><i class="fas fa-money-check" style="color:#6c8395;"></i> الدفعة / This Payment</td>
             <td class="ltr">{{ receipt.paid_amount|default:receipt.amount|floatformat:2 }} ل.س</td>
           </tr>
         </tbody>
         <tfoot>
           <tr>
-            <td class="bold"><i class="fas fa-wallet" style="color:#2c3e50;"></i> المتبقي / Remaining</td>
+            <td class="bold"><i class="fas fa-wallet" style="color:var(--brand-text);"></i> المتبقي / Remaining</td>
             <td class="ltr bold">{{ remaining|floatformat:2 }} ل.س</td>
           </tr>
         </tfoot>
