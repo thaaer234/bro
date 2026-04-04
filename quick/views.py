@@ -1385,7 +1385,7 @@ def _run_quick_student_checking_batch(students, user):
 
     for student in students:
         try:
-            result = _run_quick_student_checking(student, user)
+            result = _run_quick_student_checking_with_retry(student, user)
         except Exception as exc:
             errors.append({
                 'student_id': student.id,
@@ -1409,6 +1409,23 @@ def _run_quick_student_checking_batch(students, user):
         'assigned_sessions': sum(item['assigned_sessions'] for item in results),
         'clean_count': sum(1 for item in results if item['validation']['is_clean']),
     }
+
+
+def _run_quick_student_checking_with_retry(student, user, attempts=4):
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            close_old_connections()
+            _configure_sqlite_busy_timeout(timeout_ms=45000)
+            return _run_quick_student_checking(student, user)
+        except OperationalError as exc:
+            if 'database is locked' not in str(exc).lower():
+                raise
+            last_error = exc
+            connection.close()
+            time.sleep(0.6 * (attempt + 1))
+    if last_error:
+        raise last_error
 
 
 def _extract_legacy_quick_receipt_payloads(target, enrollments):
@@ -5466,17 +5483,6 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
             total_paid = Decimal('0.00')
             total_due = Decimal('0.00')
 
-            entry_ids = set()
-            enrollment_refs = {f'QE-{enrollment.id}' for enrollment in enrollments}
-            if enrollment_refs:
-                entry_ids.update(
-                    JournalEntry.objects.filter(reference__in=enrollment_refs).values_list('id', flat=True)
-                )
-
-            for receipt in receipts:
-                if receipt.journal_entry_id:
-                    entry_ids.add(receipt.journal_entry_id)
-
             for enrollment in enrollments:
                 total_enrollment_paid = _get_quick_enrollment_paid_total(enrollment, student)
                 net_amount = enrollment.net_amount or Decimal('0.00')
@@ -5501,19 +5507,8 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
                 total_paid += total_enrollment_paid
                 total_due += net_amount
 
-                entry_ids.update(
-                    _find_quick_withdrawal_entries(enrollment).values_list('id', flat=True)
-                )
-                entry_ids.update(
-                    _find_quick_generated_withdraw_fix_entries(enrollment).values_list('id', flat=True)
-                )
-
-            entry_ids.update(
-                JournalEntry.objects.filter(description__icontains=student.full_name).values_list('id', flat=True)
-            )
-
             journal_entries = list(
-                JournalEntry.objects.filter(id__in=entry_ids)
+                _get_quick_student_related_journal_entries(student)
                 .select_related('created_by', 'posted_by')
                 .prefetch_related('transactions__account')
                 .order_by('date', 'id')
