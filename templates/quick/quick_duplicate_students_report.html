@@ -22,13 +22,14 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="merge_all">
                     <input type="hidden" name="q" value="{{ search_query }}">
+                    <input type="hidden" name="phone" value="{{ phone_query }}">
                     <input type="hidden" name="scope" value="{{ scope }}">
                     <button type="submit" class="btn btn-success dup-btn">
                         <i class="fas fa-layer-group me-1"></i>
                         دمج الكل
                     </button>
                 </form>
-                <a href="/quick/reports/duplicate-students/print/all/?q={{ search_query|urlencode }}&scope={{ scope }}" target="_blank" class="btn btn-warning dup-btn">
+                <a href="/quick/reports/duplicate-students/print/all/?q={{ search_query|urlencode }}&phone={{ phone_query|urlencode }}&scope={{ scope }}" target="_blank" class="btn btn-warning dup-btn">
                     <i class="fas fa-print me-1"></i>
                     فتح ملف التقرير
                 </a>
@@ -57,6 +58,10 @@
                         <option value="active" {% if scope == 'active' %}selected{% endif %}>الطلاب النشطون فقط</option>
                         <option value="all" {% if scope == 'all' %}selected{% endif %}>جميع الطلاب</option>
                     </select>
+                </div>
+                <div>
+                    <label for="phone-query" class="form-label">رقم الهاتف</label>
+                    <input id="phone-query" type="text" name="phone" value="{{ phone_query }}" class="form-control" placeholder="09xxxxxxxx">
                 </div>
                 <div>
                     <button type="submit" class="btn btn-primary dup-btn w-100">
@@ -121,6 +126,7 @@
                         <input type="hidden" name="action" value="merge_one">
                         <input type="hidden" name="group_name" value="{{ group.normalized_name }}">
                         <input type="hidden" name="q" value="{{ search_query }}">
+                        <input type="hidden" name="phone" value="{{ phone_query }}">
                         <input type="hidden" name="scope" value="{{ scope }}">
                         <button type="submit" class="btn btn-sm btn-success">
                             <i class="fas fa-object-group me-1"></i>
@@ -128,7 +134,7 @@
                         </button>
                     </form>
                     <a
-                        href="/quick/reports/duplicate-students/print/?name={{ group.normalized_name|urlencode }}&scope={{ scope }}"
+                        href="/quick/reports/duplicate-students/print/?name={{ group.normalized_name|urlencode }}&phone={{ phone_query|urlencode }}&scope={{ scope }}"
                         target="_blank"
                         class="btn btn-sm btn-light"
                     >

@@ -611,7 +611,20 @@ def _format_money(value):
 
 
 def _normalize_quick_student_name(name):
-    return ' '.join((name or '').split()).casefold()
+    value = ' '.join((name or '').split()).casefold()
+    translation = str.maketrans({
+        'أ': 'ا',
+        'إ': 'ا',
+        'آ': 'ا',
+        'ٱ': 'ا',
+        'ى': 'ي',
+        'ئ': 'ي',
+        'ؤ': 'و',
+        'ة': 'ه',
+        'ـ': '',
+    })
+    value = value.translate(translation)
+    return ' '.join(value.split())
 
 
 def _get_quick_enrollment_entry(enrollment):
@@ -936,7 +949,223 @@ def _configure_sqlite_busy_timeout(timeout_ms=30000):
             cursor.execute(f'PRAGMA busy_timeout = {int(timeout_ms)}')
 
 
-def _get_duplicate_groups(search_query='', scope='active'):
+def _relink_quick_name_group_to_target(normalized_name, target_id, user):
+    _configure_sqlite_busy_timeout()
+
+    students = list(
+        QuickStudent.objects.select_related('student', 'academic_year', 'created_by')
+        .filter(full_name__isnull=False)
+        .order_by('created_at', 'id')
+    )
+    matched_students = [
+        student for student in students
+        if _normalize_quick_student_name(student.full_name) == normalized_name
+    ]
+    if len(matched_students) < 2:
+        raise ValueError('لا توجد حسابات متعددة بنفس الاسم.')
+
+    target = next((student for student in matched_students if student.id == target_id), None)
+    if not target:
+        raise ValueError('الحساب الهدف غير موجود ضمن نفس الاسم.')
+
+    sources = [student for student in matched_students if student.id != target.id]
+    if not sources:
+        raise ValueError('لا توجد سجلات أخرى ليتم ربطها بهذا الحساب.')
+
+    target_ar = Account.get_or_create_quick_student_ar_account(target)
+    touched_accounts = {target_ar.id: target_ar}
+    target_enrollments = {
+        enrollment.course_id: enrollment
+        for enrollment in QuickEnrollment.objects.select_related('course').filter(student=target)
+    }
+
+    moved_enrollments = 0
+    moved_receipts = 0
+    skipped_conflicting_enrollments = 0
+    relinked_print_jobs = 0
+    touched_source_ids = []
+
+    with transaction.atomic():
+        for source in sources:
+            source_ar = Account.get_or_create_quick_student_ar_account(source)
+            touched_accounts[source_ar.id] = source_ar
+            touched_source_ids.append(source.id)
+
+            source_receipts = list(
+                QuickStudentReceipt.objects.select_related('course', 'quick_enrollment', 'journal_entry')
+                .filter(quick_student=source)
+                .order_by('date', 'id')
+            )
+            source_receipts_by_enrollment = defaultdict(list)
+            source_orphan_receipts = []
+            for receipt in source_receipts:
+                if receipt.quick_enrollment_id:
+                    source_receipts_by_enrollment[receipt.quick_enrollment_id].append(receipt)
+                else:
+                    source_orphan_receipts.append(receipt)
+
+            source_enrollments = list(
+                QuickEnrollment.objects.select_related('course')
+                .filter(student=source)
+                .order_by('enrollment_date', 'id')
+            )
+            enrollment_map = {}
+
+            for enrollment in source_enrollments:
+                existing = target_enrollments.get(enrollment.course_id)
+                if existing:
+                    enrollment_map[enrollment.id] = existing
+                    skipped_conflicting_enrollments += 1
+                    continue
+
+                QuickEnrollment.objects.filter(pk=enrollment.pk).update(student=target)
+                enrollment.student = target
+                _retarget_journal_account(_get_quick_enrollment_entry(enrollment), source_ar, target_ar)
+                target_enrollments[enrollment.course_id] = enrollment
+                enrollment_map[enrollment.id] = enrollment
+                moved_enrollments += 1
+
+            for receipt in source_receipts:
+                target_enrollment = None
+                if receipt.quick_enrollment_id:
+                    target_enrollment = enrollment_map.get(receipt.quick_enrollment_id)
+                elif receipt.course_id:
+                    target_enrollment = target_enrollments.get(receipt.course_id)
+
+                QuickStudentReceipt.objects.filter(pk=receipt.pk).update(
+                    quick_student=target,
+                    student_name=target.full_name,
+                    quick_enrollment=target_enrollment,
+                )
+                receipt.quick_student = target
+                receipt.student_name = target.full_name
+                receipt.quick_enrollment = target_enrollment
+                _retarget_journal_account(receipt.journal_entry, source_ar, target_ar)
+                moved_receipts += 1
+
+            relinked_print_jobs += QuickReceiptPrintJob.objects.filter(quick_student=source).update(
+                quick_student=target
+            )
+
+        if getattr(target, 'student', None):
+            updated_fields = []
+            if not target.student.phone and target.phone:
+                target.student.phone = target.phone
+                updated_fields.append('phone')
+            if not target.student.full_name and target.full_name:
+                target.student.full_name = target.full_name
+                updated_fields.append('full_name')
+            if updated_fields:
+                type(target.student).objects.filter(pk=target.student.pk).update(
+                    **{field: getattr(target.student, field) for field in updated_fields}
+                )
+
+    for account in touched_accounts.values():
+        try:
+            account.recalculate_tree_balances()
+        except Exception:
+            continue
+
+    return {
+        'target': target,
+        'sources': touched_source_ids,
+        'moved_enrollments': moved_enrollments,
+        'moved_receipts': moved_receipts,
+        'skipped_conflicting_enrollments': skipped_conflicting_enrollments,
+        'relinked_print_jobs': relinked_print_jobs,
+    }
+
+
+@require_superuser
+def quick_name_link_tool(request):
+    if request.method == 'POST':
+        normalized_name = _normalize_quick_student_name(request.POST.get('group_name'))
+        target_id_raw = request.POST.get('target_student_id')
+        search_query = (request.POST.get('q') or '').strip()
+
+        try:
+            target_id = int(target_id_raw)
+        except (TypeError, ValueError):
+            messages.error(request, 'السجل الهدف غير صالح.')
+            return redirect(f"{reverse('quick:name_link_tool')}?{urlencode({'q': search_query})}")
+
+        if not normalized_name:
+            messages.error(request, 'لم يتم تحديد الاسم المطلوب تصحيح ربطه.')
+            return redirect(f"{reverse('quick:name_link_tool')}?{urlencode({'q': search_query})}")
+
+        try:
+            result = _relink_quick_name_group_to_target(normalized_name, target_id, request.user)
+        except Exception as exc:
+            messages.error(request, f'فشل تصحيح ربط التسجيلات والإيصالات: {exc}')
+        else:
+            messages.success(
+                request,
+                f'تم تصحيح ربط {result["moved_enrollments"]} تسجيل و{result["moved_receipts"]} إيصال '
+                f'إلى السجل #{result["target"].id}.'
+            )
+            if result['skipped_conflicting_enrollments']:
+                messages.warning(
+                    request,
+                    f'تم تخطي {result["skipped_conflicting_enrollments"]} تسجيل بسبب وجود نفس الدورة مسبقًا على السجل الهدف.'
+                )
+
+        return redirect(f"{reverse('quick:name_link_tool')}?{urlencode({'q': search_query})}")
+
+    search_query = (request.GET.get('q') or '').strip()
+    normalized_search = _normalize_quick_student_name(search_query)
+
+    students = list(
+        QuickStudent.objects.select_related('student', 'academic_year', 'created_by')
+        .prefetch_related('enrollments', 'quickstudentreceipt_set')
+        .order_by('full_name', 'created_at', 'id')
+    )
+
+    grouped_students = defaultdict(list)
+    for student in students:
+        normalized_name = _normalize_quick_student_name(student.full_name)
+        if normalized_name:
+            grouped_students[normalized_name].append(student)
+
+    matched_single_records = []
+    if normalized_search:
+        matched_single_records = [
+            student for student in students
+            if normalized_search in _normalize_quick_student_name(student.full_name)
+        ]
+
+    groups = []
+    for normalized_name, members in grouped_students.items():
+        if len(members) < 2:
+            continue
+        if normalized_search and normalized_search not in normalized_name:
+            continue
+
+        candidate_rows = []
+        for member in members:
+            candidate_rows.append({
+                'student': member,
+                'enrollments_count': member.enrollments.count(),
+                'receipts_count': member.quickstudentreceipt_set.count(),
+                'balance': member.balance,
+            })
+
+        groups.append({
+            'normalized_name': normalized_name,
+            'display_name': members[0].full_name,
+            'members': candidate_rows,
+            'members_count': len(candidate_rows),
+        })
+
+    groups.sort(key=lambda item: (-item['members_count'], item['display_name']))
+
+    return render(request, 'quick/quick_name_link_tool.html', {
+        'groups': groups,
+        'search_query': search_query,
+        'matched_single_records_count': len(matched_single_records),
+    })
+
+
+def _get_duplicate_groups(search_query='', phone_query='', scope='active'):
     include_inactive = scope == 'all'
 
     enrollment_queryset = (
@@ -981,11 +1210,17 @@ def _get_duplicate_groups(search_query='', scope='active'):
 
     duplicate_groups = []
     normalized_search = _normalize_quick_student_name(search_query)
+    normalized_phone_search = _normalize_phone(phone_query)
 
     for normalized_name, students in grouped_students.items():
         if len(students) < 2:
             continue
         if normalized_search and normalized_search not in normalized_name:
+            continue
+        if normalized_phone_search and not any(
+            normalized_phone_search in _normalize_phone(student.phone)
+            for student in students
+        ):
             continue
 
         members = []
@@ -3947,13 +4182,20 @@ def quick_duplicate_students_report(request):
         action = request.POST.get('action') or 'merge_one'
         group_key = _normalize_quick_student_name(request.POST.get('group_name'))
         search_query = (request.POST.get('q') or '').strip()
+        phone_query = (request.POST.get('phone') or '').strip()
         scope = request.POST.get('scope') or 'active'
 
         if action == 'merge_all':
-            duplicate_groups = _get_duplicate_groups(search_query=search_query, scope=scope)
+            duplicate_groups = _get_duplicate_groups(
+                search_query=search_query,
+                phone_query=phone_query,
+                scope=scope,
+            )
             if not duplicate_groups:
                 messages.info(request, 'لا توجد مجموعات مكررة مطابقة للفلتر الحالي.')
-                return redirect(f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'scope': scope})}")
+                return redirect(
+                    f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'phone': phone_query, 'scope': scope})}"
+                )
 
             merged_groups = 0
             total_enrollments = 0
@@ -3986,7 +4228,9 @@ def quick_duplicate_students_report(request):
         else:
             if not group_key:
                 messages.error(request, 'لم يتم تحديد الاسم المطلوب دمجه.')
-                return redirect(f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'scope': scope})}")
+                return redirect(
+                    f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'phone': phone_query, 'scope': scope})}"
+                )
 
             try:
                 merge_result = _merge_quick_students_by_name_with_retry(group_key, request.user)
@@ -4001,9 +4245,12 @@ def quick_duplicate_students_report(request):
                     f'مع عكس {merge_result["reversed_duplicates"]} تسجيل مكرر على نفس الدورة.'
                 )
 
-        return redirect(f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'scope': scope})}")
+        return redirect(
+            f"{reverse('quick:duplicate_students_report')}?{urlencode({'q': search_query, 'phone': phone_query, 'scope': scope})}"
+        )
 
     search_query = (request.GET.get('q') or '').strip()
+    phone_query = (request.GET.get('phone') or '').strip()
     scope = request.GET.get('scope') or 'active'
     include_inactive = scope == 'all'
 
@@ -4053,11 +4300,17 @@ def quick_duplicate_students_report(request):
     total_remaining = Decimal('0')
     total_enrollments = 0
     normalized_search = _normalize_quick_student_name(search_query)
+    normalized_phone_search = _normalize_phone(phone_query)
 
     for normalized_name, students in grouped_students.items():
         if len(students) < 2:
             continue
         if normalized_search and normalized_search not in normalized_name:
+            continue
+        if normalized_phone_search and not any(
+            normalized_phone_search in _normalize_phone(student.phone)
+            for student in students
+        ):
             continue
 
         members = []
@@ -4196,6 +4449,7 @@ def quick_duplicate_students_report(request):
     context = {
         'duplicate_groups': duplicate_groups,
         'search_query': search_query,
+        'phone_query': phone_query,
         'scope': scope,
         'duplicate_names_count': len(duplicate_groups),
         'duplicate_records_count': duplicate_records_count,
@@ -4209,14 +4463,16 @@ def quick_duplicate_students_report(request):
 @require_superuser
 def quick_duplicate_students_print(request):
     group_key = _normalize_quick_student_name(request.GET.get('name'))
+    phone_query = (request.GET.get('phone') or '').strip()
     scope = request.GET.get('scope') or 'active'
-    duplicate_groups = _get_duplicate_groups(scope=scope)
+    duplicate_groups = _get_duplicate_groups(phone_query=phone_query, scope=scope)
     group = next((item for item in duplicate_groups if item['normalized_name'] == group_key), None)
     if not group:
         raise Http404('Duplicate group not found')
 
     return render(request, 'quick/quick_duplicate_students_print.html', {
         'group': group,
+        'phone_query': phone_query,
         'scope': scope,
         'print_date': timezone.now(),
     })
@@ -4225,8 +4481,13 @@ def quick_duplicate_students_print(request):
 @require_superuser
 def quick_duplicate_students_full_print(request):
     search_query = (request.GET.get('q') or '').strip()
+    phone_query = (request.GET.get('phone') or '').strip()
     scope = request.GET.get('scope') or 'active'
-    duplicate_groups = _get_duplicate_groups(search_query=search_query, scope=scope)
+    duplicate_groups = _get_duplicate_groups(
+        search_query=search_query,
+        phone_query=phone_query,
+        scope=scope,
+    )
 
     total_balance = sum((group['group_balance'] for group in duplicate_groups), Decimal('0'))
     total_remaining = sum((group['group_remaining'] for group in duplicate_groups), Decimal('0'))
@@ -4236,6 +4497,7 @@ def quick_duplicate_students_full_print(request):
     return render(request, 'quick/quick_duplicate_students_full_print.html', {
         'duplicate_groups': duplicate_groups,
         'search_query': search_query,
+        'phone_query': phone_query,
         'scope': scope,
         'duplicate_names_count': len(duplicate_groups),
         'duplicate_records_count': total_records,

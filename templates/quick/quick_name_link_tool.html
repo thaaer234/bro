@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+<style>
+  .name-link-grid {
+    display: grid;
+    gap: 1rem;
+  }
+  .name-link-card {
+    border: 1px solid #dbe4ea;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(20, 42, 109, 0.06);
+  }
+  .name-link-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #eef2f6;
+  }
+  .name-link-body {
+    padding: 1rem 1.25rem;
+  }
+  .name-link-members {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .name-link-member {
+    border: 1px solid #e8eef3;
+    border-radius: 12px;
+    padding: 0.9rem;
+    background: #fbfdff;
+  }
+  .name-link-meta {
+    color: #5f6f82;
+    font-size: 0.95rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+      <h2 class="mb-1">ربط التسجيلات والإيصالات بالحساب الصحيح</h2>
+      <p class="text-muted mb-0">ابحث باسم الطالب السريع ثم اختر السجل الصحيح. الأداة تنقل التسجيلات والإيصالات إليه وتصحح ارتباطها بالحساب المالي المرتبط به، من دون حذف الحسابات الأخرى.</p>
+    </div>
+    <a href="{% url 'quick:student_list' %}" class="btn btn-outline-secondary">رجوع لقائمة الطلاب</a>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-6">
+          <label for="name-search" class="form-label">بحث بالاسم</label>
+          <input id="name-search" type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="اكتب اسم الطالب">
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100">عرض النتائج</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="name-link-grid">
+    {% for group in groups %}
+    <div class="name-link-card">
+      <div class="name-link-head">
+        <div>
+          <h4 class="mb-1">{{ group.display_name }}</h4>
+          <div class="name-link-meta">{{ group.members_count }} سجلات بنفس الاسم</div>
+        </div>
+      </div>
+      <div class="name-link-body">
+        <div class="name-link-members">
+          {% for item in group.members %}
+          <div class="name-link-member">
+            <div class="d-flex justify-content-between gap-3 flex-wrap">
+              <div>
+                <div class="fw-bold">{{ item.student.full_name }} <span class="badge bg-dark">#{{ item.student.id }}</span></div>
+                <div class="name-link-meta">
+                  الهاتف: {{ item.student.phone|default:"-" }} |
+                  التسجيلات: {{ item.enrollments_count }} |
+                  الإيصالات: {{ item.receipts_count }} |
+                  الرصيد: {{ item.balance|floatformat:2 }}
+                </div>
+              </div>
+              <form method="post" onsubmit="return confirm('سيتم اعتماد هذا السجل كالسجل الصحيح، ونقل التسجيلات والإيصالات إليه مع تصحيح الربط المحاسبي. متابعة؟');">
+                {% csrf_token %}
+                <input type="hidden" name="group_name" value="{{ group.normalized_name }}">
+                <input type="hidden" name="target_student_id" value="{{ item.student.id }}">
+                <input type="hidden" name="q" value="{{ search_query }}">
+                <button type="submit" class="btn btn-success">اعتماد هذا السجل</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-light border">
+      {% if search_query and matched_single_records_count %}
+      الاسم موجود، لكن لا يوجد أكثر من سجل بنفس الاسم ليتم تصحيح الربط بينهما.
+      {% else %}
+      لا توجد سجلات متعددة مطابقة للاسم الحالي.
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
