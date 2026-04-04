@@ -1484,16 +1484,41 @@ def _purge_quick_extra_entries(target, keep_entry_ids=None, keep_references=None
 
 @require_superuser
 def quick_checking_tool(request):
+    eligible_students_qs = (
+        QuickStudent.objects.filter(
+            Q(enrollments__isnull=False) | Q(quickstudentreceipt__isnull=False)
+        )
+        .distinct()
+        .order_by('id')
+    )
+
     if request.method == 'POST':
         action = request.POST.get('action')
         target_id_raw = request.POST.get('target_student_id')
         search_query = (request.POST.get('q') or '').strip()
         if action == 'run_all':
-            students = list(QuickStudent.objects.order_by('full_name', 'id'))
+            batch_size_raw = request.POST.get('batch_size') or '25'
+            start_after_raw = request.POST.get('start_after_id') or '0'
+            try:
+                batch_size = max(1, min(100, int(batch_size_raw)))
+            except (TypeError, ValueError):
+                batch_size = 25
+            try:
+                start_after_id = max(0, int(start_after_raw))
+            except (TypeError, ValueError):
+                start_after_id = 0
+
+            students = list(eligible_students_qs.filter(id__gt=start_after_id)[:batch_size])
+            if not students:
+                messages.success(request, 'اكتمل التشييك الجماعي على جميع الطلاب المطلوبين.')
+                return redirect(reverse('quick:checking_tool'))
+
             batch = _run_quick_student_checking_batch(students, request.user)
+            next_start_id = students[-1].id
+            remaining_count = eligible_students_qs.filter(id__gt=next_start_id).count()
             messages.success(
                 request,
-                f'تم تشييك {batch["processed"]} طالبًا: '
+                f'تم تشييك دفعة من {batch["processed"]} طالبًا: '
                 f'إعادة تفعيل {batch["reactivated_enrollments"]} تسجيل، '
                 f'وإنشاء {batch["synthesized_receipts"]} إيصال من قيود قبض قديمة، '
                 f'وحذف {batch["deleted_journal_entries"]} قيد قديم، '
@@ -1514,6 +1539,16 @@ def quick_checking_tool(request):
                 request,
                 f'التحقق النهائي النظيف تحقق لـ {batch["clean_count"]} من أصل {batch["processed"]} طالب تمت معالجتهم.'
             )
+            if remaining_count > 0:
+                messages.warning(
+                    request,
+                    f'تبقى {remaining_count} طالبًا للتشييك الجماعي. اضغط زر التشييك الجماعي مرة أخرى للمتابعة من بعد السجل #{next_start_id}.'
+                )
+                return redirect(
+                    f"{reverse('quick:checking_tool')}?{urlencode({'batch_cursor': next_start_id, 'batch_size': batch_size})}"
+                )
+            messages.success(request, 'اكتمل التشييك الجماعي على جميع الطلاب المطلوبين.')
+            return redirect(reverse('quick:checking_tool'))
         else:
             try:
                 target_id = int(target_id_raw)
@@ -1557,6 +1592,16 @@ def quick_checking_tool(request):
 
     search_query = (request.GET.get('q') or '').strip()
     normalized_search = _normalize_quick_student_name(search_query)
+    batch_cursor_raw = request.GET.get('batch_cursor') or '0'
+    batch_size_raw = request.GET.get('batch_size') or '25'
+    try:
+        batch_cursor = max(0, int(batch_cursor_raw))
+    except (TypeError, ValueError):
+        batch_cursor = 0
+    try:
+        batch_size = max(1, min(100, int(batch_size_raw)))
+    except (TypeError, ValueError):
+        batch_size = 25
 
     students = list(
         QuickStudent.objects.select_related('student', 'academic_year')
@@ -1582,6 +1627,10 @@ def quick_checking_tool(request):
         'rows': rows,
         'search_query': search_query,
         'all_students_count': len(students),
+        'eligible_students_count': eligible_students_qs.count(),
+        'batch_cursor': batch_cursor,
+        'batch_size': batch_size,
+        'remaining_batch_count': eligible_students_qs.filter(id__gt=batch_cursor).count(),
     })
 
 

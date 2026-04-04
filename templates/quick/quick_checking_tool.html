@@ -26,16 +26,25 @@
         <div class="card-body">
           <h4 class="mb-3">تشييك على جميع الطلاب</h4>
           <p class="text-muted">
-            ينفذ التشييك الشامل على كل الطلاب السريعين المسجلين حاليًا.
+            ينفذ التشييك الشامل على دفعات آمنة حتى لا ينهار الخادم أثناء المعالجة.
           </p>
           <div class="mb-3">
             <span class="badge bg-dark">إجمالي الطلاب: {{ all_students_count }}</span>
+            <span class="badge bg-secondary">المطلوب تشييكهم: {{ eligible_students_count }}</span>
+            <span class="badge bg-warning text-dark">المتبقي في الدفعات: {{ remaining_batch_count }}</span>
           </div>
           <form method="post" onsubmit="return confirm('سيتم تنفيذ التشييك على جميع الطلاب السريعين. سيتم حذف القيود القديمة المرتبطة وإعادة بناء القيود النظامية. متابعة؟');">
             {% csrf_token %}
             <input type="hidden" name="action" value="run_all">
             <input type="hidden" name="q" value="{{ search_query }}">
-            <button type="submit" class="btn btn-danger w-100">تشغيل التشييك على الجميع</button>
+            <input type="hidden" name="start_after_id" value="{{ batch_cursor }}">
+            <div class="mb-3">
+              <label class="form-label">حجم الدفعة</label>
+              <input type="number" name="batch_size" value="{{ batch_size }}" min="1" max="100" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-danger w-100">
+              {% if batch_cursor > 0 %}متابعة التشييك الجماعي{% else %}تشغيل التشييك الجماعي{% endif %}
+            </button>
           </form>
         </div>
       </div>
