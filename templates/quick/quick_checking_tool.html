@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h2 class="mb-2">أداة تشييك</h2>
+        <p class="text-muted mb-0">ابحث باسم الطالب السريع ثم نفذ تصحيحًا شاملًا: إعادة تفعيل التسجيلات المسحوبة، تنظيف القيود القديمة المعروفة، إعادة بناء قيود التسجيل والقبض، ومحاولة توزيع التسجيلات على الكلاسات.</p>
+      </div>
+      <a href="{% url 'quick:student_list' %}" class="btn btn-outline-secondary">رجوع</a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-6">
+          <label for="checking-search" class="form-label">بحث بالاسم</label>
+          <input id="checking-search" type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="اكتب اسم الطالب">
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100">عرض</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      {% if rows %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>الطالب</th>
+              <th>الهاتف</th>
+              <th>الحالة</th>
+              <th>التسجيلات</th>
+              <th>الإيصالات</th>
+              <th>الرصيد</th>
+              <th>الإجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td>{{ row.student.full_name }} <span class="badge bg-dark">#{{ row.student.id }}</span></td>
+              <td>{{ row.student.phone|default:"-" }}</td>
+              <td>{% if row.student.is_active %}نشط{% else %}غير نشط{% endif %}</td>
+              <td>{{ row.enrollments_count }}</td>
+              <td>{{ row.receipts_count }}</td>
+              <td>{{ row.balance|floatformat:2 }}</td>
+              <td>
+                <form method="post" onsubmit="return confirm('سيتم تنفيذ تشييك شامل على هذا الطالب: إعادة تفعيل التسجيلات المسحوبة، حذف/عكس القيود القديمة المعروفة، إعادة بناء القيود، وربط الإيصالات. متابعة؟');">
+                  {% csrf_token %}
+                  <input type="hidden" name="target_student_id" value="{{ row.student.id }}">
+                  <input type="hidden" name="q" value="{{ search_query }}">
+                  <button type="submit" class="btn btn-danger btn-sm">تنفيذ التشييك</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-muted">لا توجد نتائج مطابقة.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

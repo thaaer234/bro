@@ -60,6 +60,7 @@ urlpatterns = [
 
     path('reports/duplicate-students/', require_superuser(views.quick_duplicate_students_report), name='duplicate_students_report'),
     path('reports/name-link-tool/', require_superuser(views.quick_name_link_tool), name='name_link_tool'),
+    path('reports/checking-tool/', require_superuser(views.quick_checking_tool), name='checking_tool'),
     path('reports/merge-students/', require_superuser(views.quick_duplicate_students_report), name='merge_students_tool'),
     path('reports/duplicate-students/print/', require_superuser(views.quick_duplicate_students_print), name='duplicate_students_print'),
     path('reports/duplicate-students/print/all/', require_superuser(views.quick_duplicate_students_full_print), name='duplicate_students_full_print'),

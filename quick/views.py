@@ -1166,6 +1166,249 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
     }
 
 
+def _run_quick_student_checking(target, user):
+    _configure_sqlite_busy_timeout()
+
+    target_ar = Account.get_or_create_quick_student_ar_account(target)
+    enrollments = list(
+        QuickEnrollment.objects.select_related('course').filter(student=target).order_by('enrollment_date', 'id')
+    )
+    receipts = list(
+        QuickStudentReceipt.objects.filter(
+            Q(quick_student=target) | Q(student_name=target.full_name)
+        ).select_related('course', 'quick_enrollment', 'journal_entry').order_by('date', 'id')
+    )
+
+    touched_accounts = {target_ar.id: target_ar}
+    reactivated_enrollments = 0
+    deleted_journal_entries = 0
+    rebuilt_enrollment_entries = 0
+    relinked_receipts = 0
+    rebuilt_receipt_entries = 0
+    assigned_sessions = 0
+
+    with transaction.atomic():
+        enrollment_creator_by_id = {}
+        for enrollment in enrollments:
+            existing_entry = _find_quick_enrollment_entry(enrollment)
+            creator = getattr(existing_entry, 'created_by', None) or user
+            enrollment_creator_by_id[enrollment.id] = creator
+
+        receipt_creator_by_id = {}
+        for receipt in receipts:
+            creator = getattr(receipt, 'created_by', None)
+            if not creator and receipt.journal_entry_id:
+                creator = getattr(receipt.journal_entry, 'created_by', None)
+            receipt_creator_by_id[receipt.id] = creator or user
+
+        if not target.is_active:
+            QuickStudent.objects.filter(pk=target.pk).update(is_active=True)
+            target.is_active = True
+        if getattr(target, 'student', None) and not target.student.is_active:
+            type(target.student).objects.filter(pk=target.student.pk).update(is_active=True)
+            target.student.is_active = True
+
+        journal_entries = list(_get_quick_student_related_journal_entries(target))
+        if journal_entries:
+            deleted_journal_entries = len(journal_entries)
+            JournalEntry.objects.filter(id__in=[entry.id for entry in journal_entries]).delete()
+
+        enrollment_by_course = {}
+        for enrollment in enrollments:
+            if enrollment.is_completed:
+                QuickEnrollment.objects.filter(pk=enrollment.pk).update(is_completed=False, completion_date=None)
+                enrollment.is_completed = False
+                enrollment.completion_date = None
+                reactivated_enrollments += 1
+
+            cleanup_result = _cleanup_quick_withdrawal_entries(enrollment, user)
+            if cleanup_result['deleted_ids'] or cleanup_result['reversed_ids']:
+                pass
+
+            entry_user = enrollment_creator_by_id.get(enrollment.id) or user
+            if _rebuild_quick_enrollment_entry(enrollment, entry_user):
+                rebuilt_enrollment_entries += 1
+
+            enrollment_by_course[enrollment.course_id] = enrollment
+
+        for receipt in receipts:
+            target_enrollment = None
+            if receipt.quick_enrollment_id and receipt.quick_enrollment.student_id == target.id:
+                target_enrollment = receipt.quick_enrollment
+            elif receipt.course_id:
+                target_enrollment = enrollment_by_course.get(receipt.course_id)
+
+            updates = {}
+            if receipt.quick_student_id != target.id:
+                updates['quick_student'] = target
+                receipt.quick_student = target
+            if receipt.student_name != target.full_name:
+                updates['student_name'] = target.full_name
+                receipt.student_name = target.full_name
+            if target_enrollment and receipt.quick_enrollment_id != target_enrollment.id:
+                updates['quick_enrollment'] = target_enrollment
+                receipt.quick_enrollment = target_enrollment
+            if receipt.course and receipt.course_name != receipt.course.name:
+                updates['course_name'] = receipt.course.name
+                receipt.course_name = receipt.course.name
+
+            if updates:
+                QuickStudentReceipt.objects.filter(pk=receipt.pk).update(
+                    **{
+                        key: (value.id if key in {'quick_student', 'quick_enrollment'} else value)
+                        for key, value in updates.items()
+                    }
+                )
+                relinked_receipts += 1
+
+            entry_user = receipt_creator_by_id.get(receipt.id) or user
+            if _rebuild_quick_receipt_entry(receipt, entry_user):
+                rebuilt_receipt_entries += 1
+
+        for enrollment in enrollments:
+            if not getattr(enrollment, 'session_assignment', None):
+                assignment = _assign_enrollment_to_available_session(enrollment, user)
+                if assignment is not None:
+                    assigned_sessions += 1
+
+    for account in touched_accounts.values():
+        try:
+            account.recalculate_tree_balances()
+        except Exception:
+            continue
+
+    return {
+        'target': target,
+        'enrollments_count': len(enrollments),
+        'receipts_count': len(receipts),
+        'reactivated_enrollments': reactivated_enrollments,
+        'deleted_journal_entries': deleted_journal_entries,
+        'rebuilt_enrollment_entries': rebuilt_enrollment_entries,
+        'relinked_receipts': relinked_receipts,
+        'rebuilt_receipt_entries': rebuilt_receipt_entries,
+        'assigned_sessions': assigned_sessions,
+        'validation': _validate_quick_student_checking(target),
+    }
+
+
+def _validate_quick_student_checking(target):
+    enrollments = list(
+        QuickEnrollment.objects.select_related('course').filter(student=target).order_by('id')
+    )
+    receipts = list(
+        QuickStudentReceipt.objects.filter(quick_student=target).select_related('journal_entry').order_by('id')
+    )
+
+    missing_enrollment_entry_ids = [
+        enrollment.id
+        for enrollment in enrollments
+        if not _find_quick_enrollment_entry(enrollment)
+    ]
+    receipt_candidates = [receipt for receipt in receipts if (receipt.paid_amount or Decimal('0')) > 0]
+    missing_receipt_entry_ids = [
+        receipt.id
+        for receipt in receipt_candidates
+        if not receipt.journal_entry_id
+    ]
+
+    expected_receipt_entry_ids = {receipt.journal_entry_id for receipt in receipt_candidates if receipt.journal_entry_id}
+    expected_enrollment_refs = {f'QE-{enrollment.id}' for enrollment in enrollments}
+    related_entries = list(_get_quick_student_related_journal_entries(target))
+    extra_entry_ids = [
+        entry.id
+        for entry in related_entries
+        if entry.reference not in expected_enrollment_refs and entry.id not in expected_receipt_entry_ids
+    ]
+
+    return {
+        'expected_enrollment_entries': len(enrollments),
+        'actual_enrollment_entries': len(enrollments) - len(missing_enrollment_entry_ids),
+        'expected_receipt_entries': len(receipt_candidates),
+        'actual_receipt_entries': len(receipt_candidates) - len(missing_receipt_entry_ids),
+        'missing_enrollment_entry_ids': missing_enrollment_entry_ids,
+        'missing_receipt_entry_ids': missing_receipt_entry_ids,
+        'extra_entry_ids': extra_entry_ids,
+        'is_clean': not (
+            missing_enrollment_entry_ids
+            or missing_receipt_entry_ids
+            or extra_entry_ids
+        ),
+    }
+
+
+@require_superuser
+def quick_checking_tool(request):
+    if request.method == 'POST':
+        target_id_raw = request.POST.get('target_student_id')
+        search_query = (request.POST.get('q') or '').strip()
+        try:
+            target_id = int(target_id_raw)
+        except (TypeError, ValueError):
+            messages.error(request, 'السجل الهدف غير صالح.')
+            return redirect(f"{reverse('quick:checking_tool')}?{urlencode({'q': search_query})}")
+
+        target = get_object_or_404(QuickStudent, pk=target_id)
+        try:
+            result = _run_quick_student_checking(target, request.user)
+        except Exception as exc:
+            messages.error(request, f'فشل تنفيذ أداة التشييك: {exc}')
+        else:
+            validation = result['validation']
+            messages.success(
+                request,
+                f'تمت معالجة السجل #{result["target"].id}: '
+                f'إعادة تفعيل {result["reactivated_enrollments"]} تسجيل، '
+                f'وحذف {result["deleted_journal_entries"]} قيد قديم، '
+                f'وإعادة بناء {result["rebuilt_enrollment_entries"]} قيد تسجيل، '
+                f'وربط/فحص {result["relinked_receipts"]} إيصال، '
+                f'وإعادة بناء {result["rebuilt_receipt_entries"]} قيد قبض، '
+                f'وتوزيع {result["assigned_sessions"]} تسجيل على الكلاسات.'
+            )
+            if validation['is_clean']:
+                messages.success(
+                    request,
+                    f'التحقق النهائي ناجح: {validation["actual_enrollment_entries"]}/{validation["expected_enrollment_entries"]} قيد تسجيل '
+                    f'و{validation["actual_receipt_entries"]}/{validation["expected_receipt_entries"]} قيد قبض، بدون قيود زائدة على هذا الحساب.'
+                )
+            else:
+                messages.warning(
+                    request,
+                    f'نتيجة التحقق النهائي: '
+                    f'نواقص قيود التسجيل {len(validation["missing_enrollment_entry_ids"])}, '
+                    f'نواقص قيود القبض {len(validation["missing_receipt_entry_ids"])}, '
+                    f'وقيود زائدة {len(validation["extra_entry_ids"])}.'
+                )
+        return redirect(f"{reverse('quick:checking_tool')}?{urlencode({'q': search_query})}")
+
+    search_query = (request.GET.get('q') or '').strip()
+    normalized_search = _normalize_quick_student_name(search_query)
+
+    students = list(
+        QuickStudent.objects.select_related('student', 'academic_year')
+        .prefetch_related('enrollments', 'quickstudentreceipt_set')
+        .order_by('full_name', 'id')
+    )
+
+    rows = []
+    for student in students:
+        normalized_name = _normalize_quick_student_name(student.full_name)
+        if normalized_search and normalized_search not in normalized_name:
+            continue
+        if not normalized_search:
+            continue
+        rows.append({
+            'student': student,
+            'enrollments_count': student.enrollments.count(),
+            'receipts_count': student.quickstudentreceipt_set.count(),
+            'balance': student.balance,
+        })
+
+    return render(request, 'quick/quick_checking_tool.html', {
+        'rows': rows,
+        'search_query': search_query,
+    })
+
+
 @require_superuser
 def quick_name_link_tool(request):
     if request.method == 'POST':
@@ -4944,6 +5187,7 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
             context.update({
                 'enrollment_data': enrollment_data,
                 'active_enrollments': enrollment_data,
+                'all_enrollments': enrollment_data,
                 'total_paid': total_paid,
                 'total_due': total_due,
                 'total_remaining': total_remaining,
@@ -4957,6 +5201,7 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
             context.update({
                 'enrollment_data': [],
                 'active_enrollments': [],
+                'all_enrollments': [],
                 'total_paid': Decimal('0.00'),
                 'total_due': Decimal('0.00'),
                 'total_remaining': Decimal('0.00'),

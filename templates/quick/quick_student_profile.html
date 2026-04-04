@@ -23,7 +23,7 @@
         <h1>{{ student.full_name }}</h1>
         <p class="student-number">طالب سريع - {{ student.academic_year.name }}</p>
         <div class="student-status">
-          <span class="status-badge {% if active_enrollments %}active{% else %}inactive{% endif %}">
+          <span class="status-badge {% if student.is_active %}active{% else %}inactive{% endif %}">
             {% if active_enrollments %}نشط{% else %}غير نشط{% endif %}
           </span>
           <span class="status-badge badge-warning ml-2">سريع</span>
@@ -126,7 +126,7 @@
         </div>
         <div class="card-content">
           <span class="card-label">الدورات المسجلة</span>
-          <strong class="card-value">{{ active_enrollments|length|default:0 }}</strong>
+          <strong class="card-value">{{ all_enrollments|length|default:0 }}</strong>
         </div>
       </div>
       <div class="summary-card">
