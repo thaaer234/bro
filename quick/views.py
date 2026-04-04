@@ -961,17 +961,11 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
         student for student in students
         if _normalize_quick_student_name(student.full_name) == normalized_name
     ]
-    if len(matched_students) < 2:
-        raise ValueError('لا توجد حسابات متعددة بنفس الاسم.')
-
     target = next((student for student in matched_students if student.id == target_id), None)
     if not target:
         raise ValueError('الحساب الهدف غير موجود ضمن نفس الاسم.')
 
     sources = [student for student in matched_students if student.id != target.id]
-    if not sources:
-        raise ValueError('لا توجد سجلات أخرى ليتم ربطها بهذا الحساب.')
-
     target_ar = Account.get_or_create_quick_student_ar_account(target)
     touched_accounts = {target_ar.id: target_ar}
     target_enrollments = {
@@ -984,6 +978,73 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
     skipped_conflicting_enrollments = 0
     relinked_print_jobs = 0
     touched_source_ids = []
+    repaired_enrollments = 0
+    repaired_receipts = 0
+
+    def repair_target_links():
+        nonlocal repaired_enrollments, repaired_receipts
+
+        target_enrollment_list = list(
+            QuickEnrollment.objects.select_related('course').filter(student=target).order_by('enrollment_date', 'id')
+        )
+        for enrollment in target_enrollment_list:
+            entry = _find_quick_enrollment_entry(enrollment)
+            deferred_account = Account.get_or_create_quick_course_deferred_account(enrollment.course)
+            expected_amount = enrollment.net_amount or Decimal('0')
+            entry_ok = False
+            if entry:
+                debit_ok = entry.transactions.filter(
+                    account=target_ar,
+                    is_debit=True,
+                    amount=expected_amount,
+                ).exists()
+                credit_ok = entry.transactions.filter(
+                    account=deferred_account,
+                    is_debit=False,
+                    amount=expected_amount,
+                ).exists()
+                entry_ok = debit_ok and credit_ok
+
+            if not entry:
+                if _ensure_quick_enrollment_entry(enrollment, user=user):
+                    repaired_enrollments += 1
+            elif not entry_ok:
+                if _rebuild_quick_enrollment_entry(enrollment, user):
+                    repaired_enrollments += 1
+
+            receipts = list(
+                QuickStudentReceipt.objects.filter(
+                    quick_student=target,
+                    course_id=enrollment.course_id,
+                ).select_related('journal_entry').order_by('date', 'id')
+            )
+            for receipt in receipts:
+                updated_fields = []
+                if receipt.quick_enrollment_id != enrollment.id:
+                    receipt.quick_enrollment = enrollment
+                    updated_fields.append('quick_enrollment')
+                if receipt.student_name != target.full_name:
+                    receipt.student_name = target.full_name
+                    updated_fields.append('student_name')
+                expected_course_name = enrollment.course.name if enrollment.course else receipt.course_name
+                if expected_course_name and receipt.course_name != expected_course_name:
+                    receipt.course_name = expected_course_name
+                    updated_fields.append('course_name')
+                if updated_fields:
+                    receipt.save(update_fields=updated_fields)
+                    repaired_receipts += 1
+
+                if not receipt.journal_entry_id:
+                    if _rebuild_quick_receipt_entry(receipt, user):
+                        repaired_receipts += 1
+                    continue
+
+                if not _fix_quick_receipt_entry(receipt, target_ar):
+                    if _rebuild_quick_receipt_entry(receipt, user):
+                        repaired_receipts += 1
+
+    if not matched_students:
+        raise ValueError('لا يوجد أي سجل مطابق لهذا الاسم.')
 
     with transaction.atomic():
         for source in sources:
@@ -1060,6 +1121,8 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
                     **{field: getattr(target.student, field) for field in updated_fields}
                 )
 
+        repair_target_links()
+
     for account in touched_accounts.values():
         try:
             account.recalculate_tree_balances()
@@ -1073,6 +1136,8 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
         'moved_receipts': moved_receipts,
         'skipped_conflicting_enrollments': skipped_conflicting_enrollments,
         'relinked_print_jobs': relinked_print_jobs,
+        'repaired_enrollments': repaired_enrollments,
+        'repaired_receipts': repaired_receipts,
     }
 
 
@@ -1100,8 +1165,9 @@ def quick_name_link_tool(request):
         else:
             messages.success(
                 request,
-                f'تم تصحيح ربط {result["moved_enrollments"]} تسجيل و{result["moved_receipts"]} إيصال '
-                f'إلى السجل #{result["target"].id}.'
+                f'تمت معالجة السجل #{result["target"].id}: '
+                f'نقل {result["moved_enrollments"]} تسجيل و{result["moved_receipts"]} إيصال، '
+                f'وتصحيح {result["repaired_enrollments"]} قيد تسجيل و{result["repaired_receipts"]} عملية ربط/قيد للإيصالات.'
             )
             if result['skipped_conflicting_enrollments']:
                 messages.warning(
@@ -1135,9 +1201,11 @@ def quick_name_link_tool(request):
 
     groups = []
     for normalized_name, members in grouped_students.items():
-        if len(members) < 2:
+        if not members:
             continue
         if normalized_search and normalized_search not in normalized_name:
+            continue
+        if not normalized_search and len(members) < 2:
             continue
 
         candidate_rows = []
