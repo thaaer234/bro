@@ -980,9 +980,10 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
     touched_source_ids = []
     repaired_enrollments = 0
     repaired_receipts = 0
+    assigned_sessions = 0
 
     def repair_target_links():
-        nonlocal repaired_enrollments, repaired_receipts
+        nonlocal repaired_enrollments, repaired_receipts, assigned_sessions
 
         target_enrollment_list = list(
             QuickEnrollment.objects.select_related('course').filter(student=target).order_by('enrollment_date', 'id')
@@ -1042,6 +1043,11 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
                 if not _fix_quick_receipt_entry(receipt, target_ar):
                     if _rebuild_quick_receipt_entry(receipt, user):
                         repaired_receipts += 1
+
+            if not enrollment.is_completed and not getattr(enrollment, 'session_assignment', None):
+                assignment = _assign_enrollment_to_available_session(enrollment, user)
+                if assignment is not None:
+                    assigned_sessions += 1
 
     if not matched_students:
         raise ValueError('لا يوجد أي سجل مطابق لهذا الاسم.')
@@ -1138,6 +1144,7 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
         'relinked_print_jobs': relinked_print_jobs,
         'repaired_enrollments': repaired_enrollments,
         'repaired_receipts': repaired_receipts,
+        'assigned_sessions': assigned_sessions,
     }
 
 
@@ -1167,7 +1174,8 @@ def quick_name_link_tool(request):
                 request,
                 f'تمت معالجة السجل #{result["target"].id}: '
                 f'نقل {result["moved_enrollments"]} تسجيل و{result["moved_receipts"]} إيصال، '
-                f'وتصحيح {result["repaired_enrollments"]} قيد تسجيل و{result["repaired_receipts"]} عملية ربط/قيد للإيصالات.'
+                f'وتصحيح {result["repaired_enrollments"]} قيد تسجيل و{result["repaired_receipts"]} عملية ربط/قيد للإيصالات، '
+                f'وتوزيع {result["assigned_sessions"]} تسجيل على الكلاسات.'
             )
             if result['skipped_conflicting_enrollments']:
                 messages.warning(
