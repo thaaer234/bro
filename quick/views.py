@@ -981,9 +981,11 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
     repaired_enrollments = 0
     repaired_receipts = 0
     assigned_sessions = 0
+    reactivated_target = False
+    active_enrollments_after = 0
 
     def repair_target_links():
-        nonlocal repaired_enrollments, repaired_receipts, assigned_sessions
+        nonlocal repaired_enrollments, repaired_receipts, assigned_sessions, reactivated_target, active_enrollments_after
 
         target_enrollment_list = list(
             QuickEnrollment.objects.select_related('course').filter(student=target).order_by('enrollment_date', 'id')
@@ -1048,6 +1050,20 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
                 assignment = _assign_enrollment_to_available_session(enrollment, user)
                 if assignment is not None:
                     assigned_sessions += 1
+
+        active_enrollments_after = sum(1 for enrollment in target_enrollment_list if not enrollment.is_completed)
+        if active_enrollments_after > 0:
+            student_updates = {}
+            if not target.is_active:
+                target.is_active = True
+                student_updates['is_active'] = True
+            if student_updates:
+                QuickStudent.objects.filter(pk=target.pk).update(**student_updates)
+                reactivated_target = True
+
+            if getattr(target, 'student', None) and not target.student.is_active:
+                type(target.student).objects.filter(pk=target.student.pk).update(is_active=True)
+                target.student.is_active = True
 
     if not matched_students:
         raise ValueError('لا يوجد أي سجل مطابق لهذا الاسم.')
@@ -1145,6 +1161,8 @@ def _relink_quick_name_group_to_target(normalized_name, target_id, user):
         'repaired_enrollments': repaired_enrollments,
         'repaired_receipts': repaired_receipts,
         'assigned_sessions': assigned_sessions,
+        'reactivated_target': reactivated_target,
+        'active_enrollments_after': active_enrollments_after,
     }
 
 
@@ -1181,6 +1199,13 @@ def quick_name_link_tool(request):
                 messages.warning(
                     request,
                     f'تم تخطي {result["skipped_conflicting_enrollments"]} تسجيل بسبب وجود نفس الدورة مسبقًا على السجل الهدف.'
+                )
+            if result['reactivated_target']:
+                messages.success(request, 'تم تفعيل السجل الهدف لأنه يحتوي على تسجيلات نشطة.')
+            if result['active_enrollments_after'] == 0:
+                messages.warning(
+                    request,
+                    'لا توجد تسجيلات نشطة على هذا السجل بعد المعالجة. إذا كان الطالب يجب أن يظهر كمسجل فعليًا، فلابد من إعادة فتح التسجيلات المكتملة أو إنشاء تسجيل جديد.'
                 )
 
         return redirect(f"{reverse('quick:name_link_tool')}?{urlencode({'q': search_query})}")
