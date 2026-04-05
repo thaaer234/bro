@@ -269,39 +269,6 @@
 
     <main id="main-content" class="main-content" role="main" tabindex="-1">
         <div class="page-shell">
-            <section class="page-toolbar page-toolbar--accounts page-toolbar--dramatic">
-                <div class="page-toolbar__meta">
-                    <span class="page-toolbar__eyebrow"><i class="fas fa-chart-line"></i> Finance Command Center</span>
-                    <h1 class="page-toolbar__title">مركز المحاسبة</h1>
-                    <p class="page-toolbar__text">وصول موحد إلى القيود، الأدلة، التقارير، وحركة النقدية ضمن واجهة أخف وأكثر وضوحاً.</p>
-                    <div class="workspace-pills">
-                        <span class="workspace-pill"><i class="fas fa-table-columns"></i> جداول أوضح</span>
-                        <span class="workspace-pill"><i class="fas fa-filter"></i> فلاتر أدق</span>
-                        <span class="workspace-pill"><i class="fas fa-chart-simple"></i> مؤشرات أسرع</span>
-                    </div>
-                </div>
-                <div class="page-toolbar__actions">
-                    <div class="accounts-brand">
-                        <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" class="accounts-brand__logo">
-                        <div class="accounts-brand__text">
-                            <span class="accounts-brand__title">معهد اليمن</span>
-                            <span class="accounts-brand__meta">Premium Finance Workspace</span>
-                        </div>
-                    </div>
-                    <div class="workspace-stat">
-                        <span class="workspace-stat__label">التاريخ</span>
-                        <strong>{% now "Y/m/d" %}</strong>
-                    </div>
-                    <div class="workspace-stat workspace-stat--accent">
-                        <span class="workspace-stat__label">المستخدم الحالي</span>
-                        <strong>{{ user.get_full_name|default:user.username }}</strong>
-                    </div>
-                    <div class="workspace-stat">
-                        <span class="workspace-stat__label">اختصار سريع</span>
-                        <strong>Ctrl + `</strong>
-                    </div>
-                </div>
-            </section>
 
             <div class="content-stack">
                 {% include "partials/_alerts.html" %}

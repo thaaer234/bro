@@ -67,37 +67,6 @@
 
     <main id="main-content" class="main-content" role="main" tabindex="-1">
         <div class="page-shell">
-            <section class="page-toolbar page-toolbar--global page-toolbar--dramatic">
-                <div class="page-toolbar__meta">
-                    <span class="page-toolbar__eyebrow">
-                        <i class="fas fa-star"></i>
-                        
-                    </span>
-                    <h1 class="page-toolbar__title">منصة تشغيل عربية بتجربة إدارية موحدة</h1>
-                    <p class="page-toolbar__text">واجهة إنتاجية حديثة تجمع الإدارة، المحاسبة، التعليم، والموارد البشرية ضمن نظام بصري واحد سريع وواضح.</p>
-                    <div class="workspace-pills">
-                        <span class="workspace-pill"><i class="fas fa-layer-group"></i> نظام تصميم موحد</span>
-                        <span class="workspace-pill"><i class="fas fa-bolt"></i> تنقل أسرع</span>
-                        <span class="workspace-pill"><i class="fas fa-shield-check"></i> تجربة موثوقة</span>
-                    </div>
-                </div>
-                <div class="page-toolbar__actions">
-                    <div class="workspace-stat">
-                        <span class="workspace-stat__label">التاريخ</span>
-                        <strong>{% now "Y/m/d" %}</strong>
-                    </div>
-                    {% if user.is_authenticated %}
-                    <div class="workspace-stat workspace-stat--accent">
-                        <span class="workspace-stat__label">المستخدم الحالي</span>
-                        <strong>{{ user.get_full_name|default:user.username }}</strong>
-                    </div>
-                    {% endif %}
-                    <div class="workspace-stat">
-                        <span class="workspace-stat__label">اختصار التنقل</span>
-                        <strong>Ctrl + `</strong>
-                    </div>
-                </div>
-            </section>
 
             <div class="content-stack">
                 {% if user.is_superuser %}
