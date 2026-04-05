@@ -3608,6 +3608,15 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         )
     )
     course_column_map = {item['course'].id: item for item in course_columns}
+    active_session_ids_by_course = {
+        item['course'].id: {session_option['id'] for session_option in item['sessions']}
+        for item in course_columns
+    }
+    active_period_numbers_by_session_id = {
+        session_option['id']: session_option['period_number']
+        for item in course_columns
+        for session_option in item['sessions']
+    }
 
     enrollments_qs = QuickEnrollment.objects.filter(
         course_id__in=course_ids,
@@ -3633,8 +3642,40 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
     )
 
     student_rows_by_id = {}
+    unassigned_enrollments = []
+    unassigned_student_ids = set()
     for enrollment in enrollments:
         student = enrollment.student
+        assignment = getattr(enrollment, 'session_assignment', None)
+        manual_selection = getattr(enrollment, 'manual_sorting_selection', None) if manual_selection_enabled else None
+        current_session = getattr(assignment, 'session', None) if assignment else None
+        current_session_id = getattr(assignment, 'session_id', None)
+        active_session_ids = active_session_ids_by_course.get(enrollment.course_id, set())
+        is_assigned_to_active_session = bool(current_session_id and current_session_id in active_session_ids)
+
+        if not is_assigned_to_active_session:
+            if current_session_id and current_session and not current_session.is_active:
+                issue_label = 'مربوط على فترة غير فعالة'
+            elif not active_session_ids:
+                issue_label = 'الدورة بلا فترات فعالة'
+            else:
+                issue_label = 'غير مربوط بفترة'
+            unassigned_enrollments.append({
+                'student': student,
+                'enrollment': enrollment,
+                'course': enrollment.course,
+                'issue_label': issue_label,
+                'active_sessions_count': len(active_session_ids),
+                'manual_selected_period_number': (
+                    active_period_numbers_by_session_id.get(manual_selection.session_id)
+                    if manual_selection and getattr(manual_selection, 'session_id', None)
+                    else None
+                ),
+                'current_session_title': current_session.title if current_session else '',
+                'manage_url': reverse('quick:course_sessions_manage', kwargs={'course_id': enrollment.course_id}),
+            })
+            unassigned_student_ids.add(student.id)
+
         student_row = student_rows_by_id.setdefault(
             student.id,
             {
@@ -3699,6 +3740,13 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             item['student'].id,
         )
     )
+    unassigned_enrollments.sort(
+        key=lambda item: (
+            item['student'].full_name,
+            item['course'].name,
+            item['enrollment'].id,
+        )
+    )
 
     return {
         'course_type': course_type,
@@ -3712,6 +3760,9 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         'course_column_map': course_column_map,
         'student_rows': student_rows,
         'current_loads': current_loads,
+        'unassigned_enrollments': unassigned_enrollments,
+        'unassigned_enrollment_count': len(unassigned_enrollments),
+        'unassigned_student_count': len(unassigned_student_ids),
         'manual_selection_enabled': manual_selection_enabled,
         'generated_at': timezone.localtime(),
     }
@@ -3735,14 +3786,21 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         page_obj = self._get_page_obj(payload['student_rows'])
         base_query = urlencode({'course_type': payload['course_type'], 'stage': payload['stage']})
         print_url = f"{reverse('quick:manual_sorting_print')}?{base_query}" if payload['courses'] else ''
+        unassigned_print_url = (
+            f"{reverse('quick:manual_sorting_unassigned_print')}?{base_query}"
+            if payload['unassigned_enrollments'] else ''
+        )
         student_list_url = reverse('quick:student_list')
+        all_sessions_url = reverse('quick:all_sessions_manage')
         return {
             **payload,
             'page_obj': page_obj,
             'student_rows_page': list(page_obj.object_list),
             'base_query': base_query,
             'print_url': print_url,
+            'unassigned_print_url': unassigned_print_url,
             'student_list_url': student_list_url,
+            'all_sessions_url': all_sessions_url,
             'total_students': len(payload['student_rows']),
             'total_courses': len(payload['course_columns']),
             'students_on_page': len(page_obj.object_list),
@@ -3914,6 +3972,24 @@ class QuickManualSortingPrintView(LoginRequiredMixin, TemplateView):
             'student_rows_all': payload['student_rows'],
             'total_students': len(payload['student_rows']),
             'total_courses': len(payload['course_columns']),
+        })
+        return context
+
+
+class QuickManualSortingUnassignedPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_manual_sorting_unassigned_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        payload = _build_quick_manual_sorting_payload(
+            course_type=self.request.GET.get('course_type') or 'INTENSIVE',
+            stage=self.request.GET.get('stage') or 'NON_NINTH',
+        )
+        context.update({
+            **payload,
+            'unassigned_rows': payload['unassigned_enrollments'],
+            'total_unassigned_students': payload['unassigned_student_count'],
+            'total_unassigned_enrollments': payload['unassigned_enrollment_count'],
         })
         return context
 
@@ -4507,6 +4583,44 @@ def quick_course_session_assign_students(request, session_id):
 
 @login_required
 @require_POST
+def quick_course_session_unassign_student(request, session_id, enrollment_id):
+    session = get_object_or_404(
+        QuickCourseSession.objects.select_related('course'),
+        pk=session_id,
+        is_active=True,
+    )
+    assignment = get_object_or_404(
+        QuickCourseSessionEnrollment.objects.select_related('enrollment__student'),
+        session_id=session.id,
+        enrollment_id=enrollment_id,
+    )
+    redirect_url = request.POST.get('next') or reverse('quick:course_session_students', kwargs={'session_id': session.id})
+    if not redirect_url.startswith('/'):
+        redirect_url = reverse('quick:course_session_students', kwargs={'session_id': session.id})
+
+    if session.attendance_records.filter(enrollment_id=assignment.enrollment_id).exists():
+        messages.error(
+            request,
+            f'لا يمكن إزالة {assignment.enrollment.student.full_name} من {session.title} لأن لديه حضورًا مسجلًا داخل هذه الفترة.',
+        )
+        return redirect(redirect_url)
+
+    with transaction.atomic():
+        if _quick_manual_selection_table_exists():
+            QuickManualSortingSelection.objects.filter(
+                enrollment_id=assignment.enrollment_id,
+                session_id=session.id,
+            ).delete()
+        student_name = assignment.enrollment.student.full_name
+        session_title = session.title
+        assignment.delete()
+
+    messages.success(request, f'تمت إزالة {student_name} من {session_title}.')
+    return redirect(redirect_url)
+
+
+@login_required
+@require_POST
 def quick_course_transfer_students(request, course_id):
     course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
     form = QuickSessionTransferForm(request.POST, course=course)
@@ -4564,15 +4678,163 @@ class QuickCourseSessionStudentsView(LoginRequiredMixin, TemplateView):
             session.session_enrollments.select_related('enrollment__student')
             .order_by('enrollment__student__full_name')
         )
+        attendance_enrollment_ids = set(
+            session.attendance_records.values_list('enrollment_id', flat=True)
+        )
         assign_form = QuickSessionAssignStudentsForm(session=session)
         context.update({
             'session': session,
             'course': session.course,
             'assignments': assignments,
+            'assignment_rows': [
+                {
+                    'assignment': assignment,
+                    'has_attendance': assignment.enrollment_id in attendance_enrollment_ids,
+                }
+                for assignment in assignments
+            ],
             'assign_form': assign_form,
             'assigned_count': len(assignments),
             'available_enrollment_count': assign_form.fields['enrollment_ids'].queryset.count(),
+            'can_manage_assignment_changes': (
+                self.request.user.is_superuser
+                or 'course_accounting_edit' in getattr(self.request, 'employee_permissions', set())
+            ),
+            'students_print_url': reverse('quick:course_session_students_print', kwargs={'session_id': session.id}),
             'today': timezone.localdate(),
+        })
+        return context
+
+
+class QuickCourseSessionStudentsPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_session_students_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session = get_object_or_404(
+            QuickCourseSession.objects.select_related('course', 'course__academic_year', 'room'),
+            pk=self.kwargs['session_id'],
+        )
+        assignments = list(
+            session.session_enrollments.select_related('enrollment__student')
+            .order_by('enrollment__student__full_name')
+        )
+        attendance_enrollment_ids = set(
+            session.attendance_records.values_list('enrollment_id', flat=True)
+        )
+        context.update({
+            'session': session,
+            'course': session.course,
+            'assignments': assignments,
+            'assignment_rows': [
+                {
+                    'assignment': assignment,
+                    'has_attendance': assignment.enrollment_id in attendance_enrollment_ids,
+                }
+                for assignment in assignments
+            ],
+            'assigned_count': len(assignments),
+            'generated_at': timezone.localtime(),
+        })
+        return context
+
+
+class QuickAllSessionsManageView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_all_sessions_manage.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+        search_query = (self.request.GET.get('q') or '').strip()
+        status = (self.request.GET.get('status') or 'ALL').upper()
+        course_type = _resolve_quick_course_type_value(self.request.GET.get('course_type') or 'ALL', allow_all=True)
+
+        sessions = QuickCourseSession.objects.filter(is_active=True).select_related(
+            'course',
+            'course__academic_year',
+            'room',
+        )
+        if course_type != 'ALL':
+            sessions = sessions.filter(course__course_type=course_type)
+        if search_query:
+            sessions = sessions.filter(
+                Q(title__icontains=search_query)
+                | Q(course__name__icontains=search_query)
+                | Q(room_name__icontains=search_query)
+                | Q(room__name__icontains=search_query)
+            )
+        sessions = sessions.prefetch_related(
+            Prefetch(
+                'session_enrollments',
+                queryset=QuickCourseSessionEnrollment.objects.select_related('enrollment__student').order_by('enrollment__student__full_name'),
+                to_attr='prefetched_assignments',
+            ),
+            Prefetch(
+                'attendance_records',
+                queryset=QuickCourseSessionAttendance.objects.only('id', 'session_id', 'enrollment_id', 'attendance_date'),
+                to_attr='prefetched_attendance_records',
+            ),
+        ).order_by('start_date', 'start_time', 'course__name', 'title')
+
+        status_options = [
+            {'value': 'ALL', 'label': 'كل الفترات'},
+            {'value': 'LIVE', 'label': 'الجارية'},
+            {'value': 'UPCOMING', 'label': 'القادمة'},
+            {'value': 'FINISHED', 'label': 'المنتهية'},
+        ]
+        session_rows = []
+        total_assigned_students = 0
+        for session in sessions:
+            if session.start_date > today:
+                lifecycle = 'UPCOMING'
+                lifecycle_label = 'قادمة'
+            elif today > session.end_date:
+                lifecycle = 'FINISHED'
+                lifecycle_label = 'منتهية'
+            else:
+                lifecycle = 'LIVE'
+                lifecycle_label = 'جارية'
+            if status != 'ALL' and lifecycle != status:
+                continue
+
+            assignment_objects = list(getattr(session, 'prefetched_assignments', []))
+            attendance_records = list(getattr(session, 'prefetched_attendance_records', []))
+            attendance_enrollment_ids = {record.enrollment_id for record in attendance_records}
+            assigned_count = len(assignment_objects)
+            total_assigned_students += assigned_count
+            session_rows.append({
+                'session': session,
+                'assigned_count': assigned_count,
+                'attendance_count': len(attendance_enrollment_ids),
+                'lifecycle': lifecycle,
+                'lifecycle_label': lifecycle_label,
+                'students_url': reverse('quick:course_session_students', kwargs={'session_id': session.id}),
+                'students_print_url': reverse('quick:course_session_students_print', kwargs={'session_id': session.id}),
+                'attendance_url': reverse('quick:course_session_attendance', kwargs={'session_id': session.id}),
+                'course_manage_url': reverse('quick:course_sessions_manage', kwargs={'course_id': session.course_id}),
+                'assignment_rows': [
+                    {
+                        'assignment': assignment,
+                        'has_attendance': assignment.enrollment_id in attendance_enrollment_ids,
+                    }
+                    for assignment in assignment_objects
+                ],
+            })
+
+        context.update({
+            'today': today,
+            'search_query': search_query,
+            'status': status,
+            'status_options': status_options,
+            'course_type': course_type,
+            'course_type_options': _get_course_type_options(),
+            'session_rows': session_rows,
+            'sessions_count': len(session_rows),
+            'total_assigned_students': total_assigned_students,
+            'can_manage_assignment_changes': (
+                self.request.user.is_superuser
+                or 'course_accounting_edit' in getattr(self.request, 'employee_permissions', set())
+            ),
         })
         return context
 
@@ -4586,18 +4848,43 @@ class QuickCourseAttendanceDashboardView(LoginRequiredMixin, TemplateView):
         sessions = (
             QuickCourseSession.objects.filter(is_active=True)
             .select_related('course', 'course__academic_year')
-            .prefetch_related('session_enrollments__enrollment__student')
+            .prefetch_related(
+                Prefetch(
+                    'session_enrollments',
+                    queryset=QuickCourseSessionEnrollment.objects.select_related('enrollment__student').order_by('enrollment__student__full_name'),
+                    to_attr='prefetched_assignments',
+                ),
+                Prefetch(
+                    'attendance_records',
+                    queryset=QuickCourseSessionAttendance.objects.only('id', 'session_id', 'enrollment_id', 'attendance_date'),
+                    to_attr='prefetched_attendance_records',
+                ),
+            )
             .order_by('start_date', 'start_time', 'course__name', 'title')
         )
         live_sessions = []
         upcoming_sessions = []
         archived_sessions = []
+        can_manage_assignment_changes = (
+            self.request.user.is_superuser
+            or 'course_accounting_edit' in getattr(self.request, 'employee_permissions', set())
+        )
         for session in sessions:
+            assignment_objects = list(getattr(session, 'prefetched_assignments', []))
+            attendance_records = list(getattr(session, 'prefetched_attendance_records', []))
+            attendance_enrollment_ids = {record.enrollment_id for record in attendance_records}
             row = {
                 'session': session,
-                'assigned_count': session.enrolled_count,
-                'attendance_taken_today': session.attendance_records.filter(attendance_date=today).count(),
+                'assigned_count': len(assignment_objects),
+                'attendance_taken_today': sum(1 for record in attendance_records if record.attendance_date == today),
                 'current_day_number': session.get_day_number_for_date(min(today, session.end_date)) if today >= session.start_date else None,
+                'assignment_rows': [
+                    {
+                        'assignment': assignment,
+                        'has_attendance': assignment.enrollment_id in attendance_enrollment_ids,
+                    }
+                    for assignment in assignment_objects
+                ],
             }
             if session.start_date <= today <= session.end_date:
                 live_sessions.append(row)
@@ -4613,6 +4900,8 @@ class QuickCourseAttendanceDashboardView(LoginRequiredMixin, TemplateView):
             'live_sessions': live_sessions,
             'upcoming_sessions': upcoming_sessions,
             'archived_sessions': archived_sessions[:12],
+            'can_manage_assignment_changes': can_manage_assignment_changes,
+            'all_sessions_url': reverse('quick:all_sessions_manage'),
         })
         return context
 

@@ -1,273 +1,54 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>طباعة فرز الطلاب شبه اليدوي</title>
+    <title>طباعة الفرز شبه اليدوي</title>
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 5mm;
-        }
-        body {
-            margin: 0;
-            font-family: "Cairo", "Segoe UI", sans-serif;
-            background: #f3f7fb;
-            color: #10243d;
-        }
-        .print-shell {
-            padding: 6px;
-        }
-        .toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 8px;
-        }
-        .toolbar__title {
-            display: grid;
-            gap: 6px;
-        }
-        .toolbar__eyebrow {
-            color: #0f766e;
-            font-weight: 800;
-            letter-spacing: .04em;
-        }
-        .toolbar__meta {
-            color: #667085;
-            font-size: 14px;
-        }
-        .toolbar__actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .btn {
-            border: 0;
-            border-radius: 999px;
-            padding: 10px 18px;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        .btn-primary {
-            background: #10243d;
-            color: #fff;
-        }
-        .btn-secondary {
-            background: #e7eef6;
-            color: #10243d;
-        }
-        .sheet {
-            background: #fff;
-            border-radius: 24px;
-            box-shadow: 0 22px 55px rgba(15, 23, 42, .12);
-            overflow: hidden;
-        }
-        .hero {
-            padding: 12px 14px;
-            color: #fff;
-            background:
-                radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 30%),
-                linear-gradient(135deg, #0f172a, #17324e 54%, #0f766e);
-        }
-        .hero h1 {
-            margin: 0 0 8px;
-            font-size: 32px;
-        }
-        .hero p {
-            margin: 0;
-            line-height: 1.9;
-            color: rgba(255,255,255,.88);
-            max-width: 900px;
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 8px;
-            padding: 10px 12px 0;
-        }
-        .stat {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 18px;
-            padding: 8px 10px;
-        }
-        .stat__label {
-            display: block;
-            color: #667085;
-            margin-bottom: 6px;
-        }
-        .stat__value {
-            font-size: 24px;
-            font-weight: 800;
-            color: #10243d;
-        }
-        .table-wrap {
-            padding: 8px 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            font-size: 9px;
-        }
-        thead {
-            display: table-header-group;
-        }
-        tfoot {
-            display: table-footer-group;
-        }
-        th, td {
-            border: 1px solid #d0d8e3;
-            padding: 2px 1px;
-            vertical-align: middle;
-            text-align: center;
-            word-wrap: break-word;
-        }
-        th {
-            background: #10243d;
-            color: #fff;
-            font-weight: 800;
-        }
-        th:first-child {
-            width: 24px;
-            background: #d7e3f1;
-            color: #16324f;
-        }
-        th:nth-child(2) {
-            width: 62px;
-            background: #0f766e;
-        }
-        td:first-child {
-            background: #eef4fb;
-            text-align: center;
-            font-weight: 800;
-            font-size: 7px;
-        }
-        td:nth-child(2) {
-            background: #f8fafc;
-            text-align: right;
-            font-weight: 700;
-            white-space: normal;
-            overflow-wrap: anywhere;
-        }
-        .course-title {
-            display: block;
-            font-size: 8px;
-            margin-bottom: 1px;
-            line-height: 1;
-        }
-        .course-meta {
-            color: rgba(255,255,255,.84);
-            font-size: 7px;
-            line-height: 1;
-        }
-        .student-name {
-            display: block;
-            color: #10243d;
-            margin-bottom: 1px;
-            font-size: 7px;
-            line-height: 1;
-            word-break: break-word;
-        }
-        .student-meta {
-            color: #667085;
-            font-size: 5.5px;
-            line-height: 1;
-            display: block;
-            margin-bottom: 1px;
-        }
-        .student-creator {
-            color: #0f766e;
-            font-size: 5.5px;
-            line-height: 1;
-            font-weight: 700;
-            display: block;
-        }
-        .cell-state {
-            display: inline-block;
-            border-radius: 6px;
-            width: 12px;
-            height: 12px;
-            min-width: 12px;
-            min-height: 12px;
-            line-height: 9px;
-            padding: 1px;
-            font-weight: 800;
-            font-size: 5px;
-            margin-bottom: 1px;
-            overflow: hidden;
-        }
-        .cell-state--ok {
-            background: #e8fff5;
-            color: #067647;
-        }
-        .cell-state--bad {
-            background: #fee4e2;
-            color: #b42318;
-        }
-        .cell-state--muted {
-            background: transparent;
-            color: transparent;
-            border: 1.5px solid #cbd5e1;
-        }
-        .period-badge {
-            display: inline-block;
-            border-radius: 6px;
-            background: #fff4d6;
-            color: #a16207;
-            width: 12px;
-            height: 12px;
-            min-width: 12px;
-            min-height: 12px;
-            line-height: 9px;
-            padding: 1px;
-            font-size: 5px;
-            font-weight: 800;
-        }
-        .footer {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            flex-wrap: wrap;
-            padding: 0 10px 10px;
-            color: #667085;
-            font-size: 12px;
-        }
+        @page { size: A4 landscape; margin: 5mm; }
+        body { margin: 0; font-family: "Cairo", "Segoe UI", sans-serif; background: #f3f7fb; color: #10243d; }
+        .print-shell { padding: 8px; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+        .toolbar__title { display: grid; gap: 6px; }
+        .toolbar__eyebrow { color: #0f766e; font-weight: 800; letter-spacing: .04em; }
+        .toolbar__meta { color: #667085; font-size: 14px; }
+        .toolbar__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700; cursor: pointer; text-decoration: none; }
+        .btn-primary { background: #10243d; color: #fff; }
+        .btn-secondary { background: #e7eef6; color: #10243d; }
+        .sheet { background: #fff; border-radius: 24px; box-shadow: 0 22px 55px rgba(15, 23, 42, .12); overflow: hidden; }
+        .hero { padding: 12px 14px; color: #fff; background: radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 30%), linear-gradient(135deg, #0f172a, #17324e 54%, #0f766e); }
+        .hero h1 { margin: 0 0 8px; font-size: 30px; }
+        .hero p { margin: 0; line-height: 1.9; color: rgba(255,255,255,.88); max-width: 900px; }
+        .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 10px 12px 0; }
+        .stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 8px 10px; }
+        .stat__label { display: block; color: #667085; margin-bottom: 6px; }
+        .stat__value { font-size: 22px; font-weight: 800; color: #10243d; }
+        .table-wrap { padding: 8px 10px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9px; }
+        thead { display: table-header-group; }
+        th, td { border: 1px solid #d0d8e3; padding: 2px 1px; vertical-align: middle; text-align: center; word-wrap: break-word; }
+        th { background: #10243d; color: #fff; font-weight: 800; }
+        th:first-child { width: 24px; background: #d7e3f1; color: #16324f; }
+        th:nth-child(2) { width: 72px; background: #0f766e; }
+        td:first-child { background: #eef4fb; text-align: center; font-weight: 800; font-size: 7px; }
+        td:nth-child(2) { background: #f8fafc; text-align: right; font-weight: 700; white-space: normal; overflow-wrap: anywhere; }
+        .course-title { display: block; font-size: 8px; margin-bottom: 1px; line-height: 1; }
+        .course-meta { color: rgba(255,255,255,.84); font-size: 7px; line-height: 1; }
+        .student-name { display: block; color: #10243d; margin-bottom: 1px; font-size: 7px; line-height: 1; word-break: break-word; }
+        .student-meta { color: #667085; font-size: 5.5px; line-height: 1; display: block; margin-bottom: 1px; }
+        .student-creator { color: #0f766e; font-size: 5.5px; line-height: 1; font-weight: 700; display: block; }
+        .cell-state { display: inline-block; border-radius: 6px; width: 12px; height: 12px; min-width: 12px; min-height: 12px; line-height: 9px; padding: 1px; font-weight: 800; font-size: 5px; margin-bottom: 1px; overflow: hidden; }
+        .cell-state--ok { background: #e8fff5; color: #067647; }
+        .cell-state--bad { background: #fee4e2; color: #b42318; }
+        .cell-state--muted { background: transparent; color: transparent; border: 1.5px solid #cbd5e1; }
+        .period-badge { display: inline-block; border-radius: 6px; background: #fff4d6; color: #a16207; width: 12px; height: 12px; min-width: 12px; min-height: 12px; line-height: 9px; padding: 1px; font-size: 5px; font-weight: 800; }
+        .footer { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 0 10px 10px; color: #667085; font-size: 12px; }
         @media print {
-            body {
-                background: #fff;
-            }
-            .print-shell {
-                padding: 0;
-            }
-            .toolbar {
-                display: none;
-            }
-            .sheet {
-                box-shadow: none;
-                border-radius: 0;
-            }
-            .hero {
-                padding: 8px 10px;
-            }
-            .stats {
-                padding: 6px 8px 0;
-                gap: 6px;
-            }
-            .table-wrap {
-                padding: 6px 8px;
-            }
-            .footer {
-                padding: 0 8px 6px;
-            }
-            tr, td, th {
-                page-break-inside: avoid;
-            }
+            body { background: #fff; }
+            .print-shell { padding: 0; }
+            .toolbar { display: none; }
+            .sheet { box-shadow: none; border-radius: 0; }
         }
     </style>
 </head>
@@ -276,42 +57,25 @@
         <div class="toolbar">
             <div class="toolbar__title">
                 <span class="toolbar__eyebrow">QUICK MANUAL SORTING</span>
-                <strong>كشف توزيع الطلاب على الشعب</strong>
-                <span class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }} | {{ course_type_label }}</span>
+                <strong>كشف توزيع الطلاب على الفترات</strong>
+                <span class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }} | {{ course_type_label }} | {{ stage_label }}</span>
             </div>
             <div class="toolbar__actions">
                 <a href="{% url 'quick:manual_sorting' %}?course_type={{ course_type }}&stage={{ stage }}" class="btn btn-secondary">العودة للصفحة</a>
                 <button type="button" class="btn btn-primary" onclick="window.print()">طباعة</button>
             </div>
         </div>
-
         <div class="sheet">
             <section class="hero">
-                <h1>كشف توزيع الطلاب على الشعب</h1>
-                <p>
-                    كشف مخصص لمراجعة توزيع الطلاب على الشعب، مع تكرار ترويسة المواد في كل صفحة عند الطباعة.
-                </p>
+                <h1>كشف توزيع الطلاب على الفترات</h1>
+                <p>نسخة مخصصة للطباعة الكاملة لجدول الفرز شبه اليدوي، مع إظهار كل الطلاب والفترات المعروضة ضمن نفس الفلتر.</p>
             </section>
-
             <section class="stats">
-                <div class="stat">
-                    <span class="stat__label">نوع الدورات</span>
-                    <strong class="stat__value">{{ course_type_label }}</strong>
-                </div>
-                <div class="stat">
-                    <span class="stat__label">المرحلة</span>
-                    <strong class="stat__value">{{ stage_label }}</strong>
-                </div>
-                <div class="stat">
-                    <span class="stat__label">عدد الطلاب</span>
-                    <strong class="stat__value">{{ total_students }}</strong>
-                </div>
-                <div class="stat">
-                    <span class="stat__label">وقت التوليد</span>
-                    <strong class="stat__value" style="font-size:18px;">{{ generated_at|date:"Y-m-d h:i A" }}</strong>
-                </div>
+                <div class="stat"><span class="stat__label">نوع الدورات</span><strong class="stat__value">{{ course_type_label }}</strong></div>
+                <div class="stat"><span class="stat__label">المرحلة</span><strong class="stat__value">{{ stage_label }}</strong></div>
+                <div class="stat"><span class="stat__label">عدد الطلاب</span><strong class="stat__value">{{ total_students }}</strong></div>
+                <div class="stat"><span class="stat__label">عدد الدورات</span><strong class="stat__value">{{ total_courses }}</strong></div>
             </section>
-
             <section class="table-wrap">
                 {% if student_rows_all and course_columns %}
                 <table>
@@ -320,10 +84,7 @@
                             <th>#</th>
                             <th>الطالب</th>
                             {% for column in course_columns %}
-                            <th>
-                                <span class="course-title">{{ column.short_teacher_name }}</span>
-                                <span class="course-meta">{{ column.subject_name }}</span>
-                            </th>
+                            <th><span class="course-title">{{ column.short_teacher_name }}</span><span class="course-meta">{{ column.subject_name }}</span></th>
                             {% endfor %}
                         </tr>
                     </thead>
@@ -360,10 +121,9 @@
                 <div style="padding:32px 0;text-align:center;color:#667085;">لا توجد بيانات قابلة للطباعة ضمن الفلتر الحالي.</div>
                 {% endif %}
             </section>
-
             <div class="footer">
                 <span>معهد اليمان</span>
-                <span>الجدول مهيأ للطباعة الأفقية مع تكرار ترويسة الدورات في كل صفحة</span>
+                <span>تم توليد هذه النسخة بتاريخ {{ generated_at|date:"Y-m-d h:i A" }}</span>
             </div>
         </div>
     </div>

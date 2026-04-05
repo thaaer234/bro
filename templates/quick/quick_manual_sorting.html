@@ -1,339 +1,66 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}فرز الطلاب شبه اليدوي{% endblock %}
+{% block title %}الفرز شبه اليدوي{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
 <style>
 body.page-manual_sorting .sidebar,
 body.page-manual_sorting .mobile-menu-toggle,
-body.page-manual_sorting .page-toolbar {
-    display: none !important;
-}
-body.page-manual_sorting .page-shell {
-    max-width: none !important;
-    width: 100% !important;
-}
-body.page-manual_sorting .content-stack {
-    gap: .8rem;
-}
-body.page-manual_sorting .main-content {
-    margin-right: 0 !important;
-    padding-left: .45rem !important;
-    padding-right: .45rem !important;
-}
-.manual-sort-shell {
-    --ms-ink: #16324f;
-    --ms-accent: #0f766e;
-    --ms-accent-soft: #dff7f1;
-    --ms-warn: #b42318;
-    --ms-warn-soft: #fee4e2;
-    --ms-gold: #a16207;
-    --ms-gold-soft: #fff4d6;
-}
-.manual-sort-hero {
-    background:
-        radial-gradient(circle at top right, rgba(15, 118, 110, .16), transparent 34%),
-        linear-gradient(135deg, #f8fbff, #eef5ff 52%, #eefaf7);
-    color: #16324f;
-    border: 0;
-    border-radius: 28px;
-    overflow: hidden;
-}
-.manual-sort-hero .card-body {
-    padding: 2rem;
-}
-.manual-sort-title {
-    font-size: 2rem;
-    font-weight: 800;
-    margin: 0 0 .75rem;
-    color: #16324f;
-}
-.manual-sort-subtitle {
-    max-width: 900px;
-    line-height: 1.9;
-    color: #51627c;
-    margin: 0;
-}
-.manual-sort-toolbar {
-    display: flex;
-    gap: .75rem;
-    flex-wrap: wrap;
-    align-items: center;
-}
-.manual-sort-toolbar .btn {
-    color: #16324f !important;
-    border-color: #d6dfeb !important;
-    background: #ffffff !important;
-}
-.manual-sort-toolbar .btn i {
-    color: #16324f !important;
-}
-.manual-sort-toolbar .btn-warning {
-    background: #f5b942 !important;
-    border-color: #e4aa35 !important;
-    color: #10243d !important;
-}
-.manual-sort-toolbar .btn-warning i {
-    color: #10243d !important;
-}
-.manual-sort-toolbar .btn-outline-light {
-    background: #ffffff !important;
-    border-color: #d6dfeb !important;
-    color: #16324f !important;
-}
-.manual-sort-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    margin: 1.5rem 0;
-}
-.manual-sort-stat {
-    background: #fff;
-    border-radius: 20px;
-    padding: 1rem 1.1rem;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, .08);
-    border: 1px solid #e6edf5;
-}
-.manual-sort-stat__label {
-    display: block;
-    color: #4f627b;
-    margin-bottom: .4rem;
-}
-.manual-sort-stat__value {
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: var(--ms-ink);
-}
-.manual-sort-panel .text-muted,
-.manual-sort-pagination .text-muted {
-    color: #4f627b !important;
-}
-.manual-sort-panel .btn-outline-secondary,
-.manual-sort-panel .btn-outline-primary {
-    background: #fff;
-    border-color: #d6dfeb;
-    color: #16324f;
-}
-.manual-sort-panel .btn-outline-secondary i,
-.manual-sort-panel .btn-outline-primary i {
-    color: inherit;
-}
-.manual-sort-panel {
-    border: 0;
-    border-radius: 24px;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, .08);
-}
-.manual-sort-panel .card-body {
-    padding: 1rem;
-}
-.manual-sort-filter {
-    display: flex;
-    gap: 1rem;
-    align-items: end;
-    flex-wrap: wrap;
-}
-.manual-sort-filter .form-select {
-    min-width: 180px;
-    color: #1f3351;
-    border-color: #d6dfeb;
-}
-.manual-sort-filter .form-label {
-    color: #176f66;
-}
-.manual-sort-table-wrap {
-    overflow-x: auto;
-    overflow-y: hidden;
-    border-radius: 22px;
-    border: 1px solid rgba(15, 23, 42, .08);
-    background: #fff;
-    width: 100%;
-    max-width: 100%;
-}
-.manual-sort-table {
-    width: 100%;
-    min-width: 0;
-    margin: 0;
-    table-layout: fixed;
-    font-size: .84rem;
-}
-.manual-sort-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    background: linear-gradient(180deg, #17324e, #0f172a);
-    color: #fff;
-    border: 0;
-    min-width: 64px;
-    text-align: center;
-    vertical-align: top;
-    padding: .45rem .2rem;
-}
-.manual-sort-table thead th:first-child,
-.manual-sort-table tbody td:first-child {
-    width: 30px;
-    min-width: 30px;
-    max-width: 30px;
-    text-align: center;
-    font-size: .58rem;
-    font-weight: 800;
-}
-.manual-sort-table thead th:first-child,
-.manual-sort-table thead th:nth-child(2),
-.manual-sort-table tbody td:nth-child(2) {
-    position: sticky;
-    right: 0;
-    z-index: 4;
-    width: 84px;
-    min-width: 84px;
-    max-width: 84px;
-}
-.manual-sort-table thead th:first-child {
-    background: linear-gradient(180deg, #d7e3f1, #c9d8ea);
-    color: #16324f;
-}
-.manual-sort-table thead th:nth-child(2) {
-    background: linear-gradient(180deg, #0f766e, #0b5f59);
-}
-.manual-sort-table tbody td:first-child {
-    background: #eef4fb;
-}
-.manual-sort-table tbody td:nth-child(2) {
-    background: #f8fafc;
-}
-.manual-sort-table td {
-    border-color: rgba(15, 23, 42, .08);
-    vertical-align: top;
-    padding: .18rem .12rem;
-}
-.course-head {
-    display: grid;
-    gap: .08rem;
-}
-.course-head__title {
-    font-size: .72rem;
-    font-weight: 800;
-    line-height: 1.05;
-}
-.course-head__meta {
-    color: #ffd47a;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, .22);
-    font-size: .57rem;
-    line-height: 1.05;
-    font-weight: 700;
-}
-.student-card {
-    display: grid;
-    gap: .06rem;
-}
-.student-card__name {
-    font-weight: 800;
-    color: var(--ms-ink);
-    line-height: 1.05;
-    font-size: .66rem;
-    word-break: break-word;
-}
-.student-card__meta {
-    color: #667085;
-    font-size: .56rem;
-    line-height: 1.05;
-}
-.student-card__creator {
-    color: #0f766e;
-    font-size: .54rem;
-    line-height: 1.05;
-    font-weight: 700;
-    word-break: break-word;
-}
-.cell-card {
-    display: grid;
-    justify-items: center;
-    gap: .1rem;
-}
-.cell-status {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    min-height: 16px;
-    padding: 0;
-    border-radius: 4px;
-    line-height: 16px;
-    font-size: .48rem;
-    font-weight: 700;
-    overflow: hidden;
-}
-.cell-status--ok {
-    background: #e8fff5;
-    color: #067647;
-}
-.cell-status--bad {
-    background: var(--ms-warn-soft);
-    color: var(--ms-warn);
-}
-.cell-status--muted {
-    background: transparent;
-    color: transparent;
-    border: 1.5px solid #cbd5e1;
-}
-.cell-select {
-    min-width: 42px;
-    max-width: 42px;
-    width: 42px;
-    padding-inline: .1rem;
-    padding-top: .05rem;
-    padding-bottom: .05rem;
-    text-align: center;
-    font-size: .62rem;
-    line-height: 1;
-}
-.cell-period {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    min-height: 16px;
-    padding: 0;
-    border-radius: 4px;
-    background: var(--ms-gold-soft);
-    color: var(--ms-gold);
-    line-height: 16px;
-    font-size: .48rem;
-    font-weight: 800;
-}
-.manual-sort-pagination {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-top: 1.25rem;
-}
-.manual-sort-empty {
-    padding: 3rem 1.5rem;
-    text-align: center;
-    color: #667085;
-}
+body.page-manual_sorting .page-toolbar { display: none !important; }
+body.page-manual_sorting .page-shell { max-width: none !important; width: 100% !important; }
+body.page-manual_sorting .content-stack { gap: .8rem; }
+body.page-manual_sorting .main-content { margin-right: 0 !important; padding-left: .45rem !important; padding-right: .45rem !important; }
+.manual-sort-shell { --ms-ink:#16324f; --ms-warn:#b42318; --ms-warn-soft:#fee4e2; --ms-gold:#a16207; --ms-gold-soft:#fff4d6; }
+.manual-sort-hero { background: radial-gradient(circle at top right, rgba(15,118,110,.16), transparent 34%), linear-gradient(135deg, #f8fbff, #eef5ff 52%, #eefaf7); color:#16324f; border:0; border-radius:28px; overflow:hidden; }
+.manual-sort-hero .card-body { padding:2rem; }
+.manual-sort-title { font-size:2rem; font-weight:800; margin:0 0 .75rem; color:#16324f; }
+.manual-sort-subtitle { max-width:900px; line-height:1.9; color:#51627c; margin:0; }
+.manual-sort-toolbar { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; }
+.manual-sort-toolbar .btn { color:#16324f !important; border-color:#d6dfeb !important; background:#fff !important; }
+.manual-sort-toolbar .btn i { color:#16324f !important; }
+.manual-sort-toolbar .btn-warning { background:#f5b942 !important; border-color:#e4aa35 !important; color:#10243d !important; }
+.manual-sort-toolbar .btn-warning i { color:#10243d !important; }
+.manual-sort-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; margin:1.5rem 0; }
+.manual-sort-stat { background:#fff; border-radius:20px; padding:1rem 1.1rem; box-shadow:0 18px 40px rgba(15,23,42,.08); border:1px solid #e6edf5; }
+.manual-sort-stat__label { display:block; color:#4f627b; margin-bottom:.4rem; }
+.manual-sort-stat__value { font-size:1.8rem; font-weight:800; color:var(--ms-ink); }
+.manual-sort-panel { border:0; border-radius:24px; box-shadow:0 18px 40px rgba(15,23,42,.08); }
+.manual-sort-panel .card-body { padding:1rem; }
+.manual-sort-filter { display:flex; gap:1rem; align-items:end; flex-wrap:wrap; }
+.manual-sort-filter .form-select { min-width:180px; color:#1f3351; border-color:#d6dfeb; }
+.manual-sort-filter .form-label { color:#176f66; }
+.manual-sort-table-wrap { overflow-x:auto; overflow-y:hidden; border-radius:22px; border:1px solid rgba(15,23,42,.08); background:#fff; }
+.manual-sort-table { width:100%; margin:0; table-layout:fixed; font-size:.84rem; }
+.manual-sort-table thead th { position:sticky; top:0; z-index:3; background:linear-gradient(180deg, #17324e, #0f172a); color:#fff; border:0; min-width:64px; text-align:center; vertical-align:top; padding:.45rem .2rem; }
+.manual-sort-table thead th:first-child, .manual-sort-table tbody td:first-child { width:30px; min-width:30px; max-width:30px; text-align:center; font-size:.58rem; font-weight:800; }
+.manual-sort-table thead th:first-child, .manual-sort-table thead th:nth-child(2), .manual-sort-table tbody td:nth-child(2) { position:sticky; right:0; z-index:4; width:84px; min-width:84px; max-width:84px; }
+.manual-sort-table thead th:first-child { background:linear-gradient(180deg, #d7e3f1, #c9d8ea); color:#16324f; }
+.manual-sort-table thead th:nth-child(2) { background:linear-gradient(180deg, #0f766e, #0b5f59); }
+.manual-sort-table tbody td:first-child { background:#eef4fb; }
+.manual-sort-table tbody td:nth-child(2) { background:#f8fafc; }
+.manual-sort-table td { border-color:rgba(15,23,42,.08); vertical-align:top; padding:.18rem .12rem; }
+.course-head { display:grid; gap:.08rem; }
+.course-head__title { font-size:.72rem; font-weight:800; line-height:1.05; }
+.course-head__meta { color:#ffd47a; text-shadow:0 1px 1px rgba(0,0,0,.22); font-size:.57rem; line-height:1.05; font-weight:700; }
+.student-card { display:grid; gap:.06rem; }
+.student-card__name { font-weight:800; color:var(--ms-ink); line-height:1.05; font-size:.66rem; word-break:break-word; }
+.student-card__meta { color:#667085; font-size:.56rem; line-height:1.05; }
+.student-card__creator { color:#0f766e; font-size:.54rem; line-height:1.05; font-weight:700; word-break:break-word; }
+.cell-card { display:grid; justify-items:center; gap:.1rem; }
+.cell-status { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; min-width:16px; min-height:16px; padding:0; border-radius:4px; line-height:16px; font-size:.48rem; font-weight:700; overflow:hidden; }
+.cell-status--ok { background:#e8fff5; color:#067647; }
+.cell-status--bad { background:var(--ms-warn-soft); color:var(--ms-warn); }
+.cell-status--muted { background:transparent; color:transparent; border:1.5px solid #cbd5e1; }
+.cell-select { min-width:42px; max-width:42px; width:42px; padding-inline:.1rem; padding-top:.05rem; padding-bottom:.05rem; text-align:center; font-size:.62rem; line-height:1; }
+.cell-period { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; min-width:16px; min-height:16px; padding:0; border-radius:4px; background:var(--ms-gold-soft); color:var(--ms-gold); line-height:16px; font-size:.48rem; font-weight:800; }
+.manual-sort-pagination { display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap; margin-top:1.25rem; }
+.manual-sort-empty { padding:3rem 1.5rem; text-align:center; color:#667085; }
 @media (max-width: 900px) {
-    .manual-sort-hero .card-body,
-    .manual-sort-panel .card-body {
-        padding: 1.25rem;
-    }
-    .manual-sort-title {
-        font-size: 1.5rem;
-    }
-    .manual-sort-table thead th:first-child,
-    .manual-sort-table thead th:nth-child(2),
-    .manual-sort-table tbody td:nth-child(2) {
-        width: 74px;
-        min-width: 74px;
-        max-width: 74px;
-    }
+    .manual-sort-hero .card-body, .manual-sort-panel .card-body { padding:1.25rem; }
+    .manual-sort-title { font-size:1.5rem; }
+    .manual-sort-table thead th:first-child, .manual-sort-table thead th:nth-child(2), .manual-sort-table tbody td:nth-child(2) { width:74px; min-width:74px; max-width:74px; }
 }
 </style>
 {% endblock %}
@@ -343,45 +70,25 @@ body.page-manual_sorting .main-content {
     <div class="card manual-sort-hero mb-4">
         <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-4">
             <div>
-                <h2 class="manual-sort-title">فرز الطلاب بشكل شبه يدوي</h2>
-                <p class="manual-sort-subtitle">فرز سريع مضغوط حسب نوع الدورة والمرحلة، مع حفظ جماعي كل 30 طالب.</p>
+                <h2 class="manual-sort-title">الفرز شبه اليدوي</h2>
+                <p class="manual-sort-subtitle">شاشة سريعة لمراجعة توزيع الطلاب على الفترات، مع تقرير مستقل للطلاب غير المنزلين وروابط مباشرة إلى شاشة كل الفترات.</p>
             </div>
             <div class="manual-sort-toolbar">
-                <a href="{{ student_list_url }}" class="btn btn-outline-light">
-                    <i class="fas fa-arrow-right me-1"></i>
-                    عودة
-                </a>
-                <a href="{% url 'quick:student_list' %}" class="btn btn-light">
-                    <i class="fas fa-users me-1"></i>
-                    الطلاب السريعون
-                </a>
-                {% if print_url %}
-                <a href="{{ print_url }}" class="btn btn-warning">
-                    <i class="fas fa-print me-1"></i>
-                    نسخة الطباعة
-                </a>
-                {% endif %}
+                <a href="{{ student_list_url }}" class="btn btn-outline-light"><i class="fas fa-arrow-right me-1"></i>العودة</a>
+                <a href="{% url 'quick:student_list' %}" class="btn btn-light"><i class="fas fa-users me-1"></i>الطلاب السريعون</a>
+                <a href="{{ all_sessions_url }}" class="btn btn-light"><i class="fas fa-calendar-days me-1"></i>كل الفترات</a>
+                {% if print_url %}<a href="{{ print_url }}" class="btn btn-warning"><i class="fas fa-print me-1"></i>طباعة الجدول</a>{% endif %}
+                {% if unassigned_print_url %}<a href="{{ unassigned_print_url }}" class="btn btn-warning"><i class="fas fa-print me-1"></i>طباعة الغير منزلين</a>{% endif %}
             </div>
         </div>
     </div>
 
     <div class="manual-sort-stats">
-        <div class="manual-sort-stat">
-            <span class="manual-sort-stat__label">نوع الدورات</span>
-            <strong class="manual-sort-stat__value">{{ course_type_label }}</strong>
-        </div>
-        <div class="manual-sort-stat">
-            <span class="manual-sort-stat__label">عدد الدورات الظاهرة</span>
-            <strong class="manual-sort-stat__value">{{ total_courses }}</strong>
-        </div>
-        <div class="manual-sort-stat">
-            <span class="manual-sort-stat__label">عدد الطلاب الكلي</span>
-            <strong class="manual-sort-stat__value">{{ total_students }}</strong>
-        </div>
-        <div class="manual-sort-stat">
-            <span class="manual-sort-stat__label">طلاب هذه الصفحة</span>
-            <strong class="manual-sort-stat__value">{{ students_on_page }}</strong>
-        </div>
+        <div class="manual-sort-stat"><span class="manual-sort-stat__label">نوع الدورات</span><strong class="manual-sort-stat__value">{{ course_type_label }}</strong></div>
+        <div class="manual-sort-stat"><span class="manual-sort-stat__label">عدد الدورات الظاهرة</span><strong class="manual-sort-stat__value">{{ total_courses }}</strong></div>
+        <div class="manual-sort-stat"><span class="manual-sort-stat__label">عدد الطلاب الكلي</span><strong class="manual-sort-stat__value">{{ total_students }}</strong></div>
+        <div class="manual-sort-stat"><span class="manual-sort-stat__label">طلاب هذه الصفحة</span><strong class="manual-sort-stat__value">{{ students_on_page }}</strong></div>
+        <div class="manual-sort-stat"><span class="manual-sort-stat__label">الغير منزلين</span><strong class="manual-sort-stat__value">{{ unassigned_student_count }}</strong></div>
     </div>
 
     <div class="card manual-sort-panel mb-4">
@@ -403,10 +110,7 @@ body.page-manual_sorting .main-content {
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-filter me-1"></i>
-                    عرض الجدول
-                </button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>عرض الجدول</button>
             </form>
         </div>
     </div>
@@ -419,34 +123,18 @@ body.page-manual_sorting .main-content {
                 <input type="hidden" name="course_type" value="{{ course_type }}">
                 <input type="hidden" name="stage" value="{{ stage }}">
                 <input type="hidden" name="page" value="{{ page_obj.number }}">
-
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <div class="text-muted">
-                        الصفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }} | تم الترتيب حسب عدد الدورات المسجل بها كل طالب.
-                    </div>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-save me-1"></i>
-                        حفظ تعديلات هذه الصفحة
-                    </button>
+                    <div class="text-muted">الصفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}، والترتيب حسب عدد الدورات المسجل بها كل طالب.</div>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-save me-1"></i>حفظ تعديلات هذه الصفحة</button>
                 </div>
-
                 <div class="manual-sort-table-wrap">
                     <table class="table manual-sort-table align-middle">
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>
-                                    <div class="course-head">
-                                        <span class="course-head__title">الطالب</span>
-                                    </div>
-                                </th>
+                                <th><div class="course-head"><span class="course-head__title">الطالب</span></div></th>
                                 {% for column in course_columns %}
-                                <th>
-                                    <div class="course-head">
-                                        <span class="course-head__title">{{ column.short_teacher_name }}</span>
-                                        <span class="course-head__meta">{{ column.subject_name }}</span>
-                                    </div>
-                                </th>
+                                <th><div class="course-head"><span class="course-head__title">{{ column.short_teacher_name }}</span><span class="course-head__meta">{{ column.subject_name }}</span></div></th>
                                 {% endfor %}
                             </tr>
                         </thead>
@@ -465,33 +153,21 @@ body.page-manual_sorting .main-content {
                                 <td>
                                     {% if cell.is_enrolled %}
                                     <div class="cell-card">
-                                        <span class="cell-status cell-status--ok">
-                                            <i class="fas fa-check"></i>
-                                        </span>
+                                        <span class="cell-status cell-status--ok"><i class="fas fa-check"></i></span>
                                         {% if cell.has_sessions %}
                                         <select name="assignment_{{ cell.enrollment.id }}" class="form-select form-select-sm cell-select">
-                                            {% if cell.sessions|length > 1 %}
-                                            <option value=""></option>
-                                            {% endif %}
+                                            {% if cell.sessions|length > 1 %}<option value=""></option>{% endif %}
                                             {% for option in cell.sessions %}
-                                            <option value="{{ option.id }}" {% if option.id == cell.selected_session_id %}selected{% endif %}>
-                                                {{ option.period_number }}
-                                            </option>
+                                            <option value="{{ option.id }}" {% if option.id == cell.selected_session_id %}selected{% endif %}>{{ option.period_number }}</option>
                                             {% endfor %}
                                         </select>
-                                        {% if cell.selected_period_number %}
-                                        <span class="cell-period">
-                                            {{ cell.selected_period_number }}
-                                        </span>
-                                        {% endif %}
+                                        {% if cell.selected_period_number %}<span class="cell-period">{{ cell.selected_period_number }}</span>{% endif %}
                                         {% else %}
                                         <span class="cell-status cell-status--muted" aria-hidden="true"></span>
                                         {% endif %}
                                     </div>
                                     {% else %}
-                                    <span class="cell-status cell-status--bad">
-                                        <i class="fas fa-xmark"></i>
-                                    </span>
+                                    <span class="cell-status cell-status--bad"><i class="fas fa-xmark"></i></span>
                                     {% endif %}
                                 </td>
                                 {% endfor %}
@@ -500,33 +176,63 @@ body.page-manual_sorting .main-content {
                         </tbody>
                     </table>
                 </div>
-
                 <div class="manual-sort-pagination">
-                    <div class="text-muted">
-                        يعرض {{ page_obj.start_index }} - {{ page_obj.end_index }} من أصل {{ total_students }} طالب.
-                    </div>
+                    <div class="text-muted">يعرض {{ page_obj.start_index }} - {{ page_obj.end_index }} من أصل {{ total_students }} طالب.</div>
                     <div class="d-flex gap-2 flex-wrap">
-                        {% if page_obj.has_previous %}
-                        <a href="?course_type={{ course_type }}&stage={{ stage }}&page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary js-manual-page-link">
-                            <i class="fas fa-arrow-right me-1"></i>
-                            السابق
-                        </a>
-                        {% endif %}
-                        {% if page_obj.has_next %}
-                        <a href="?course_type={{ course_type }}&stage={{ stage }}&page={{ page_obj.next_page_number }}" class="btn btn-outline-primary js-manual-page-link">
-                            التالي
-                            <i class="fas fa-arrow-left ms-1"></i>
-                        </a>
-                        {% endif %}
+                        {% if page_obj.has_previous %}<a href="?course_type={{ course_type }}&stage={{ stage }}&page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary js-manual-page-link"><i class="fas fa-arrow-right me-1"></i>السابق</a>{% endif %}
+                        {% if page_obj.has_next %}<a href="?course_type={{ course_type }}&stage={{ stage }}&page={{ page_obj.next_page_number }}" class="btn btn-outline-primary js-manual-page-link">التالي<i class="fas fa-arrow-left ms-1"></i></a>{% endif %}
                     </div>
                 </div>
             </form>
             {% else %}
-            <div class="manual-sort-empty">
-                <i class="fas fa-table-columns fa-2x mb-3"></i>
-                <h4 class="mb-2">لا توجد بيانات مطابقة حالياً</h4>
-                <p class="mb-0">إما أنه لا توجد دورات بهذا النوع فيها تسجيلات فعالة، أو لا يوجد طلاب سريعون مرتبطون بها.</p>
+            <div class="manual-sort-empty"><i class="fas fa-table-columns fa-2x mb-3"></i><h4 class="mb-2">لا توجد بيانات مطابقة حاليًا</h4><p class="mb-0">إما لا توجد دورات بهذا الفلتر أو لا يوجد طلاب فعّالون مرتبطون بها.</p></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card manual-sort-panel mt-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <div>
+                    <h3 class="mb-1">تقرير الغير منزلين</h3>
+                    <div class="text-muted small">{{ unassigned_enrollment_count }} تسجيل غير مربوط على فترات فعالة.</div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="badge bg-warning text-dark fs-6">{{ unassigned_student_count }} طالب</span>
+                    {% if unassigned_print_url %}<a href="{{ unassigned_print_url }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-print me-1"></i>طباعة التقرير</a>{% endif %}
+                </div>
             </div>
+            {% if unassigned_enrollments %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>الطالب</th>
+                            <th>الهاتف</th>
+                            <th>الدورة</th>
+                            <th>سبب الظهور</th>
+                            <th>الفترات الفعالة</th>
+                            <th>تثبيت شبه يدوي</th>
+                            <th>الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in unassigned_enrollments %}
+                        <tr>
+                            <td><a href="{% url 'quick:student_profile' row.student.id %}" class="fw-bold text-decoration-none">{{ row.student.full_name }}</a></td>
+                            <td>{{ row.student.phone|default:"-" }}</td>
+                            <td>{{ row.course.name }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ row.issue_label }}</span>{% if row.current_session_title %}<div class="small text-muted mt-1">{{ row.current_session_title }}</div>{% endif %}</td>
+                            <td>{{ row.active_sessions_count }}</td>
+                            <td>{% if row.manual_selected_period_number %}<span class="badge bg-info text-dark">الفترة {{ row.manual_selected_period_number }}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                            <td><a href="{{ row.manage_url }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-calendar-days me-1"></i>إدارة الفترات</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="manual-sort-empty py-4"><i class="fas fa-circle-check fa-2x mb-3 text-success"></i><h4 class="mb-2">لا يوجد غير منزلين ضمن هذا الفلتر</h4><p class="mb-0">كل التسجيلات الفعالة مربوطة بفترات حاليًا.</p></div>
             {% endif %}
         </div>
     </div>
@@ -538,34 +244,22 @@ body.page-manual_sorting .main-content {
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('manual-sorting-form');
     if (!form) return;
-
     let isDirty = false;
     let isSubmitting = false;
-
     form.querySelectorAll('select').forEach(function (field) {
-        field.addEventListener('change', function () {
-            isDirty = true;
-        });
+        field.addEventListener('change', function () { isDirty = true; });
     });
-
-    form.addEventListener('submit', function () {
-        isDirty = false;
-        isSubmitting = true;
-    });
-
+    form.addEventListener('submit', function () { isDirty = false; isSubmitting = true; });
     window.addEventListener('beforeunload', function (event) {
         if (!isDirty || isSubmitting) return;
         event.preventDefault();
         event.returnValue = '';
     });
-
     document.querySelectorAll('.js-manual-page-link').forEach(function (link) {
         link.addEventListener('click', function (event) {
             if (!isDirty) return;
             const confirmed = window.confirm('يوجد تعديلات غير محفوظة. هل تريد الانتقال بدون حفظ؟');
-            if (!confirmed) {
-                event.preventDefault();
-            }
+            if (!confirmed) event.preventDefault();
         });
     });
 });

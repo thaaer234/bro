@@ -15,6 +15,9 @@
             <a href="{% url 'quick:course_detail' course.id %}" class="btn btn-outline-secondary">
                 <i class="fas fa-book-open"></i> ملف الدورة
             </a>
+            <a href="{{ students_print_url }}" class="btn btn-outline-primary">
+                <i class="fas fa-print"></i> طباعة الطلاب
+            </a>
             <a href="{% url 'quick:course_session_attendance' session.id %}" class="btn btn-success">
                 <i class="fas fa-user-check"></i> حضور هذه الجلسة
             </a>
@@ -76,36 +79,57 @@
                         <th>الطالب</th>
                         <th>الهاتف</th>
                         <th>تاريخ التسجيل</th>
+                        <th>حالة الربط</th>
                         <th>إجراءات سريعة</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for assignment in assignments %}
+                    {% for row in assignment_rows %}
                     <tr>
                         <td>
-                            <a href="{% url 'quick:student_profile' assignment.enrollment.student.id %}" class="fw-bold text-decoration-none">
-                                {{ assignment.enrollment.student.full_name }}
+                            <a href="{% url 'quick:student_profile' row.assignment.enrollment.student.id %}" class="fw-bold text-decoration-none">
+                                {{ row.assignment.enrollment.student.full_name }}
                             </a>
                         </td>
-                        <td>{{ assignment.enrollment.student.phone|default:"-" }}</td>
-                        <td>{{ assignment.enrollment.enrollment_date|date:"Y-m-d" }}</td>
+                        <td>{{ row.assignment.enrollment.student.phone|default:"-" }}</td>
+                        <td>{{ row.assignment.enrollment.enrollment_date|date:"Y-m-d" }}</td>
                         <td>
-                            <div class="btn-group" role="group">
-                                <a href="{% url 'quick:student_profile' assignment.enrollment.student.id %}" class="btn btn-sm btn-info" title="الملف">
+                            {% if row.has_attendance %}
+                            <span class="badge bg-warning text-dark">له حضور مسجل</span>
+                            {% else %}
+                            <span class="badge bg-success">قابل للإزالة</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{% url 'quick:student_profile' row.assignment.enrollment.student.id %}" class="btn btn-sm btn-info" title="الملف">
                                     <i class="fas fa-user"></i>
                                 </a>
-                                <a href="{% url 'quick:student_statement' assignment.enrollment.student.id %}" class="btn btn-sm btn-secondary" title="كشف الحساب">
+                                <a href="{% url 'quick:student_statement' row.assignment.enrollment.student.id %}" class="btn btn-sm btn-secondary" title="كشف الحساب">
                                     <i class="fas fa-file-invoice-dollar"></i>
                                 </a>
                                 <a href="{% url 'quick:course_session_attendance' session.id %}" class="btn btn-sm btn-success" title="الحضور">
                                     <i class="fas fa-user-check"></i>
                                 </a>
+                                {% if can_manage_assignment_changes %}
+                                    {% if row.has_attendance %}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="لا يمكن الإزالة بعد تسجيل حضور">مقفلة</button>
+                                    {% else %}
+                                    <form method="post" action="{% url 'quick:course_session_unassign_student' session.id row.assignment.enrollment.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('هل تريد فك ربط {{ row.assignment.enrollment.student.full_name }} من {{ session.title }}؟');">
+                                            فك الربط
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center text-muted py-4">لا يوجد طلاب موزعون بعد.</td>
+                        <td colspan="5" class="text-center text-muted py-4">لا يوجد طلاب موزعون بعد.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
