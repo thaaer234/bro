@@ -173,7 +173,7 @@ class StudentProfileView(LoginRequiredMixin, View):
                 enrollment=enrollment
             ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
             
-            net_amount = enrollment.net_amount or enrollment.total_amount or Decimal('0.00')
+            net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0.00'))
             balance_due = max(Decimal('0.00'), net_amount - enrollment_paid)
             
             active_enrollments_data.append({
@@ -582,7 +582,7 @@ class StudentStatementView(LoginRequiredMixin, DetailView):
                 ).first()
                 
                 if enrollment:
-                    net_due = enrollment.net_amount or enrollment.total_amount or Decimal('0')
+                    net_due = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0'))
                 else:
                     net_due = course.price or Decimal('0')
                 
@@ -1752,7 +1752,7 @@ def quick_receipt(request, student_id):
             course = enrollment.course
             
             if amount == 0 and not is_free:
-                amount = enrollment.net_amount or enrollment.total_amount or Decimal('0.00')
+                amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0.00'))
             
             # ✅ الإصلاح: حساب المتبقي بشكل صحيح
             total_paid = StudentReceipt.objects.filter(
@@ -1760,7 +1760,7 @@ def quick_receipt(request, student_id):
             ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
             enrollment_paid = total_paid
             
-            net_amount = enrollment.net_amount or enrollment.total_amount or Decimal('0.00')
+            net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0.00'))
             remaining_amount = max(Decimal('0.00'), net_amount - total_paid)
             
         elif course_id:
@@ -1781,7 +1781,7 @@ def quick_receipt(request, student_id):
                     enrollment=enrollment
                 ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
                 enrollment_paid = total_paid
-                net_amount = enrollment.net_amount or enrollment.total_amount or Decimal('0.00')
+                net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0.00'))
                 remaining_amount = max(Decimal('0.00'), net_amount - total_paid)
             else:
                 remaining_amount = course.price or Decimal('0.00')
@@ -2088,7 +2088,7 @@ def withdraw_student(request, student_id):
         print("-"*50)
         
         try:
-            net_amount = enrollment.net_amount or enrollment.total_amount or Decimal('0')
+            net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0'))
             unpaid_amount = max(Decimal('0'), net_amount - total_paid)
             
             if unpaid_amount > 0:
@@ -2213,7 +2213,7 @@ def student_detail(request, student_id):
             enrollment=enrollment
         ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
         
-        enrollment_net_amount = enrollment.net_amount or enrollment.total_amount or Decimal('0.00')
+        enrollment_net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0.00'))
         
         total_paid += enrollment_total_paid
         total_due += enrollment_net_amount
@@ -2263,7 +2263,7 @@ def refund_student(request, student_id):
             enrollment=enrollment
         ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
         
-        net_amount = enrollment.net_amount or enrollment.total_amount or Decimal('0.00')
+        net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0.00'))
         current_balance = max(Decimal('0.00'), net_amount - total_paid)
         
         if refund_amount <= 0:

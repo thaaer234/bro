@@ -373,27 +373,20 @@ class QuickStudent(models.Model):
         except Exception:
             return Decimal('0')
 
-    def update_enrollment_discounts(self, user):
+    def update_enrollment_discounts(self, user, enrollments=None):
         """تحديث جميع تسجيلات الطالب السريع النشطة بناءً على الحسم الجديد"""
-        from accounts.models import JournalEntry, Transaction
-        
         with db_transaction.atomic():
-            active_enrollments = QuickEnrollment.objects.filter(
-                student=self, 
+            active_enrollments = enrollments or QuickEnrollment.objects.filter(
+                student=self,
                 is_completed=False
             )
             
             for enrollment in active_enrollments:
-                # حفظ القيم القديمة للمقارنة
-                old_net_amount = enrollment.calculated_net_amount
-                
-                # تحديث قيم الحسم في التسجيل
-                enrollment.save()  # سيتم حساب net_amount تلقائياً في save
-                
-                new_net_amount = enrollment.calculated_net_amount
-                
-                # إذا تغير المبلغ الصافي، قم بتحديث القيد المحاسبي
-                if old_net_amount != new_net_amount and hasattr(enrollment, 'enrollment_journal_entry'):
+                old_net_amount = enrollment.net_amount or Decimal('0')
+                enrollment.save()
+                new_net_amount = enrollment.net_amount or Decimal('0')
+
+                if old_net_amount != new_net_amount:
                     self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
 
     def _update_enrollment_journal_entry(self, enrollment, user, old_amount, new_amount):
@@ -403,7 +396,10 @@ class QuickStudent(models.Model):
         journal_entry = getattr(enrollment, 'enrollment_journal_entry', None)
         
         if not journal_entry:
-            print("لا يوجد قيد تسجيل للتحرير")
+            if new_amount > 0:
+                enrollment.create_accrual_enrollment_entry(user)
+            else:
+                print("لا يوجد قيد تسجيل للتحرير")
             return
         
         # حساب الفرق في المبلغ
@@ -552,17 +548,14 @@ class QuickEnrollment(models.Model):
         return max(Decimal('0'), total - discount_from_percent - discount_from_amount)
 
     def save(self, *args, **kwargs):
-        # حساب net_amount تلقائياً عند الحفظ إذا كان صفراً
-        if self.net_amount == 0 and self.course:
-            self.net_amount = self.course.price
+        if self.course and not self.total_amount:
             self.total_amount = self.course.price
-        
-        # أو حساب net_amount من الخصم إذا كانت هناك قيم خصم
+
         if self.discount_percent > 0 or self.discount_amount > 0:
-            calculated_net = self.calculated_net_amount
-            if calculated_net > 0:
-                self.net_amount = calculated_net
-        
+            self.net_amount = self.calculated_net_amount
+        elif self.net_amount == 0 and self.course:
+            self.net_amount = self.total_amount or self.course.price
+
         super().save(*args, **kwargs)
 
     def create_accrual_enrollment_entry(self, user):
@@ -572,6 +565,9 @@ class QuickEnrollment(models.Model):
         existing_entry = self.enrollment_journal_entry
         if existing_entry:
             return existing_entry
+
+        if (self.net_amount or Decimal('0')) <= 0:
+            return None
         
         # الحسابات الخاصة بالطلاب السريعين
         student_ar_account = Account.get_or_create_quick_student_ar_account(self.student)

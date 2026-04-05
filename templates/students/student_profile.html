@@ -1620,6 +1620,7 @@ function processQuickReceipt() {
     const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
     const discPct = parseFloat(discPctInput?.value) || 0;
     const discAmt = parseFormattedNumber(discAmtInput?.value) || 0;
+    const netAmount = calculateNetAmount();
     const paid = isFree ? 0 : (parseFormattedNumber(paidInput?.value) || 0);
     const date = dateInput?.value;
     
@@ -1632,8 +1633,6 @@ function processQuickReceipt() {
         alert('يرجى إدخال مبلغ مدفوع صحيح');
         return;
     }
-    
-    const netAmount = calculateNetAmount();
     
     // ✅ إزالة التحقق من أن المبلغ المدفوع لا يتجاوز المبلغ الصافي
     // يمكن للمستخدم الآن إدخال أي مبلغ يريده

@@ -5632,28 +5632,24 @@ def update_quick_student_discount(request, student_id):
         discount_reason = request.POST.get('discount_reason', '')
         
         # التحقق من وجود تسجيلات نشطة
-        active_enrollments = QuickEnrollment.objects.filter(
+        active_enrollments = list(QuickEnrollment.objects.filter(
             student=student, 
             is_completed=False
-        )
+        ))
         
-        if not active_enrollments.exists():
+        if not active_enrollments:
             return JsonResponse({
                 'success': False,
                 'error': 'لا توجد تسجيلات نشطة للطالب'
             })
         
         with db_transaction.atomic():
-            # تحديث التسجيلات النشطة بالخصم الجديد
-            updated_count = 0
+            updated_count = len(active_enrollments)
             for enrollment in active_enrollments:
                 enrollment.discount_percent = discount_percent
                 enrollment.discount_amount = discount_amount
-                enrollment.save()
-                updated_count += 1
-            
-            # إذا تغير الخصم، قم بتحديث القيود
-            student.update_enrollment_discounts(request.user)
+
+            student.update_enrollment_discounts(request.user, enrollments=active_enrollments)
         
         return JsonResponse({
             'success': True,
@@ -5734,6 +5730,15 @@ def quick_student_quick_receipt(request, student_id):
                 amount = enrollment.net_amount or Decimal('0.00')
             elif zero_value_receipt:
                 amount = posted_net_amount
+
+            if (
+                discount_percent != (enrollment.discount_percent or Decimal('0'))
+                or discount_amount != (enrollment.discount_amount or Decimal('0'))
+            ):
+                enrollment.discount_percent = discount_percent
+                enrollment.discount_amount = discount_amount
+                enrollment.save()
+                student.update_enrollment_discounts(request.user, enrollments=[enrollment])
             
             # احسب المتبقي من نفس التسجيل فقط
             total_paid = _get_quick_enrollment_paid_total(enrollment, student)
@@ -5764,6 +5769,15 @@ def quick_student_quick_receipt(request, student_id):
             
             if enrollment:
                 total_paid = _get_quick_enrollment_paid_total(enrollment, student)
+                if (
+                    discount_percent != (enrollment.discount_percent or Decimal('0'))
+                    or discount_amount != (enrollment.discount_amount or Decimal('0'))
+                ):
+                    enrollment.discount_percent = discount_percent
+                    enrollment.discount_amount = discount_amount
+                    enrollment.save()
+                    student.update_enrollment_discounts(request.user, enrollments=[enrollment])
+
                 net_amount = amount if amount > Decimal('0.00') or zero_value_receipt else (enrollment.net_amount or Decimal('0.00'))
                 remaining_amount = max(Decimal('0.00'), net_amount - total_paid)
             else:

@@ -1162,26 +1162,28 @@ function processQuickReceipt() {
     const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
     const discPct = parseFloat(discPctInput?.value) || 0;
     const discAmt = parseFormattedNumber(discAmtInput?.value) || 0;
-    const paid = parseFormattedNumber(paidInput?.value) || 0;
+    const netAmount = calculateNetAmount();
+    const isFree = netAmount <= 0;
+    const paid = isFree ? 0 : (parseFormattedNumber(paidInput?.value) || 0);
     const date = dateInput?.value;
     
-    if (price <= 0) {
+    if (!isFree && price <= 0) {
         alert('يرجى اختيار دورة صحيحة');
         return;
     }
     
-    if (paid <= 0) {
+    if (!isFree && netAmount > 0 && paid <= 0) {
         alert('يرجى إدخال مبلغ مدفوع صحيح');
         return;
     }
-    
-    const netAmount = calculateNetAmount();
-    
     // ✅ إزالة التحقق من أن المبلغ المدفوع لا يتجاوز المبلغ الصافي
     // يمكن للمستخدم الآن إدخال أي مبلغ يريده
     
     // تأكيد العملية
-    if (!confirm(`هل تريد قطع إيصال بقيمة ${formatNumber(paid)} ل.س لدورة "${courseName}"؟`)) {
+    const confirmMessage = isFree
+        ? `سيتم إنشاء إيصال مجاني (0 ل.س) للدورة "${courseName}". هل تريد المتابعة؟`
+        : `هل تريد قطع إيصال بقيمة ${formatNumber(paid)} ل.س لدورة "${courseName}"؟`;
+    if (!confirm(confirmMessage)) {
         return;
     }
     
@@ -1195,11 +1197,12 @@ function processQuickReceipt() {
     const formData = new FormData();
     formData.append('course_id', courseId);
     formData.append('enrollment_id', enrollmentId);
-    formData.append('amount', price); // استخدام سعر الدورة الأصلي
+    formData.append('amount', isFree ? 0 : netAmount);
     formData.append('discount_percent', discPct);
     formData.append('discount_amount', discAmt);
     formData.append('paid_amount', paid);
     formData.append('receipt_date', date);
+    formData.append('is_free', isFree ? 'true' : 'false');
     
     fetch('{% url "quick:quick_student_quick_receipt" student.id %}', {
         method: 'POST',
