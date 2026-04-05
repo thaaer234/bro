@@ -3045,6 +3045,26 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
     }
 
 
+def _delete_quick_enrollment(enrollment, paid_total=None):
+    if enrollment.is_completed:
+        raise ValueError('هذه الدورة مسحوبة مسبقاً')
+
+    if paid_total is None:
+        paid_total = _get_quick_enrollment_paid_total(enrollment, enrollment.student)
+
+    if paid_total > Decimal('0'):
+        raise ValueError('لا يمكن حذف التسجيل لأنه يحتوي على دفعات مرتبطة')
+
+    student_name = enrollment.student.full_name
+    course_name = enrollment.course.name
+    enrollment.delete()
+
+    return {
+        'student_name': student_name,
+        'course_name': course_name,
+    }
+
+
 def _snapshot_outstanding_totals(totals):
     return {
         'total_courses': int(totals.get('total_courses', 0) or 0),
@@ -6664,10 +6684,9 @@ def withdraw_quick_student(request, student_id):
 def bulk_withdraw_quick_students(request, course_id):
     course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
     enrollment_ids = request.POST.getlist('enrollment_ids')
-    withdrawal_reason = (request.POST.get('withdrawal_reason') or '').strip()
 
     if not enrollment_ids:
-        messages.error(request, 'No students were selected for bulk withdrawal.')
+        messages.error(request, 'لم يتم تحديد أي طالب للحذف الجماعي.')
         return redirect(reverse('quick:late_payment_course_detail', args=[course.id]))
 
     enrollments = list(
@@ -6679,26 +6698,32 @@ def bulk_withdraw_quick_students(request, course_id):
     )
 
     if not enrollments:
-        messages.error(request, 'No valid enrollments found for bulk withdrawal.')
+        messages.error(request, 'لم يتم العثور على تسجيلات صالحة للحذف.')
         return redirect(reverse('quick:late_payment_course_detail', args=[course.id]))
 
-    withdrawn = 0
+    paid_rows = QuickStudentReceipt.objects.filter(
+        quick_enrollment_id__in=[enrollment.id for enrollment in enrollments]
+    ).values('quick_enrollment_id').annotate(total=Sum('paid_amount'))
+    paid_map = {
+        row['quick_enrollment_id']: (row['total'] or Decimal('0'))
+        for row in paid_rows
+    }
+
+    deleted_count = 0
     errors = []
     for enrollment in enrollments:
         try:
             with transaction.atomic():
-                _withdraw_quick_enrollment(
+                _delete_quick_enrollment(
                     enrollment=enrollment,
-                    user=request.user,
-                    withdrawal_reason=withdrawal_reason or 'Bulk withdrawal from outstanding page',
-                    refund_amount=Decimal('0'),
+                    paid_total=paid_map.get(enrollment.id, Decimal('0')),
                 )
-            withdrawn += 1
+            deleted_count += 1
         except Exception as exc:
             errors.append(f'{enrollment.student.full_name}: {exc}')
 
-    if withdrawn:
-        messages.success(request, f'Withdrew {withdrawn} students from course {course.name}.')
+    if deleted_count:
+        messages.success(request, f'تم حذف {deleted_count} تسجيل من دورة {course.name}.')
     for error in errors[:5]:
         messages.error(request, error)
 
