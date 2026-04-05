@@ -51,6 +51,7 @@ def _manual_target_users(request_user):
         users = User.objects.select_related("employee_profile").order_by("first_name", "last_name", "username")
     else:
         users = User.objects.filter(pk=request_user.pk).select_related("employee_profile")
+
     items = []
     for user in users:
         employee = getattr(user, "employee_profile", None)
@@ -151,7 +152,7 @@ def _build_manual_error_pages():
                         "location": "بعد فشل المعالجة المباشرة أو تكرر الخطأ.",
                         "used_by": "أي مستخدم لا يستطيع إكمال العمل بعد المحاولة الصحيحة.",
                         "when": "إذا تكرر الخطأ بعد إعادة التنفيذ مرة واحدة فقط.",
-                        "purpose": "جهّز اسم الصفحة واسم العملية ووقت الخطأ ثم ارفعها للدعم أو للإدارة التقنية.",
+                        "purpose": "جهز اسم الصفحة واسم العملية ووقت الخطأ ثم ارفعها للدعم أو للإدارة التقنية.",
                         "result": "يصل البلاغ واضحًا وقابلًا للمعالجة السريعة دون ضياع التفاصيل.",
                     },
                 ],
@@ -160,23 +161,227 @@ def _build_manual_error_pages():
     return pages
 
 
-def _build_user_handbook_toc(manual_workflows, manual_screens, manual_error_pages):
-    entries = []
-    page_number = 1
-    entries.append({"title": "بطاقة الوصول وبيانات المستخدم", "page": page_number, "kind": "وصول"})
-    page_number += 1
-    entries.append({"title": "فهرس الدفتر", "page": page_number, "kind": "فهرس"})
-    page_number += 1
-    for workflow in manual_workflows:
-        entries.append({"title": workflow["title"], "page": page_number, "kind": "مرحلة"})
-        page_number += 1
+def _chunk_items(items, size):
+    if size <= 0:
+        return [items]
+    return [items[index:index + size] for index in range(0, len(items), size)]
+
+
+def _continuation_title(title, chunk_index, chunk_total):
+    return title
+
+
+def _text_weight(value, base=1, ratio=220):
+    text = str(value or "").strip()
+    return base + max(0, len(text) // ratio)
+
+
+def _chunk_weighted(items, max_weight, weight_fn):
+    if max_weight <= 0:
+        return [items]
+    chunks = []
+    current = []
+    current_weight = 0
+    for item in items:
+        item_weight = max(1, weight_fn(item))
+        if current and (current_weight + item_weight) > max_weight:
+            chunks.append(current)
+            current = [item]
+            current_weight = item_weight
+        else:
+            current.append(item)
+            current_weight += item_weight
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _chunk_weighted_progressive(items, first_weight, continuation_weight, weight_fn):
+    if not items:
+        return []
+    first_chunk = _chunk_weighted(items, first_weight, weight_fn)
+    if len(first_chunk) <= 1:
+        return first_chunk
+
+    chunks = [first_chunk[0]]
+    remaining = items[len(first_chunk[0]):]
+    if remaining:
+        chunks.extend(_chunk_weighted(remaining, continuation_weight, weight_fn))
+    return chunks
+
+
+def _workflow_step_weight(step):
+    return _text_weight(step, base=3, ratio=140)
+
+
+def _action_weight(item):
+    return (
+        _text_weight(item.get("label"), base=1, ratio=80)
+        + _text_weight(item.get("location"), base=2, ratio=120)
+        + _text_weight(item.get("used_by"), base=1, ratio=120)
+        + _text_weight(item.get("when"), base=2, ratio=120)
+        + _text_weight(item.get("purpose"), base=2, ratio=120)
+        + _text_weight(item.get("result"), base=2, ratio=120)
+    )
+
+
+def _page_status_label(chunk_index, chunk_total):
+    if chunk_total <= 1:
+        return "مكتملة"
+    if chunk_index == 1:
+        return "بداية القسم"
+    if chunk_index == chunk_total:
+        return "ختام القسم"
+    return "متابعة"
+
+
+def _build_user_handbook_content_pages(manual_workflows, manual_screens, manual_error_pages):
+    pages = []
+
+    for workflow_index, workflow in enumerate(manual_workflows, start=1):
+        step_chunks = _chunk_weighted_progressive(workflow["steps"], 26, 34, _workflow_step_weight)
+        step_counter = 1
+        for chunk_index, steps in enumerate(step_chunks, start=1):
+            pages.append(
+                {
+                    "type": "workflow",
+                    "title": _continuation_title(workflow["title"], chunk_index, len(step_chunks)),
+                    "toc_title": workflow["title"],
+                    "toc_kind": "مرحلة",
+                    "toc_include": chunk_index == 1,
+                    "eyebrow": f"مرحلة {workflow_index}",
+                    "intro": workflow["intro"] if chunk_index == 1 else "استكمال الخطوات التنفيذية لنفس المرحلة مع الحفاظ على نفس التسلسل العملي.",
+                    "image_title": workflow["screenshot"]["title"],
+                    "image_path": workflow["screenshot"]["path"],
+                    "image_caption": workflow["screenshot"]["caption"],
+                    "show_image": chunk_index == 1,
+                    "image_mode": "hero" if chunk_index == 1 and len(steps) <= 4 else "full",
+                    "items": [
+                        {"index": step_counter + offset, "text": step}
+                        for offset, step in enumerate(steps)
+                    ],
+                    "continued": chunk_index > 1,
+                }
+            )
+            step_counter += len(steps)
+
     for screen in manual_screens:
-        entries.append({"title": screen["title"], "page": page_number, "kind": screen["group"]})
-        page_number += 1
-    for item in manual_error_pages:
-        entries.append({"title": item["title"], "page": page_number, "kind": "خطأ"})
-        page_number += 1
-    return entries
+        button_chunks = _chunk_weighted_progressive(screen["buttons"], 64, 88, _action_weight)
+        button_counter = 1
+        for chunk_index, buttons in enumerate(button_chunks, start=1):
+            pages.append(
+                {
+                    "type": "screen",
+                    "title": _continuation_title(screen["title"], chunk_index, len(button_chunks)),
+                    "toc_title": screen["title"],
+                    "toc_kind": screen["group"],
+                    "toc_include": chunk_index == 1,
+                    "eyebrow": screen["group"],
+                    "intro": screen["goal"] if chunk_index == 1 else "متابعة عناصر الشاشة نفسها بعد توزيع المحتوى على صفحة إضافية.",
+                    "used_by": screen["used_by"],
+                    "path": screen["path"],
+                    "image_title": screen["screenshot"]["title"],
+                    "image_path": screen["screenshot"]["path"],
+                    "image_caption": screen["screenshot"]["caption"],
+                    "show_image": chunk_index == 1,
+                    "image_mode": "hero" if chunk_index == 1 and len(buttons) <= 4 else "full",
+                    "items": [
+                        {
+                            **button,
+                            "index": button_counter + offset,
+                        }
+                        for offset, button in enumerate(buttons)
+                    ],
+                    "continued": chunk_index > 1,
+                }
+            )
+            button_counter += len(buttons)
+
+    for error_page in manual_error_pages:
+        button_chunks = _chunk_weighted_progressive(error_page["buttons"], 62, 86, _action_weight)
+        button_counter = 1
+        for chunk_index, buttons in enumerate(button_chunks, start=1):
+            pages.append(
+                {
+                    "type": "error",
+                    "title": _continuation_title(error_page["title"], chunk_index, len(button_chunks)),
+                    "toc_title": error_page["title"],
+                    "toc_kind": "خطأ",
+                    "toc_include": chunk_index == 1,
+                    "eyebrow": error_page["group"],
+                    "intro": error_page["goal"] if chunk_index == 1 else "استكمال عناصر التعامل مع الخطأ نفسه في صفحة إضافية أوضح للطباعة.",
+                    "used_by": error_page["used_by"],
+                    "path": error_page["path"],
+                    "image_title": error_page["screenshot"]["title"],
+                    "image_path": error_page["screenshot"]["path"],
+                    "image_caption": error_page["screenshot"]["caption"],
+                    "show_image": chunk_index == 1,
+                    "image_mode": "hero" if chunk_index == 1 and len(buttons) <= 4 else "full",
+                    "items": [
+                        {
+                            **button,
+                            "index": button_counter + offset,
+                        }
+                        for offset, button in enumerate(buttons)
+                    ],
+                    "continued": chunk_index > 1,
+                }
+            )
+            button_counter += len(buttons)
+
+    return pages
+
+
+def _build_user_handbook_toc_pages(content_pages):
+    toc_page_size = 22
+    toc_entries = [
+        {"title": "مقدمة الدليل", "kind": "تمهيد", "page": 1},
+        {"title": "بطاقة المستخدم والوصول", "kind": "وصول", "page": 2},
+        {"title": "الفهرس", "kind": "تنقل", "page": 3},
+    ]
+    content_entries = [{"title": "بطاقة الوصول وبيانات المستخدم", "kind": "وصول"}]
+    content_entries.extend(
+        {
+            "title": page["toc_title"],
+            "kind": page["toc_kind"],
+        }
+        for page in content_pages
+        if page.get("toc_include")
+    )
+
+    toc_pages = _chunk_items(toc_entries, toc_page_size)
+    while True:
+        recalculated_entries = list(toc_entries)
+        page_number = 3 + len(toc_pages)
+
+        for page in content_pages:
+            if page.get("toc_include"):
+                recalculated_entries.append(
+                    {
+                        "title": page["toc_title"],
+                        "kind": page["toc_kind"],
+                        "page": page_number,
+                    }
+                )
+            page_number += 1
+
+        recalculated_entries.extend(
+            [
+                {"title": "ملاحظات وتشغيل آمن", "kind": "تنبيهات", "page": page_number},
+                {"title": "الأسئلة الشائعة", "kind": "FAQ", "page": page_number + 1},
+                {"title": "خاتمة الدليل", "kind": "ختام", "page": page_number + 2},
+            ]
+        )
+        new_toc_pages = _chunk_items(recalculated_entries, toc_page_size)
+        if len(new_toc_pages) == len(toc_pages):
+            return [
+                {
+                    "entries": page_entries,
+                    "toc_page_number": 3 + index,
+                }
+                for index, page_entries in enumerate(new_toc_pages)
+            ]
+        toc_pages = new_toc_pages
 
 
 class ManualsHomeView(LoginRequiredMixin, TemplateView):
@@ -238,12 +443,25 @@ class ManualsUserHandbookView(LoginRequiredMixin, TemplateView):
         )
         context.update(_build_user_manual_identity_context(self.request, target_user))
         context["manual_error_pages"] = _build_manual_error_pages()
-        context["manual_toc_entries"] = _build_user_handbook_toc(
+        context["manual_content_pages"] = _build_user_handbook_content_pages(
             context["manual_workflows"],
             context["manual_screens"],
             context["manual_error_pages"],
         )
+        context["manual_toc_pages"] = _build_user_handbook_toc_pages(context["manual_content_pages"])
+        context["manual_print_mode"] = False
+        context["manual_print_url"] = self.request.build_absolute_uri()
         context.update(_build_closing_page_context(self.request))
+        return context
+
+
+class ManualsUserHandbookPrintView(ManualsUserHandbookView):
+    template_name = "manuals/user_handbook_print.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["manual_print_mode"] = True
+        context["manual_print_url"] = self.request.build_absolute_uri()
         return context
 
 

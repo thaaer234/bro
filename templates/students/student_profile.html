@@ -1534,7 +1534,11 @@ function calculateNetAmount() {
 
 function isFreeReceipt() {
     const freeToggle = document.getElementById('qr-free-toggle');
-    return !!(freeToggle && freeToggle.checked);
+    if (freeToggle && freeToggle.checked) {
+        return true;
+    }
+
+    return calculateNetAmount() <= 0;
 }
 
 function applyFreeToggleState() {
@@ -1624,7 +1628,7 @@ function processQuickReceipt() {
         return;
     }
     
-    if (!isFree && paid <= 0) {
+    if (!isFree && netAmount > 0 && paid <= 0) {
         alert('يرجى إدخال مبلغ مدفوع صحيح');
         return;
     }

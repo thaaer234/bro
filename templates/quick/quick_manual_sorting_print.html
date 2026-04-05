@@ -152,6 +152,8 @@
             background: #f8fafc;
             text-align: right;
             font-weight: 700;
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
         .course-title {
             display: block;
@@ -329,6 +331,7 @@
                         {% for row in student_rows_all %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
+                            <td>
                                 <span class="student-name">{{ row.student.full_name }}</span>
                                 <span class="student-meta">{{ row.student.phone|default:"-" }}</span>
                                 <span class="student-creator">{{ row.student.created_by.get_full_name|default:row.student.created_by.username|default:"-" }}</span>

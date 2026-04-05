@@ -1,0 +1,571 @@
+{% load static %}
+
+<section class="uhb-shell manuals-handbook-shell manuals-handbook-shell--a4">
+    {% if not manual_print_mode %}
+    <div class="uhb-toolbar no-print">
+        <a href="{% url 'manuals:user_select' %}" class="uhb-toolbar__button uhb-toolbar__button--ghost">
+            <i class="fas fa-users"></i>
+            <span>اختيار مستخدم آخر</span>
+        </a>
+        <a href="{% url 'manuals:user_handbook' %}?user={{ manual_selected_user.id }}{% if manual_target_password and manual_target_password != 'غير متاح في النظام' %}&password={{ manual_target_password|urlencode }}{% endif %}" class="uhb-toolbar__button uhb-toolbar__button--ghost">
+            <i class="fas fa-rotate-left"></i>
+            <span>إعادة تحميل الدليل</span>
+        </a>
+        <a href="{% url 'manuals:user_handbook_print' %}?user={{ manual_selected_user.id }}{% if manual_target_password and manual_target_password != 'غير متاح في النظام' %}&password={{ manual_target_password|urlencode }}{% endif %}{% if manual_search_query %}&q={{ manual_search_query|urlencode }}{% endif %}{% if manual_selected_group %}&group={{ manual_selected_group|urlencode }}{% endif %}" class="uhb-toolbar__button uhb-toolbar__button--primary">
+            <i class="fas fa-print"></i>
+            <span>معاينة الطباعة</span>
+        </a>
+    </div>
+
+    <section class="uhb-control-panel no-print">
+        <div class="uhb-control-panel__copy">
+            <span class="uhb-kicker">تخصيص الإصدار</span>
+            <h2>فلترة المحتوى المعروض في دليل المستخدم</h2>
+            <p>استخدم الفلاتر لإنشاء نسخة مركزة للمستخدم الحالي وفق الصلاحيات والقسم المطلوب، مع الحفاظ على الهيكل الكامل للدليل.</p>
+        </div>
+        <form method="get" class="uhb-filter-form">
+            <input type="hidden" name="user" value="{{ manual_selected_user.id }}">
+            {% if manual_target_password and manual_target_password != 'غير متاح في النظام' %}
+            <input type="hidden" name="password" value="{{ manual_target_password }}">
+            {% endif %}
+            <label class="uhb-field">
+                <span>بحث نصي</span>
+                <input type="search" name="q" value="{{ manual_search_query }}" placeholder="مثال: حضور، محاسبة، طلاب">
+            </label>
+            <label class="uhb-field">
+                <span>القسم</span>
+                <select name="group">
+                    <option value="">كل الأقسام المتاحة</option>
+                    {% for option in manual_group_options %}
+                    <option value="{{ option.value }}"{% if option.value == manual_selected_group %} selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="submit" class="uhb-toolbar__button uhb-toolbar__button--primary">
+                <i class="fas fa-filter"></i>
+                <span>تطبيق</span>
+            </button>
+        </form>
+        <div class="uhb-chip-row">
+            <span class="uhb-chip uhb-chip--accent">الأقسام: {{ manual_user_departments|join:" / " }}</span>
+            <span class="uhb-chip">الشاشات: {{ manual_screen_total }}</span>
+            <span class="uhb-chip">صفحات التشغيل: {{ manual_content_pages|length }}</span>
+            <span class="uhb-chip">صفحات الأخطاء: {{ manual_error_pages|length }}</span>
+        </div>
+    </section>
+    {% else %}
+    <div class="uhb-toolbar uhb-toolbar--print no-print">
+        <a href="{% url 'manuals:user_handbook' %}?user={{ manual_selected_user.id }}{% if manual_target_password and manual_target_password != 'غير متاح في النظام' %}&password={{ manual_target_password|urlencode }}{% endif %}{% if manual_search_query %}&q={{ manual_search_query|urlencode }}{% endif %}{% if manual_selected_group %}&group={{ manual_selected_group|urlencode }}{% endif %}" class="uhb-toolbar__button uhb-toolbar__button--ghost">
+            <i class="fas fa-arrow-right"></i>
+            <span>العودة إلى الدليل</span>
+        </a>
+        <button type="button" class="uhb-toolbar__button uhb-toolbar__button--primary" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            <span>طباعة الآن</span>
+        </button>
+    </div>
+    {% endif %}
+
+    <article class="uhb-book">
+        <section class="uhb-page uhb-page--cover">
+            <div class="uhb-cover">
+                <div class="uhb-cover__hero">
+                    <div class="uhb-cover__brand">
+                        <img src="{% static 'img/logo.png' %}" alt="شعار الجهة" class="uhb-cover__logo">
+                        <div>
+                            <span class="uhb-kicker">System of Alyaman Institute</span>
+                            <strong>{{ closing_brand_name }}</strong>
+                        </div>
+                    </div>
+                    <div class="uhb-cover__badge">
+                        <span>نسخة تشغيلية فردية</span>
+                        <strong>{% now "Y" %}</strong>
+                    </div>
+                </div>
+
+                <div class="uhb-cover__stage">
+                    <div class="uhb-cover__copy">
+                        <span class="uhb-cover__subtitle">الدليل المستخدم الواحد</span>
+                        <h1>دليل المستخدم الفردي</h1>
+                        <p>مرجع تشغيلي منظم ومصمم خصيصًا لهذا المستخدم، يشرح المسارات الأساسية، الشاشات المعتمدة، أسلوب التعامل مع التنبيهات، وآلية الاستخدام اليومي بصورة واضحة وقابلة للطباعة.</p>
+                    </div>
+
+                    <div class="uhb-cover__identity">
+                        <article class="uhb-glass-card">
+                            <span>المستخدم</span>
+                            <strong>{{ manual_target_name }}</strong>
+                        </article>
+                        <article class="uhb-glass-card">
+                            <span>الصفة الوظيفية</span>
+                            <strong>{{ manual_target_position }}</strong>
+                        </article>
+                        <article class="uhb-glass-card">
+                            <span>الأقسام</span>
+                            <strong>{{ manual_user_departments|join:" / " }}</strong>
+                        </article>
+                        <article class="uhb-glass-card">
+                            <span>تاريخ الإصدار</span>
+                            <strong>{% now "Y / m / d" %}</strong>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="uhb-cover__footer">
+                    <div class="uhb-cover__summary">
+                        <span>يشمل هذا الإصدار</span>
+                        <strong>{{ manual_content_pages|length }} صفحة تشغيلية موثقة</strong>
+                    </div>
+                    <div class="uhb-cover__summary">
+                        <span>رابط النظام</span>
+                        <strong dir="ltr">{{ manual_target_system_url }}</strong>
+                    </div>
+                    <div class="uhb-cover__summary uhb-cover__summary--qr">
+                        <img src="{{ manual_target_qr }}" alt="رمز QR للنظام">
+                        <span>مسح سريع للوصول</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="uhb-page uhb-page--numbered uhb-page--intro">
+            <header class="uhb-page-head">
+                <span class="uhb-kicker">مقدمة الدليل</span>
+                <h2>نطاق الاستخدام ومنهجية القراءة</h2>
+                <p>تم إعداد هذا الدليل ليكون مرجعًا عمليًا مباشرًا يوضح للمستخدم كيف يبدأ عمله، كيف ينتقل بين الأقسام، وكيف يتعامل مع الصفحات المصرح له بها دون ازدحام أو تكرار أو غموض.</p>
+            </header>
+
+            <div class="uhb-intro-grid">
+                <article class="uhb-panel-card uhb-panel-card--lead">
+                    <h3>ماذا يقدم هذا الدليل؟</h3>
+                    <p>يعرض الدليل هوية المستخدم وبيانات الوصول، ثم يقدم فهرسًا واضحًا، وبعده تسلسلًا تشغيليًا يبدأ بالمراحل الأساسية وينتقل إلى الشاشات التفصيلية، ثم ينتهي بالتنبيهات والأسئلة الشائعة والخاتمة.</p>
+                    <div class="uhb-chip-row">
+                        <span class="uhb-chip">مستخدم: {{ manual_target_username }}</span>
+                        <span class="uhb-chip">فصول التشغيل: {{ manual_content_pages|length }}</span>
+                        <span class="uhb-chip">صفحات الفهرس: {{ manual_toc_pages|length }}</span>
+                    </div>
+                </article>
+
+                <article class="uhb-panel-card">
+                    <h3>آلية القراءة الموصى بها</h3>
+                    <ul class="uhb-list">
+                        <li>ابدأ من بطاقة الوصول للتأكد من بيانات الحساب والرابط الرسمي.</li>
+                        <li>راجع الفهرس لتحديد الصفحة المناسبة بدل التنقل العشوائي.</li>
+                        <li>اتبع المراحل التشغيلية أولًا ثم انتقل إلى الشاشات التفصيلية.</li>
+                        <li>اعتمد صفحات الأخطاء والتنبيهات عند الحاجة قبل تصعيد أي مشكلة.</li>
+                    </ul>
+                </article>
+
+                <article class="uhb-panel-card">
+                    <h3>مبادئ الاستخدام الآمن</h3>
+                    <ul class="uhb-list">
+                        <li>التحقق من الحقول قبل الحفظ أو الإرسال أو الطباعة.</li>
+                        <li>استخدام الصلاحيات المتاحة فقط وعدم تجاوز المسارات المعتمدة.</li>
+                        <li>الاعتماد على هذا الدليل كمرجع تشغيلي موحد أثناء العمل.</li>
+                        <li>توثيق الخطأ ووقته واسم الصفحة قبل طلب الدعم الفني.</li>
+                    </ul>
+                </article>
+            </div>
+
+            <div class="uhb-highlight-band">
+                <article class="uhb-stat-card">
+                    <span>الشاشات الموثقة</span>
+                    <strong>{{ manual_screen_total }}</strong>
+                </article>
+                <article class="uhb-stat-card">
+                    <span>الأقسام المتاحة</span>
+                    <strong>{{ manual_user_departments|length }}</strong>
+                </article>
+                <article class="uhb-stat-card">
+                    <span>صفحات الأخطاء</span>
+                    <strong>{{ manual_error_pages|length }}</strong>
+                </article>
+                <article class="uhb-stat-card">
+                    <span>الحالة</span>
+                    <strong>جاهز للقراءة والطباعة</strong>
+                </article>
+            </div>
+        </section>
+
+        <section class="uhb-page uhb-page--numbered uhb-page--identity">
+            <header class="uhb-page-head">
+                <span class="uhb-kicker">بطاقة المستخدم</span>
+                <h2>بيانات الوصول والمرجع السريع</h2>
+                <p>هذه الصفحة مرجع ثابت لبيانات الحساب الحالية، وتُستخدم كواجهة تعريفية سريعة قبل قراءة بقية فصول الدليل أو البدء باستخدام النظام.</p>
+            </header>
+
+            <div class="uhb-identity-grid">
+                <article class="uhb-panel-card">
+                    <h3>البيانات الأساسية</h3>
+                    <dl class="uhb-data-list">
+                        <div>
+                            <dt>الاسم الكامل</dt>
+                            <dd>{{ manual_target_name }}</dd>
+                        </div>
+                        <div>
+                            <dt>اسم المستخدم</dt>
+                            <dd dir="ltr">{{ manual_target_username }}</dd>
+                        </div>
+                        <div>
+                            <dt>الصفة الوظيفية</dt>
+                            <dd>{{ manual_target_position }}</dd>
+                        </div>
+                        <div>
+                            <dt>رقم الهاتف</dt>
+                            <dd dir="ltr">{{ manual_target_phone }}</dd>
+                        </div>
+                        <div>
+                            <dt>البريد الإلكتروني</dt>
+                            <dd dir="ltr">{{ manual_target_email }}</dd>
+                        </div>
+                        <div>
+                            <dt>الرمز المرجعي</dt>
+                            <dd dir="ltr">{{ manual_target_system_code }}</dd>
+                        </div>
+                    </dl>
+                </article>
+
+                <article class="uhb-panel-card">
+                    <h3>معلومات الدخول</h3>
+                    <dl class="uhb-data-list">
+                        <div>
+                            <dt>رابط النظام</dt>
+                            <dd dir="ltr">{{ manual_target_system_url }}</dd>
+                        </div>
+                        <div>
+                            <dt>كلمة المرور الحالية</dt>
+                            <dd>{{ manual_target_password }}</dd>
+                        </div>
+                        <div>
+                            <dt>نطاق الاستخدام</dt>
+                            <dd>{{ manual_user_departments|join:" / " }}</dd>
+                        </div>
+                        <div>
+                            <dt>نوع النسخة</dt>
+                            <dd>دليل مستخدم فردي معتمد</dd>
+                        </div>
+                    </dl>
+                    <div class="uhb-inline-note">
+                        <i class="fas fa-shield-halved"></i>
+                        <p>يُفضل تغيير كلمة المرور الدورية وفق السياسة المعتمدة، وعدم مشاركة بيانات الدخول إلا ضمن السياق الإداري المصرح به.</p>
+                    </div>
+                </article>
+
+                <article class="uhb-panel-card uhb-panel-card--qr">
+                    <h3>الوصول السريع</h3>
+                    <figure class="uhb-qr-card">
+                        <img src="{{ manual_target_qr }}" alt="رمز QR للوصول السريع">
+                        <figcaption>
+                            <strong>الوصول إلى النظام</strong>
+                            <p>يمكن مسح الرمز للوصول مباشرة إلى صفحة النظام الرسمية من الأجهزة المصرح لها.</p>
+                        </figcaption>
+                    </figure>
+                </article>
+
+                <article class="uhb-panel-card">
+                    <h3>قائمة تحقق قبل البدء</h3>
+                    <ul class="uhb-list">
+                        <li>التأكد من اسم المستخدم قبل تسجيل الدخول.</li>
+                        <li>الاعتماد على الرابط الرسمي فقط للوصول للنظام.</li>
+                        <li>مراجعة الصلاحيات المعروضة عند اختلاف المحتوى المتوقع.</li>
+                        <li>الرجوع إلى صفحات الأخطاء عند ظهور رسالة غير مفهومة.</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        {% for toc_page in manual_toc_pages %}
+        <section class="uhb-page uhb-page--numbered uhb-page--toc">
+            <header class="uhb-page-head">
+                <span class="uhb-kicker">الفهرس</span>
+                <h2>خريطة محتوى الدليل</h2>
+                <p>يُظهر هذا الفهرس ترتيب الدليل كما سيظهر أثناء القراءة والطباعة، مع أرقام الصفحات الفعلية لسهولة الرجوع السريع إلى القسم المطلوب.</p>
+            </header>
+
+            <div class="uhb-toc">
+                {% for item in toc_page.entries %}
+                <article class="uhb-toc__row">
+                    <span class="uhb-toc__kind">{{ item.kind }}</span>
+                    <strong>{{ item.title }}</strong>
+                    <span class="uhb-toc__dots"></span>
+                    <span class="uhb-toc__page">{{ item.page }}</span>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        {% for page in manual_content_pages %}
+        <section class="uhb-page uhb-page--numbered uhb-page--section{% if page.type == 'error' %} uhb-page--error{% endif %}{% if page.continued %} uhb-page--continued{% endif %}">
+            <header class="uhb-section-head">
+                <div class="uhb-section-head__copy">
+                    <span class="uhb-kicker">{{ page.eyebrow }}</span>
+                    <h2>{{ page.title }}</h2>
+                    <p>{{ page.intro }}</p>
+                </div>
+                <aside class="uhb-section-head__meta">
+                    <span class="uhb-status-chip{% if page.type == 'error' %} uhb-status-chip--alert{% endif %}">
+                        {% if page.type == 'workflow' %}
+                        مسار عملي
+                        {% elif page.type == 'error' %}
+                        تنبيه تشغيلي
+                        {% else %}
+                        شاشة تشغيل
+                        {% endif %}
+                    </span>
+                    {% if page.continued %}
+                    <span class="uhb-status-chip">متابعة لنفس القسم</span>
+                    {% endif %}
+                    {% if page.type == 'workflow' %}
+                    <dl class="uhb-mini-list">
+                        <div>
+                            <dt>عدد الخطوات</dt>
+                            <dd>{{ page.items|length }}</dd>
+                        </div>
+                        <div>
+                            <dt>أسلوب العرض</dt>
+                            <dd>تنفيذ متسلسل</dd>
+                        </div>
+                    </dl>
+                    {% else %}
+                    <dl class="uhb-mini-list">
+                        <div>
+                            <dt>المستخدم</dt>
+                            <dd>{{ page.used_by }}</dd>
+                        </div>
+                        <div>
+                            <dt>المسار</dt>
+                            <dd dir="ltr">{{ page.path }}</dd>
+                        </div>
+                    </dl>
+                    {% endif %}
+                </aside>
+            </header>
+
+            {% if page.show_image %}
+            <figure class="uhb-visual">
+                <img src="{{ page.image_path }}" alt="{{ page.image_title }}">
+                <figcaption>
+                    <strong>{{ page.image_title }}</strong>
+                    <p>{{ page.image_caption }}</p>
+                </figcaption>
+            </figure>
+            {% endif %}
+
+            {% if page.type == 'workflow' %}
+            <div class="uhb-step-grid">
+                {% for item in page.items %}
+                <article class="uhb-step-card">
+                    <div class="uhb-step-card__head">
+                        <span class="uhb-step-card__index">{{ item.index }}</span>
+                        <h3>خطوة تنفيذية</h3>
+                    </div>
+                    <p>{{ item.text }}</p>
+                </article>
+                {% endfor %}
+            </div>
+            <div class="uhb-inline-note">
+                <i class="fas fa-compass-drafting"></i>
+                <p>اقرأ الخطوات بالترتيب كما هي معروضة، لأن كل مرحلة مبنية على نتيجة المرحلة السابقة داخل نفس المسار التشغيلي.</p>
+            </div>
+            {% else %}
+            <div class="uhb-detail-grid">
+                {% for item in page.items %}
+                <article class="uhb-detail-card">
+                    <div class="uhb-detail-card__head">
+                        <span class="uhb-detail-card__index">{{ item.index }}</span>
+                        <h3>{{ item.label }}</h3>
+                    </div>
+                    <dl class="uhb-data-list uhb-data-list--compact">
+                        <div>
+                            <dt>المكان</dt>
+                            <dd>{{ item.location }}</dd>
+                        </div>
+                        <div>
+                            <dt>من يستخدمه</dt>
+                            <dd>{{ item.used_by }}</dd>
+                        </div>
+                        <div>
+                            <dt>متى يستخدم</dt>
+                            <dd>{{ item.when }}</dd>
+                        </div>
+                        <div>
+                            <dt>الوظيفة</dt>
+                            <dd>{{ item.purpose }}</dd>
+                        </div>
+                        <div>
+                            <dt>النتيجة</dt>
+                            <dd>{{ item.result }}</dd>
+                        </div>
+                    </dl>
+                </article>
+                {% endfor %}
+            </div>
+            <div class="uhb-inline-note{% if page.type == 'error' %} uhb-inline-note--alert{% endif %}">
+                <i class="fas {% if page.type == 'error' %}fa-triangle-exclamation{% else %}fa-circle-info{% endif %}"></i>
+                <p>
+                    {% if page.type == 'error' %}
+                    ابدأ دائمًا بالتحقق من السبب المباشر للخطأ ومراجعة البيانات أو الصلاحيات أو الاتصال، ثم انتقل للتصعيد فقط إذا استمرت المشكلة بعد المعالجة الصحيحة.
+                    {% else %}
+                    ابدأ من معاينة الشاشة ثم حدّد العنصر المناسب وفق الهدف المطلوب، وتأكد من النتيجة المتوقعة قبل الانتقال إلى خطوة لاحقة.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </section>
+        {% endfor %}
+
+        <section class="uhb-page uhb-page--numbered uhb-page--notes">
+            <header class="uhb-page-head">
+                <span class="uhb-kicker">ملاحظات وتشغيل آمن</span>
+                <h2>تنبيهات مهمة قبل التنفيذ وأثناءه</h2>
+                <p>تجمع هذه الصفحة القواعد العملية التي تقلل الأخطاء وتضمن قراءة سليمة للدليل واستخدامًا أكثر دقة للنظام في المهام اليومية.</p>
+            </header>
+
+            <div class="uhb-note-grid">
+                <article class="uhb-panel-card">
+                    <h3>قبل البدء</h3>
+                    <p>تأكد من أنك تعمل بالحساب الصحيح للمستخدم <strong>{{ manual_target_name }}</strong> ومن أن الرابط المفتوح هو الرابط الرسمي للنظام فقط.</p>
+                </article>
+                <article class="uhb-panel-card">
+                    <h3>أثناء إدخال البيانات</h3>
+                    <p>راجع الحقول الإلزامية وصحة التواريخ والقيم المالية أو الإدارية قبل الحفظ، لأن دقة المدخلات هي الأساس في دقة المخرجات.</p>
+                </article>
+                <article class="uhb-panel-card">
+                    <h3>عند اختلاف الصلاحيات</h3>
+                    <p>إذا لم تظهر شاشة متوقعة أو زر مطلوب، فذلك غالبًا مرتبط بالصلاحيات الممنوحة للمستخدم أو بالقسم المحدد داخل هذا الإصدار.</p>
+                </article>
+                <article class="uhb-panel-card">
+                    <h3>عند الطباعة أو التصدير</h3>
+                    <p>راجع الفلاتر والنتائج النهائية أولًا، ثم نفّذ الطباعة أو التصدير من النسخة المخصصة لذلك لضمان إخراج نظيف ومتوافق.</p>
+                </article>
+            </div>
+
+            <div class="uhb-highlight-band uhb-highlight-band--soft">
+                <article class="uhb-stat-card">
+                    <span>الإصدار المستهدف</span>
+                    <strong>مستخدم فردي</strong>
+                </article>
+                <article class="uhb-stat-card">
+                    <span>البيئة المعتمدة</span>
+                    <strong dir="ltr">{{ manual_target_system_url }}</strong>
+                </article>
+                <article class="uhb-stat-card">
+                    <span>نطاق الأقسام</span>
+                    <strong>{{ manual_user_departments|join:" / " }}</strong>
+                </article>
+            </div>
+        </section>
+
+        <section class="uhb-page uhb-page--numbered uhb-page--faq">
+            <header class="uhb-page-head">
+                <span class="uhb-kicker">الأسئلة الشائعة</span>
+                <h2>إجابات مباشرة لأكثر الاستفسارات تكرارًا</h2>
+                <p>تم تجميع هذه الإجابات لدعم الاستخدام اليومي السريع، وتقليل التوقف الناتج عن الأسئلة المتكررة أثناء العمل.</p>
+            </header>
+
+            <div class="uhb-faq-grid">
+                <article class="uhb-faq-card">
+                    <h3>كيف أصل إلى النظام بسرعة؟</h3>
+                    <p>استخدم الرابط الرسمي <span dir="ltr">{{ manual_target_system_url }}</span> أو امسح رمز QR الموجود في بطاقة الوصول والغلاف الأمامي.</p>
+                </article>
+                <article class="uhb-faq-card">
+                    <h3>لماذا لا أرى بعض الشاشات داخل الدليل؟</h3>
+                    <p>الدليل مبني وفق صلاحيات المستخدم الحالية، لذلك يتم عرض المحتوى الموافق للأقسام والمهام المسموح بها فقط.</p>
+                </article>
+                <article class="uhb-faq-card">
+                    <h3>متى أستخدم الفهرس؟</h3>
+                    <p>استخدم الفهرس عند الحاجة إلى الوصول السريع لقسم محدد أو لمراجعة ترتيب الدليل قبل البدء بالتنفيذ العملي.</p>
+                </article>
+                <article class="uhb-faq-card">
+                    <h3>ماذا أفعل إذا ظهرت رسالة خطأ؟</h3>
+                    <p>ارجع أولًا إلى صفحات الأخطاء في هذا الدليل، وحدد وقت الخطأ واسم الصفحة والعملية التي كنت تنفذها قبل طلب الدعم.</p>
+                </article>
+                <article class="uhb-faq-card">
+                    <h3>هل هذه النسخة مناسبة للطباعة؟</h3>
+                    <p>نعم، تم تنظيم الدليل ليعمل بشكل جيد في القراءة الرقمية والطباعة المباشرة على مقاس A4 دون الحاجة لتعديلات إضافية.</p>
+                </article>
+                <article class="uhb-faq-card">
+                    <h3>من جهة التواصل عند الحاجة إلى دعم؟</h3>
+                    <p>يمكن الرجوع إلى جهة الدعم الواردة في الخاتمة والصفحة الخلفية، مع تزويدها باسم الشاشة وطبيعة المشكلة ووقتها.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="uhb-page uhb-page--numbered uhb-page--closing">
+            <div class="uhb-closing">
+                <header class="uhb-page-head">
+                    <span class="uhb-kicker">خاتمة الدليل</span>
+                    <h2>مرجع جاهز للاستخدام اليومي والمتابعة</h2>
+                    <p>أصبح هذا الدليل نسخة تشغيلية متكاملة يمكن الاعتماد عليها في الاستخدام الفعلي، والمراجعة السريعة، والطباعة الرسمية، دون الحاجة إلى الرجوع إلى ملفات مشتتة أو نسخ غير محدثة.</p>
+                </header>
+
+                <div class="uhb-closing__grid">
+                    <article class="uhb-panel-card">
+                        <h3>ما الذي يحققه هذا الإصدار؟</h3>
+                        <ul class="uhb-list">
+                            <li>تنظيم المحتوى في تسلسل مهني واضح من الغلاف حتى الصفحة الخلفية.</li>
+                            <li>تقديم مرجع سريع للهوية والوصول والمسارات والشاشات والتنبيهات.</li>
+                            <li>إخراج بصري موحد قابل للقراءة الرقمية والطباعة المباشرة.</li>
+                        </ul>
+                    </article>
+
+                    <article class="uhb-panel-card">
+                        <h3>جهة الدعم والمتابعة</h3>
+                        <dl class="uhb-data-list">
+                            <div>
+                                <dt>الاسم</dt>
+                                <dd>{{ closing_developer_name }}</dd>
+                            </div>
+                            <div>
+                                <dt>الدور</dt>
+                                <dd>{{ closing_role }}</dd>
+                            </div>
+                            <div>
+                                <dt>الهاتف</dt>
+                                <dd dir="ltr">{{ closing_developer_phone }}</dd>
+                            </div>
+                            <div>
+                                <dt>البريد</dt>
+                                <dd dir="ltr">{{ closing_developer_email }}</dd>
+                            </div>
+                        </dl>
+                    </article>
+                </div>
+
+                <div class="uhb-inline-note">
+                    <i class="fas fa-circle-check"></i>
+                    <p>يوصى باستخدام هذه النسخة كمرجع رسمي للمستخدم الحالي، وتحديثها عند تغيّر الصلاحيات أو الشاشات أو إجراءات العمل الأساسية.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="uhb-page uhb-page--back">
+            <div class="uhb-back-cover">
+                <div class="uhb-back-cover__top">
+                    <span class="uhb-kicker">الصفحة الخلفية</span>
+                    <h2>{{ closing_brand_name }}</h2>
+                    <p>دليل استخدام احترافي مصمم ليبقى واضحًا ومتماسكًا من أول صفحة حتى الأخيرة، مع هوية بصرية موحدة ومحتوى جاهز للاعتماد.</p>
+                </div>
+
+                <div class="uhb-back-cover__cards">
+                    <article class="uhb-panel-card">
+                        <h3>الموقع</h3>
+                        <p dir="ltr">{{ closing_developer_site_url }}</p>
+                        <img src="{{ closing_developer_site_qr }}" alt="رمز QR للموقع" class="uhb-back-cover__qr">
+                    </article>
+                    <article class="uhb-panel-card">
+                        <h3>رابط الدليل</h3>
+                        <p dir="ltr">{{ closing_manual_url }}</p>
+                        <img src="{{ closing_manual_qr }}" alt="رمز QR للدليل" class="uhb-back-cover__qr">
+                    </article>
+                </div>
+
+                <div class="uhb-back-cover__footer">
+                    <span><i class="fas fa-phone"></i> {{ closing_developer_phone }}</span>
+                    <span><i class="fas fa-envelope"></i> {{ closing_developer_email }}</span>
+                    <span><i class="fas fa-globe"></i> {{ closing_developer_site_url }}</span>
+                </div>
+            </div>
+        </section>
+    </article>
+</section>

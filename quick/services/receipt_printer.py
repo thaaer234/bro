@@ -84,7 +84,9 @@ def _render_receipt(printer, receipt):
     course_name = receipt.course.name if receipt.course else (receipt.course_name or "-")
     student_name = receipt.quick_student.full_name if receipt.quick_student else (receipt.student_name or "-")
     receipt_number = receipt.receipt_number or str(receipt.id)
-    net_due = receipt.quick_enrollment.net_amount if receipt.quick_enrollment else (receipt.amount or Decimal("0"))
+    net_due = receipt.amount if receipt.amount is not None else (
+        receipt.quick_enrollment.net_amount if receipt.quick_enrollment else Decimal("0")
+    )
     paid_amount = receipt.paid_amount or Decimal("0")
     remaining = max(Decimal("0"), net_due - paid_amount)
 
