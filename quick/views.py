@@ -3,7 +3,7 @@ from django.views.generic import ListView, CreateView, DeleteView, UpdateView
 from django.views.generic.edit import FormView
 from django.urls import reverse, reverse_lazy
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum, Value, DecimalField, Count
+from django.db.models import Q, Sum, Value, DecimalField, Count, Max
 from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.contrib.auth import get_user_model
@@ -2631,12 +2631,35 @@ def export_quick_outstanding_excel(request):
         .order_by('course__name', 'student__full_name')
     ))
 
+    receipt_qs = QuickStudentReceipt.objects.filter(course__in=courses)
+
     paid_map = {}
-    receipt_totals = QuickStudentReceipt.objects.filter(
-        course__in=courses
-    ).values('quick_student_id', 'course_id').annotate(total=Sum('paid_amount'))
+    receipt_totals = receipt_qs.values('quick_student_id', 'course_id').annotate(
+        total=Sum('paid_amount'),
+        count=Count('id'),
+        last=Max('date'),
+    )
     for row in receipt_totals:
-        paid_map[(row['quick_student_id'], row['course_id'])] = row['total'] or Decimal('0')
+        paid_map[(row['quick_student_id'], row['course_id'])] = {
+            'total': row['total'] or Decimal('0'),
+            'count': row['count'] or 0,
+            'last': row['last'],
+        }
+
+    paid_by_enrollment = {}
+    receipt_by_enrollment = receipt_qs.exclude(quick_enrollment_id__isnull=True).values(
+        'quick_enrollment_id'
+    ).annotate(
+        total=Sum('paid_amount'),
+        count=Count('id'),
+        last=Max('date'),
+    )
+    for row in receipt_by_enrollment:
+        paid_by_enrollment[row['quick_enrollment_id']] = {
+            'total': row['total'] or Decimal('0'),
+            'count': row['count'] or 0,
+            'last': row['last'],
+        }
 
     regular_phone_set = _build_regular_phone_set()
 
@@ -2668,19 +2691,31 @@ def export_quick_outstanding_excel(request):
         columns = [
             ("#", 6),
             ("اسم الطالب", 28),
+            ("رقم الطالب", 16),
             ("رقم الهاتف", 16),
             ("نوع الطالب", 14),
             ("الحالة", 14),
             ("المسجل", 18),
+            ("الفصل الدراسي", 18),
+            ("نوع الدورة", 16),
             ("تاريخ التسجيل", 14),
         ]
         if include_course_col:
             columns.insert(1, ("الدورة", 26))
         columns.extend([
-            ("إجمالي الدورة", 16),
+            ("إجمالي قبل الخصم", 16),
+            ("نسبة الخصم %", 12),
+            ("قيمة الخصم", 14),
+            ("الصافي", 14),
             ("المدفوع", 14),
             ("المتبقي", 14),
+            ("عدد الإيصالات", 12),
+            ("آخر دفعة", 14),
         ])
+        money_labels = {"إجمالي قبل الخصم", "قيمة الخصم", "الصافي", "المدفوع", "المتبقي"}
+        percent_labels = {"نسبة الخصم %"}
+        count_labels = {"عدد الإيصالات"}
+        label_by_col = {idx + 1: label for idx, (label, _) in enumerate(columns)}
 
         total_cols = len(columns)
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=total_cols)
@@ -2692,6 +2727,8 @@ def export_quick_outstanding_excel(request):
         external_count = sum(1 for r in rows if r['student_type'] == "خارجي")
         total_paid = sum(r['paid'] for r in rows)
         total_remaining = sum(r['remaining'] for r in rows)
+        total_net = sum(r['net_amount'] for r in rows)
+        total_receipts = sum(r['receipts_count'] for r in rows)
         paid_count = sum(1 for r in rows if r['payment_status'] == "مسدد")
         outstanding_count = len(rows) - paid_count
 
@@ -2707,7 +2744,11 @@ def export_quick_outstanding_excel(request):
         ws.cell(
             row=3,
             column=1,
-            value=f"إجمالي الطلاب: {len(rows)} | إجمالي المدفوع: {total_paid} | إجمالي المتبقي: {total_remaining}"
+            value=(
+                f"إجمالي الطلاب: {len(rows)} | إجمالي الصافي: {total_net} | "
+                f"إجمالي المدفوع: {total_paid} | إجمالي المتبقي: {total_remaining} | "
+                f"عدد الإيصالات: {total_receipts}"
+            )
         ).alignment = right
         ws.cell(row=3, column=1).fill = subheader_fill
 
@@ -2724,15 +2765,27 @@ def export_quick_outstanding_excel(request):
             values = [
                 idx,
                 row['student_name'],
+                row['student_number'],
                 row['phone'],
                 row['student_type'],
                 row['payment_status'],
                 row['registered_by'],
+                row['academic_year'],
+                row['course_type'],
                 row['enrollment_date'],
             ]
             if include_course_col:
                 values.insert(1, row['course_name'])
-            values.extend([row['net_amount'], row['paid'], row['remaining']])
+            values.extend([
+                row['total_amount'],
+                row['discount_percent'],
+                row['discount_amount'],
+                row['net_amount'],
+                row['paid'],
+                row['remaining'],
+                row['receipts_count'],
+                row['last_payment_date'],
+            ])
 
             for col_idx, value in enumerate(values, start=1):
                 cell = ws.cell(row=row_idx, column=col_idx, value=value)
@@ -2742,28 +2795,70 @@ def export_quick_outstanding_excel(request):
                     cell.alignment = center
                 else:
                     cell.alignment = right
-                if col_idx >= len(values) - 2:
+                label = label_by_col.get(col_idx)
+                if label in money_labels:
                     cell.number_format = '#,##0'
+                elif label in percent_labels:
+                    cell.number_format = '0.00'
+                elif label in count_labels:
+                    cell.number_format = '0'
             row_idx += 1
 
     def build_rows(enrollments):
         rows = []
         for enrollment in enrollments:
             student = enrollment.student
-            paid = _format_money(paid_map.get((student.id, enrollment.course_id), Decimal('0')))
+            enrollment_stats = paid_by_enrollment.get(enrollment.id)
+            course_stats = paid_map.get((student.id, enrollment.course_id), None)
+
+            paid = _format_money(
+                enrollment_stats['total'] if enrollment_stats else (
+                    course_stats['total'] if course_stats else Decimal('0')
+                )
+            )
+            receipts_count = (
+                enrollment_stats['count'] if enrollment_stats else (
+                    course_stats['count'] if course_stats else 0
+                )
+            )
+            last_payment = (
+                enrollment_stats['last'] if enrollment_stats else (
+                    course_stats['last'] if course_stats else None
+                )
+            )
+
+            total_amount = _format_money(enrollment.total_amount or Decimal('0'))
+            discount_percent = _format_money(enrollment.discount_percent or Decimal('0'))
+            discount_amount = _format_money(enrollment.discount_amount or Decimal('0'))
             net_amount = _format_money(enrollment.net_amount or Decimal('0'))
             remaining = max(Decimal('0'), net_amount - paid)
+            course = enrollment.course
+            academic_year = course.academic_year.name if course and course.academic_year else "-"
+            course_type_label = course.get_course_type_display() if course else "-"
+            student_number = "-"
+            if getattr(student, 'student', None):
+                student_number = getattr(student.student, 'student_number', None) or "-"
+            elif getattr(student, 'student_number', None):
+                student_number = student.student_number or "-"
             rows.append({
                 'course_name': enrollment.course.name,
                 'student_name': student.full_name,
+                'student_number': student_number,
                 'phone': student.phone or "-",
                 'student_type': student_type_label(student),
                 'payment_status': 'غير مسدد' if remaining > 0 else 'مسدد',
                 'registered_by': registered_by_label(student),
                 'enrollment_date': enrollment.enrollment_date.strftime('%Y-%m-%d') if enrollment.enrollment_date else "-",
+                'academic_year': academic_year,
+                'course_type': course_type_label,
+                'total_amount': total_amount,
+                'discount_percent': discount_percent,
+                'discount_amount': discount_amount,
                 'net_amount': net_amount,
                 'paid': paid,
                 'remaining': remaining,
+                'receipts_count': receipts_count,
+                'last_payment_date': last_payment.strftime('%Y-%m-%d') if last_payment else "-",
             })
         return rows
 
