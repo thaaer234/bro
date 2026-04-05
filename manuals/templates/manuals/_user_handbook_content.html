@@ -53,17 +53,6 @@
             <span class="uhb-chip">صفحات الأخطاء: {{ manual_error_pages|length }}</span>
         </div>
     </section>
-    {% else %}
-    <div class="uhb-toolbar uhb-toolbar--print no-print">
-        <a href="{% url 'manuals:user_handbook' %}?user={{ manual_selected_user.id }}{% if manual_target_password and manual_target_password != 'غير متاح في النظام' %}&password={{ manual_target_password|urlencode }}{% endif %}{% if manual_search_query %}&q={{ manual_search_query|urlencode }}{% endif %}{% if manual_selected_group %}&group={{ manual_selected_group|urlencode }}{% endif %}" class="uhb-toolbar__button uhb-toolbar__button--ghost">
-            <i class="fas fa-arrow-right"></i>
-            <span>العودة إلى الدليل</span>
-        </a>
-        <button type="button" class="uhb-toolbar__button uhb-toolbar__button--primary" onclick="window.print()">
-            <i class="fas fa-print"></i>
-            <span>طباعة الآن</span>
-        </button>
-    </div>
     {% endif %}
 
     <article class="uhb-book">

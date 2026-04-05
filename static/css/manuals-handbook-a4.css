@@ -864,7 +864,14 @@
         --uhb-shadow: none;
     }
 
+    .no-print,
+    .uhb-toolbar,
+    .uhb-control-panel {
+        display: none !important;
+    }
+
     .manuals-handbook-shell--a4,
+    .uhb-shell,
     .uhb-book {
         width: var(--uhb-page-width) !important;
         max-width: none !important;
