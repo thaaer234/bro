@@ -549,7 +549,7 @@
           {% for item in active_enrollments %}
             {% if item.enrollment.is_completed == False %}
               <option value="{{ item.enrollment.course.id }}" 
-                      data-price="{{ item.net_amount|default:item.enrollment.course.price }}" 
+                      data-price="{{ item.enrollment.course.price|unlocalize }}" 
                       data-remaining="{{ item.balance_due }}"
                       data-enrollment-id="{{ item.enrollment.id|unlocalize }}"
                       data-course-name="{{ item.enrollment.course.name }}">
@@ -852,13 +852,21 @@ function formatNumber(number) {
     });
 }
 
+// ✅ تحويل الأرقام العربية/الفارسية إلى أرقام لاتينية
+function normalizeDigits(value) {
+    return (value || '').toString()
+        .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+        .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+}
+
 // ✅ دالة محسنة لتحويل الأرقام المنسقة
 function parseFormattedNumber(formattedNumber) {
     if (!formattedNumber) return 0;
-    
-    // إزالة جميع الفواصل
-    const cleanStr = formattedNumber.toString().replace(/,/g, '');
-    
+
+    let cleanStr = normalizeDigits(formattedNumber);
+    cleanStr = cleanStr.replace(/[,\s٬،]/g, '');
+    cleanStr = cleanStr.replace(/[^\d]/g, '');
+
     const number = parseFloat(cleanStr);
     return isNaN(number) ? 0 : number;
 }
@@ -884,8 +892,10 @@ function setupNumberFormatting() {
         });
         
         input.addEventListener('input', function() {
-            // أثناء الكتابة، نسمح فقط بالأرقام
-            this.value = this.value.replace(/[^\d]/g, '');
+            // أثناء الكتابة، نسمح بالأرقام (مع دعم الأرقام العربية/الفارسية)
+            let normalized = normalizeDigits(this.value);
+            normalized = normalized.replace(/[^\d]/g, '');
+            this.value = normalized;
         });
     });
 }
@@ -899,8 +909,8 @@ function formatNumberInput(input) {
         return;
     }
     
-    // تنظيف القيمة من أي أحرف غير مرغوب فيها
-    value = value.replace(/[^\d]/g, '');
+    // تنظيف القيمة من أي أحرف غير مرغوب فيها مع دعم الأرقام العربية/الفارسية
+    value = normalizeDigits(value).replace(/[^\d]/g, '');
     
     // تحويل إلى رقم
     const number = parseFormattedNumber(value);
