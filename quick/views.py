@@ -5710,6 +5710,10 @@ def quick_student_quick_receipt(request, student_id):
     
     try:
         if enrollment_id:
+            try:
+                enrollment_id = int(''.join(ch for ch in str(enrollment_id) if ch.isdigit()))
+            except Exception:
+                return JsonResponse({'ok': False, 'error': 'رقم التسجيل غير صالح'}, status=400)
             enrollment = QuickEnrollment.objects.get(pk=enrollment_id, student=student)
             
             if enrollment.is_completed:

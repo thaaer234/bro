@@ -551,7 +551,7 @@
               <option value="{{ item.enrollment.course.id }}" 
                       data-price="{{ item.net_amount|default:item.enrollment.course.price }}" 
                       data-remaining="{{ item.balance_due }}"
-                      data-enrollment-id="{{ item.enrollment.id }}"
+                      data-enrollment-id="{{ item.enrollment.id|unlocalize }}"
                       data-course-name="{{ item.enrollment.course.name }}">
                 {{ item.enrollment.course.name }} - المتبقي: {{ item.balance_due|floatformat:2 }} ل.س
                 {% if item.balance_due <= 0 %} (مكتمل الدفع){% endif %}
