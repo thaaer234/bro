@@ -4007,11 +4007,15 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             })
 
         if posted_assignments:
-            enrollments_map = {
-                enrollment.id: enrollment
-                for enrollment in QuickEnrollment.objects.filter(id__in=posted_assignments.keys())
-                .select_related('student', 'course', 'session_assignment', 'session_assignment__session', 'manual_sorting_selection')
-            }
+            base_qs = QuickEnrollment.objects.filter(id__in=posted_assignments.keys()).select_related(
+                'student',
+                'course',
+                'session_assignment',
+                'session_assignment__session',
+            )
+            if manual_selection_enabled:
+                base_qs = base_qs.select_related('manual_sorting_selection')
+            enrollments_map = {enrollment.id: enrollment for enrollment in base_qs}
             for enrollment_id, raw_value in posted_assignments.items():
                 enrollment = enrollments_map.get(enrollment_id)
                 if not enrollment:
