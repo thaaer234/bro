@@ -3771,10 +3771,23 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         is_assigned_to_active_session = bool(current_session_id and current_session_id in active_session_ids)
         is_effectively_assigned = is_assigned_to_active_session
 
-        totals = student_assignment_totals.setdefault(student.id, {'total': 0, 'assigned': 0})
-        totals['total'] += 1
-        if is_effectively_assigned:
-            totals['assigned'] += 1
+        totals = student_assignment_totals.setdefault(
+            student.id,
+            {
+                'non_single_total': 0,
+                'non_single_assigned': 0,
+                'single_total': 0,
+                'assigned_total': 0,
+            },
+        )
+        if has_single_active_session:
+            totals['single_total'] += 1
+        else:
+            totals['non_single_total'] += 1
+            if is_assigned_to_active_session:
+                totals['non_single_assigned'] += 1
+        if is_assigned_to_active_session:
+            totals['assigned_total'] += 1
         else:
             if current_session_id and current_session and not current_session.is_active:
                 issue_label = 'مربوط على فترة غير فعالة'
@@ -3813,12 +3826,24 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
     fully_assigned_student_ids = set()
     partially_assigned_student_ids = set()
     for student_id, totals in student_assignment_totals.items():
-        if totals['assigned'] == 0:
+        non_single_total = totals['non_single_total']
+        non_single_assigned = totals['non_single_assigned']
+        single_total = totals['single_total']
+        assigned_total = totals['assigned_total']
+
+        if non_single_total == 0:
+            if assigned_total > 0 or single_total > 0:
+                fully_assigned_student_ids.add(student_id)
+            else:
+                fully_unassigned_student_ids.add(student_id)
+            continue
+
+        if non_single_assigned == 0:
             fully_unassigned_student_ids.add(student_id)
-        elif totals['assigned'] == totals['total']:
-            fully_assigned_student_ids.add(student_id)
-        else:
+        elif non_single_assigned < non_single_total:
             partially_assigned_student_ids.add(student_id)
+        else:
+            fully_assigned_student_ids.add(student_id)
     unassigned_enrollments = [
         row for row in unassigned_enrollments
         if row['student'].id in fully_unassigned_student_ids
