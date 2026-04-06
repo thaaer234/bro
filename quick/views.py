@@ -3491,6 +3491,92 @@ def _extract_quick_teacher_short_name(course_name):
     return course_name
 
 
+def _extract_quick_teacher_full_name(course_name):
+    course_name = str(course_name or '').strip()
+    if not course_name:
+        return ''
+
+    teacher_full_name = ''
+    if '(' in course_name and ')' in course_name:
+        inner_text = course_name.rsplit('(', 1)[-1].split(')', 1)[0].strip()
+        teacher_full_name = inner_text
+        for prefix in ('الأستاذة', 'الاستاذة', 'الأستاذ', 'الاستاذ'):
+            if teacher_full_name.startswith(prefix):
+                teacher_full_name = teacher_full_name[len(prefix):].strip()
+                break
+    return teacher_full_name or course_name
+
+
+def _normalize_manual_sort_key(value):
+    value = str(value or '').strip()
+    return ''.join(value.split())
+
+
+MANUAL_SORT_TEACHER_ORDER = [
+    'علاء',
+    'قصي',
+    'مهند',
+    'طارق',
+    'عامر',
+    'عبد الرحمن',
+    'عبدالله',
+    'عبد الوهاب',
+    'عمار',
+    'اللاء',
+    'خالد رياضيات',
+    'حالد علوم',
+    'رامي',
+    'سامر',
+    'ضياء جغرافيا',
+    'محمد',
+    'ملهم',
+    'نبيل',
+    'زياد',
+    'ضياء تاريخ',
+    'عمار جغرافيا',
+    'عيسى',
+    'مجد',
+    'محمد فلسفة',
+]
+MANUAL_SORT_TEACHER_ORDER_MAP = {
+    _normalize_manual_sort_key(item): index
+    for index, item in enumerate(MANUAL_SORT_TEACHER_ORDER)
+}
+
+UNASSIGNED_FOCUS_TEACHERS = {
+    _normalize_manual_sort_key(name)
+    for name in [
+        'علاء',
+        'قصي',
+        'مهند',
+        'طارق',
+        'عد الله',
+        'عبد الله',
+        'عبد الوهاب',
+        'عمار',
+    ]
+}
+
+
+def _is_focus_teacher(course_name):
+    teacher_full = _extract_quick_teacher_full_name(course_name)
+    teacher_key = _normalize_manual_sort_key(teacher_full)
+    return teacher_key in UNASSIGNED_FOCUS_TEACHERS
+
+
+def _manual_course_order_index(column):
+    teacher_full = _extract_quick_teacher_full_name(column['course'].name)
+    subject = column.get('subject_name', '')
+    keys = [
+        _normalize_manual_sort_key(f'{teacher_full}{subject}'),
+        _normalize_manual_sort_key(teacher_full),
+    ]
+    for key in keys:
+        if key in MANUAL_SORT_TEACHER_ORDER_MAP:
+            return MANUAL_SORT_TEACHER_ORDER_MAP[key]
+    return len(MANUAL_SORT_TEACHER_ORDER) + 99
+
+
 def _extract_quick_course_subject(course_name):
     course_name = str(course_name or '').strip()
     if not course_name:
@@ -3602,6 +3688,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         course_columns.append({
             'course': course,
             'short_teacher_name': _extract_quick_teacher_short_name(course.name),
+            'teacher_full_name': _extract_quick_teacher_full_name(course.name),
             'subject_name': _extract_quick_course_subject(course.name),
             'sessions': option_rows,
             'sessions_count': len(option_rows),
@@ -3612,8 +3699,9 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
 
     course_columns.sort(
         key=lambda item: (
+            _manual_course_order_index(item),
             -item['sessions_count'],
-            item['short_teacher_name'],
+            item['teacher_full_name'],
             item['course'].name,
             item['course'].id,
         )
@@ -3663,10 +3751,12 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         current_session_id = getattr(assignment, 'session_id', None)
         active_session_ids = active_session_ids_by_course.get(enrollment.course_id, set())
         is_assigned_to_active_session = bool(current_session_id and current_session_id in active_session_ids)
+        has_single_active_session = len(active_session_ids) == 1
+        is_effectively_assigned = is_assigned_to_active_session or has_single_active_session
 
         totals = student_assignment_totals.setdefault(student.id, {'total': 0, 'assigned': 0})
         totals['total'] += 1
-        if is_assigned_to_active_session:
+        if is_effectively_assigned:
             totals['assigned'] += 1
         else:
             if current_session_id and current_session and not current_session.is_active:
@@ -3675,20 +3765,21 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
                 issue_label = 'الدورة بلا فترات فعالة'
             else:
                 issue_label = 'غير مربوط بفترة'
-            unassigned_enrollments.append({
-                'student': student,
-                'enrollment': enrollment,
-                'course': enrollment.course,
-                'issue_label': issue_label,
-                'active_sessions_count': len(active_session_ids),
-                'manual_selected_period_number': (
-                    active_period_numbers_by_session_id.get(manual_selection.session_id)
-                    if manual_selection and getattr(manual_selection, 'session_id', None)
-                    else None
-                ),
-                'current_session_title': current_session.title if current_session else '',
-                'manage_url': reverse('quick:course_sessions_manage', kwargs={'course_id': enrollment.course_id}),
-            })
+            if _is_focus_teacher(enrollment.course.name):
+                unassigned_enrollments.append({
+                    'student': student,
+                    'enrollment': enrollment,
+                    'course': enrollment.course,
+                    'issue_label': issue_label,
+                    'active_sessions_count': len(active_session_ids),
+                    'manual_selected_period_number': (
+                        active_period_numbers_by_session_id.get(manual_selection.session_id)
+                        if manual_selection and getattr(manual_selection, 'session_id', None)
+                        else None
+                    ),
+                    'current_session_title': current_session.title if current_session else '',
+                    'manage_url': reverse('quick:course_sessions_manage', kwargs={'course_id': enrollment.course_id}),
+                })
 
         student_row = student_rows_by_id.setdefault(
             student.id,
@@ -3715,6 +3806,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         row for row in unassigned_enrollments
         if row['student'].id in fully_unassigned_student_ids
     ]
+    focus_unassigned_student_ids = {row['student'].id for row in unassigned_enrollments}
 
     student_rows = []
     deprioritized_subjects = {'التاريخ', 'الجغرافيا', 'الفلسفة'}
@@ -3777,8 +3869,26 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             item['student'].id,
         )
     )
+    student_rows_all = list(student_rows)
+    if assignment_status == 'UNASSIGNED':
+        student_rows = [row for row in student_rows_all if row['student'].id in fully_unassigned_student_ids]
+    elif assignment_status == 'PARTIAL':
+        student_rows = [row for row in student_rows_all if row['student'].id in partially_assigned_student_ids]
+    elif assignment_status == 'ASSIGNED':
+        student_rows = [row for row in student_rows_all if row['student'].id in fully_assigned_student_ids]
+
+    student_order_index = {
+        row['student'].id: index
+        for index, row in enumerate(student_rows_all)
+    }
+    course_order_index = {
+        item['course'].id: index
+        for index, item in enumerate(course_columns)
+    }
     unassigned_enrollments.sort(
         key=lambda item: (
+            student_order_index.get(item['student'].id, 10**9),
+            course_order_index.get(item['course'].id, 10**9),
             item['student'].full_name,
             item['course'].name,
             item['enrollment'].id,
@@ -3803,7 +3913,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         'current_loads': current_loads,
         'unassigned_enrollments': unassigned_enrollments,
         'unassigned_enrollment_count': len(unassigned_enrollments),
-        'unassigned_student_count': len(fully_unassigned_student_ids),
+        'unassigned_student_count': len(focus_unassigned_student_ids),
         'assigned_student_count': len(fully_assigned_student_ids),
         'partial_student_count': len(partially_assigned_student_ids),
         'manual_selection_enabled': manual_selection_enabled,
