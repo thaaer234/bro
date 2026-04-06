@@ -4225,6 +4225,8 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             messages.warning(request, f'تم حفظ {saved_count} تعديل، وفشل تطبيق {failed_updates} تعديل.')
         elif saved_count:
             messages.success(request, f'تم حفظ {saved_count} تعديل في صفحة الفرز الحالية.')
+            if payload.get('assignment_status') and payload.get('assignment_status') != 'ALL':
+                messages.info(request, 'قد تختفي بعض السجلات بعد الحفظ بسبب تغيّر حالة التنزيل من الفلتر الحالي.')
         else:
             messages.info(request, 'لا يوجد تغييرات جديدة للحفظ في هذه الصفحة.')
 
