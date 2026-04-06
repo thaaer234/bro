@@ -4043,8 +4043,8 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 continue
             posted_assignments[enrollment_id] = (value or '').strip()
 
-        def _append_change(enrollment, student_name, course_name, new_session_id, current_session_id, manual_selected_session_id):
-            if current_session_id == new_session_id and manual_selected_session_id == new_session_id:
+        def _append_change(enrollment, student_name, course_name, new_session_id, current_session_id, manual_selected_session_id, force=False):
+            if not force and current_session_id == new_session_id and manual_selected_session_id == new_session_id:
                 return
             changes.append({
                 'student_name': student_name,
@@ -4105,6 +4105,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                     new_session_id,
                     getattr(getattr(enrollment, 'session_assignment', None), 'session_id', None),
                     getattr(getattr(enrollment, 'manual_sorting_selection', None), 'session_id', None),
+                    force=bool(raw_value),
                 )
         else:
             for row in rows_on_page:
