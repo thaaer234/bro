@@ -240,12 +240,6 @@ class QuickCourseSessionEnrollment(models.Model):
         if self.session.course_id != self.enrollment.course_id:
             raise ValidationError('لا يمكن توزيع الطالب على كلاس تابع لدورة مختلفة.')
 
-        if self.session.capacity and self.session.enrolled_count >= self.session.capacity:
-            existing_session_id = getattr(self, 'pk', None)
-            current_count = self.session.session_enrollments.exclude(pk=existing_session_id).count()
-            if current_count >= self.session.capacity:
-                raise ValidationError('هذا الصف وصل إلى السعة القصوى.')
-
 
 class QuickManualSortingSelection(models.Model):
     enrollment = models.OneToOneField('QuickEnrollment', on_delete=models.CASCADE, related_name='manual_sorting_selection')
