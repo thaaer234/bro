@@ -61,7 +61,7 @@
                 <span class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }} | {{ course_type_label }} | {{ stage_label }}</span>
             </div>
             <div class="toolbar__actions">
-                <a href="{% url 'quick:manual_sorting' %}?course_type={{ course_type }}&stage={{ stage }}" class="btn btn-secondary">العودة</a>
+                <a href="{% url 'quick:manual_sorting' %}?course_type={{ course_type }}&stage={{ stage }}&assignment_status={{ assignment_status }}" class="btn btn-secondary">العودة</a>
                 <button type="button" class="btn btn-primary" onclick="window.print()">طباعة</button>
             </div>
         </div>
@@ -77,13 +77,13 @@
                 <div class="stat"><span class="stat__label">عدد الدورات</span><strong class="stat__value">{{ total_courses }}</strong></div>
             </section>
             <section class="table-wrap">
-                {% if student_rows_unassigned and course_columns %}
+                {% if student_rows_unassigned and course_columns_unassigned_print %}
                 <table>
                     <thead>
                         <tr>
                             <th>#</th>
                             <th>الطالب</th>
-                            {% for column in course_columns %}
+                            {% for column in course_columns_unassigned_print %}
                             <th><span class="course-title">{{ column.short_teacher_name }}</span><span class="course-meta">{{ column.subject_name }}</span></th>
                             {% endfor %}
                         </tr>

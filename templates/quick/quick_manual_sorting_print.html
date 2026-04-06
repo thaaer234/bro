@@ -58,10 +58,10 @@
             <div class="toolbar__title">
                 <span class="toolbar__eyebrow">QUICK MANUAL SORTING</span>
                 <strong>كشف توزيع الطلاب على الفترات</strong>
-                <span class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }} | {{ course_type_label }} | {{ stage_label }}</span>
+                <span class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }} | {{ course_type_label }} | {{ stage_label }} | {{ assignment_status_label }}</span>
             </div>
             <div class="toolbar__actions">
-                <a href="{% url 'quick:manual_sorting' %}?course_type={{ course_type }}&stage={{ stage }}" class="btn btn-secondary">العودة للصفحة</a>
+                <a href="{% url 'quick:manual_sorting' %}?course_type={{ course_type }}&stage={{ stage }}&assignment_status={{ assignment_status }}" class="btn btn-secondary">العودة للصفحة</a>
                 <button type="button" class="btn btn-primary" onclick="window.print()">طباعة</button>
             </div>
         </div>
@@ -73,6 +73,7 @@
             <section class="stats">
                 <div class="stat"><span class="stat__label">نوع الدورات</span><strong class="stat__value">{{ course_type_label }}</strong></div>
                 <div class="stat"><span class="stat__label">المرحلة</span><strong class="stat__value">{{ stage_label }}</strong></div>
+                <div class="stat"><span class="stat__label">حالة التنزيل</span><strong class="stat__value">{{ assignment_status_label }}</strong></div>
                 <div class="stat"><span class="stat__label">عدد الطلاب</span><strong class="stat__value">{{ total_students }}</strong></div>
                 <div class="stat"><span class="stat__label">عدد الدورات</span><strong class="stat__value">{{ total_courses }}</strong></div>
             </section>

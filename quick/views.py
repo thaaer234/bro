@@ -3653,6 +3653,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         {'value': 'UNASSIGNED', 'label': 'غير منزلين بالكامل'},
         {'value': 'PARTIAL', 'label': 'منزلين جزئياً'},
         {'value': 'ASSIGNED', 'label': 'منزلين بالكامل'},
+        {'value': 'SINGLE_ONLY', 'label': 'طلاب الكلاس الواحد فقط'},
     ]
     valid_assignment_status = {item['value'] for item in assignment_status_options}
     if assignment_status not in valid_assignment_status:
@@ -3770,14 +3771,13 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         active_session_ids = active_session_ids_by_course.get(enrollment.course_id, set())
         is_assigned_to_active_session = bool(current_session_id and current_session_id in active_session_ids)
         has_single_active_session = len(active_session_ids) == 1
-        is_effectively_assigned = is_assigned_to_active_session
-
         totals = student_assignment_totals.setdefault(
             student.id,
             {
                 'non_single_total': 0,
                 'non_single_assigned': 0,
                 'single_total': 0,
+                'no_active_total': 0,
                 'assigned_total': 0,
             },
         )
@@ -3788,6 +3788,8 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             totals['non_single_total'] += 1
             if is_assigned_to_active_session:
                 totals['non_single_assigned'] += 1
+        else:
+            totals['no_active_total'] += 1
         if is_assigned_to_active_session:
             totals['assigned_total'] += 1
         else:
@@ -3797,7 +3799,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
                 issue_label = 'الدورة بلا فترات فعالة'
             else:
                 issue_label = 'غير مربوط بفترة'
-            if _is_focus_teacher(enrollment.course.name):
+            if _is_focus_teacher(enrollment.course.name) and len(active_session_ids) != 1:
                 unassigned_enrollments.append({
                     'student': student,
                     'enrollment': enrollment,
@@ -3827,14 +3829,20 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
     fully_unassigned_student_ids = set()
     fully_assigned_student_ids = set()
     partially_assigned_student_ids = set()
+    single_only_student_ids = set()
     for student_id, totals in student_assignment_totals.items():
         non_single_total = totals['non_single_total']
         non_single_assigned = totals['non_single_assigned']
         single_total = totals['single_total']
+        no_active_total = totals['no_active_total']
         assigned_total = totals['assigned_total']
 
         if non_single_total == 0:
-            if assigned_total > 0 or single_total > 0:
+            if no_active_total > 0:
+                fully_unassigned_student_ids.add(student_id)
+            elif single_total > 0 and assigned_total == 0:
+                single_only_student_ids.add(student_id)
+            elif assigned_total > 0:
                 fully_assigned_student_ids.add(student_id)
             else:
                 fully_unassigned_student_ids.add(student_id)
@@ -3842,7 +3850,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
 
         if non_single_assigned == 0:
             fully_unassigned_student_ids.add(student_id)
-        elif non_single_assigned < non_single_total:
+        elif non_single_assigned < non_single_total or no_active_total > 0:
             partially_assigned_student_ids.add(student_id)
         else:
             fully_assigned_student_ids.add(student_id)
@@ -3901,14 +3909,6 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         student_row['has_deprioritized_subject'] = any(subject in deprioritized_subjects for subject in student_subjects)
         student_rows.append(student_row)
 
-    student_rows_all = list(student_rows)
-    if assignment_status == 'UNASSIGNED':
-        student_rows = [row for row in student_rows_all if row['student'].id in fully_unassigned_student_ids]
-    elif assignment_status == 'PARTIAL':
-        student_rows = [row for row in student_rows_all if row['student'].id in partially_assigned_student_ids]
-    elif assignment_status == 'ASSIGNED':
-        student_rows = [row for row in student_rows_all if row['student'].id in fully_assigned_student_ids]
-
     student_rows.sort(
         key=lambda item: (
             item['has_deprioritized_subject'],
@@ -3924,6 +3924,28 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         student_rows = [row for row in student_rows_all if row['student'].id in partially_assigned_student_ids]
     elif assignment_status == 'ASSIGNED':
         student_rows = [row for row in student_rows_all if row['student'].id in fully_assigned_student_ids]
+    elif assignment_status == 'SINGLE_ONLY':
+        student_rows = [row for row in student_rows_all if row['student'].id in single_only_student_ids]
+    else:
+        student_rows = list(student_rows_all)
+
+    unassigned_print_course_columns = [
+        column for column in course_columns
+        if column['sessions_count'] != 1
+    ]
+    unassigned_print_course_ids = [column['course'].id for column in unassigned_print_course_columns]
+    student_rows_unassigned_print = []
+    if unassigned_print_course_ids:
+        for row in student_rows_all:
+            if row['student'].id not in fully_unassigned_student_ids:
+                continue
+            student_rows_unassigned_print.append({
+                **row,
+                'cells': [
+                    cell for cell in row['cells']
+                    if cell['course_id'] in unassigned_print_course_ids
+                ],
+            })
 
     student_order_index = {
         row['student'].id: index
@@ -3964,6 +3986,9 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         'unassigned_student_count': len(focus_unassigned_student_ids),
         'assigned_student_count': len(fully_assigned_student_ids),
         'partial_student_count': len(partially_assigned_student_ids),
+        'single_only_student_count': len(single_only_student_ids),
+        'course_columns_unassigned_print': unassigned_print_course_columns,
+        'student_rows_unassigned_print': student_rows_unassigned_print,
         'manual_selection_enabled': manual_selection_enabled,
         'generated_at': timezone.localtime(),
     }
@@ -4184,7 +4209,7 @@ class QuickManualSortingPrintView(LoginRequiredMixin, TemplateView):
         payload = _build_quick_manual_sorting_payload(
             course_type=self.request.GET.get('course_type') or 'INTENSIVE',
             stage=self.request.GET.get('stage') or 'NON_NINTH',
-            assignment_status='UNASSIGNED',
+            assignment_status=self.request.GET.get('assignment_status') or 'ALL',
         )
         context.update({
             **payload,
@@ -4205,18 +4230,13 @@ class QuickManualSortingUnassignedPrintView(LoginRequiredMixin, TemplateView):
             stage=self.request.GET.get('stage') or 'NON_NINTH',
             assignment_status=self.request.GET.get('assignment_status') or 'ALL',
         )
-        unassigned_student_ids = {item['student'].id for item in payload['unassigned_enrollments']}
-        unassigned_student_rows = [
-            row for row in payload.get('student_rows_all', payload['student_rows'])
-            if row['student'].id in unassigned_student_ids
-        ]
         context.update({
             **payload,
             'unassigned_rows': payload['unassigned_enrollments'],
-            'student_rows_unassigned': unassigned_student_rows,
+            'student_rows_unassigned': payload['student_rows_unassigned_print'],
             'total_unassigned_students': payload['unassigned_student_count'],
             'total_unassigned_enrollments': payload['unassigned_enrollment_count'],
-            'total_courses': len(payload['course_columns']),
+            'total_courses': len(payload['course_columns_unassigned_print']),
         })
         return context
 
