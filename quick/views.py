@@ -3769,6 +3769,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         current_session_id = getattr(assignment, 'session_id', None)
         active_session_ids = active_session_ids_by_course.get(enrollment.course_id, set())
         is_assigned_to_active_session = bool(current_session_id and current_session_id in active_session_ids)
+        has_single_active_session = len(active_session_ids) == 1
         is_effectively_assigned = is_assigned_to_active_session
 
         totals = student_assignment_totals.setdefault(
