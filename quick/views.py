@@ -3985,11 +3985,18 @@ class QuickManualSortingUnassignedPrintView(LoginRequiredMixin, TemplateView):
             course_type=self.request.GET.get('course_type') or 'INTENSIVE',
             stage=self.request.GET.get('stage') or 'NON_NINTH',
         )
+        unassigned_student_ids = {item['student'].id for item in payload['unassigned_enrollments']}
+        unassigned_student_rows = [
+            row for row in payload['student_rows']
+            if row['student'].id in unassigned_student_ids
+        ]
         context.update({
             **payload,
             'unassigned_rows': payload['unassigned_enrollments'],
+            'student_rows_unassigned': unassigned_student_rows,
             'total_unassigned_students': payload['unassigned_student_count'],
             'total_unassigned_enrollments': payload['unassigned_enrollment_count'],
+            'total_courses': len(payload['course_columns']),
         })
         return context
 

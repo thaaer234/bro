@@ -80,7 +80,7 @@ INSTALLED_APPS = [
     "attendance",
     "exams",
     "courses",
-    "classroom",
+    "classroom.apps.ClassroomConfig",
     "registration",
     "announcements.apps.AnnouncementsConfig",
     "api.apps.ApiConfig",
