@@ -4175,6 +4175,8 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
 
         saved_count = 0
         failed_updates = 0
+        created_count = 0
+        updated_count = 0
         manual_selection_enabled = payload.get('manual_selection_enabled', False)
         with transaction.atomic():
             for change in changes:
@@ -4191,13 +4193,17 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                         saved_count += 1
                     continue
 
-                QuickCourseSessionEnrollment.objects.update_or_create(
+                assignment, created = QuickCourseSessionEnrollment.objects.update_or_create(
                     enrollment=enrollment,
                     defaults={
                         'session_id': new_session_id,
                         'assigned_by': request.user,
                     },
                 )
+                if created:
+                    created_count += 1
+                else:
+                    updated_count += 1
                 if not QuickCourseSessionEnrollment.objects.filter(
                     enrollment=enrollment,
                     session_id=new_session_id,
@@ -4231,7 +4237,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         if failed_updates:
             messages.warning(request, f'تم حفظ {saved_count} تعديل، وفشل تطبيق {failed_updates} تعديل.')
         elif saved_count:
-            messages.success(request, f'تم حفظ {saved_count} تعديل في صفحة الفرز الحالية.')
+            messages.success(request, f'تم حفظ {saved_count} تعديل في صفحة الفرز الحالية. (جديد: {created_count}، تعديل: {updated_count})')
             if payload.get('assignment_status') and payload.get('assignment_status') != 'ALL':
                 messages.info(request, 'قد تختفي بعض السجلات بعد الحفظ بسبب تغيّر حالة التنزيل من الفلتر الحالي.')
         else:
