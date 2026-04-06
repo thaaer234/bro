@@ -3752,7 +3752,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         active_session_ids = active_session_ids_by_course.get(enrollment.course_id, set())
         is_assigned_to_active_session = bool(current_session_id and current_session_id in active_session_ids)
         has_single_active_session = len(active_session_ids) == 1
-        is_effectively_assigned = is_assigned_to_active_session or has_single_active_session
+        is_effectively_assigned = is_assigned_to_active_session and not has_single_active_session
 
         totals = student_assignment_totals.setdefault(student.id, {'total': 0, 'assigned': 0})
         totals['total'] += 1
@@ -3832,6 +3832,10 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
                 selected_session_id = column['single_session_id']
             elif manual_selection and getattr(manual_selection, 'session_id', None) in {item['id'] for item in column['sessions']}:
                 selected_session_id = manual_selection.session_id
+            else:
+                current_session_id = getattr(assignment, 'session_id', None)
+                if current_session_id in {item['id'] for item in column['sessions']}:
+                    selected_session_id = current_session_id
 
             cells.append({
                 'course_id': course.id,
@@ -3984,59 +3988,119 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         course_column_map = payload['course_column_map']
         changes = []
         validation_errors = []
+        posted_assignments = {
+            int(key.replace('assignment_', '')): (value or '').strip()
+            for key, value in request.POST.items()
+            if key.startswith('assignment_')
+        }
 
-        for row in rows_on_page:
-            for cell in row['cells']:
-                if not cell.get('is_enrolled'):
+        def _append_change(enrollment, student_name, course_name, new_session_id, current_session_id, manual_selected_session_id):
+            if current_session_id == new_session_id and manual_selected_session_id == new_session_id:
+                return
+            changes.append({
+                'student_name': student_name,
+                'course_name': course_name,
+                'enrollment': enrollment,
+                'current_session_id': current_session_id,
+                'manual_selected_session_id': manual_selected_session_id,
+                'new_session_id': new_session_id,
+            })
+
+        if posted_assignments:
+            enrollments_map = {
+                enrollment.id: enrollment
+                for enrollment in QuickEnrollment.objects.filter(id__in=posted_assignments.keys())
+                .select_related('student', 'course', 'session_assignment', 'session_assignment__session', 'manual_sorting_selection')
+            }
+            for enrollment_id, raw_value in posted_assignments.items():
+                enrollment = enrollments_map.get(enrollment_id)
+                if not enrollment:
                     continue
-
-                enrollment = cell['enrollment']
-                column = course_column_map.get(cell['course_id'])
+                column = course_column_map.get(enrollment.course_id)
                 if not column:
                     continue
-
                 available_session_ids = {item['id'] for item in column['sessions']}
-                raw_value = (request.POST.get(f'assignment_{enrollment.id}') or '').strip()
                 new_session_id = None
-
                 if raw_value:
                     try:
                         new_session_id = int(raw_value)
                     except (TypeError, ValueError):
-                        validation_errors.append(f"اختيار غير صالح للطالب {row['student'].full_name} في دورة {enrollment.course.name}.")
+                        validation_errors.append(f"اختيار غير صالح للطالب {enrollment.student.full_name} في دورة {enrollment.course.name}.")
                         continue
                     if new_session_id not in available_session_ids:
-                        validation_errors.append(f"الفترة المختارة لا تتبع دورة {enrollment.course.name} للطالب {row['student'].full_name}.")
+                        validation_errors.append(f"الفترة المختارة لا تتبع دورة {enrollment.course.name} للطالب {enrollment.student.full_name}.")
                         continue
                 elif column['single_session_id']:
                     new_session_id = column['single_session_id']
                 else:
-                    # Multi-session courses stay blank by default. If this row was
-                    # previously fixed from this screen, blank means "clear my fix".
-                    if cell.get('manual_selected_session_id'):
-                        changes.append({
-                            'student_name': row['student'].full_name,
-                            'course_name': enrollment.course.name,
-                            'enrollment': enrollment,
-                            'current_session_id': cell.get('current_session_id'),
-                            'manual_selected_session_id': cell.get('manual_selected_session_id'),
-                            'new_session_id': None,
-                        })
+                    manual_selected_session_id = getattr(getattr(enrollment, 'manual_sorting_selection', None), 'session_id', None)
+                    if manual_selected_session_id:
+                        _append_change(
+                            enrollment,
+                            enrollment.student.full_name,
+                            enrollment.course.name,
+                            None,
+                            getattr(getattr(enrollment, 'session_assignment', None), 'session_id', None),
+                            manual_selected_session_id,
+                        )
                     continue
 
-                current_session_id = cell.get('current_session_id')
-                manual_selected_session_id = cell.get('manual_selected_session_id')
-                if current_session_id == new_session_id and manual_selected_session_id == new_session_id:
-                    continue
+                _append_change(
+                    enrollment,
+                    enrollment.student.full_name,
+                    enrollment.course.name,
+                    new_session_id,
+                    getattr(getattr(enrollment, 'session_assignment', None), 'session_id', None),
+                    getattr(getattr(enrollment, 'manual_sorting_selection', None), 'session_id', None),
+                )
+        else:
+            for row in rows_on_page:
+                for cell in row['cells']:
+                    if not cell.get('is_enrolled'):
+                        continue
 
-                changes.append({
-                    'student_name': row['student'].full_name,
-                    'course_name': enrollment.course.name,
-                    'enrollment': enrollment,
-                    'current_session_id': current_session_id,
-                    'manual_selected_session_id': manual_selected_session_id,
-                    'new_session_id': new_session_id,
-                })
+                    enrollment = cell['enrollment']
+                    column = course_column_map.get(cell['course_id'])
+                    if not column:
+                        continue
+
+                    available_session_ids = {item['id'] for item in column['sessions']}
+                    raw_value = (request.POST.get(f'assignment_{enrollment.id}') or '').strip()
+                    new_session_id = None
+
+                    if raw_value:
+                        try:
+                            new_session_id = int(raw_value)
+                        except (TypeError, ValueError):
+                            validation_errors.append(f"اختيار غير صالح للطالب {row['student'].full_name} في دورة {enrollment.course.name}.")
+                            continue
+                        if new_session_id not in available_session_ids:
+                            validation_errors.append(f"الفترة المختارة لا تتبع دورة {enrollment.course.name} للطالب {row['student'].full_name}.")
+                            continue
+                    elif column['single_session_id']:
+                        new_session_id = column['single_session_id']
+                    else:
+                        # Multi-session courses stay blank by default. If this row was
+                        # previously fixed from this screen, blank means "clear my fix".
+                        if cell.get('manual_selected_session_id'):
+                            _append_change(
+                                enrollment,
+                                row['student'].full_name,
+                                enrollment.course.name,
+                                None,
+                                cell.get('current_session_id'),
+                                cell.get('manual_selected_session_id'),
+                            )
+                        continue
+
+                    _append_change(
+                        enrollment,
+                        row['student'].full_name,
+                        enrollment.course.name,
+                        new_session_id,
+                        cell.get('current_session_id'),
+                        cell.get('manual_selected_session_id'),
+                    )
 
         simulated_loads = dict(payload['current_loads'])
         session_lookup = {
