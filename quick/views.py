@@ -3994,6 +3994,106 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
     }
 
 
+def _save_quick_manual_sorting_assignments(
+    posted_assignments,
+    enrollments_map,
+    sessions_by_course,
+    session_course_map,
+    user,
+    manual_selection_enabled=False,
+):
+    saved_count = 0
+    created_count = 0
+    updated_count = 0
+    cleared_count = 0
+    unchanged_count = 0
+    validation_errors = []
+
+    with transaction.atomic():
+        for enrollment_id, raw_value in posted_assignments.items():
+            enrollment = enrollments_map.get(enrollment_id)
+            if not enrollment:
+                continue
+
+            available_sessions = sessions_by_course.get(enrollment.course_id, [])
+            has_single_session = len(available_sessions) == 1
+            target_session_id = None
+
+            if raw_value:
+                try:
+                    target_session_id = int(raw_value)
+                except (TypeError, ValueError):
+                    validation_errors.append(
+                        f"اختيار غير صالح للطالب {enrollment.student.full_name} في دورة {enrollment.course.name}."
+                    )
+                    continue
+            elif has_single_session:
+                target_session_id = available_sessions[0].id
+
+            if target_session_id is not None and session_course_map.get(target_session_id) != enrollment.course_id:
+                validation_errors.append(
+                    f"الفترة المختارة لا تتبع نفس الدورة للطالب {enrollment.student.full_name}."
+                )
+                continue
+
+            assignment = getattr(enrollment, 'session_assignment', None)
+            current_session_id = getattr(assignment, 'session_id', None)
+
+            if target_session_id is None:
+                if assignment:
+                    assignment.delete()
+                    cleared_count += 1
+                    saved_count += 1
+                    if manual_selection_enabled:
+                        QuickManualSortingSelection.objects.filter(enrollment=enrollment).delete()
+                else:
+                    unchanged_count += 1
+                continue
+
+            if assignment and current_session_id == target_session_id:
+                unchanged_count += 1
+                if manual_selection_enabled:
+                    QuickManualSortingSelection.objects.update_or_create(
+                        enrollment=enrollment,
+                        defaults={
+                            'session_id': target_session_id,
+                            'selected_by': user,
+                        },
+                    )
+                continue
+
+            assignment, created = QuickCourseSessionEnrollment.objects.update_or_create(
+                enrollment=enrollment,
+                defaults={
+                    'session_id': target_session_id,
+                    'assigned_by': user,
+                },
+            )
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+            saved_count += 1
+
+            if manual_selection_enabled:
+                QuickManualSortingSelection.objects.update_or_create(
+                    enrollment=enrollment,
+                    defaults={
+                        'session_id': target_session_id,
+                        'selected_by': user,
+                    },
+                )
+
+    return {
+        'saved_count': saved_count,
+        'created_count': created_count,
+        'updated_count': updated_count,
+        'cleared_count': cleared_count,
+        'unchanged_count': unchanged_count,
+        'validation_errors': validation_errors,
+    }
+
+
 class QuickManualSortingView(LoginRequiredMixin, TemplateView):
     template_name = 'quick/quick_manual_sorting.html'
     page_size = 30
@@ -4090,88 +4190,40 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             sessions_by_course[session.course_id].append(session)
             session_course_map[session.id] = session.course_id
 
-        saved_count = 0
-        created_count = 0
-        updated_count = 0
-        cleared_count = 0
-        unchanged_count = 0
-        validation_errors = []
-
-        with transaction.atomic():
-            for enrollment_id, raw_value in posted_assignments.items():
-                enrollment = enrollments_map.get(enrollment_id)
-                if not enrollment:
-                    continue
-
-                available_sessions = sessions_by_course.get(enrollment.course_id, [])
-                has_single_session = len(available_sessions) == 1
-                target_session_id = None
-
-                if raw_value:
-                    try:
-                        target_session_id = int(raw_value)
-                    except (TypeError, ValueError):
-                        validation_errors.append(
-                            f"اختيار غير صالح للطالب {enrollment.student.full_name} في دورة {enrollment.course.name}."
-                        )
-                        continue
-                elif has_single_session:
-                    target_session_id = available_sessions[0].id
-
-                if target_session_id is not None:
-                    if session_course_map.get(target_session_id) != enrollment.course_id:
-                        validation_errors.append(
-                            f"الفترة المختارة لا تتبع نفس الدورة للطالب {enrollment.student.full_name}."
-                        )
-                        continue
-
-                assignment = getattr(enrollment, 'session_assignment', None)
-                current_session_id = getattr(assignment, 'session_id', None)
-
-                if target_session_id is None:
-                    if assignment:
-                        assignment.delete()
-                        cleared_count += 1
-                        saved_count += 1
-                        if manual_selection_enabled:
-                            QuickManualSortingSelection.objects.filter(enrollment=enrollment).delete()
-                    else:
-                        unchanged_count += 1
-                    continue
-
-                if assignment and current_session_id == target_session_id:
-                    unchanged_count += 1
-                    if manual_selection_enabled:
-                        QuickManualSortingSelection.objects.update_or_create(
-                            enrollment=enrollment,
-                            defaults={
-                                'session_id': target_session_id,
-                                'selected_by': request.user,
-                            },
-                        )
-                    continue
-
-                assignment, created = QuickCourseSessionEnrollment.objects.update_or_create(
-                    enrollment=enrollment,
-                    defaults={
-                        'session_id': target_session_id,
-                        'assigned_by': request.user,
-                    },
+        save_result = None
+        last_lock_error = None
+        for attempt in range(4):
+            try:
+                close_old_connections()
+                _configure_sqlite_busy_timeout(timeout_ms=45000)
+                save_result = _save_quick_manual_sorting_assignments(
+                    posted_assignments=posted_assignments,
+                    enrollments_map=enrollments_map,
+                    sessions_by_course=sessions_by_course,
+                    session_course_map=session_course_map,
+                    user=request.user,
+                    manual_selection_enabled=manual_selection_enabled,
                 )
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
-                saved_count += 1
+                last_lock_error = None
+                break
+            except OperationalError as exc:
+                if 'database is locked' not in str(exc).lower():
+                    raise
+                last_lock_error = exc
+                close_old_connections()
+                connection.close()
+                time.sleep(0.75 * (attempt + 1))
 
-                if manual_selection_enabled:
-                    QuickManualSortingSelection.objects.update_or_create(
-                        enrollment=enrollment,
-                        defaults={
-                            'session_id': target_session_id,
-                            'selected_by': request.user,
-                        },
-                    )
+        if last_lock_error and save_result is None:
+            messages.error(request, 'تعذر حفظ التعديلات حالياً لأن قاعدة البيانات مشغولة. أعد المحاولة بعد ثوانٍ.')
+            return self.render_to_response(self._build_context(payload))
+
+        saved_count = save_result['saved_count']
+        created_count = save_result['created_count']
+        updated_count = save_result['updated_count']
+        cleared_count = save_result['cleared_count']
+        unchanged_count = save_result['unchanged_count']
+        validation_errors = save_result['validation_errors']
 
         if validation_errors:
             for error in validation_errors[:8]:
