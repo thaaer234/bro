@@ -4070,9 +4070,6 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 if not enrollment:
                     continue
                 column = course_column_map.get(enrollment.course_id)
-                if not column:
-                    continue
-                available_session_ids = {item['id'] for item in column['sessions']}
                 new_session_id = None
                 if raw_value:
                     try:
@@ -4080,10 +4077,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                     except (TypeError, ValueError):
                         validation_errors.append(f"اختيار غير صالح للطالب {enrollment.student.full_name} في دورة {enrollment.course.name}.")
                         continue
-                    if new_session_id not in available_session_ids:
-                        validation_errors.append(f"الفترة المختارة لا تتبع دورة {enrollment.course.name} للطالب {enrollment.student.full_name}.")
-                        continue
-                elif column['single_session_id']:
+                elif column and column.get('single_session_id'):
                     new_session_id = column['single_session_id']
                 else:
                     manual_selected_session_id = getattr(getattr(enrollment, 'manual_sorting_selection', None), 'session_id', None)
