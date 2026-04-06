@@ -3523,11 +3523,11 @@ MANUAL_SORT_TEACHER_ORDER = [
     'عبد الوهاب',
     'عمار',
     'اللاء',
-    'خالد رياضيات',
-    'حالد علوم',
+    'خالدرياضيات',
+    'حالدعلوم',
     'رامي',
     'سامر',
-    'ضياء جغرافيا',
+    'ضياءجغرافيا',
     'محمد',
     'ملهم',
     'نبيل',
@@ -3536,12 +3536,27 @@ MANUAL_SORT_TEACHER_ORDER = [
     'عمار جغرافيا',
     'عيسى',
     'مجد',
-    'محمد فلسفة',
+    'محمدفلسفة',
 ]
-MANUAL_SORT_TEACHER_ORDER_MAP = {
-    _normalize_manual_sort_key(item): index
-    for index, item in enumerate(MANUAL_SORT_TEACHER_ORDER)
+MANUAL_SORT_TEACHER_ALIASES = {
+    'خالدرياضيات': ['خالد رياضيات'],
+    'حالدعلوم': ['حالد علوم', 'خالدعلوم', 'خالد علوم'],
+    'ضياءجغرافيا': ['ضياء جغرافيا'],
+    'ضياء تاريخ': ['ضياءتاريخ'],
+    'محمدفلسفة': ['محمد فلسفة'],
 }
+MANUAL_SORT_TEACHER_ORDER_MAP = {}
+MANUAL_SORT_TEACHER_ORDER_KEYS = []
+for index, item in enumerate(MANUAL_SORT_TEACHER_ORDER):
+    normalized = _normalize_manual_sort_key(item)
+    if normalized not in MANUAL_SORT_TEACHER_ORDER_MAP:
+        MANUAL_SORT_TEACHER_ORDER_MAP[normalized] = index
+        MANUAL_SORT_TEACHER_ORDER_KEYS.append((normalized, index))
+    for alias in MANUAL_SORT_TEACHER_ALIASES.get(item, []):
+        alias_key = _normalize_manual_sort_key(alias)
+        if alias_key not in MANUAL_SORT_TEACHER_ORDER_MAP:
+            MANUAL_SORT_TEACHER_ORDER_MAP[alias_key] = index
+            MANUAL_SORT_TEACHER_ORDER_KEYS.append((alias_key, index))
 
 UNASSIGNED_FOCUS_TEACHERS = {
     _normalize_manual_sort_key(name)
@@ -3574,6 +3589,9 @@ def _manual_course_order_index(column):
     for key in keys:
         if key in MANUAL_SORT_TEACHER_ORDER_MAP:
             return MANUAL_SORT_TEACHER_ORDER_MAP[key]
+        for ordered_key, index in MANUAL_SORT_TEACHER_ORDER_KEYS:
+            if ordered_key and ordered_key in key:
+                return index
     return len(MANUAL_SORT_TEACHER_ORDER) + 99
 
 
@@ -3751,8 +3769,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         current_session_id = getattr(assignment, 'session_id', None)
         active_session_ids = active_session_ids_by_course.get(enrollment.course_id, set())
         is_assigned_to_active_session = bool(current_session_id and current_session_id in active_session_ids)
-        has_single_active_session = len(active_session_ids) == 1
-        is_effectively_assigned = is_assigned_to_active_session and not has_single_active_session
+        is_effectively_assigned = is_assigned_to_active_session
 
         totals = student_assignment_totals.setdefault(student.id, {'total': 0, 'assigned': 0})
         totals['total'] += 1
@@ -3988,11 +4005,16 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         course_column_map = payload['course_column_map']
         changes = []
         validation_errors = []
-        posted_assignments = {
-            int(key.replace('assignment_', '')): (value or '').strip()
-            for key, value in request.POST.items()
-            if key.startswith('assignment_')
-        }
+        posted_assignments = {}
+        for key, value in request.POST.items():
+            if not key.startswith('assignment_'):
+                continue
+            raw_id = key.replace('assignment_', '')
+            try:
+                enrollment_id = int(raw_id)
+            except (TypeError, ValueError):
+                continue
+            posted_assignments[enrollment_id] = (value or '').strip()
 
         def _append_change(enrollment, student_name, course_name, new_session_id, current_session_id, manual_selected_session_id):
             if current_session_id == new_session_id and manual_selected_session_id == new_session_id:
