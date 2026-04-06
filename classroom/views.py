@@ -70,7 +70,9 @@ class AssignStudentsView(View):
         
         # الحصول على الطلاب المسجلين في هذه الشعبة
         current_enrollments = Classroomenrollment.objects.filter(classroom=classroom)
-        assigned_students = [e.student for e in current_enrollments]
+        assigned_students = Student.objects.filter(
+            classroom_enrollments__classroom=classroom
+        ).distinct()
         
         # نبدأ بكل الطلاب النشطين فقط
         base_students = Student.objects.filter(is_active=True)
@@ -99,23 +101,31 @@ class AssignStudentsView(View):
         classroom = get_object_or_404(Classroom, id=classroom_id)
         student_ids = request.POST.getlist('student_ids')
 
-        if student_ids:
-            for student_id in student_ids:
-                student = get_object_or_404(Student, id=student_id)
+        if not student_ids:
+            messages.warning(request, 'يرجى اختيار طالب واحد على الأقل.')
+            return redirect('classroom:assign_students', classroom_id=classroom_id)
+
+        added_count = 0
+        for student_id in student_ids:
+            student = get_object_or_404(Student, id=student_id)
                 
-                try:
-                    Classroomenrollment.objects.create(
-                        student=student,
-                        classroom=classroom,
-                    )
-                except ValidationError as e:
-                    messages.error(request, str(e))
-                    continue
-                except IntegrityError:
-                    messages.warning(request, f'الطالب {student.full_name} مسجل بالفعل في هذه الشعبة')
-                    continue
-            
-            messages.success(request, 'تم تعيين الطلاب للشعبة بنجاح')
+            try:
+                enrollment = Classroomenrollment(
+                    student=student,
+                    classroom=classroom,
+                )
+                enrollment.full_clean()
+                enrollment.save()
+                added_count += 1
+            except ValidationError as e:
+                messages.error(request, f'{student.full_name}: {" | ".join(e.messages)}')
+                continue
+            except IntegrityError:
+                messages.warning(request, f'الطالب {student.full_name} مسجل بالفعل في هذه الشعبة')
+                continue
+
+        if added_count:
+            messages.success(request, f'تمت إضافة {added_count} طالب إلى الشعبة بنجاح')
         
         return redirect('classroom:assign_students', classroom_id=classroom_id)
 
