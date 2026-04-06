@@ -4180,6 +4180,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             return self.render_to_response(self._build_context(payload))
 
         saved_count = 0
+        failed_updates = 0
         manual_selection_enabled = payload.get('manual_selection_enabled', False)
         with transaction.atomic():
             for change in changes:
@@ -4203,8 +4204,10 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                         'assigned_by': request.user,
                     },
                 )
-                if created or assignment.session_id == new_session_id:
+                if assignment.session_id == new_session_id:
                     saved_count += 1
+                else:
+                    failed_updates += 1
 
                 if manual_selection_enabled:
                     previous_manual_session_id = change.get('manual_selected_session_id')
@@ -4218,7 +4221,9 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                     if (created or previous_manual_session_id != new_session_id) and current_assignment and current_assignment.session_id == new_session_id:
                         saved_count += 1
 
-        if saved_count:
+        if failed_updates:
+            messages.warning(request, f'تم حفظ {saved_count} تعديل، وفشل تطبيق {failed_updates} تعديل.')
+        elif saved_count:
             messages.success(request, f'تم حفظ {saved_count} تعديل في صفحة الفرز الحالية.')
         else:
             messages.info(request, 'لا يوجد تغييرات جديدة للحفظ في هذه الصفحة.')

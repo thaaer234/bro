@@ -121,6 +121,9 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
                     </select>
                 </div>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>عرض الجدول</button>
+                {% if print_url %}
+                <a href="{{ print_url }}" class="btn btn-outline-primary"><i class="fas fa-print me-1"></i>طباعة هذا الفلتر</a>
+                {% endif %}
             </form>
         </div>
     </div>
