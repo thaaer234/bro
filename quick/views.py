@@ -4009,6 +4009,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         redirect_query = urlencode({
             'course_type': payload['course_type'],
             'stage': payload['stage'],
+            'assignment_status': payload.get('assignment_status', 'ALL'),
             'page': page_obj.number,
         })
         return redirect(f'{redirect_url}?{redirect_query}')
