@@ -4170,12 +4170,6 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 simulated_loads[old_session_id] = max(0, simulated_loads.get(old_session_id, 0) - 1)
             if new_session_id:
                 next_load = simulated_loads.get(new_session_id, 0) + 1
-                session = session_lookup.get(new_session_id)
-                if session and session.capacity and next_load > session.capacity:
-                    validation_errors.append(
-                        f"لا يمكن وضع الطالب {change['student_name']} في {session.title} لأن السعة امتلأت."
-                    )
-                    continue
                 simulated_loads[new_session_id] = next_load
 
         if validation_errors:
