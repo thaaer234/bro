@@ -4202,6 +4202,10 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                         current_assignment.assigned_by = request.user
                         current_assignment.save(update_fields=['session', 'assigned_by'])
                         saved_count += 1
+                    else:
+                        current_assignment.assigned_by = request.user
+                        current_assignment.save(update_fields=['assigned_by'])
+                        saved_count += 1
                 else:
                     QuickCourseSessionEnrollment.objects.create(
                         enrollment=enrollment,
