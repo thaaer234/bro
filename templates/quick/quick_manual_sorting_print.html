@@ -100,7 +100,7 @@
                             {% for cell in row.cells %}
                             <td>
                                 {% if cell.is_enrolled %}
-                                <span class="cell-state cell-state--ok">✓</span><br>
+                                <span class="cell-state cell-state--ok">&#10003;</span><br>
                                 {% if cell.selected_period_number %}
                                 <span class="period-badge">{{ cell.selected_period_number }}</span>
                                 {% elif cell.has_sessions %}
@@ -109,7 +109,7 @@
                                 <span class="cell-state cell-state--muted"></span>
                                 {% endif %}
                                 {% else %}
-                                <span class="cell-state cell-state--bad">✕</span>
+                                <span class="cell-state cell-state--bad">&#10005;</span>
                                 {% endif %}
                             </td>
                             {% endfor %}

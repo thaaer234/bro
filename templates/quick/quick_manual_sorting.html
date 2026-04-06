@@ -88,7 +88,9 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
         <div class="manual-sort-stat"><span class="manual-sort-stat__label">عدد الدورات الظاهرة</span><strong class="manual-sort-stat__value">{{ total_courses }}</strong></div>
         <div class="manual-sort-stat"><span class="manual-sort-stat__label">عدد الطلاب الكلي</span><strong class="manual-sort-stat__value">{{ total_students }}</strong></div>
         <div class="manual-sort-stat"><span class="manual-sort-stat__label">طلاب هذه الصفحة</span><strong class="manual-sort-stat__value">{{ students_on_page }}</strong></div>
-        <div class="manual-sort-stat"><span class="manual-sort-stat__label">الغير منزلين</span><strong class="manual-sort-stat__value">{{ unassigned_student_count }}</strong></div>
+        <div class="manual-sort-stat"><span class="manual-sort-stat__label">غير منزلين بالكامل</span><strong class="manual-sort-stat__value">{{ unassigned_student_count }}</strong></div>
+        <div class="manual-sort-stat"><span class="manual-sort-stat__label">منزلين جزئياً</span><strong class="manual-sort-stat__value">{{ partial_student_count }}</strong></div>
+        <div class="manual-sort-stat"><span class="manual-sort-stat__label">منزلين بالكامل</span><strong class="manual-sort-stat__value">{{ assigned_student_count }}</strong></div>
     </div>
 
     <div class="card manual-sort-panel mb-4">
@@ -110,6 +112,14 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
                         {% endfor %}
                     </select>
                 </div>
+                <div>
+                    <label for="assignment_status" class="form-label fw-bold">حالة التنزيل</label>
+                    <select name="assignment_status" id="assignment_status" class="form-select">
+                        {% for option in assignment_status_options %}
+                        <option value="{{ option.value }}" {% if option.value == assignment_status %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>عرض الجدول</button>
             </form>
         </div>
@@ -122,6 +132,7 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
                 {% csrf_token %}
                 <input type="hidden" name="course_type" value="{{ course_type }}">
                 <input type="hidden" name="stage" value="{{ stage }}">
+                <input type="hidden" name="assignment_status" value="{{ assignment_status }}">
                 <input type="hidden" name="page" value="{{ page_obj.number }}">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                     <div class="text-muted">الصفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}، والترتيب حسب عدد الدورات المسجل بها كل طالب.</div>
@@ -179,8 +190,8 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
                 <div class="manual-sort-pagination">
                     <div class="text-muted">يعرض {{ page_obj.start_index }} - {{ page_obj.end_index }} من أصل {{ total_students }} طالب.</div>
                     <div class="d-flex gap-2 flex-wrap">
-                        {% if page_obj.has_previous %}<a href="?course_type={{ course_type }}&stage={{ stage }}&page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary js-manual-page-link"><i class="fas fa-arrow-right me-1"></i>السابق</a>{% endif %}
-                        {% if page_obj.has_next %}<a href="?course_type={{ course_type }}&stage={{ stage }}&page={{ page_obj.next_page_number }}" class="btn btn-outline-primary js-manual-page-link">التالي<i class="fas fa-arrow-left ms-1"></i></a>{% endif %}
+                        {% if page_obj.has_previous %}<a href="?course_type={{ course_type }}&stage={{ stage }}&assignment_status={{ assignment_status }}&page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary js-manual-page-link"><i class="fas fa-arrow-right me-1"></i>السابق</a>{% endif %}
+                        {% if page_obj.has_next %}<a href="?course_type={{ course_type }}&stage={{ stage }}&assignment_status={{ assignment_status }}&page={{ page_obj.next_page_number }}" class="btn btn-outline-primary js-manual-page-link">التالي<i class="fas fa-arrow-left ms-1"></i></a>{% endif %}
                     </div>
                 </div>
             </form>
