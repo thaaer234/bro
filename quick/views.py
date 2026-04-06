@@ -3781,9 +3781,10 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
                 'assigned_total': 0,
             },
         )
+        has_active_sessions = len(active_session_ids) > 0
         if has_single_active_session:
             totals['single_total'] += 1
-        else:
+        elif has_active_sessions:
             totals['non_single_total'] += 1
             if is_assigned_to_active_session:
                 totals['non_single_assigned'] += 1
@@ -4027,9 +4028,6 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         payload = self._get_payload()
         page_obj = self._get_page_obj(payload['student_rows'])
-        rows_on_page = list(page_obj.object_list)
-        course_column_map = payload['course_column_map']
-        changes = []
         validation_errors = []
         manual_selection_enabled = payload.get('manual_selection_enabled', False)
         posted_assignments = {}
@@ -4043,159 +4041,44 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 continue
             posted_assignments[enrollment_id] = (value or '').strip()
 
-        def _append_change(enrollment, student_name, course_name, new_session_id, current_session_id, manual_selected_session_id, force=False):
-            if not force and current_session_id == new_session_id and manual_selected_session_id == new_session_id:
-                return
-            changes.append({
-                'student_name': student_name,
-                'course_name': course_name,
-                'enrollment': enrollment,
-                'current_session_id': current_session_id,
-                'manual_selected_session_id': manual_selected_session_id,
-                'new_session_id': new_session_id,
-            })
+        if not posted_assignments:
+            messages.info(request, 'لا يوجد تغييرات جديدة للحفظ في هذه الصفحة.')
+            return self.render_to_response(self._build_context(payload))
 
-        if posted_assignments:
-            base_qs = QuickEnrollment.objects.filter(id__in=posted_assignments.keys()).select_related(
+        enrollments = list(
+            QuickEnrollment.objects.filter(id__in=posted_assignments.keys()).select_related(
                 'student',
                 'course',
                 'session_assignment',
                 'session_assignment__session',
             )
-            if manual_selection_enabled:
-                base_qs = base_qs.select_related('manual_sorting_selection')
-            enrollments_map = {enrollment.id: enrollment for enrollment in base_qs}
+        )
+        enrollments_map = {enrollment.id: enrollment for enrollment in enrollments}
+
+        saved_count = 0
+        created_count = 0
+        updated_count = 0
+
+        with transaction.atomic():
             for enrollment_id, raw_value in posted_assignments.items():
                 enrollment = enrollments_map.get(enrollment_id)
                 if not enrollment:
                     continue
-                column = course_column_map.get(enrollment.course_id)
-                new_session_id = None
-                if raw_value:
-                    try:
-                        new_session_id = int(raw_value)
-                    except (TypeError, ValueError):
-                        validation_errors.append(f"اختيار غير صالح للطالب {enrollment.student.full_name} في دورة {enrollment.course.name}.")
-                        continue
-                elif column and column.get('single_session_id'):
-                    new_session_id = column['single_session_id']
-                else:
-                    manual_selected_session_id = getattr(getattr(enrollment, 'manual_sorting_selection', None), 'session_id', None)
-                    if manual_selected_session_id:
-                        _append_change(
-                            enrollment,
-                            enrollment.student.full_name,
-                            enrollment.course.name,
-                            None,
-                            getattr(getattr(enrollment, 'session_assignment', None), 'session_id', None),
-                            manual_selected_session_id,
-                        )
+
+                if not raw_value:
                     continue
 
-                _append_change(
-                    enrollment,
-                    enrollment.student.full_name,
-                    enrollment.course.name,
-                    new_session_id,
-                    getattr(getattr(enrollment, 'session_assignment', None), 'session_id', None),
-                    getattr(getattr(enrollment, 'manual_sorting_selection', None), 'session_id', None),
-                    force=bool(raw_value),
-                )
-        else:
-            for row in rows_on_page:
-                for cell in row['cells']:
-                    if not cell.get('is_enrolled'):
-                        continue
-
-                    enrollment = cell['enrollment']
-                    column = course_column_map.get(cell['course_id'])
-                    if not column:
-                        continue
-
-                    available_session_ids = {item['id'] for item in column['sessions']}
-                    raw_value = (request.POST.get(f'assignment_{enrollment.id}') or '').strip()
-                    new_session_id = None
-
-                    if raw_value:
-                        try:
-                            new_session_id = int(raw_value)
-                        except (TypeError, ValueError):
-                            validation_errors.append(f"اختيار غير صالح للطالب {row['student'].full_name} في دورة {enrollment.course.name}.")
-                            continue
-                        if new_session_id not in available_session_ids:
-                            validation_errors.append(f"الفترة المختارة لا تتبع دورة {enrollment.course.name} للطالب {row['student'].full_name}.")
-                            continue
-                    elif column['single_session_id']:
-                        new_session_id = column['single_session_id']
-                    else:
-                        # Multi-session courses stay blank by default. If this row was
-                        # previously fixed from this screen, blank means "clear my fix".
-                        if cell.get('manual_selected_session_id'):
-                            _append_change(
-                                enrollment,
-                                row['student'].full_name,
-                                enrollment.course.name,
-                                None,
-                                cell.get('current_session_id'),
-                                cell.get('manual_selected_session_id'),
-                            )
-                        continue
-
-                    _append_change(
-                        enrollment,
-                        row['student'].full_name,
-                        enrollment.course.name,
-                        new_session_id,
-                        cell.get('current_session_id'),
-                        cell.get('manual_selected_session_id'),
-                    )
-
-        simulated_loads = dict(payload['current_loads'])
-        session_lookup = {
-            item['id']: item['session']
-            for column in payload['course_columns']
-            for item in column['sessions']
-        }
-
-        for change in changes:
-            old_session_id = change['current_session_id']
-            new_session_id = change['new_session_id']
-            if old_session_id:
-                simulated_loads[old_session_id] = max(0, simulated_loads.get(old_session_id, 0) - 1)
-            if new_session_id:
-                next_load = simulated_loads.get(new_session_id, 0) + 1
-                simulated_loads[new_session_id] = next_load
-
-        if validation_errors:
-            for error in validation_errors[:8]:
-                messages.error(request, error)
-            if len(validation_errors) > 8:
-                messages.error(request, f"يوجد {len(validation_errors) - 8} أخطاء إضافية لم تُعرض هنا.")
-            return self.render_to_response(self._build_context(payload))
-
-        saved_count = 0
-        failed_updates = 0
-        created_count = 0
-        updated_count = 0
-        manual_selection_enabled = payload.get('manual_selection_enabled', False)
-        with transaction.atomic():
-            for change in changes:
-                enrollment = change['enrollment']
-                current_assignment = getattr(enrollment, 'session_assignment', None)
-                new_session_id = change['new_session_id']
-
-                if new_session_id is None:
-                    manual_selection = getattr(enrollment, 'manual_sorting_selection', None) if manual_selection_enabled else None
-                    if manual_selection_enabled and manual_selection:
-                        manual_selection.delete()
-                    if current_assignment and change.get('manual_selected_session_id') == current_assignment.session_id:
-                        current_assignment.delete()
-                        saved_count += 1
+                try:
+                    new_session_id = int(raw_value)
+                except (TypeError, ValueError):
+                    validation_errors.append(f"اختيار غير صالح للطالب {enrollment.student.full_name} في دورة {enrollment.course.name}.")
                     continue
 
-                QuickCourseSessionEnrollment.objects.filter(
-                    enrollment=enrollment
-                ).delete()
+                if not QuickCourseSession.objects.filter(id=new_session_id).exists():
+                    validation_errors.append(f"الفترة المختارة غير موجودة للطالب {enrollment.student.full_name} في دورة {enrollment.course.name}.")
+                    continue
+
+                QuickCourseSessionEnrollment.objects.filter(enrollment=enrollment).delete()
                 QuickCourseSessionEnrollment.objects.create(
                     enrollment=enrollment,
                     session_id=new_session_id,
@@ -4205,20 +4088,22 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 created_count += 1
 
                 if manual_selection_enabled:
-                    previous_manual_session_id = change.get('manual_selected_session_id')
-                    manual_selection, created = QuickManualSortingSelection.objects.update_or_create(
+                    QuickManualSortingSelection.objects.update_or_create(
                         enrollment=enrollment,
                         defaults={
                             'session_id': new_session_id,
                             'selected_by': request.user,
                         },
                     )
-                    if (created or previous_manual_session_id != new_session_id) and current_assignment and current_assignment.session_id == new_session_id:
-                        saved_count += 1
 
-        if failed_updates:
-            messages.warning(request, f'تم حفظ {saved_count} تعديل، وفشل تطبيق {failed_updates} تعديل.')
-        elif saved_count:
+        if validation_errors:
+            for error in validation_errors[:8]:
+                messages.error(request, error)
+            if len(validation_errors) > 8:
+                messages.error(request, f"يوجد {len(validation_errors) - 8} أخطاء إضافية لم تُعرض هنا.")
+            return self.render_to_response(self._build_context(payload))
+
+        if saved_count:
             messages.success(request, f'تم حفظ {saved_count} تعديل في صفحة الفرز الحالية. (جديد: {created_count}، تعديل: {updated_count})')
             if payload.get('assignment_status') and payload.get('assignment_status') != 'ALL':
                 messages.info(request, 'قد تختفي بعض السجلات بعد الحفظ بسبب تغيّر حالة التنزيل من الفلتر الحالي.')
