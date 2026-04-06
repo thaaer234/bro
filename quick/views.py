@@ -3643,7 +3643,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
 
     student_rows_by_id = {}
     unassigned_enrollments = []
-    unassigned_student_ids = set()
+    student_has_active_assignment = {}
     for enrollment in enrollments:
         student = enrollment.student
         assignment = getattr(enrollment, 'session_assignment', None)
@@ -3653,7 +3653,10 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         active_session_ids = active_session_ids_by_course.get(enrollment.course_id, set())
         is_assigned_to_active_session = bool(current_session_id and current_session_id in active_session_ids)
 
-        if not is_assigned_to_active_session:
+        student_has_active_assignment.setdefault(student.id, False)
+        if is_assigned_to_active_session:
+            student_has_active_assignment[student.id] = True
+        else:
             if current_session_id and current_session and not current_session.is_active:
                 issue_label = 'مربوط على فترة غير فعالة'
             elif not active_session_ids:
@@ -3674,7 +3677,6 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
                 'current_session_title': current_session.title if current_session else '',
                 'manage_url': reverse('quick:course_sessions_manage', kwargs={'course_id': enrollment.course_id}),
             })
-            unassigned_student_ids.add(student.id)
 
         student_row = student_rows_by_id.setdefault(
             student.id,
@@ -3686,6 +3688,16 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         )
         student_row['enrollments_by_course'][enrollment.course_id] = enrollment
         student_row['enrolled_courses_count'] += 1
+
+    fully_unassigned_student_ids = {
+        student_id
+        for student_id, has_assignment in student_has_active_assignment.items()
+        if not has_assignment
+    }
+    unassigned_enrollments = [
+        row for row in unassigned_enrollments
+        if row['student'].id in fully_unassigned_student_ids
+    ]
 
     student_rows = []
     deprioritized_subjects = {'التاريخ', 'الجغرافيا', 'الفلسفة'}
@@ -3762,7 +3774,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         'current_loads': current_loads,
         'unassigned_enrollments': unassigned_enrollments,
         'unassigned_enrollment_count': len(unassigned_enrollments),
-        'unassigned_student_count': len(unassigned_student_ids),
+        'unassigned_student_count': len(fully_unassigned_student_ids),
         'manual_selection_enabled': manual_selection_enabled,
         'generated_at': timezone.localtime(),
     }
