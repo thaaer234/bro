@@ -4191,14 +4191,17 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                         saved_count += 1
                     continue
 
-                assignment, created = QuickCourseSessionEnrollment.objects.update_or_create(
+                QuickCourseSessionEnrollment.objects.update_or_create(
                     enrollment=enrollment,
                     defaults={
                         'session_id': new_session_id,
                         'assigned_by': request.user,
                     },
                 )
-                if assignment.session_id == new_session_id:
+                if QuickCourseSessionEnrollment.objects.filter(
+                    enrollment=enrollment,
+                    session_id=new_session_id,
+                ).exists():
                     saved_count += 1
                 else:
                     failed_updates += 1
