@@ -4031,6 +4031,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         course_column_map = payload['course_column_map']
         changes = []
         validation_errors = []
+        manual_selection_enabled = payload.get('manual_selection_enabled', False)
         posted_assignments = {}
         for key, value in request.POST.items():
             if not key.startswith('assignment_'):
