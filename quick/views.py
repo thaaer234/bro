@@ -4198,6 +4198,16 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                         'assigned_by': request.user,
                     },
                 )
+                if not QuickCourseSessionEnrollment.objects.filter(
+                    enrollment=enrollment,
+                    session_id=new_session_id,
+                ).exists():
+                    QuickCourseSessionEnrollment.objects.filter(
+                        enrollment=enrollment
+                    ).update(
+                        session_id=new_session_id,
+                        assigned_by=request.user,
+                    )
                 if QuickCourseSessionEnrollment.objects.filter(
                     enrollment=enrollment,
                     session_id=new_session_id,
