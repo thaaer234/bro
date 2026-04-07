@@ -36,6 +36,7 @@ from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 from itertools import combinations
 from math import ceil
+import logging
 import time
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_GET
@@ -66,6 +67,7 @@ from accounts.models import Course, CostCenter
 from .services.receipt_printer import QuickReceiptPrinterError, print_many_receipts
 from employ.decorators import require_superuser
 User = get_user_model()
+logger = logging.getLogger('django')
 
 
 def _get_employee_cash_account(user):
@@ -4154,6 +4156,14 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         payload = self._get_payload()
         page_obj = self._get_page_obj(payload['student_rows'])
         manual_selection_enabled = payload.get('manual_selection_enabled', False)
+        logger.info(
+            'manual_sorting_post_start user=%s status=%s stage=%s course_type=%s page=%s',
+            getattr(request.user, 'username', 'anonymous'),
+            payload.get('assignment_status'),
+            payload.get('stage'),
+            payload.get('course_type'),
+            getattr(page_obj, 'number', ''),
+        )
 
         posted_assignments = {}
         for key, value in request.POST.items():
@@ -4166,7 +4176,14 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 continue
             posted_assignments[enrollment_id] = (value or '').strip()
 
+        logger.info(
+            'manual_sorting_post_payload_count=%s sample=%s',
+            len(posted_assignments),
+            list(posted_assignments.items())[:5],
+        )
+
         if not posted_assignments:
+            logger.warning('manual_sorting_post_empty_payload')
             messages.info(request, 'لا يوجد تغييرات جديدة للحفظ في هذه الصفحة.')
             return self.render_to_response(self._build_context(payload))
 
@@ -4215,6 +4232,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 time.sleep(0.75 * (attempt + 1))
 
         if last_lock_error and save_result is None:
+            logger.error('manual_sorting_post_locked user=%s', getattr(request.user, 'username', 'anonymous'))
             messages.error(request, 'تعذر حفظ التعديلات حالياً لأن قاعدة البيانات مشغولة. أعد المحاولة بعد ثوانٍ.')
             return self.render_to_response(self._build_context(payload))
 
@@ -4224,12 +4242,22 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         cleared_count = save_result['cleared_count']
         unchanged_count = save_result['unchanged_count']
         validation_errors = save_result['validation_errors']
+        logger.info(
+            'manual_sorting_post_result saved=%s created=%s updated=%s cleared=%s unchanged=%s errors=%s',
+            saved_count,
+            created_count,
+            updated_count,
+            cleared_count,
+            unchanged_count,
+            len(validation_errors),
+        )
 
         if validation_errors:
             for error in validation_errors[:8]:
                 messages.error(request, error)
             if len(validation_errors) > 8:
                 messages.error(request, f"يوجد {len(validation_errors) - 8} أخطاء إضافية لم تُعرض هنا.")
+            logger.warning('manual_sorting_post_validation_errors sample=%s', validation_errors[:3])
             return self.render_to_response(self._build_context(payload))
 
         if saved_count:
@@ -4255,6 +4283,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             'assignment_status': redirect_assignment_status,
             'page': page_obj.number,
         })
+        logger.info('manual_sorting_post_redirect=%s?%s', redirect_url, redirect_query)
         return redirect(f'{redirect_url}?{redirect_query}')
 
 
