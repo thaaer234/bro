@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+<style>
+.quick-free-page { display:grid; gap:1rem; }
+.quick-free-hero, .quick-free-panel, .quick-free-course, .quick-free-tip { border:0; border-radius:28px !important; overflow:hidden; box-shadow:0 24px 50px rgba(15, 23, 42, .08); }
+.quick-free-hero { background: radial-gradient(circle at top left, rgba(246, 185, 74, .18), transparent 0 34%), radial-gradient(circle at bottom right, rgba(15, 118, 110, .16), transparent 0 30%), linear-gradient(135deg, #fffdf7, #f6fbff 55%, #edf9f4); }
+.quick-free-hero .card-body, .quick-free-panel .card-body, .quick-free-course .card-body, .quick-free-tip .card-body { padding:1.35rem; }
+.quick-free-title { margin:0 0 .55rem; color:#16324f; font-size:2rem; font-weight:900; }
+.quick-free-subtitle { margin:0; max-width:860px; color:#5b6b82; line-height:1.9; }
+.quick-free-actions { display:flex; flex-wrap:wrap; gap:.75rem; }
+.quick-free-actions .btn { min-height:46px; border-radius:14px; }
+.quick-free-filter-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:1rem; align-items:end; }
+.quick-free-filter-grid .filter-wide { grid-column:span 2; }
+.quick-free-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; }
+.quick-free-stat { border-radius:24px; padding:1rem 1.1rem; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,247,255,.94)); border:1px solid rgba(95, 121, 196, .12); box-shadow:0 18px 38px rgba(15, 23, 42, .06); }
+.quick-free-stat__label { display:block; margin-bottom:.4rem; color:#5b6b82; font-size:.82rem; font-weight:800; }
+.quick-free-stat__value { color:#16324f; font-size:1.85rem; font-weight:900; line-height:1.1; }
+.quick-free-stat__value.money { color:#b42318; }
+.quick-free-tip { background:linear-gradient(135deg, rgba(236, 253, 243, .95), rgba(224, 247, 232, .94)); }
+.quick-free-tip .tip-label { color:#067647; font-size:.78rem; font-weight:900; letter-spacing:.04em; }
+.quick-free-tip h4 { margin:.2rem 0; color:#16324f; font-weight:900; }
+.quick-free-tip p { margin:0; color:#315b4a; line-height:1.8; }
+.quick-free-course { background:linear-gradient(180deg, rgba(255,255,255,.99), rgba(247,250,255,.95)); }
+.quick-free-course__head { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+.quick-free-course__title { margin:0; color:#16324f; font-size:1.35rem; font-weight:900; }
+.quick-free-course__meta { color:#5b6b82; margin-top:.35rem; line-height:1.8; }
+.quick-free-badges { display:flex; gap:.6rem; flex-wrap:wrap; }
+.quick-free-badge { display:inline-flex; align-items:center; gap:.35rem; padding:.5rem .85rem; border-radius:999px; font-size:.8rem; font-weight:900; }
+.quick-free-badge.primary { background:rgba(76, 125, 255, .14); color:#204ebc; }
+.quick-free-badge.success { background:rgba(31, 211, 155, .16); color:#0f6b52; }
+.quick-free-badge.warning { background:rgba(246, 185, 74, .2); color:#8a5a00; }
+.quick-free-badge.danger { background:rgba(180, 35, 24, .12); color:#b42318; }
+.quick-free-table-wrap { overflow:auto; border-radius:22px; border:1px solid rgba(95, 121, 196, .12); }
+.quick-free-table { margin:0 !important; }
+.quick-free-table thead th { background:linear-gradient(180deg, #17324e, #12243b); color:#fff; border:0; font-size:.82rem; white-space:nowrap; }
+.quick-free-table td { vertical-align:middle; }
+.quick-free-student-name { font-weight:900; color:#16324f; }
+.quick-free-student-meta { color:#6a7890; font-size:.82rem; line-height:1.7; }
+.quick-free-chip { display:inline-flex; align-items:center; justify-content:center; padding:.45rem .75rem; border-radius:999px; font-size:.78rem; font-weight:900; }
+.quick-free-chip.primary { background:rgba(76, 125, 255, .14); color:#204ebc; }
+.quick-free-chip.success { background:rgba(31, 211, 155, .16); color:#0f6b52; }
+.quick-free-chip.warning { background:rgba(246, 185, 74, .2); color:#8a5a00; }
+.quick-free-chip.danger { background:rgba(180, 35, 24, .12); color:#b42318; }
+.quick-free-empty { padding:3.5rem 1.5rem; text-align:center; color:#667085; }
+@media (max-width: 992px) { .quick-free-filter-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } .quick-free-filter-grid .filter-wide { grid-column:span 2; } }
+@media (max-width: 640px) { .quick-free-filter-grid, .quick-free-stats { grid-template-columns:1fr; } .quick-free-filter-grid .filter-wide { grid-column:auto; } .quick-free-title { font-size:1.55rem; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid quick-free-page">
+    <div class="card quick-free-hero">
+        <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2 class="quick-free-title">تقرير حسومات الطلاب</h2>
+                <p class="quick-free-subtitle">يعرض هذا التقرير كل الطلاب الذين لديهم أي حسم داخل الدورات السريعة بحسب الفلتر الحالي، سواء كان نسبة أو قيمة ثابتة أو إعفاء كامل، مع القيمة الفعلية للحسم لكل طالب وتجميع واضح حسب كل دورة.</p>
+            </div>
+            <div class="quick-free-actions">
+                <a href="{% url 'quick:course_list' %}" class="btn btn-light"><i class="fas fa-layer-group me-1"></i>الدورات السريعة</a>
+                <a href="{% url 'quick:outstanding_courses' %}?course_type={{ course_type }}" class="btn btn-outline-light"><i class="fas fa-file-invoice-dollar me-1"></i>تقرير المستحقات</a>
+                <a href="{% url 'quick:quick_course_session_counts_report' %}" class="btn btn-outline-light"><i class="fas fa-users-viewfinder me-1"></i>أعداد الكلاسات</a>
+                <a href="{{ print_url }}" target="_blank" class="btn btn-outline-light"><i class="fas fa-print me-1"></i>طباعة التقرير</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card quick-free-panel">
+        <div class="card-body">
+            <form method="get" class="quick-free-filter-grid">
+                <div>
+                    <label class="form-label fw-bold">نوع الدورة</label>
+                    <select name="course_type" class="form-select">
+                        {% for option in course_type_options %}
+                        <option value="{{ option.value }}" {% if option.value == course_type %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label fw-bold">الفصل الدراسي</label>
+                    <select name="academic_year" class="form-select">
+                        <option value="">كل الفصول</option>
+                        {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if academic_year_id == year.id %}selected{% endif %}>{{ year.name }} - {{ year.year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-wide">
+                    <label class="form-label fw-bold">الدورات المحددة</label>
+                    <select name="course_ids" class="form-select" multiple size="6">
+                        {% for course in available_courses %}
+                        <option value="{{ course.id }}" {% if course.id in selected_course_ids %}selected{% endif %}>{{ course.name }} | {{ course.academic_year.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-wide">
+                    <label class="form-label fw-bold">بحث</label>
+                    <input type="search" name="q" value="{{ search_query }}" class="form-control" placeholder="اسم الدورة أو الطالب أو الكلاس">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i>تطبيق الفلتر</button>
+                </div>
+                <div>
+                    <a href="{% url 'quick:quick_free_students_report' %}" class="btn btn-outline-secondary w-100"><i class="fas fa-rotate-left me-1"></i>إعادة</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="quick-free-stats">
+        <div class="quick-free-stat"><span class="quick-free-stat__label">الدورات التي فيها حسومات</span><strong class="quick-free-stat__value">{{ total_courses_with_discount }}</strong></div>
+        <div class="quick-free-stat"><span class="quick-free-stat__label">عدد الطلاب المحسومين</span><strong class="quick-free-stat__value">{{ total_discounted_students }}</strong></div>
+        <div class="quick-free-stat"><span class="quick-free-stat__label">إجمالي قيمة الحسومات</span><strong class="quick-free-stat__value money">{{ total_discount_value|floatformat:0 }}</strong></div>
+        <div class="quick-free-stat"><span class="quick-free-stat__label">متوسط الحسم لكل طالب</span><strong class="quick-free-stat__value">{{ average_discount_value|floatformat:0 }}</strong></div>
+    </div>
+
+    {% if largest_discount_course %}
+    <div class="card quick-free-tip">
+        <div class="card-body">
+            <div class="tip-label">أعلى دورة من حيث الحسومات</div>
+            <h4>{{ largest_discount_course.course.name }}</h4>
+            <p>تضم هذه الدورة <strong>{{ largest_discount_course.discounted_students_count }}</strong> طالب عليه حسم، وبقيمة حسومات إجمالية <strong>{{ largest_discount_course.total_discount_value|floatformat:0 }} ل.س</strong>. آخر تحديث للتقرير: {{ generated_at|date:"Y-m-d H:i" }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if course_rows %}
+        {% for row in course_rows %}
+        <div class="card quick-free-course">
+            <div class="card-body">
+                <div class="quick-free-course__head">
+                    <div>
+                        <h3 class="quick-free-course__title">{{ row.course.name }}</h3>
+                        <div class="quick-free-course__meta">{{ row.course.get_course_type_display }} | {{ row.course.academic_year.name }} - {{ row.course.academic_year.year }}{% if row.course.name_ar %}<br>{{ row.course.name_ar }}{% endif %}</div>
+                    </div>
+                    <div class="quick-free-badges">
+                        <span class="quick-free-badge primary">طلاب محسومون {{ row.discounted_students_count }}</span>
+                        <span class="quick-free-badge danger">حسومات {{ row.total_discount_value|floatformat:0 }} ل.س</span>
+                        <span class="quick-free-badge success">مجاني 100% {{ row.full_free_count }}</span>
+                        <span class="quick-free-badge {% if row.students_with_payments %}warning{% else %}success{% endif %}">{% if row.students_with_payments %}يوجد قبض {{ row.students_with_payments }}{% else %}بدون قبض{% endif %}</span>
+                    </div>
+                </div>
+
+                <div class="quick-free-table-wrap">
+                    <table class="table quick-free-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>الطالب</th>
+                                <th>الهاتف</th>
+                                <th class="text-end">سعر الدورة</th>
+                                <th class="text-center">نوع الحسم</th>
+                                <th class="text-center">النسبة %</th>
+                                <th class="text-end">الحسم الثابت</th>
+                                <th class="text-end">قيمة الحسم الفعلية</th>
+                                <th class="text-end">الصافي</th>
+                                <th class="text-end">المقبوض</th>
+                                <th class="text-center">الإجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in row.students %}
+                            <tr>
+                                <td>
+                                    <div class="quick-free-student-name">{{ item.student.full_name }}</div>
+                                    <div class="quick-free-student-meta">تاريخ التسجيل {{ item.enrollment.enrollment_date|date:"Y-m-d" }}</div>
+                                </td>
+                                <td>{{ item.student.phone|default:"-" }}</td>
+                                <td class="text-end">{{ item.total_amount|floatformat:0 }} ل.س</td>
+                                <td class="text-center"><span class="quick-free-chip {% if item.is_full_free %}success{% else %}primary{% endif %}">{{ item.discount_label }}</span></td>
+                                <td class="text-center">{{ item.discount_percent|floatformat:0 }}</td>
+                                <td class="text-end">{{ item.discount_amount|floatformat:0 }} ل.س</td>
+                                <td class="text-end"><span class="quick-free-chip danger">{{ item.discount_value|floatformat:0 }} ل.س</span></td>
+                                <td class="text-end">{{ item.net_amount|floatformat:0 }} ل.س</td>
+                                <td class="text-end">{% if item.has_payments %}<span class="quick-free-chip warning">{{ item.paid_total|floatformat:0 }} ل.س</span>{% else %}<span class="quick-free-chip success">0</span>{% endif %}</td>
+                                <td class="text-center"><a href="{% url 'quick:student_profile' item.student.id %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-user me-1"></i>الملف</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="card quick-free-panel">
+        <div class="quick-free-empty">
+            <i class="fas fa-hand-holding-heart fa-3x mb-3 d-block opacity-50"></i>
+            <h4 class="mb-2">لا يوجد طلاب عليهم حسومات ضمن هذا الفلتر</h4>
+            <p class="mb-0">جرّب تغيير نوع الدورة أو الفصل أو إزالة بعض التحديدات لتوسيع النتائج.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

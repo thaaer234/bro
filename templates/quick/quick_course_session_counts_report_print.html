@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>طباعة تقرير أعداد الكلاسات السريعة</title>
+    <style>
+        @page { size: A4; margin: 10mm; }
+        :root {
+            --primary:#0f766e;
+            --primary-dark:#16324f;
+            --accent:#3b82f6;
+            --surface:#ffffff;
+            --surface-soft:#f4f8ff;
+            --border:#d8e3f1;
+            --text:#16324f;
+            --muted:#64748b;
+            --warning:#9a6700;
+            --success:#166534;
+            --danger:#b42318;
+        }
+        * { box-sizing:border-box; }
+        body {
+            margin:0;
+            background:#eef4fb;
+            color:var(--text);
+            font-family:"Cairo", Tahoma, sans-serif;
+            font-size:13px;
+            line-height:1.65;
+        }
+        .print-toolbar {
+            position:sticky;
+            top:0;
+            z-index:10;
+            display:flex;
+            justify-content:center;
+            gap:10px;
+            padding:14px;
+            background:rgba(238,244,251,.94);
+            backdrop-filter:blur(8px);
+        }
+        .btn {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:42px;
+            padding:0 16px;
+            border-radius:12px;
+            border:1px solid transparent;
+            text-decoration:none;
+            font-weight:700;
+            cursor:pointer;
+            background:linear-gradient(135deg, var(--primary-dark), var(--primary), var(--accent));
+            color:#fff;
+        }
+        .btn-secondary {
+            background:#fff;
+            border-color:var(--border);
+            color:var(--text);
+        }
+        .report-page {
+            width:min(1120px, calc(100% - 24px));
+            margin:0 auto 24px;
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:24px;
+            box-shadow:0 20px 50px rgba(15,23,42,.08);
+            overflow:hidden;
+        }
+        .report-hero {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:18px;
+            padding:24px 28px;
+            background:linear-gradient(135deg, #16324f, #0f766e 58%, #3b82f6);
+            color:#fff;
+        }
+        .report-hero h1 { margin:0 0 8px; font-size:28px; }
+        .report-hero p, .report-meta { margin:0; color:rgba(255,255,255,.86); }
+        .report-body { padding:22px; }
+        .summary-grid {
+            display:grid;
+            grid-template-columns:repeat(4, minmax(0, 1fr));
+            gap:14px;
+            margin-bottom:18px;
+        }
+        .summary-card, .course-card {
+            padding:16px;
+            border-radius:18px;
+            background:var(--surface-soft);
+            border:1px solid var(--border);
+        }
+        .summary-label { color:var(--muted); font-size:12px; font-weight:700; }
+        .summary-value { margin-top:6px; font-size:24px; font-weight:800; color:var(--text); }
+        .section-title { margin:24px 0 12px; font-size:18px; font-weight:800; }
+        .course-card { margin-bottom:16px; break-inside:avoid; }
+        .course-head {
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:14px;
+            margin-bottom:12px;
+        }
+        .course-title { margin:0 0 6px; font-size:18px; font-weight:800; }
+        .muted { color:var(--muted); font-size:11px; }
+        .badge-row {
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+        }
+        .pill {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:30px;
+            padding:0 10px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:800;
+        }
+        .pill.primary { background:rgba(59,130,246,.14); color:#1d4ed8; }
+        .pill.success { background:rgba(22,163,74,.14); color:var(--success); }
+        .pill.warning { background:rgba(245,158,11,.18); color:var(--warning); }
+        .table-card {
+            overflow:hidden;
+            border-radius:18px;
+            border:1px solid var(--border);
+        }
+        table { width:100%; border-collapse:collapse; }
+        thead th {
+            padding:12px 10px;
+            background:linear-gradient(135deg, #16324f, #0f766e);
+            color:#fff;
+            font-size:12px;
+            font-weight:800;
+            text-align:right;
+        }
+        tbody td {
+            padding:11px 10px;
+            border-bottom:1px solid #e7eef7;
+            vertical-align:middle;
+        }
+        tbody tr:nth-child(even) td { background:#fbfdff; }
+        .text-center { text-align:center; }
+        .text-end { text-align:left; }
+        .status-live { color:var(--success); font-weight:800; }
+        .status-upcoming { color:var(--warning); font-weight:800; }
+        .status-finished { color:#475569; font-weight:800; }
+        .footer-note { margin-top:10px; color:var(--muted); font-size:11px; }
+        @media print {
+            body { background:#fff; }
+            .print-toolbar { display:none !important; }
+            .report-page { width:100%; margin:0; border:0; border-radius:0; box-shadow:none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar">
+        <button type="button" class="btn" onclick="window.print()">طباعة</button>
+        <a href="{{ report_url }}" class="btn btn-secondary">العودة للتقرير</a>
+    </div>
+
+    <div class="report-page">
+        <div class="report-hero">
+            <div>
+                <h1>تقرير أعداد الكلاسات والدورات السريعة</h1>
+                <p>تفصيل الكلاسات والطلاب المنزلين وغير المنزلين حسب الفلتر الحالي.</p>
+            </div>
+            <div class="report-meta">
+                <div>نوع الدورة: {{ course_type_report_label }}</div>
+                <div>تاريخ الطباعة: {{ generated_at|date:"Y-m-d H:i" }}</div>
+            </div>
+        </div>
+
+        <div class="report-body">
+            <div class="summary-grid">
+                <div class="summary-card"><div class="summary-label">الدورات الظاهرة</div><div class="summary-value">{{ total_courses }}</div></div>
+                <div class="summary-card"><div class="summary-label">الكلاسات الفعالة</div><div class="summary-value">{{ total_sessions }}</div></div>
+                <div class="summary-card"><div class="summary-label">إجمالي المسجلين</div><div class="summary-value">{{ total_enrollments }}</div></div>
+                <div class="summary-card"><div class="summary-label">نسبة التنزيل</div><div class="summary-value">{{ assignment_rate }}%</div></div>
+            </div>
+
+            <div class="section-title">تفصيل الدورات والكلاسات</div>
+            {% for row in course_rows %}
+            <div class="course-card">
+                <div class="course-head">
+                    <div>
+                        <h3 class="course-title">{{ row.course.name }}</h3>
+                        <div class="muted">{{ row.course.get_course_type_display }} | {{ row.course.academic_year.name }} - {{ row.course.academic_year.year }}</div>
+                    </div>
+                    <div class="badge-row">
+                        <span class="pill primary">المسجلون {{ row.total_enrollments }}</span>
+                        <span class="pill success">المنزلون {{ row.assigned_students }}</span>
+                        <span class="pill warning">غير منزلين {{ row.unassigned_students }}</span>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>الكلاس</th>
+                                <th>الفترة</th>
+                                <th>القاعة</th>
+                                <th class="text-center">الطلاب</th>
+                                <th class="text-center">السعة</th>
+                                <th class="text-center">الإشغال</th>
+                                <th class="text-center">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session_row in row.sessions %}
+                            <tr>
+                                <td>
+                                    <strong>{{ session_row.session.title }}</strong>
+                                    <div class="muted">{% if session_row.session.code %}{{ session_row.session.code }} | {% endif %}{{ session_row.session.meeting_days|default:"بدون أيام محددة" }}</div>
+                                </td>
+                                <td>
+                                    <strong>{{ session_row.session.start_date|date:"Y-m-d" }} حتى {{ session_row.session.end_date|date:"Y-m-d" }}</strong>
+                                    <div class="muted">{{ session_row.session.start_time|time:"H:i" }}{% if session_row.session.end_time %} - {{ session_row.session.end_time|time:"H:i" }}{% endif %}</div>
+                                </td>
+                                <td>{{ session_row.session.room.name|default:session_row.session.room_name|default:"غير محددة" }}</td>
+                                <td class="text-center">{{ session_row.assigned_count }}</td>
+                                <td class="text-center">{% if session_row.capacity %}{{ session_row.capacity }}{% else %}-{% endif %}</td>
+                                <td class="text-center">{{ session_row.seat_utilization }}%</td>
+                                <td class="text-center">
+                                    <span class="{% if session_row.lifecycle == 'LIVE' %}status-live{% elif session_row.lifecycle == 'UPCOMING' %}status-upcoming{% else %}status-finished{% endif %}">{{ session_row.lifecycle_label }}</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center">لا يوجد كلاس فعال مرتبط بهذه الدورة.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% empty %}
+            <div class="course-card">لا توجد بيانات مطابقة للفلتر الحالي.</div>
+            {% endfor %}
+
+            <div class="footer-note">تم إنشاء هذا التقرير من شاشة الدورات السريعة. يمكن إعادة الطباعة مع أي فلتر آخر مباشرة.</div>
+        </div>
+    </div>
+</body>
+</html>

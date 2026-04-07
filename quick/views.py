@@ -2899,11 +2899,11 @@ def export_quick_outstanding_excel(request):
 
 # ------------------------------
 # Quick outstanding helpers
-def _get_outstanding_course_type(request):
-    course_type = request.GET.get('course_type') or 'INTENSIVE'
+def _get_outstanding_course_type(request, default='INTENSIVE'):
+    course_type = request.GET.get('course_type') or default
     valid_course_types = {value for value, _ in QuickCourse.COURSE_TYPE_CHOICES}
     if course_type != 'ALL' and course_type not in valid_course_types:
-        course_type = 'INTENSIVE'
+        course_type = default if default == 'ALL' or default in valid_course_types else 'INTENSIVE'
 
     label_map = {value: label for value, label in QuickCourse.COURSE_TYPE_CHOICES}
     report_label_map = {
@@ -2938,6 +2938,399 @@ def _get_course_type_options():
     for value, label in QuickCourse.COURSE_TYPE_CHOICES:
         options.append({'value': value, 'label': label})
     return options
+
+
+def _get_selected_quick_course_ids(request):
+    selected_ids = []
+    seen_ids = set()
+    for raw_value in request.GET.getlist('course_ids'):
+        try:
+            course_id = int(raw_value)
+        except (TypeError, ValueError):
+            continue
+        if course_id in seen_ids:
+            continue
+        selected_ids.append(course_id)
+        seen_ids.add(course_id)
+    return selected_ids
+
+
+def _build_quick_report_course_filters(request, default_course_type='ALL'):
+    course_type, course_type_label, report_label = _get_outstanding_course_type(
+        request,
+        default=default_course_type,
+    )
+    search_query = (request.GET.get('q') or '').strip()
+    selected_course_ids = _get_selected_quick_course_ids(request)
+
+    academic_year_raw = request.GET.get('academic_year')
+    try:
+        academic_year_id = int(academic_year_raw) if academic_year_raw else None
+    except (TypeError, ValueError):
+        academic_year_id = None
+
+    base_courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year')
+    if course_type != 'ALL':
+        base_courses = base_courses.filter(course_type=course_type)
+    if academic_year_id:
+        base_courses = base_courses.filter(academic_year_id=academic_year_id)
+
+    available_courses = list(base_courses.order_by('-academic_year__start_date', 'name', 'id'))
+
+    filtered_courses = base_courses
+    if selected_course_ids:
+        filtered_courses = filtered_courses.filter(id__in=selected_course_ids)
+    if search_query:
+        filtered_courses = filtered_courses.filter(
+            Q(name__icontains=search_query) |
+            Q(name_ar__icontains=search_query) |
+            Q(sessions__title__icontains=search_query) |
+            Q(sessions__code__icontains=search_query) |
+            Q(sessions__room_name__icontains=search_query) |
+            Q(sessions__room__name__icontains=search_query) |
+            Q(enrollments__student__full_name__icontains=search_query) |
+            Q(enrollments__student__phone__icontains=search_query)
+        )
+
+    filtered_courses = filtered_courses.order_by('-academic_year__start_date', 'name', 'id').distinct()
+
+    return {
+        'course_type': course_type,
+        'course_type_label': course_type_label,
+        'course_type_report_label': report_label,
+        'course_type_options': _get_course_type_options(),
+        'academic_year_id': academic_year_id,
+        'academic_years': AcademicYear.objects.all().order_by('-start_date'),
+        'search_query': search_query,
+        'selected_course_ids': selected_course_ids,
+        'available_courses': available_courses,
+        'courses': filtered_courses,
+    }
+
+
+def _build_quick_session_population_report(request):
+    filters = _build_quick_report_course_filters(request, default_course_type='ALL')
+    courses = list(filters['courses'])
+    today = timezone.localdate()
+
+    report = {
+        **filters,
+        'course_rows': [],
+        'total_courses': len(courses),
+        'total_sessions': 0,
+        'total_enrollments': 0,
+        'total_assigned_students': 0,
+        'total_unassigned_students': 0,
+        'assignment_rate': 0,
+        'courses_with_unassigned': 0,
+        'largest_session': None,
+        'generated_at': timezone.localtime(),
+        'today': today,
+    }
+
+    if not courses:
+        return report
+
+    course_ids = [course.id for course in courses]
+    enrollment_stats = {
+        row['course_id']: row
+        for row in (
+            QuickEnrollment.objects.filter(
+                course_id__in=course_ids,
+                is_completed=False,
+                student__is_active=True,
+            )
+            .values('course_id')
+            .annotate(
+                total_enrollments=Count('id', distinct=True),
+                assigned_enrollments=Count(
+                    'id',
+                    filter=Q(session_assignment__session__is_active=True),
+                    distinct=True,
+                ),
+            )
+        )
+    }
+
+    sessions = list(
+        QuickCourseSession.objects.filter(course_id__in=course_ids, is_active=True)
+        .select_related('course', 'room', 'time_option')
+        .annotate(
+            assigned_count=Count(
+                'session_enrollments',
+                filter=Q(
+                    session_enrollments__enrollment__is_completed=False,
+                    session_enrollments__enrollment__student__is_active=True,
+                ),
+                distinct=True,
+            )
+        )
+        .order_by('course__name', 'start_date', 'start_time', 'title', 'id')
+    )
+
+    sessions_by_course = defaultdict(list)
+    largest_session = None
+    total_sessions = 0
+
+    for session in sessions:
+        total_sessions += 1
+        if today < session.start_date:
+            lifecycle = 'UPCOMING'
+            lifecycle_label = 'قادم'
+        elif today > session.end_date:
+            lifecycle = 'FINISHED'
+            lifecycle_label = 'منتهي'
+        else:
+            lifecycle = 'LIVE'
+            lifecycle_label = 'يعمل الآن'
+
+        capacity = session.capacity or 0
+        assigned_count = session.assigned_count or 0
+        utilization = round((assigned_count / capacity) * 100) if capacity else 0
+        session_row = {
+            'session': session,
+            'assigned_count': assigned_count,
+            'capacity': capacity,
+            'available_seats': max(0, capacity - assigned_count) if capacity else None,
+            'seat_utilization': utilization,
+            'lifecycle': lifecycle,
+            'lifecycle_label': lifecycle_label,
+        }
+        sessions_by_course[session.course_id].append(session_row)
+
+        candidate_key = (assigned_count, utilization, session.start_date, session.id)
+        if largest_session is None or candidate_key > largest_session['sort_key']:
+            largest_session = {
+                'session': session,
+                'assigned_count': assigned_count,
+                'seat_utilization': utilization,
+                'sort_key': candidate_key,
+            }
+
+    course_rows = []
+    total_enrollments = 0
+    total_assigned_students = 0
+    total_unassigned_students = 0
+
+    for course in courses:
+        stats = enrollment_stats.get(course.id, {})
+        total_course_enrollments = stats.get('total_enrollments', 0) or 0
+        assigned_course_enrollments = stats.get('assigned_enrollments', 0) or 0
+        unassigned_course_enrollments = max(0, total_course_enrollments - assigned_course_enrollments)
+        session_rows = sessions_by_course.get(course.id, [])
+        capacity_total = sum(item['capacity'] for item in session_rows if item['capacity'])
+        assigned_via_sessions = sum(item['assigned_count'] for item in session_rows)
+
+        course_rows.append({
+            'course': course,
+            'sessions': session_rows,
+            'sessions_count': len(session_rows),
+            'total_enrollments': total_course_enrollments,
+            'assigned_students': assigned_course_enrollments,
+            'assigned_via_sessions': assigned_via_sessions,
+            'unassigned_students': unassigned_course_enrollments,
+            'assignment_rate': round((assigned_course_enrollments / total_course_enrollments) * 100) if total_course_enrollments else 0,
+            'capacity_total': capacity_total,
+            'available_seats_total': max(0, capacity_total - assigned_via_sessions) if capacity_total else None,
+            'has_unassigned_students': unassigned_course_enrollments > 0,
+        })
+
+        total_enrollments += total_course_enrollments
+        total_assigned_students += assigned_course_enrollments
+        total_unassigned_students += unassigned_course_enrollments
+
+    report.update({
+        'course_rows': course_rows,
+        'total_courses': len(course_rows),
+        'total_sessions': total_sessions,
+        'total_enrollments': total_enrollments,
+        'total_assigned_students': total_assigned_students,
+        'total_unassigned_students': total_unassigned_students,
+        'assignment_rate': round((total_assigned_students / total_enrollments) * 100) if total_enrollments else 0,
+        'courses_with_unassigned': sum(1 for row in course_rows if row['has_unassigned_students']),
+        'largest_session': largest_session,
+    })
+    return report
+
+
+def _build_quick_free_students_report(request):
+    filters = _build_quick_report_course_filters(request, default_course_type='ALL')
+    courses = list(filters['courses'])
+
+    report = {
+        **filters,
+        'course_rows': [],
+        'total_courses_with_discount': 0,
+        'total_discounted_students': 0,
+        'total_discount_value': Decimal('0'),
+        'average_discount_value': Decimal('0'),
+        'largest_discount_course': None,
+        'generated_at': timezone.localtime(),
+    }
+
+    if not courses:
+        return report
+
+    course_ids = [course.id for course in courses]
+    enrollments = list(
+        QuickEnrollment.objects.filter(
+            course_id__in=course_ids,
+            is_completed=False,
+            student__is_active=True,
+        )
+        .select_related('course', 'course__academic_year', 'student', 'student__student')
+        .order_by('course__name', 'student__full_name', 'id')
+    )
+
+    if not enrollments:
+        return report
+
+    receipt_totals = {
+        row['quick_enrollment_id']: row['total'] or Decimal('0')
+        for row in (
+            QuickStudentReceipt.objects.filter(
+                quick_enrollment_id__in=[enrollment.id for enrollment in enrollments]
+            )
+            .values('quick_enrollment_id')
+            .annotate(total=Sum('paid_amount'))
+        )
+    }
+
+    course_rows_map = {}
+    total_discounted_students = 0
+    total_discount_value = Decimal('0')
+
+    for enrollment in enrollments:
+        total_amount = enrollment.total_amount or enrollment.course.price or Decimal('0')
+        net_amount = enrollment.net_amount or Decimal('0')
+        discount_percent = enrollment.discount_percent or Decimal('0')
+        discount_amount = enrollment.discount_amount or Decimal('0')
+        discount_value = max(Decimal('0'), total_amount - net_amount)
+        has_discount = (
+            discount_percent > Decimal('0')
+            or discount_amount > Decimal('0')
+            or discount_value > Decimal('0')
+        )
+        if not has_discount:
+            continue
+
+        percent_discount_value = max(
+            Decimal('0'),
+            total_amount * (discount_percent / Decimal('100'))
+        ) if total_amount > 0 and discount_percent > 0 else Decimal('0')
+        fixed_discount_value = max(Decimal('0'), discount_amount)
+        if discount_value <= 0:
+            discount_value = percent_discount_value + fixed_discount_value
+
+        if discount_percent > 0 and fixed_discount_value > 0:
+            discount_label = 'نسبة + قيمة'
+        elif discount_percent > 0:
+            discount_label = 'نسبة'
+        elif fixed_discount_value > 0:
+            discount_label = 'قيمة'
+        else:
+            discount_label = 'فرق صافي'
+
+        course_entry = course_rows_map.setdefault(
+            enrollment.course_id,
+            {
+                'course': enrollment.course,
+                'students': [],
+                'discounted_students_count': 0,
+                'total_discount_value': Decimal('0'),
+                'students_with_payments': 0,
+                'full_free_count': 0,
+            },
+        )
+
+        paid_total = receipt_totals.get(enrollment.id, Decimal('0'))
+        is_full_free = (
+            discount_percent >= Decimal('100')
+            or (total_amount > 0 and net_amount <= Decimal('0'))
+            or (total_amount > 0 and discount_value >= total_amount)
+        )
+
+        course_entry['students'].append({
+            'student': enrollment.student,
+            'enrollment': enrollment,
+            'total_amount': total_amount,
+            'net_amount': net_amount,
+            'discount_value': discount_value,
+            'waived_amount': discount_value,
+            'discount_percent': discount_percent,
+            'discount_amount': discount_amount,
+            'percent_discount_value': percent_discount_value,
+            'fixed_discount_value': fixed_discount_value,
+            'discount_label': discount_label,
+            'paid_total': paid_total,
+            'has_payments': paid_total > 0,
+            'is_full_free': is_full_free,
+        })
+        course_entry['discounted_students_count'] += 1
+        course_entry['total_discount_value'] += discount_value
+        if paid_total > 0:
+            course_entry['students_with_payments'] += 1
+        if is_full_free:
+            course_entry['full_free_count'] += 1
+
+        total_discounted_students += 1
+        total_discount_value += discount_value
+
+    course_rows = []
+    largest_discount_course = None
+    for course in courses:
+        course_entry = course_rows_map.get(course.id)
+        if not course_entry:
+            continue
+        course_entry['students'].sort(
+            key=lambda item: (
+                -(item['discount_value'] or Decimal('0')),
+                item['student'].full_name,
+                item['student'].id,
+            )
+        )
+        course_rows.append(course_entry)
+        candidate_key = (
+            course_entry['discounted_students_count'],
+            course_entry['total_discount_value'],
+            course.id,
+        )
+        if largest_discount_course is None or candidate_key > largest_discount_course['sort_key']:
+            largest_discount_course = {
+                'course': course_entry['course'],
+                'discounted_students_count': course_entry['discounted_students_count'],
+                'total_discount_value': course_entry['total_discount_value'],
+                'sort_key': candidate_key,
+            }
+
+    report.update({
+        'course_rows': course_rows,
+        'total_courses_with_discount': len(course_rows),
+        'total_discounted_students': total_discounted_students,
+        'total_discount_value': total_discount_value,
+        'average_discount_value': (total_discount_value / total_discounted_students) if total_discounted_students else Decimal('0'),
+        'largest_discount_course': largest_discount_course,
+        'total_courses_with_free': len(course_rows),
+        'total_free_students': total_discounted_students,
+        'total_waived_amount': total_discount_value,
+        'average_waived_amount': (total_discount_value / total_discounted_students) if total_discounted_students else Decimal('0'),
+        'largest_free_course': largest_discount_course,
+    })
+    return report
+
+
+def _attach_quick_report_urls(context, request, report_url_name, print_url_name):
+    query_string = request.GET.urlencode()
+    report_url = reverse(report_url_name)
+    print_url = reverse(print_url_name)
+    if query_string:
+        report_url = f'{report_url}?{query_string}'
+        print_url = f'{print_url}?{query_string}'
+    context.update({
+        'report_url': report_url,
+        'print_url': print_url,
+    })
+    return context
 
 
 def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=False, start_date=None, end_date=None):
@@ -5598,6 +5991,66 @@ class QuickCourseConflictReportView(LoginRequiredMixin, TemplateView):
             'course_type_choices': [('ALL', 'كل الأنواع')] + list(QuickCourse.COURSE_TYPE_CHOICES),
             'generated_at': timezone.localtime(),
         })
+        return context
+
+
+class QuickCourseSessionCountsReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_session_counts_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_build_quick_session_population_report(self.request))
+        _attach_quick_report_urls(
+            context,
+            self.request,
+            'quick:quick_course_session_counts_report',
+            'quick:quick_course_session_counts_report_print',
+        )
+        return context
+
+
+class QuickFreeStudentsReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_free_students_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_build_quick_free_students_report(self.request))
+        _attach_quick_report_urls(
+            context,
+            self.request,
+            'quick:quick_free_students_report',
+            'quick:quick_free_students_report_print',
+        )
+        return context
+
+
+class QuickCourseSessionCountsReportPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_session_counts_report_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_build_quick_session_population_report(self.request))
+        _attach_quick_report_urls(
+            context,
+            self.request,
+            'quick:quick_course_session_counts_report',
+            'quick:quick_course_session_counts_report_print',
+        )
+        return context
+
+
+class QuickFreeStudentsReportPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_free_students_report_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_build_quick_free_students_report(self.request))
+        _attach_quick_report_urls(
+            context,
+            self.request,
+            'quick:quick_free_students_report',
+            'quick:quick_free_students_report_print',
+        )
         return context
 
 # الطلاب السريعين

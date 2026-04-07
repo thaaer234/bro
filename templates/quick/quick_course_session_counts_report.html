@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+<style>
+.quick-count-page { display:grid; gap:1rem; }
+.quick-count-hero, .quick-count-panel, .quick-count-course, .quick-count-tip { border:0; border-radius:28px !important; overflow:hidden; box-shadow:0 24px 50px rgba(15, 23, 42, .08); }
+.quick-count-hero { background: radial-gradient(circle at top right, rgba(15, 118, 110, .18), transparent 0 34%), radial-gradient(circle at bottom left, rgba(59, 130, 246, .16), transparent 0 30%), linear-gradient(135deg, #f9fcff, #eef5ff 55%, #edf9f4); }
+.quick-count-hero .card-body, .quick-count-panel .card-body, .quick-count-course .card-body, .quick-count-tip .card-body { padding:1.35rem; }
+.quick-count-title { margin:0 0 .55rem; color:#16324f; font-size:2rem; font-weight:900; }
+.quick-count-subtitle { margin:0; max-width:860px; color:#5b6b82; line-height:1.9; }
+.quick-count-actions { display:flex; flex-wrap:wrap; gap:.75rem; }
+.quick-count-actions .btn { min-height:46px; border-radius:14px; }
+.quick-count-filter-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:1rem; align-items:end; }
+.quick-count-filter-grid .filter-wide { grid-column:span 2; }
+.quick-count-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; }
+.quick-count-stat { border-radius:24px; padding:1rem 1.1rem; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,247,255,.94)); border:1px solid rgba(95, 121, 196, .12); box-shadow:0 18px 38px rgba(15, 23, 42, .06); }
+.quick-count-stat__label { display:block; margin-bottom:.4rem; color:#5b6b82; font-size:.82rem; font-weight:800; }
+.quick-count-stat__value { color:#16324f; font-size:1.85rem; font-weight:900; line-height:1.1; }
+.quick-count-tip { background:linear-gradient(135deg, rgba(255, 246, 213, .95), rgba(255, 239, 191, .94)); }
+.quick-count-tip .tip-label { color:#8a5a00; font-size:.78rem; font-weight:900; letter-spacing:.04em; }
+.quick-count-tip h4 { margin:.2rem 0; color:#16324f; font-weight:900; }
+.quick-count-tip p { margin:0; color:#6d5a20; line-height:1.8; }
+.quick-count-course { background:linear-gradient(180deg, rgba(255,255,255,.99), rgba(247,250,255,.95)); }
+.quick-count-course__head { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+.quick-count-course__title { margin:0; color:#16324f; font-size:1.35rem; font-weight:900; }
+.quick-count-course__meta { color:#5b6b82; margin-top:.35rem; line-height:1.8; }
+.quick-count-badges { display:flex; gap:.6rem; flex-wrap:wrap; }
+.quick-count-badge { display:inline-flex; align-items:center; gap:.35rem; padding:.5rem .85rem; border-radius:999px; font-size:.8rem; font-weight:900; }
+.quick-count-badge.primary { background:rgba(76, 125, 255, .14); color:#204ebc; }
+.quick-count-badge.success { background:rgba(31, 211, 155, .16); color:#0f6b52; }
+.quick-count-badge.warning { background:rgba(246, 185, 74, .2); color:#8a5a00; }
+.quick-count-badge.info { background:rgba(15, 118, 110, .12); color:#175a54; }
+.quick-count-table-wrap { overflow:auto; border-radius:22px; border:1px solid rgba(95, 121, 196, .12); }
+.quick-count-table { margin:0 !important; }
+.quick-count-table thead th { background:linear-gradient(180deg, #18314e, #12243b); color:#fff; border:0; font-size:.82rem; white-space:nowrap; }
+.quick-count-table td { vertical-align:middle; }
+.quick-count-session-title { font-weight:900; color:#16324f; }
+.quick-count-session-meta { color:#6a7890; font-size:.82rem; line-height:1.7; }
+.quick-count-pill { display:inline-flex; align-items:center; justify-content:center; min-width:88px; padding:.45rem .75rem; border-radius:999px; font-size:.78rem; font-weight:900; }
+.quick-count-pill.live { background:rgba(22, 163, 74, .16); color:#166534; }
+.quick-count-pill.upcoming { background:rgba(245, 158, 11, .18); color:#9a6700; }
+.quick-count-pill.finished { background:rgba(100, 116, 139, .15); color:#475569; }
+.quick-count-empty { padding:3.5rem 1.5rem; text-align:center; color:#667085; }
+@media (max-width: 992px) { .quick-count-filter-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } .quick-count-filter-grid .filter-wide { grid-column:span 2; } }
+@media (max-width: 640px) { .quick-count-filter-grid, .quick-count-stats { grid-template-columns:1fr; } .quick-count-filter-grid .filter-wide { grid-column:auto; } .quick-count-title { font-size:1.55rem; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid quick-count-page">
+    <div class="card quick-count-hero">
+        <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2 class="quick-count-title">تقرير أعداد الكلاسات والدورات السريعة</h2>
+                <p class="quick-count-subtitle">يعرض هذا التقرير كل دورة سريعة ضمن الفلتر الحالي، مع عدد الطلاب الكلي، المنزلين، غير المنزلين، وتفصيل كل كلاس مع سعته ونسبة إشغاله. مناسب لمتابعة المكثفات والامتحانيات من شاشة واحدة.</p>
+            </div>
+            <div class="quick-count-actions">
+                <a href="{% url 'quick:course_list' %}" class="btn btn-light"><i class="fas fa-layer-group me-1"></i>الدورات السريعة</a>
+                <a href="{% url 'quick:all_sessions_manage' %}" class="btn btn-outline-light"><i class="fas fa-calendar-days me-1"></i>كل الكلاسات</a>
+                <a href="{% url 'quick:quick_course_conflicts_report' %}" class="btn btn-outline-light"><i class="fas fa-user-clock me-1"></i>تعارض الطلاب</a>
+                <a href="{{ print_url }}" target="_blank" class="btn btn-outline-light"><i class="fas fa-print me-1"></i>طباعة التقرير</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card quick-count-panel">
+        <div class="card-body">
+            <form method="get" class="quick-count-filter-grid">
+                <div>
+                    <label class="form-label fw-bold">نوع الدورة</label>
+                    <select name="course_type" class="form-select">
+                        {% for option in course_type_options %}
+                        <option value="{{ option.value }}" {% if option.value == course_type %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label fw-bold">الفصل الدراسي</label>
+                    <select name="academic_year" class="form-select">
+                        <option value="">كل الفصول</option>
+                        {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if academic_year_id == year.id %}selected{% endif %}>{{ year.name }} - {{ year.year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-wide">
+                    <label class="form-label fw-bold">الدورات المحددة</label>
+                    <select name="course_ids" class="form-select" multiple size="6">
+                        {% for course in available_courses %}
+                        <option value="{{ course.id }}" {% if course.id in selected_course_ids %}selected{% endif %}>{{ course.name }} | {{ course.academic_year.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-wide">
+                    <label class="form-label fw-bold">بحث</label>
+                    <input type="search" name="q" value="{{ search_query }}" class="form-control" placeholder="اسم الدورة أو الكلاس أو القاعة">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i>تطبيق الفلتر</button>
+                </div>
+                <div>
+                    <a href="{% url 'quick:quick_course_session_counts_report' %}" class="btn btn-outline-secondary w-100"><i class="fas fa-rotate-left me-1"></i>إعادة</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="quick-count-stats">
+        <div class="quick-count-stat"><span class="quick-count-stat__label">الدورات الظاهرة</span><strong class="quick-count-stat__value">{{ total_courses }}</strong></div>
+        <div class="quick-count-stat"><span class="quick-count-stat__label">الكلاسات الفعالة</span><strong class="quick-count-stat__value">{{ total_sessions }}</strong></div>
+        <div class="quick-count-stat"><span class="quick-count-stat__label">إجمالي المسجلين</span><strong class="quick-count-stat__value">{{ total_enrollments }}</strong></div>
+        <div class="quick-count-stat"><span class="quick-count-stat__label">الطلاب المنزلون</span><strong class="quick-count-stat__value">{{ total_assigned_students }}</strong></div>
+        <div class="quick-count-stat"><span class="quick-count-stat__label">غير المنزلين</span><strong class="quick-count-stat__value">{{ total_unassigned_students }}</strong></div>
+        <div class="quick-count-stat"><span class="quick-count-stat__label">نسبة التنزيل</span><strong class="quick-count-stat__value">{{ assignment_rate }}%</strong></div>
+    </div>
+
+    {% if largest_session %}
+    <div class="card quick-count-tip">
+        <div class="card-body">
+            <div class="tip-label">أكثر كلاس ازدحاماً حالياً</div>
+            <h4>{{ largest_session.session.course.name }} | {{ largest_session.session.title }}</h4>
+            <p>يحمل هذا الكلاس <strong>{{ largest_session.assigned_count }}</strong> طالب، ونسبة الإشغال فيه <strong>{{ largest_session.seat_utilization }}%</strong>. آخر تحديث للتقرير: {{ generated_at|date:"Y-m-d H:i" }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if course_rows %}
+        {% for row in course_rows %}
+        <div class="card quick-count-course">
+            <div class="card-body">
+                <div class="quick-count-course__head">
+                    <div>
+                        <h3 class="quick-count-course__title">{{ row.course.name }}</h3>
+                        <div class="quick-count-course__meta">{{ row.course.get_course_type_display }} | {{ row.course.academic_year.name }} - {{ row.course.academic_year.year }}{% if row.course.name_ar %}<br>{{ row.course.name_ar }}{% endif %}</div>
+                    </div>
+                    <div class="quick-count-badges">
+                        <span class="quick-count-badge primary">المسجلون {{ row.total_enrollments }}</span>
+                        <span class="quick-count-badge success">المنزلون {{ row.assigned_students }}</span>
+                        <span class="quick-count-badge {% if row.unassigned_students %}warning{% else %}info{% endif %}">غير منزلين {{ row.unassigned_students }}</span>
+                        <span class="quick-count-badge info">نسبة التنزيل {{ row.assignment_rate }}%</span>
+                    </div>
+                </div>
+
+                <div class="quick-count-table-wrap">
+                    <table class="table quick-count-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>الكلاس</th>
+                                <th>الفترة</th>
+                                <th>القاعة</th>
+                                <th class="text-center">الطلاب</th>
+                                <th class="text-center">السعة</th>
+                                <th class="text-center">المقاعد المتاحة</th>
+                                <th class="text-center">الإشغال</th>
+                                <th class="text-center">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session_row in row.sessions %}
+                            <tr>
+                                <td>
+                                    <div class="quick-count-session-title">{{ session_row.session.title }}</div>
+                                    <div class="quick-count-session-meta">{% if session_row.session.code %}{{ session_row.session.code }} | {% endif %}{{ session_row.session.meeting_days|default:"بدون أيام محددة" }}</div>
+                                </td>
+                                <td>
+                                    <div class="quick-count-session-title">{{ session_row.session.start_date|date:"Y-m-d" }} حتى {{ session_row.session.end_date|date:"Y-m-d" }}</div>
+                                    <div class="quick-count-session-meta">{{ session_row.session.start_time|time:"H:i" }}{% if session_row.session.end_time %} - {{ session_row.session.end_time|time:"H:i" }}{% endif %}</div>
+                                </td>
+                                <td>
+                                    <div class="quick-count-session-title">{{ session_row.session.room.name|default:session_row.session.room_name|default:"غير محددة" }}</div>
+                                    <div class="quick-count-session-meta">{% if session_row.session.time_option %}{{ session_row.session.time_option.title }}{% else %}كلاس مباشر{% endif %}</div>
+                                </td>
+                                <td class="text-center"><span class="quick-count-badge primary">{{ session_row.assigned_count }}</span></td>
+                                <td class="text-center">{% if session_row.capacity %}{{ session_row.capacity }}{% else %}<span class="text-muted">مفتوحة</span>{% endif %}</td>
+                                <td class="text-center">{% if session_row.available_seats is not None %}{{ session_row.available_seats }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                                <td class="text-center"><span class="quick-count-badge info">{{ session_row.seat_utilization }}%</span></td>
+                                <td class="text-center"><span class="quick-count-pill {% if session_row.lifecycle == 'LIVE' %}live{% elif session_row.lifecycle == 'UPCOMING' %}upcoming{% else %}finished{% endif %}">{{ session_row.lifecycle_label }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="8" class="text-center text-muted py-4">لا يوجد كلاس فعال مرتبط بهذه الدورة حالياً.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="card quick-count-panel">
+        <div class="quick-count-empty">
+            <i class="fas fa-layer-group fa-3x mb-3 d-block opacity-50"></i>
+            <h4 class="mb-2">لا توجد بيانات مطابقة للفلتر الحالي</h4>
+            <p class="mb-0">جرّب توسيع الفلتر أو إزالة تحديد بعض الدورات حتى تظهر النتائج.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

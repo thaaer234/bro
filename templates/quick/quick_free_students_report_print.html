@@ -1,0 +1,236 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>طباعة تقرير حسومات الطلاب</title>
+    <style>
+        @page { size: A4; margin: 10mm; }
+        :root {
+            --primary:#8a5a00;
+            --primary-dark:#5b3c00;
+            --accent:#f59e0b;
+            --surface:#ffffff;
+            --surface-soft:#fffaf0;
+            --border:#f2e2bf;
+            --text:#3f2f0d;
+            --muted:#8a7652;
+            --danger:#b42318;
+            --success:#166534;
+        }
+        * { box-sizing:border-box; }
+        body {
+            margin:0;
+            background:#f7f2e9;
+            color:var(--text);
+            font-family:"Cairo", Tahoma, sans-serif;
+            font-size:13px;
+            line-height:1.65;
+        }
+        .print-toolbar {
+            position:sticky;
+            top:0;
+            z-index:10;
+            display:flex;
+            justify-content:center;
+            gap:10px;
+            padding:14px;
+            background:rgba(247,242,233,.94);
+            backdrop-filter:blur(8px);
+        }
+        .btn {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:42px;
+            padding:0 16px;
+            border-radius:12px;
+            border:1px solid transparent;
+            text-decoration:none;
+            font-weight:700;
+            cursor:pointer;
+            background:linear-gradient(135deg, var(--primary-dark), var(--primary), var(--accent));
+            color:#fff;
+        }
+        .btn-secondary {
+            background:#fff;
+            border-color:var(--border);
+            color:var(--text);
+        }
+        .report-page {
+            width:min(1120px, calc(100% - 24px));
+            margin:0 auto 24px;
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:24px;
+            box-shadow:0 20px 50px rgba(91,60,0,.08);
+            overflow:hidden;
+        }
+        .report-hero {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:18px;
+            padding:24px 28px;
+            background:linear-gradient(135deg, #5b3c00, #8a5a00 58%, #f59e0b);
+            color:#fff;
+        }
+        .report-hero h1 { margin:0 0 8px; font-size:28px; }
+        .report-hero p, .report-meta { margin:0; color:rgba(255,255,255,.88); }
+        .report-body { padding:22px; }
+        .summary-grid {
+            display:grid;
+            grid-template-columns:repeat(4, minmax(0, 1fr));
+            gap:14px;
+            margin-bottom:18px;
+        }
+        .summary-card, .course-card {
+            padding:16px;
+            border-radius:18px;
+            background:var(--surface-soft);
+            border:1px solid var(--border);
+        }
+        .summary-label { color:var(--muted); font-size:12px; font-weight:700; }
+        .summary-value { margin-top:6px; font-size:24px; font-weight:800; color:var(--text); }
+        .money { color:var(--danger); }
+        .section-title { margin:24px 0 12px; font-size:18px; font-weight:800; }
+        .course-card { margin-bottom:16px; break-inside:avoid; }
+        .course-head {
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:14px;
+            margin-bottom:12px;
+        }
+        .course-title { margin:0 0 6px; font-size:18px; font-weight:800; }
+        .muted { color:var(--muted); font-size:11px; }
+        .badge-row { display:flex; flex-wrap:wrap; gap:8px; }
+        .pill {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:30px;
+            padding:0 10px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:800;
+        }
+        .pill.primary { background:rgba(59,130,246,.14); color:#1d4ed8; }
+        .pill.success { background:rgba(22,163,74,.14); color:var(--success); }
+        .pill.danger { background:rgba(180,35,24,.12); color:var(--danger); }
+        .table-card {
+            overflow:hidden;
+            border-radius:18px;
+            border:1px solid var(--border);
+        }
+        table { width:100%; border-collapse:collapse; }
+        thead th {
+            padding:12px 10px;
+            background:linear-gradient(135deg, #7b4f00, #b97800);
+            color:#fff;
+            font-size:12px;
+            font-weight:800;
+            text-align:right;
+        }
+        tbody td {
+            padding:11px 10px;
+            border-bottom:1px solid #f2e8d4;
+            vertical-align:middle;
+        }
+        tbody tr:nth-child(even) td { background:#fffdfa; }
+        .text-center { text-align:center; }
+        .text-end { text-align:left; }
+        .footer-note { margin-top:10px; color:var(--muted); font-size:11px; }
+        @media print {
+            body { background:#fff; }
+            .print-toolbar { display:none !important; }
+            .report-page { width:100%; margin:0; border:0; border-radius:0; box-shadow:none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar">
+        <button type="button" class="btn" onclick="window.print()">طباعة</button>
+        <a href="{{ report_url }}" class="btn btn-secondary">العودة للتقرير</a>
+    </div>
+
+    <div class="report-page">
+        <div class="report-hero">
+            <div>
+                <h1>تقرير حسومات الطلاب</h1>
+                <p>تفصيل جميع الحسومات حسب كل دورة مع قيمة الحسم لكل طالب.</p>
+            </div>
+            <div class="report-meta">
+                <div>نوع الدورة: {{ course_type_report_label }}</div>
+                <div>تاريخ الطباعة: {{ generated_at|date:"Y-m-d H:i" }}</div>
+            </div>
+        </div>
+
+        <div class="report-body">
+            <div class="summary-grid">
+                <div class="summary-card"><div class="summary-label">الدورات التي فيها حسومات</div><div class="summary-value">{{ total_courses_with_discount }}</div></div>
+                <div class="summary-card"><div class="summary-label">عدد الطلاب المحسومين</div><div class="summary-value">{{ total_discounted_students }}</div></div>
+                <div class="summary-card"><div class="summary-label">إجمالي قيمة الحسومات</div><div class="summary-value money">{{ total_discount_value|floatformat:0 }}</div></div>
+                <div class="summary-card"><div class="summary-label">متوسط الحسم لكل طالب</div><div class="summary-value">{{ average_discount_value|floatformat:0 }}</div></div>
+            </div>
+
+            <div class="section-title">تفصيل الطلاب المحسومين حسب الدورة</div>
+            {% for row in course_rows %}
+            <div class="course-card">
+                <div class="course-head">
+                    <div>
+                        <h3 class="course-title">{{ row.course.name }}</h3>
+                        <div class="muted">{{ row.course.get_course_type_display }} | {{ row.course.academic_year.name }} - {{ row.course.academic_year.year }}</div>
+                    </div>
+                    <div class="badge-row">
+                        <span class="pill primary">طلاب محسومون {{ row.discounted_students_count }}</span>
+                        <span class="pill danger">حسومات {{ row.total_discount_value|floatformat:0 }} ل.س</span>
+                        <span class="pill success">مجاني 100% {{ row.full_free_count }}</span>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>الطالب</th>
+                                <th>الهاتف</th>
+                                <th class="text-end">سعر الدورة</th>
+                                <th class="text-center">نوع الحسم</th>
+                                <th class="text-center">النسبة %</th>
+                                <th class="text-end">الحسم الثابت</th>
+                                <th class="text-end">قيمة الحسم</th>
+                                <th class="text-end">الصافي</th>
+                                <th class="text-end">المقبوض</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in row.students %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.student.full_name }}</strong>
+                                    <div class="muted">تاريخ التسجيل {{ item.enrollment.enrollment_date|date:"Y-m-d" }}</div>
+                                </td>
+                                <td>{{ item.student.phone|default:"-" }}</td>
+                                <td class="text-end">{{ item.total_amount|floatformat:0 }} ل.س</td>
+                                <td class="text-center">{{ item.discount_label }}</td>
+                                <td class="text-center">{{ item.discount_percent|floatformat:0 }}</td>
+                                <td class="text-end">{{ item.discount_amount|floatformat:0 }} ل.س</td>
+                                <td class="text-end money">{{ item.discount_value|floatformat:0 }} ل.س</td>
+                                <td class="text-end">{{ item.net_amount|floatformat:0 }} ل.س</td>
+                                <td class="text-end">{% if item.has_payments %}{{ item.paid_total|floatformat:0 }} ل.س{% else %}0{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% empty %}
+            <div class="course-card">لا يوجد طلاب عليهم حسومات ضمن هذا الفلتر.</div>
+            {% endfor %}
+
+            <div class="footer-note">تم إنشاء هذا التقرير من شاشة الدورات السريعة. يمكن إعادة الطباعة مع أي فلتر آخر مباشرة.</div>
+        </div>
+    </div>
+</body>
+</html>
