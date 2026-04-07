@@ -4268,6 +4268,12 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             )
             if payload.get('assignment_status') and payload.get('assignment_status') != 'ALL':
                 messages.info(request, 'قد تختفي بعض السجلات بعد الحفظ لأن حالة الطالب تغيّرت داخل الفلتر الحالي.')
+        elif unchanged_count:
+            messages.info(
+                request,
+                'لم يتم حفظ أي تعديل لأن الاختيارات المرسلة مطابقة للتوزيع الحالي. '
+                'قد يظهر الطالب ضمن هذا الفلتر لأن حالة العرض محسوبة على مستوى الطالب، لا على كل مادة بشكل منفصل.'
+            )
         else:
             messages.info(request, 'لا يوجد تغييرات جديدة للحفظ في هذه الصفحة.')
 
