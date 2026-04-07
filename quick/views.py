@@ -4009,6 +4009,7 @@ def _save_quick_manual_sorting_assignments(
     updated_count = 0
     cleared_count = 0
     unchanged_count = 0
+    change_summaries = []
     validation_errors = []
 
     with transaction.atomic():
@@ -4018,6 +4019,10 @@ def _save_quick_manual_sorting_assignments(
                 continue
 
             available_sessions = sessions_by_course.get(enrollment.course_id, [])
+            period_by_session_id = {
+                session.id: index + 1
+                for index, session in enumerate(available_sessions)
+            }
             has_single_session = len(available_sessions) == 1
             target_session_id = None
 
@@ -4040,12 +4045,19 @@ def _save_quick_manual_sorting_assignments(
 
             assignment = getattr(enrollment, 'session_assignment', None)
             current_session_id = getattr(assignment, 'session_id', None)
+            current_period_number = period_by_session_id.get(current_session_id)
+            target_period_number = period_by_session_id.get(target_session_id)
+            student_name = enrollment.student.full_name
+            course_name = enrollment.course.name
 
             if target_session_id is None:
                 if assignment:
                     assignment.delete()
                     cleared_count += 1
                     saved_count += 1
+                    change_summaries.append(
+                        f'{student_name} - {course_name}: إزالة التنزيل من الفترة {current_period_number or "-"}'
+                    )
                     if manual_selection_enabled:
                         QuickManualSortingSelection.objects.filter(enrollment=enrollment).delete()
                 else:
@@ -4057,6 +4069,9 @@ def _save_quick_manual_sorting_assignments(
                 assignment.save(update_fields=['assigned_by'])
                 updated_count += 1
                 saved_count += 1
+                change_summaries.append(
+                    f'{student_name} - {course_name}: تأكيد الفترة {target_period_number or "-"}'
+                )
                 if manual_selection_enabled:
                     QuickManualSortingSelection.objects.update_or_create(
                         enrollment=enrollment,
@@ -4076,8 +4091,14 @@ def _save_quick_manual_sorting_assignments(
             )
             if created:
                 created_count += 1
+                change_summaries.append(
+                    f'{student_name} - {course_name}: من غير منزل إلى الفترة {target_period_number or "-"}'
+                )
             else:
                 updated_count += 1
+                change_summaries.append(
+                    f'{student_name} - {course_name}: من الفترة {current_period_number or "-"} إلى الفترة {target_period_number or "-"}'
+                )
             saved_count += 1
 
             if manual_selection_enabled:
@@ -4095,6 +4116,7 @@ def _save_quick_manual_sorting_assignments(
         'updated_count': updated_count,
         'cleared_count': cleared_count,
         'unchanged_count': unchanged_count,
+        'change_summaries': change_summaries,
         'validation_errors': validation_errors,
     }
 
@@ -4244,6 +4266,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         updated_count = save_result['updated_count']
         cleared_count = save_result['cleared_count']
         unchanged_count = save_result['unchanged_count']
+        change_summaries = save_result['change_summaries']
         validation_errors = save_result['validation_errors']
         logger.info(
             'manual_sorting_post_result saved=%s created=%s updated=%s cleared=%s unchanged=%s errors=%s',
@@ -4271,6 +4294,10 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             )
             if payload.get('assignment_status') and payload.get('assignment_status') != 'ALL':
                 messages.info(request, 'قد تختفي بعض السجلات بعد الحفظ لأن حالة الطالب تغيّرت داخل الفلتر الحالي.')
+            for summary in change_summaries[:8]:
+                messages.info(request, summary)
+            if len(change_summaries) > 8:
+                messages.info(request, f'يوجد {len(change_summaries) - 8} تغييرات إضافية لم تُعرض هنا.')
         elif unchanged_count:
             messages.info(
                 request,
