@@ -320,3 +320,42 @@ body.app-body .login-screen {
         min-width: 560px !important;
     }
 }
+
+body.app-body {
+    --student-name-color: #122b33;
+    --student-name-hover: #0f766e;
+    --student-name-shadow: rgba(15, 118, 110, 0.10);
+}
+
+body.app-body .student-card__name,
+body.app-body .student-name,
+body.app-body .student-card .name,
+body.app-body .table tbody td strong > a:not(.btn),
+body.app-body .table tbody td > a.fw-bold:not(.btn),
+body.app-body .table tbody td a.text-decoration-none.fw-bold:not(.btn),
+body.app-body a[href*="/students/"][href*="/profile/"]:not(.btn):not(.nav-link),
+body.app-body a[href*="/quick/student/"][href*="/profile/"]:not(.btn):not(.nav-link) {
+    color: var(--student-name-color) !important;
+    font-weight: 800 !important;
+    text-decoration: none !important;
+}
+
+body.app-body .student-card__name:hover,
+body.app-body .student-name:hover,
+body.app-body .student-card .name:hover,
+body.app-body .table tbody td strong > a:not(.btn):hover,
+body.app-body .table tbody td > a.fw-bold:not(.btn):hover,
+body.app-body .table tbody td a.text-decoration-none.fw-bold:not(.btn):hover,
+body.app-body a[href*="/students/"][href*="/profile/"]:not(.btn):not(.nav-link):hover,
+body.app-body a[href*="/quick/student/"][href*="/profile/"]:not(.btn):not(.nav-link):hover,
+body.app-body .student-card__name:focus-visible,
+body.app-body .student-name:focus-visible,
+body.app-body .student-card .name:focus-visible,
+body.app-body .table tbody td strong > a:not(.btn):focus-visible,
+body.app-body .table tbody td > a.fw-bold:not(.btn):focus-visible,
+body.app-body .table tbody td a.text-decoration-none.fw-bold:not(.btn):focus-visible,
+body.app-body a[href*="/students/"][href*="/profile/"]:not(.btn):not(.nav-link):focus-visible,
+body.app-body a[href*="/quick/student/"][href*="/profile/"]:not(.btn):not(.nav-link):focus-visible {
+    color: var(--student-name-hover) !important;
+    text-shadow: 0 1px 0 var(--student-name-shadow);
+}

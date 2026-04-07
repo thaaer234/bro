@@ -4239,15 +4239,20 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 f'(جديد: {created_count}، تعديل: {updated_count}، حذف: {cleared_count})'
             )
             if payload.get('assignment_status') and payload.get('assignment_status') != 'ALL':
-                messages.info(request, 'قد تختفي بعض السجلات بعد الحفظ بسبب تغيّر حالة التنزيل من الفلتر الحالي.')
+                messages.info(request, 'قد تختفي بعض السجلات بعد الحفظ لأن حالة الطالب تغيّرت داخل الفلتر الحالي.')
         else:
             messages.info(request, 'لا يوجد تغييرات جديدة للحفظ في هذه الصفحة.')
+
+        redirect_assignment_status = payload.get('assignment_status', 'ALL')
+        if saved_count and redirect_assignment_status in {'UNASSIGNED', 'PARTIAL'}:
+            redirect_assignment_status = 'ALL'
+            messages.info(request, 'تم تحويل العرض إلى "الكل" بعد الحفظ حتى ترى السجلات التي تغيّرت حالتها.')
 
         redirect_url = reverse('quick:manual_sorting')
         redirect_query = urlencode({
             'course_type': payload['course_type'],
             'stage': payload['stage'],
-            'assignment_status': payload.get('assignment_status', 'ALL'),
+            'assignment_status': redirect_assignment_status,
             'page': page_obj.number,
         })
         return redirect(f'{redirect_url}?{redirect_query}')
