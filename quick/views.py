@@ -4053,7 +4053,10 @@ def _save_quick_manual_sorting_assignments(
                 continue
 
             if assignment and current_session_id == target_session_id:
-                unchanged_count += 1
+                assignment.assigned_by = user
+                assignment.save(update_fields=['assigned_by'])
+                updated_count += 1
+                saved_count += 1
                 if manual_selection_enabled:
                     QuickManualSortingSelection.objects.update_or_create(
                         enrollment=enrollment,
