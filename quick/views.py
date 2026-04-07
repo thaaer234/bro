@@ -40,6 +40,7 @@ import logging
 import time
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_GET
+from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
@@ -68,6 +69,15 @@ from .services.receipt_printer import QuickReceiptPrinterError, print_many_recei
 from employ.decorators import require_superuser
 User = get_user_model()
 logger = logging.getLogger('django')
+
+
+def _parse_quick_posted_int(raw_value):
+    if raw_value in (None, ''):
+        raise ValueError('empty value')
+    normalized = str(raw_value).strip()
+    for token in (' ', ',', '.', '٬', '،'):
+        normalized = normalized.replace(token, '')
+    return int(normalized)
 
 
 def _get_employee_cash_account(user):
@@ -3630,6 +3640,21 @@ def _quick_manual_selection_table_exists():
         return False
 
 
+def _sync_quick_manual_sorting_selection(enrollment, session=None, user=None):
+    if not _quick_manual_selection_table_exists():
+        return
+    if session is None:
+        QuickManualSortingSelection.objects.filter(enrollment=enrollment).delete()
+        return
+    QuickManualSortingSelection.objects.update_or_create(
+        enrollment=enrollment,
+        defaults={
+            'session': session,
+            'selected_by': user,
+        },
+    )
+
+
 def _filter_quick_courses_by_stage(courses, stage):
     if stage == 'NINTH':
         return courses.filter(name__icontains='تاسع')
@@ -3696,10 +3721,13 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         option_rows = []
         active_sessions = sessions_by_course.get(course.id, [])
         for period_number, session in enumerate(active_sessions, start=1):
+            session_title = (session.title or '').strip() or f"الفترة {period_number}"
             option_rows.append({
                 'id': session.id,
                 'period_number': period_number,
                 'label': f"الفترة {period_number}",
+                'session_title': session_title,
+                'select_label': session_title,
                 'session': session,
                 'timing': (
                     f"{session.start_time.strftime('%I:%M %p')} - "
@@ -3884,12 +3912,21 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             selected_session_id = None
             if column['single_session_id']:
                 selected_session_id = column['single_session_id']
-            elif manual_selection and getattr(manual_selection, 'session_id', None) in {item['id'] for item in column['sessions']}:
-                selected_session_id = manual_selection.session_id
             else:
                 current_session_id = getattr(assignment, 'session_id', None)
                 if current_session_id in {item['id'] for item in column['sessions']}:
                     selected_session_id = current_session_id
+                elif manual_selection and getattr(manual_selection, 'session_id', None) in {item['id'] for item in column['sessions']}:
+                    # Use the saved manual suggestion only when there is no current live assignment.
+                    selected_session_id = manual_selection.session_id
+            selected_session_option = next(
+                (item for item in column['sessions'] if item['id'] == selected_session_id),
+                None,
+            )
+            current_session_option = next(
+                (item for item in column['sessions'] if item['id'] == getattr(assignment, 'session_id', None)),
+                None,
+            )
 
             cells.append({
                 'course_id': course.id,
@@ -3899,11 +3936,14 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
                 'sessions': column['sessions'],
                 'has_sessions': column['has_sessions'],
                 'selected_session_id': selected_session_id,
-                'selected_period_number': next(
-                    (item['period_number'] for item in column['sessions'] if item['id'] == selected_session_id),
-                    None,
-                ),
+                'selected_period_number': selected_session_option['period_number'] if selected_session_option else None,
+                'selected_session_title': selected_session_option['session_title'] if selected_session_option else '',
                 'current_session_id': getattr(assignment, 'session_id', None),
+                'current_session_title': (
+                    current_session_option['session_title']
+                    if current_session_option
+                    else (getattr(getattr(assignment, 'session', None), 'title', None) or '')
+                ),
                 'manual_selected_session_id': getattr(manual_selection, 'session_id', None),
             })
 
@@ -4010,6 +4050,7 @@ def _save_quick_manual_sorting_assignments(
     cleared_count = 0
     unchanged_count = 0
     change_summaries = []
+    changed_enrollment_details = []
     validation_errors = []
 
     with transaction.atomic():
@@ -4019,8 +4060,11 @@ def _save_quick_manual_sorting_assignments(
                 continue
 
             available_sessions = sessions_by_course.get(enrollment.course_id, [])
-            period_by_session_id = {
-                session.id: index + 1
+            session_meta_by_id = {
+                session.id: {
+                    'period_number': index + 1,
+                    'title': (session.title or '').strip() or f"الفترة {index + 1}",
+                }
                 for index, session in enumerate(available_sessions)
             }
             has_single_session = len(available_sessions) == 1
@@ -4028,7 +4072,7 @@ def _save_quick_manual_sorting_assignments(
 
             if raw_value:
                 try:
-                    target_session_id = int(raw_value)
+                    target_session_id = _parse_quick_posted_int(raw_value)
                 except (TypeError, ValueError):
                     validation_errors.append(
                         f"اختيار غير صالح للطالب {enrollment.student.full_name} في دورة {enrollment.course.name}."
@@ -4045,8 +4089,16 @@ def _save_quick_manual_sorting_assignments(
 
             assignment = getattr(enrollment, 'session_assignment', None)
             current_session_id = getattr(assignment, 'session_id', None)
-            current_period_number = period_by_session_id.get(current_session_id)
-            target_period_number = period_by_session_id.get(target_session_id)
+            current_session_label = (
+                session_meta_by_id.get(current_session_id, {}).get('title')
+                or (getattr(getattr(assignment, 'session', None), 'title', None) or '').strip()
+                or 'فترة غير محددة'
+            )
+            target_session_label = (
+                session_meta_by_id.get(target_session_id, {}).get('title')
+                if target_session_id is not None
+                else ''
+            ) or 'فترة غير محددة'
             student_name = enrollment.student.full_name
             course_name = enrollment.course.name
 
@@ -4056,10 +4108,15 @@ def _save_quick_manual_sorting_assignments(
                     cleared_count += 1
                     saved_count += 1
                     change_summaries.append(
-                        f'{student_name} - {course_name}: إزالة التنزيل من الفترة {current_period_number or "-"}'
+                        f'{student_name} - {course_name}: إزالة التنزيل من {current_session_label}'
                     )
+                    changed_enrollment_details.append({
+                        'enrollment_id': enrollment.id,
+                        'label': 'تمت إزالة التنزيل',
+                        'session_title': '',
+                    })
                     if manual_selection_enabled:
-                        QuickManualSortingSelection.objects.filter(enrollment=enrollment).delete()
+                        _sync_quick_manual_sorting_selection(enrollment=enrollment, session=None, user=user)
                 else:
                     unchanged_count += 1
                 continue
@@ -4070,15 +4127,18 @@ def _save_quick_manual_sorting_assignments(
                 updated_count += 1
                 saved_count += 1
                 change_summaries.append(
-                    f'{student_name} - {course_name}: تأكيد الفترة {target_period_number or "-"}'
+                    f'{student_name} - {course_name}: تأكيد {target_session_label}'
                 )
+                changed_enrollment_details.append({
+                    'enrollment_id': enrollment.id,
+                    'label': 'تم تأكيد الكلاس',
+                    'session_title': target_session_label,
+                })
                 if manual_selection_enabled:
-                    QuickManualSortingSelection.objects.update_or_create(
+                    _sync_quick_manual_sorting_selection(
                         enrollment=enrollment,
-                        defaults={
-                            'session_id': target_session_id,
-                            'selected_by': user,
-                        },
+                        session=assignment.session,
+                        user=user,
                     )
                 continue
 
@@ -4092,22 +4152,30 @@ def _save_quick_manual_sorting_assignments(
             if created:
                 created_count += 1
                 change_summaries.append(
-                    f'{student_name} - {course_name}: من غير منزل إلى الفترة {target_period_number or "-"}'
+                    f'{student_name} - {course_name}: من غير منزل إلى {target_session_label}'
                 )
+                changed_enrollment_details.append({
+                    'enrollment_id': enrollment.id,
+                    'label': 'تم تنزيل الكلاس',
+                    'session_title': target_session_label,
+                })
             else:
                 updated_count += 1
                 change_summaries.append(
-                    f'{student_name} - {course_name}: من الفترة {current_period_number or "-"} إلى الفترة {target_period_number or "-"}'
+                    f'{student_name} - {course_name}: من {current_session_label} إلى {target_session_label}'
                 )
+                changed_enrollment_details.append({
+                    'enrollment_id': enrollment.id,
+                    'label': 'تم تعديل الكلاس',
+                    'session_title': target_session_label,
+                })
             saved_count += 1
 
             if manual_selection_enabled:
-                QuickManualSortingSelection.objects.update_or_create(
+                _sync_quick_manual_sorting_selection(
                     enrollment=enrollment,
-                    defaults={
-                        'session_id': target_session_id,
-                        'selected_by': user,
-                    },
+                    session=assignment.session,
+                    user=user,
                 )
 
     return {
@@ -4117,13 +4185,16 @@ def _save_quick_manual_sorting_assignments(
         'cleared_count': cleared_count,
         'unchanged_count': unchanged_count,
         'change_summaries': change_summaries,
+        'changed_enrollment_details': changed_enrollment_details,
         'validation_errors': validation_errors,
     }
 
 
+@method_decorator(never_cache, name='dispatch')
 class QuickManualSortingView(LoginRequiredMixin, TemplateView):
     template_name = 'quick/quick_manual_sorting.html'
     page_size = 30
+    flash_session_key = 'quick_manual_sorting_saved_cells'
 
     def _get_payload(self):
         course_type = self.request.GET.get('course_type') or self.request.POST.get('course_type') or 'INTENSIVE'
@@ -4146,6 +4217,34 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
 
     def _build_context(self, payload):
         page_obj = self._get_page_obj(payload['student_rows'])
+        saved_cells_state = self.request.session.pop(self.flash_session_key, None)
+        active_saved_cells = {}
+        if (
+            saved_cells_state
+            and saved_cells_state.get('course_type') == payload['course_type']
+            and saved_cells_state.get('stage') == payload['stage']
+            and saved_cells_state.get('assignment_status') == payload['assignment_status']
+            and saved_cells_state.get('page') == page_obj.number
+        ):
+            active_saved_cells = {
+                int(item['enrollment_id']): item
+                for item in saved_cells_state.get('cells', [])
+                if item.get('enrollment_id') is not None
+            }
+
+        if active_saved_cells:
+            for row in page_obj.object_list:
+                for cell in row.get('cells', []):
+                    enrollment = cell.get('enrollment')
+                    if not enrollment:
+                        continue
+                    saved_info = active_saved_cells.get(enrollment.id)
+                    if not saved_info:
+                        continue
+                    cell['was_just_saved'] = True
+                    cell['saved_badge_label'] = saved_info.get('label') or 'تم الحفظ'
+                    cell['saved_session_title'] = saved_info.get('session_title') or cell.get('selected_session_title') or ''
+
         base_query = urlencode({
             'course_type': payload['course_type'],
             'stage': payload['stage'],
@@ -4196,7 +4295,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 continue
             raw_id = key.replace('assignment_', '')
             try:
-                enrollment_id = int(raw_id)
+                enrollment_id = _parse_quick_posted_int(raw_id)
             except (TypeError, ValueError):
                 continue
             posted_assignments[enrollment_id] = (value or '').strip()
@@ -4267,6 +4366,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         cleared_count = save_result['cleared_count']
         unchanged_count = save_result['unchanged_count']
         change_summaries = save_result['change_summaries']
+        changed_enrollment_details = save_result['changed_enrollment_details']
         validation_errors = save_result['validation_errors']
         logger.info(
             'manual_sorting_post_result saved=%s created=%s updated=%s cleared=%s unchanged=%s errors=%s',
@@ -4307,22 +4407,28 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         else:
             messages.info(request, 'لا يوجد تغييرات جديدة للحفظ في هذه الصفحة.')
 
-        redirect_assignment_status = payload.get('assignment_status', 'ALL')
-        if saved_count and redirect_assignment_status in {'UNASSIGNED', 'PARTIAL'}:
-            redirect_assignment_status = 'ALL'
-            messages.info(request, 'تم تحويل العرض إلى "الكل" بعد الحفظ حتى ترى السجلات التي تغيّرت حالتها.')
+        if saved_count:
+            request.session[self.flash_session_key] = {
+                'course_type': payload['course_type'],
+                'stage': payload['stage'],
+                'assignment_status': payload['assignment_status'],
+                'page': page_obj.number,
+                'cells': changed_enrollment_details[:30],
+            }
 
         redirect_url = reverse('quick:manual_sorting')
         redirect_query = urlencode({
             'course_type': payload['course_type'],
             'stage': payload['stage'],
-            'assignment_status': redirect_assignment_status,
+            'assignment_status': payload['assignment_status'],
             'page': page_obj.number,
+            '_ts': int(time.time()),
         })
         logger.info('manual_sorting_post_redirect=%s?%s', redirect_url, redirect_query)
         return redirect(f'{redirect_url}?{redirect_query}')
 
 
+@method_decorator(never_cache, name='dispatch')
 class QuickManualSortingPrintView(LoginRequiredMixin, TemplateView):
     template_name = 'quick/quick_manual_sorting_print.html'
 
@@ -4342,6 +4448,7 @@ class QuickManualSortingPrintView(LoginRequiredMixin, TemplateView):
         return context
 
 
+@method_decorator(never_cache, name='dispatch')
 class QuickManualSortingUnassignedPrintView(LoginRequiredMixin, TemplateView):
     template_name = 'quick/quick_manual_sorting_unassigned_print.html'
 
@@ -4601,6 +4708,8 @@ def _auto_assign_course_enrollments(course, user):
     )
 
     QuickCourseSessionEnrollment.objects.filter(session__course=course).delete()
+    if _quick_manual_selection_table_exists():
+        QuickManualSortingSelection.objects.filter(enrollment__course=course).delete()
 
     assigned_count = 0
     unassigned_count = 0
@@ -4614,11 +4723,12 @@ def _auto_assign_course_enrollments(course, user):
                 continue
             if _student_has_conflict_for_session(enrollment.student_id, session):
                 continue
-            QuickCourseSessionEnrollment.objects.create(
+            assignment = QuickCourseSessionEnrollment.objects.create(
                 session=session,
                 enrollment=enrollment,
                 assigned_by=user,
             )
+            _sync_quick_manual_sorting_selection(enrollment=enrollment, session=assignment.session, user=user)
             seats_used[session.id] += 1
             assigned_count += 1
             assigned = True
@@ -4650,6 +4760,7 @@ def _assign_enrollment_to_available_session(enrollment, user=None):
             enrollment=enrollment,
             defaults={'session': session, 'assigned_by': user},
         )
+        _sync_quick_manual_sorting_selection(enrollment=enrollment, session=assignment.session, user=user)
         return assignment
     return None
 
@@ -4943,6 +5054,7 @@ def quick_course_session_assign_students(request, session_id):
             assignment.assigned_by = request.user
             assignment.save(update_fields=['session', 'assigned_by'])
             created = True
+        _sync_quick_manual_sorting_selection(enrollment=enrollment, session=assignment.session, user=request.user)
         if created:
             created_count += 1
 
@@ -4975,11 +5087,11 @@ def quick_course_session_unassign_student(request, session_id, enrollment_id):
         return redirect(redirect_url)
 
     with transaction.atomic():
-        if _quick_manual_selection_table_exists():
-            QuickManualSortingSelection.objects.filter(
-                enrollment_id=assignment.enrollment_id,
-                session_id=session.id,
-            ).delete()
+        _sync_quick_manual_sorting_selection(
+            enrollment=assignment.enrollment,
+            session=None,
+            user=request.user,
+        )
         student_name = assignment.enrollment.student.full_name
         session_title = session.title
         assignment.delete()
@@ -5014,6 +5126,7 @@ def quick_course_transfer_students(request, course_id):
             assignment.session = target
             assignment.assigned_by = request.user
             assignment.save(update_fields=['session', 'assigned_by'])
+            _sync_quick_manual_sorting_selection(enrollment=enrollment, session=assignment.session, user=request.user)
             moved += 1
 
     messages.success(request, f'تم نقل {moved} طالب إلى {target.title}.')
@@ -6153,10 +6266,10 @@ class QuickEnrollmentCreateView(LoginRequiredMixin, CreateView):
         # إنشاء القيد المحاسبي
         try:
             self.object.create_accrual_enrollment_entry(self.request.user)
-            assignment = _assign_enrollment_to_available_session(self.object, self.request.user)
-            if assignment is None:
-                messages.warning(self.request, 'تم تسجيل الطالب لكن لا يوجد كلاس فيه شاغر حالياً لهذه الدورة.')
-            messages.success(self.request, 'تم تسجيل الطالب وإنشاء القيد المحاسبي بنجاح')
+            messages.success(
+                self.request,
+                'تم تسجيل الطالب وإنشاء القيد المحاسبي بنجاح. بقي الطالب ضمن غير المنزلين حتى يتم تنزيله يدوياً على كلاس.'
+            )
         except Exception as e:
             messages.warning(self.request, f'تم التسجيل ولكن حدث خطأ في القيد المحاسبي: {str(e)}')
         return response
@@ -7017,9 +7130,9 @@ def register_quick_course(request, student_id):
                 total_amount=course.price
             )
             created_enrollments += 1
-            assignment = _assign_enrollment_to_available_session(enrollment, request.user)
-            if assignment is None:
-                warnings.append(f'الطالب سُجل في دورة {course.name} لكن لا يوجد كلاس متاح فيه شاغر حالياً.')
+            warnings.append(
+                f'الطالب سُجل في دورة {course.name} وبقي ضمن غير المنزلين حتى يتم تنزيله يدوياً على كلاس.'
+            )
 
             try:
                 enrollment.create_accrual_enrollment_entry(request.user)

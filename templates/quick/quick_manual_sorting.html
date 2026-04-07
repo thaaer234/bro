@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static l10n %}
 
 {% block title %}الفرز شبه اليدوي{% endblock %}
 
@@ -49,12 +49,19 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
 .student-card__meta { color:#667085; font-size:.56rem; line-height:1.05; }
 .student-card__creator { color:#0f766e; font-size:.54rem; line-height:1.05; font-weight:700; word-break:break-word; }
 .cell-card { display:grid; justify-items:center; gap:.1rem; }
+.cell-card--saved { background:linear-gradient(180deg, #ecfdf3, #dff7ea); border:1px solid #86efac; border-radius:10px; padding:.28rem .18rem; box-shadow:0 8px 18px rgba(22,163,74,.12); }
+.cell-card--dirty { background:linear-gradient(180deg, #fff8e8, #ffefc2); border:1px solid #f7b955; border-radius:10px; padding:.28rem .18rem; box-shadow:0 8px 18px rgba(217,119,6,.14); }
 .cell-status { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; min-width:16px; min-height:16px; padding:0; border-radius:4px; line-height:16px; font-size:.48rem; font-weight:700; overflow:hidden; }
 .cell-status--ok { background:#e8fff5; color:#067647; }
 .cell-status--bad { background:var(--ms-warn-soft); color:var(--ms-warn); }
 .cell-status--muted { background:transparent; color:transparent; border:1.5px solid #cbd5e1; }
-.cell-select { min-width:42px; max-width:42px; width:42px; padding-inline:.1rem; padding-top:.05rem; padding-bottom:.05rem; text-align:center; font-size:.62rem; line-height:1; }
+.cell-select { min-width:100%; max-width:none; width:100%; padding-inline:.15rem; padding-top:.05rem; padding-bottom:.05rem; text-align:center; font-size:.56rem; line-height:1.1; }
 .cell-period { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; min-width:16px; min-height:16px; padding:0; border-radius:4px; background:var(--ms-gold-soft); color:var(--ms-gold); line-height:16px; font-size:.48rem; font-weight:800; }
+.cell-session-name { color:#475467; font-size:.5rem; line-height:1.1; text-align:center; max-width:64px; word-break:break-word; }
+.cell-save-badge { display:inline-flex; align-items:center; justify-content:center; padding:.08rem .3rem; border-radius:999px; background:#067647; color:#fff; font-size:.48rem; font-weight:800; line-height:1.15; text-align:center; }
+.cell-save-badge--pending { background:#b54708; }
+.cell-save-name { color:#065f46; font-size:.5rem; line-height:1.1; text-align:center; max-width:72px; word-break:break-word; font-weight:700; }
+.cell-save-name--pending { color:#92400e; }
 .manual-sort-pagination { display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap; margin-top:1.25rem; }
 .manual-sort-empty { padding:3rem 1.5rem; text-align:center; color:#667085; }
 @media (max-width: 900px) {
@@ -167,16 +174,35 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
                                 {% for cell in row.cells %}
                                 <td>
                                     {% if cell.is_enrolled %}
-                                    <div class="cell-card">
+                                    <div class="cell-card {% if cell.was_just_saved %}cell-card--saved{% endif %}">
                                         <span class="cell-status cell-status--ok"><i class="fas fa-check"></i></span>
                                         {% if cell.has_sessions %}
-                                        <select name="assignment_{{ cell.enrollment.id }}" class="form-select form-select-sm cell-select">
+                                        {% localize off %}
+                                        <input
+                                            type="hidden"
+                                            name="assignment_{{ cell.enrollment.id }}"
+                                            value="{{ cell.selected_session_id|default:'' }}"
+                                            data-assignment-hidden
+                                        >
+                                        <select
+                                            name="assignment_ui_{{ cell.enrollment.id }}"
+                                            class="form-select form-select-sm cell-select"
+                                            data-initial-value="{{ cell.selected_session_id|default:'' }}"
+                                            data-selected-title="{{ cell.selected_session_title|default:'' }}"
+                                            data-hidden-name="assignment_{{ cell.enrollment.id }}"
+                                        >
                                             {% if cell.sessions|length > 1 %}<option value=""></option>{% endif %}
                                             {% for option in cell.sessions %}
-                                            <option value="{{ option.id }}" {% if option.id == cell.selected_session_id %}selected{% endif %}>{{ option.period_number }}</option>
+                                            <option value="{{ option.id }}" title="{{ option.session_title }}" {% if option.id == cell.selected_session_id %}selected{% endif %}>{{ option.select_label }}</option>
                                             {% endfor %}
                                         </select>
+                                        {% endlocalize %}
                                         {% if cell.selected_period_number %}<span class="cell-period">{{ cell.selected_period_number }}</span>{% endif %}
+                                        {% if cell.selected_session_title %}<span class="cell-session-name" title="{{ cell.selected_session_title }}">{{ cell.selected_session_title }}</span>{% endif %}
+                                        {% if cell.was_just_saved %}
+                                        <span class="cell-save-badge">{{ cell.saved_badge_label }}</span>
+                                        {% if cell.saved_session_title %}<span class="cell-save-name" title="{{ cell.saved_session_title }}">{{ cell.saved_session_title }}</span>{% endif %}
+                                        {% endif %}
                                         {% else %}
                                         <span class="cell-status cell-status--muted" aria-hidden="true"></span>
                                         {% endif %}
@@ -261,8 +287,65 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!form) return;
     let isDirty = false;
     let isSubmitting = false;
+    const ensurePendingBadge = function (card) {
+        let badge = card.querySelector('.cell-save-badge--pending');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'cell-save-badge cell-save-badge--pending';
+            card.appendChild(badge);
+        }
+        return badge;
+    };
+    const ensurePendingName = function (card) {
+        let label = card.querySelector('.cell-save-name--pending');
+        if (!label) {
+            label = document.createElement('span');
+            label.className = 'cell-save-name cell-save-name--pending';
+            card.appendChild(label);
+        }
+        return label;
+    };
+    const syncHiddenField = function (field) {
+        const hiddenName = field.dataset.hiddenName;
+        if (!hiddenName) return;
+        const hidden = form.querySelector('input[type="hidden"][name="' + hiddenName + '"]');
+        if (!hidden) return;
+        hidden.value = field.value || '';
+    };
     form.querySelectorAll('select').forEach(function (field) {
-        field.addEventListener('change', function () { isDirty = true; });
+        syncHiddenField(field);
+        field.addEventListener('change', function () {
+            const card = field.closest('.cell-card');
+            syncHiddenField(field);
+            if (!card) {
+                isDirty = true;
+                return;
+            }
+            const selectedOption = field.options[field.selectedIndex];
+            const selectedText = selectedOption ? selectedOption.text.trim() : '';
+            const currentValue = field.dataset.initialValue || '';
+            const selectedValue = field.value || '';
+            const changed = currentValue !== selectedValue;
+
+            card.classList.toggle('cell-card--dirty', changed);
+            if (!changed) {
+                const oldBadge = card.querySelector('.cell-save-badge--pending');
+                const oldName = card.querySelector('.cell-save-name--pending');
+                if (oldBadge) oldBadge.remove();
+                if (oldName) oldName.remove();
+                isDirty = Array.from(form.querySelectorAll('select')).some(function (selectField) {
+                    return (selectField.dataset.initialValue || '') !== (selectField.value || '');
+                });
+                return;
+            }
+
+            const badge = ensurePendingBadge(card);
+            badge.textContent = 'تعديل غير محفوظ';
+            const name = ensurePendingName(card);
+            name.textContent = selectedText;
+            name.title = selectedText;
+            isDirty = true;
+        });
     });
     form.addEventListener('submit', function () { isDirty = false; isSubmitting = true; });
     window.addEventListener('beforeunload', function (event) {
