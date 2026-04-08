@@ -4170,13 +4170,13 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
     selected_course_sessions = course_column_map.get(selected_course_id, {}).get('sessions', []) if selected_course_id else []
     selected_course_session_ids = {item['id'] for item in selected_course_sessions}
     try:
-        selected_session_id = _parse_quick_posted_int(session_id) if session_id not in (None, '') else None
+        selected_filter_session_id = _parse_quick_posted_int(session_id) if session_id not in (None, '') else None
     except (TypeError, ValueError):
-        selected_session_id = None
-    if selected_session_id not in selected_course_session_ids:
-        selected_session_id = None
-    selected_session_option = next(
-        (item for item in selected_course_sessions if item['id'] == selected_session_id),
+        selected_filter_session_id = None
+    if selected_filter_session_id not in selected_course_session_ids:
+        selected_filter_session_id = None
+    selected_filter_session_option = next(
+        (item for item in selected_course_sessions if item['id'] == selected_filter_session_id),
         None,
     )
     session_filter_options = [{'value': '', 'label': 'كل الكلاسات'}]
@@ -4334,10 +4334,10 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             row for row in unassigned_enrollments
             if row['student'].id in selected_course_student_ids
         ]
-    if selected_session_id is not None:
+    if selected_filter_session_id is not None:
         unassigned_enrollments = [
             row for row in unassigned_enrollments
-            if row.get('manual_selected_session_id') == selected_session_id
+            if row.get('manual_selected_session_id') == selected_filter_session_id
         ]
     focus_unassigned_student_ids = {row['student'].id for row in unassigned_enrollments}
 
@@ -4415,11 +4415,11 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             row for row in student_rows
             if row['student'].id in selected_course_student_ids
         ]
-    if selected_session_id is not None and selected_course_id is not None:
+    if selected_filter_session_id is not None and selected_course_id is not None:
         student_rows = [
             row for row in student_rows
             if any(
-                cell['course_id'] == selected_course_id and cell.get('selected_session_id') == selected_session_id
+                cell['course_id'] == selected_course_id and cell.get('selected_session_id') == selected_filter_session_id
                 for cell in row['cells']
             )
         ]
@@ -4483,8 +4483,8 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         'selected_course_id': selected_course_id,
         'selected_course_label': selected_course.name if selected_course else 'كل الدورات الظاهرة',
         'course_filter_options': course_filter_options,
-        'selected_session_id': selected_session_id,
-        'selected_session_label': selected_session_option['session_title'] if selected_session_option else 'كل الكلاسات',
+        'selected_session_id': selected_filter_session_id,
+        'selected_session_label': selected_filter_session_option['session_title'] if selected_filter_session_option else 'كل الكلاسات',
         'session_filter_options': session_filter_options,
         'stage': stage,
         'stage_label': stage_labels.get(stage, stage),
