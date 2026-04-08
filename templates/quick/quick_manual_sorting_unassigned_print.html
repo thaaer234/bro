@@ -58,10 +58,10 @@
             <div class="toolbar__title">
                 <span class="toolbar__eyebrow">QUICK MANUAL SORTING</span>
                 <strong>جدول الطلاب غير المنزلين</strong>
-                <span class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }} | {{ course_type_label }} | {{ selected_course_label }} | {{ stage_label }}</span>
+                <span class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }} | {{ course_type_label }} | {{ selected_course_label }} | {{ selected_session_label }} | {{ stage_label }}</span>
             </div>
             <div class="toolbar__actions">
-                <a href="{% url 'quick:manual_sorting' %}?course_type={{ course_type }}&course_id={{ selected_course_id|default:'' }}&stage={{ stage }}&assignment_status={{ assignment_status }}" class="btn btn-secondary">العودة</a>
+                <a href="{% url 'quick:manual_sorting' %}?course_type={{ course_type }}&course_id={{ selected_course_id|default:'' }}&session_id={{ selected_session_id|default:'' }}&stage={{ stage }}&assignment_status={{ assignment_status }}" class="btn btn-secondary">العودة</a>
                 <button type="button" class="btn btn-primary" onclick="window.print()">طباعة</button>
             </div>
         </div>
@@ -73,6 +73,7 @@
             <section class="stats">
                 <div class="stat"><span class="stat__label">نوع الدورات</span><strong class="stat__value">{{ course_type_label }}</strong></div>
                 <div class="stat"><span class="stat__label">الدورة</span><strong class="stat__value">{{ selected_course_label }}</strong></div>
+                <div class="stat"><span class="stat__label">الكلاس</span><strong class="stat__value">{{ selected_session_label }}</strong></div>
                 <div class="stat"><span class="stat__label">المرحلة</span><strong class="stat__value">{{ stage_label }}</strong></div>
                 <div class="stat"><span class="stat__label">عدد الطلاب</span><strong class="stat__value">{{ total_unassigned_students }}</strong></div>
                 <div class="stat"><span class="stat__label">عدد الدورات</span><strong class="stat__value">{{ total_courses }}</strong></div>

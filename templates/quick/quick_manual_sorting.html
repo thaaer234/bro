@@ -93,6 +93,7 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
     <div class="manual-sort-stats">
         <div class="manual-sort-stat"><span class="manual-sort-stat__label">نوع الدورات</span><strong class="manual-sort-stat__value">{{ course_type_label }}</strong></div>
         <div class="manual-sort-stat"><span class="manual-sort-stat__label">الدورة</span><strong class="manual-sort-stat__value">{{ selected_course_label }}</strong></div>
+        <div class="manual-sort-stat"><span class="manual-sort-stat__label">الكلاس</span><strong class="manual-sort-stat__value">{{ selected_session_label }}</strong></div>
         <div class="manual-sort-stat"><span class="manual-sort-stat__label">عدد الدورات الظاهرة</span><strong class="manual-sort-stat__value">{{ total_courses }}</strong></div>
         <div class="manual-sort-stat"><span class="manual-sort-stat__label">عدد الطلاب الكلي</span><strong class="manual-sort-stat__value">{{ total_students }}</strong></div>
         <div class="manual-sort-stat"><span class="manual-sort-stat__label">طلاب هذه الصفحة</span><strong class="manual-sort-stat__value">{{ students_on_page }}</strong></div>
@@ -119,6 +120,18 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
                         {% for option in course_filter_options %}
                         <option value="{{ option.value }}" {% if option.value == selected_course_id|default_if_none:''|stringformat:'s' %}selected{% endif %}>{{ option.label }}</option>
                         {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="session_id" class="form-label fw-bold">الكلاس</label>
+                    <select name="session_id" id="session_id" class="form-select">
+                        {% if not selected_course_id %}
+                        <option value="">اختر الدورة أولاً</option>
+                        {% else %}
+                        {% for option in session_filter_options %}
+                        <option value="{{ option.value }}" {% if option.value == selected_session_id|default_if_none:''|stringformat:'s' %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                        {% endif %}
                     </select>
                 </div>
                 <div>
@@ -152,6 +165,7 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
                 {% csrf_token %}
                 <input type="hidden" name="course_type" value="{{ course_type }}">
                 <input type="hidden" name="course_id" value="{{ selected_course_id|default:'' }}">
+                <input type="hidden" name="session_id" value="{{ selected_session_id|default:'' }}">
                 <input type="hidden" name="stage" value="{{ stage }}">
                 <input type="hidden" name="assignment_status" value="{{ assignment_status }}">
                 <input type="hidden" name="page" value="{{ page_obj.number }}">
@@ -230,8 +244,8 @@ body.page-manual_sorting .main-content { margin-right: 0 !important; padding-lef
                 <div class="manual-sort-pagination">
                     <div class="text-muted">يعرض {{ page_obj.start_index }} - {{ page_obj.end_index }} من أصل {{ total_students }} طالب.</div>
                     <div class="d-flex gap-2 flex-wrap">
-                        {% if page_obj.has_previous %}<a href="?course_type={{ course_type }}&course_id={{ selected_course_id|default:'' }}&stage={{ stage }}&assignment_status={{ assignment_status }}&page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary js-manual-page-link"><i class="fas fa-arrow-right me-1"></i>السابق</a>{% endif %}
-                        {% if page_obj.has_next %}<a href="?course_type={{ course_type }}&course_id={{ selected_course_id|default:'' }}&stage={{ stage }}&assignment_status={{ assignment_status }}&page={{ page_obj.next_page_number }}" class="btn btn-outline-primary js-manual-page-link">التالي<i class="fas fa-arrow-left ms-1"></i></a>{% endif %}
+                        {% if page_obj.has_previous %}<a href="?course_type={{ course_type }}&course_id={{ selected_course_id|default:'' }}&session_id={{ selected_session_id|default:'' }}&stage={{ stage }}&assignment_status={{ assignment_status }}&page={{ page_obj.previous_page_number }}" class="btn btn-outline-secondary js-manual-page-link"><i class="fas fa-arrow-right me-1"></i>السابق</a>{% endif %}
+                        {% if page_obj.has_next %}<a href="?course_type={{ course_type }}&course_id={{ selected_course_id|default:'' }}&session_id={{ selected_session_id|default:'' }}&stage={{ stage }}&assignment_status={{ assignment_status }}&page={{ page_obj.next_page_number }}" class="btn btn-outline-primary js-manual-page-link">التالي<i class="fas fa-arrow-left ms-1"></i></a>{% endif %}
                     </div>
                 </div>
             </form>

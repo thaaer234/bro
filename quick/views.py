@@ -4056,7 +4056,7 @@ def _filter_quick_courses_by_stage(courses, stage):
     return courses
 
 
-def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINTH', assignment_status='ALL', course_id=None):
+def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINTH', assignment_status='ALL', course_id=None, session_id=None):
     course_type = _resolve_quick_course_type_value(course_type, allow_all=True)
     stage = (stage or 'NON_NINTH').upper()
     valid_stages = {item['value'] for item in _get_quick_manual_stage_options()}
@@ -4103,10 +4103,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
     if selected_course_id not in available_course_ids:
         selected_course_id = None
 
-    if selected_course_id:
-        courses = [course for course in available_courses if course.id == selected_course_id]
-    else:
-        courses = list(available_courses)
+    courses = list(available_courses)
     selected_course = next((course for course in available_courses if course.id == selected_course_id), None)
     course_filter_options = [{'value': '', 'label': 'كل الدورات الظاهرة'}]
     course_filter_options.extend(
@@ -4170,6 +4167,27 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         )
     )
     course_column_map = {item['course'].id: item for item in course_columns}
+    selected_course_sessions = course_column_map.get(selected_course_id, {}).get('sessions', []) if selected_course_id else []
+    selected_course_session_ids = {item['id'] for item in selected_course_sessions}
+    try:
+        selected_session_id = _parse_quick_posted_int(session_id) if session_id not in (None, '') else None
+    except (TypeError, ValueError):
+        selected_session_id = None
+    if selected_session_id not in selected_course_session_ids:
+        selected_session_id = None
+    selected_session_option = next(
+        (item for item in selected_course_sessions if item['id'] == selected_session_id),
+        None,
+    )
+    session_filter_options = [{'value': '', 'label': 'كل الكلاسات'}]
+    if selected_course_sessions:
+        session_filter_options.extend(
+            {
+                'value': str(item['id']),
+                'label': item['session_title'],
+            }
+            for item in selected_course_sessions
+        )
     active_session_ids_by_course = {
         item['course'].id: {session_option['id'] for session_option in item['sessions']}
         for item in course_columns
@@ -4250,6 +4268,7 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
                     'course': enrollment.course,
                     'issue_label': issue_label,
                     'active_sessions_count': len(active_session_ids),
+                    'manual_selected_session_id': getattr(manual_selection, 'session_id', None),
                     'manual_selected_period_number': (
                         active_period_numbers_by_session_id.get(manual_selection.session_id)
                         if manual_selection and getattr(manual_selection, 'session_id', None)
@@ -4269,6 +4288,14 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         )
         student_row['enrollments_by_course'][enrollment.course_id] = enrollment
         student_row['enrolled_courses_count'] += 1
+
+    selected_course_student_ids = None
+    if selected_course_id:
+        selected_course_student_ids = {
+            student_id
+            for student_id, student_row in student_rows_by_id.items()
+            if selected_course_id in student_row['enrollments_by_course']
+        }
 
     fully_unassigned_student_ids = set()
     fully_assigned_student_ids = set()
@@ -4302,6 +4329,16 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         row for row in unassigned_enrollments
         if row['student'].id in fully_unassigned_student_ids
     ]
+    if selected_course_student_ids is not None:
+        unassigned_enrollments = [
+            row for row in unassigned_enrollments
+            if row['student'].id in selected_course_student_ids
+        ]
+    if selected_session_id is not None:
+        unassigned_enrollments = [
+            row for row in unassigned_enrollments
+            if row.get('manual_selected_session_id') == selected_session_id
+        ]
     focus_unassigned_student_ids = {row['student'].id for row in unassigned_enrollments}
 
     student_rows = []
@@ -4373,6 +4410,19 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             item['student'].id,
         )
     )
+    if selected_course_student_ids is not None:
+        student_rows = [
+            row for row in student_rows
+            if row['student'].id in selected_course_student_ids
+        ]
+    if selected_session_id is not None and selected_course_id is not None:
+        student_rows = [
+            row for row in student_rows
+            if any(
+                cell['course_id'] == selected_course_id and cell.get('selected_session_id') == selected_session_id
+                for cell in row['cells']
+            )
+        ]
     student_rows_all = list(student_rows)
     if assignment_status == 'UNASSIGNED':
         student_rows = [row for row in student_rows_all if row['student'].id in fully_unassigned_student_ids]
@@ -4403,6 +4453,11 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
                 ],
             })
 
+    filtered_student_ids = {row['student'].id for row in student_rows_all}
+    filtered_fully_assigned_student_ids = fully_assigned_student_ids & filtered_student_ids
+    filtered_partially_assigned_student_ids = partially_assigned_student_ids & filtered_student_ids
+    filtered_single_only_student_ids = single_only_student_ids & filtered_student_ids
+
     student_order_index = {
         row['student'].id: index
         for index, row in enumerate(student_rows_all)
@@ -4428,6 +4483,9 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         'selected_course_id': selected_course_id,
         'selected_course_label': selected_course.name if selected_course else 'كل الدورات الظاهرة',
         'course_filter_options': course_filter_options,
+        'selected_session_id': selected_session_id,
+        'selected_session_label': selected_session_option['session_title'] if selected_session_option else 'كل الكلاسات',
+        'session_filter_options': session_filter_options,
         'stage': stage,
         'stage_label': stage_labels.get(stage, stage),
         'stage_options': stage_options,
@@ -4443,9 +4501,9 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
         'unassigned_enrollments': unassigned_enrollments,
         'unassigned_enrollment_count': len(unassigned_enrollments),
         'unassigned_student_count': len(focus_unassigned_student_ids),
-        'assigned_student_count': len(fully_assigned_student_ids),
-        'partial_student_count': len(partially_assigned_student_ids),
-        'single_only_student_count': len(single_only_student_ids),
+        'assigned_student_count': len(filtered_fully_assigned_student_ids),
+        'partial_student_count': len(filtered_partially_assigned_student_ids),
+        'single_only_student_count': len(filtered_single_only_student_ids),
         'course_columns_unassigned_print': unassigned_print_course_columns,
         'student_rows_unassigned_print': student_rows_unassigned_print,
         'manual_selection_enabled': manual_selection_enabled,
@@ -4616,6 +4674,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
     def _get_payload(self):
         course_type = self.request.GET.get('course_type') or self.request.POST.get('course_type') or 'INTENSIVE'
         course_id = self.request.GET.get('course_id') or self.request.POST.get('course_id') or ''
+        session_id = self.request.GET.get('session_id') or self.request.POST.get('session_id') or ''
         stage = self.request.GET.get('stage') or self.request.POST.get('stage') or 'NON_NINTH'
         assignment_status = (
             self.request.GET.get('assignment_status')
@@ -4625,6 +4684,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         return _build_quick_manual_sorting_payload(
             course_type=course_type,
             course_id=course_id,
+            session_id=session_id,
             stage=stage,
             assignment_status=assignment_status,
         )
@@ -4642,6 +4702,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             saved_cells_state
             and saved_cells_state.get('course_type') == payload['course_type']
             and saved_cells_state.get('course_id') == payload['selected_course_id']
+            and saved_cells_state.get('session_id') == payload['selected_session_id']
             and saved_cells_state.get('stage') == payload['stage']
             and saved_cells_state.get('assignment_status') == payload['assignment_status']
             and saved_cells_state.get('page') == page_obj.number
@@ -4672,6 +4733,8 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         ]
         if payload['selected_course_id']:
             base_query_items.append(('course_id', payload['selected_course_id']))
+        if payload['selected_session_id']:
+            base_query_items.append(('session_id', payload['selected_session_id']))
         base_query = urlencode(base_query_items)
         print_url = f"{reverse('quick:manual_sorting_print')}?{base_query}" if payload['courses'] else ''
         unassigned_print_url = (
@@ -4834,6 +4897,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             request.session[self.flash_session_key] = {
                 'course_type': payload['course_type'],
                 'course_id': payload['selected_course_id'],
+                'session_id': payload['selected_session_id'],
                 'stage': payload['stage'],
                 'assignment_status': payload['assignment_status'],
                 'page': page_obj.number,
@@ -4850,6 +4914,8 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         ]
         if payload['selected_course_id']:
             redirect_query_items.append(('course_id', payload['selected_course_id']))
+        if payload['selected_session_id']:
+            redirect_query_items.append(('session_id', payload['selected_session_id']))
         redirect_query = urlencode(redirect_query_items)
         logger.info('manual_sorting_post_redirect=%s?%s', redirect_url, redirect_query)
         return redirect(f'{redirect_url}?{redirect_query}')
@@ -4864,6 +4930,7 @@ class QuickManualSortingPrintView(LoginRequiredMixin, TemplateView):
         payload = _build_quick_manual_sorting_payload(
             course_type=self.request.GET.get('course_type') or 'INTENSIVE',
             course_id=self.request.GET.get('course_id') or '',
+            session_id=self.request.GET.get('session_id') or '',
             stage=self.request.GET.get('stage') or 'NON_NINTH',
             assignment_status=self.request.GET.get('assignment_status') or 'ALL',
         )
@@ -4885,6 +4952,7 @@ class QuickManualSortingUnassignedPrintView(LoginRequiredMixin, TemplateView):
         payload = _build_quick_manual_sorting_payload(
             course_type=self.request.GET.get('course_type') or 'INTENSIVE',
             course_id=self.request.GET.get('course_id') or '',
+            session_id=self.request.GET.get('session_id') or '',
             stage=self.request.GET.get('stage') or 'NON_NINTH',
             assignment_status=self.request.GET.get('assignment_status') or 'ALL',
         )
