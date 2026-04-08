@@ -331,30 +331,46 @@
     padding: 8px;
 }
 
-.uhb-cover__badge {
+.uhb-cover__issue {
     display: grid;
     justify-items: center;
-    gap: 6px;
+    gap: 4px;
+    min-width: 41mm;
     padding: 14px 18px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.12);
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.uhb-cover__badge strong {
+.uhb-cover__issue-label {
+    font-size: 8.4pt;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.uhb-cover__issue strong {
     font-family: "Manrope", sans-serif;
-    font-size: 18pt;
+    font-size: 19pt;
+    line-height: 1;
+}
+
+.uhb-cover__issue small {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 8pt;
 }
 
 .uhb-cover__stage {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    align-items: end;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+    align-items: stretch;
+    gap: 14px;
 }
 
 .uhb-cover__copy {
     display: grid;
     gap: 14px;
+    align-content: start;
 }
 
 .uhb-cover__subtitle {
@@ -362,46 +378,160 @@
 }
 
 .uhb-cover__copy h1 {
-    font-size: 26pt;
-    max-width: 140mm;
+    font-size: 28pt;
+    max-width: 134mm;
 }
 
 .uhb-cover__copy p {
-    max-width: 132mm;
+    max-width: 120mm;
     font-size: 11pt;
+    line-height: 1.9;
 }
 
-.uhb-cover__identity {
+.uhb-cover__signals {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.uhb-cover__signal {
+    display: grid;
+    gap: 4px;
+    min-height: 72px;
+    padding: 13px 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.uhb-cover__signal span {
+    color: rgba(255, 255, 255, 0.74);
+    font-size: 8.4pt;
+    font-weight: 800;
+}
+
+.uhb-cover__signal strong {
+    color: #fff;
+    font-family: "Manrope", sans-serif;
+    font-size: 17pt;
+    line-height: 1.1;
+}
+
+.uhb-cover__signal small {
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 8pt;
+    line-height: 1.55;
+}
+
+.uhb-cover__profile {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.08));
+    backdrop-filter: blur(12px);
+    align-content: start;
+}
+
+.uhb-cover__profile-head {
+    display: flex;
+    align-items: center;
     gap: 12px;
 }
 
-.uhb-glass-card {
+.uhb-cover__avatar {
+    width: 66px;
+    height: 66px;
+    border-radius: 20px;
     display: grid;
-    gap: 4px;
-    padding: 16px;
-    border-radius: 18px;
+    place-items: center;
+    background: linear-gradient(135deg, rgba(196, 139, 58, 0.95), rgba(255, 255, 255, 0.28));
+    color: #fff;
+    font-family: "Manrope", sans-serif;
+    font-size: 24pt;
+    font-weight: 800;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
-.uhb-glass-card strong {
-    font-size: 11.3pt;
+.uhb-cover__profile-copy {
+    display: grid;
+    gap: 4px;
+}
+
+.uhb-cover__profile-copy span {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 8.4pt;
+    font-weight: 800;
+}
+
+.uhb-cover__profile-copy strong {
+    color: #fff;
+    font-size: 14pt;
+    line-height: 1.45;
+}
+
+.uhb-cover__profile-copy small {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 9pt;
+}
+
+.uhb-cover__facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+}
+
+.uhb-cover__facts div {
+    display: grid;
+    gap: 4px;
+    min-height: 72px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(11, 24, 39, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.uhb-cover__facts dt {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 8.2pt;
+    font-weight: 800;
+}
+
+.uhb-cover__facts dd {
+    margin: 0;
+    color: #fff;
+    font-size: 10.6pt;
+    font-weight: 700;
+    line-height: 1.6;
 }
 
 .uhb-cover__footer {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 42mm;
+    gap: 12px;
 }
 
 .uhb-cover__summary {
     display: grid;
-    gap: 6px;
+    gap: 7px;
     min-height: 94px;
     padding: 16px 18px;
     border-radius: 18px;
+    align-content: start;
 }
 
 .uhb-cover__summary strong {
     font-size: 11.2pt;
+    line-height: 1.6;
+}
+
+.uhb-cover__summary small {
+    color: rgba(255, 255, 255, 0.74);
+    font-size: 8.1pt;
+    line-height: 1.6;
 }
 
 .uhb-cover__summary--qr {
@@ -415,6 +545,11 @@
     border-radius: 12px;
     background: #fff;
     padding: 5px;
+}
+
+.uhb-cover__summary--qr div {
+    display: grid;
+    gap: 4px;
 }
 
 .uhb-page-head,

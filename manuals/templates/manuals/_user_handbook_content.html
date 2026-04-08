@@ -66,51 +66,84 @@
                             <strong>{{ closing_brand_name }}</strong>
                         </div>
                     </div>
-                    <div class="uhb-cover__badge">
-                        <span>نسخة تشغيلية فردية</span>
+                    <div class="uhb-cover__issue">
+                        <span class="uhb-cover__issue-label">نسخة تشغيلية فردية</span>
                         <strong>{% now "Y" %}</strong>
+                        <small>جاهزة للطباعة A4</small>
                     </div>
                 </div>
 
                 <div class="uhb-cover__stage">
                     <div class="uhb-cover__copy">
-                        <span class="uhb-cover__subtitle">الدليل المستخدم الواحد</span>
+                        <span class="uhb-cover__subtitle">دليل المستخدم الواحد</span>
                         <h1>دليل المستخدم الفردي</h1>
                         <p>مرجع تشغيلي منظم ومصمم خصيصًا لهذا المستخدم، يشرح المسارات الأساسية، الشاشات المعتمدة، أسلوب التعامل مع التنبيهات، وآلية الاستخدام اليومي بصورة واضحة وقابلة للطباعة.</p>
+                        <div class="uhb-cover__signals">
+                            <article class="uhb-cover__signal">
+                                <span>الصفحات</span>
+                                <strong>{{ manual_content_pages|length }}</strong>
+                                <small>صفحة تشغيلية موثقة</small>
+                            </article>
+                            <article class="uhb-cover__signal">
+                                <span>الشاشات</span>
+                                <strong>{{ manual_screen_total }}</strong>
+                                <small>شاشة ضمن الصلاحيات</small>
+                            </article>
+                            <article class="uhb-cover__signal">
+                                <span>الأزرار</span>
+                                <strong>{{ manual_button_total }}</strong>
+                                <small>عنصر موضح داخل الدليل</small>
+                            </article>
+                        </div>
                     </div>
 
-                    <div class="uhb-cover__identity">
-                        <article class="uhb-glass-card">
-                            <span>المستخدم</span>
-                            <strong>{{ manual_target_name }}</strong>
-                        </article>
-                        <article class="uhb-glass-card">
-                            <span>الصفة الوظيفية</span>
-                            <strong>{{ manual_target_position }}</strong>
-                        </article>
-                        <article class="uhb-glass-card">
-                            <span>الأقسام</span>
-                            <strong>{{ manual_user_departments|join:" / " }}</strong>
-                        </article>
-                        <article class="uhb-glass-card">
-                            <span>تاريخ الإصدار</span>
-                            <strong>{% now "Y / m / d" %}</strong>
-                        </article>
-                    </div>
+                    <aside class="uhb-cover__profile">
+                        <div class="uhb-cover__profile-head">
+                            <div class="uhb-cover__avatar">{{ manual_target_name|slice:":1" }}</div>
+                            <div class="uhb-cover__profile-copy">
+                                <span>ملف المستخدم</span>
+                                <strong>{{ manual_target_name }}</strong>
+                                <small>{{ manual_target_position }}</small>
+                            </div>
+                        </div>
+                        <dl class="uhb-cover__facts">
+                            <div>
+                                <dt>اسم المستخدم</dt>
+                                <dd dir="ltr">{{ manual_target_username }}</dd>
+                            </div>
+                            <div>
+                                <dt>الأقسام</dt>
+                                <dd>{{ manual_user_departments|join:" / " }}</dd>
+                            </div>
+                            <div>
+                                <dt>رمز النظام</dt>
+                                <dd dir="ltr">{{ manual_target_system_code }}</dd>
+                            </div>
+                            <div>
+                                <dt>تاريخ الإصدار</dt>
+                                <dd>{% now "Y / m / d" %}</dd>
+                            </div>
+                        </dl>
+                    </aside>
                 </div>
 
                 <div class="uhb-cover__footer">
                     <div class="uhb-cover__summary">
-                        <span>يشمل هذا الإصدار</span>
+                        <span>محتوى الإصدار</span>
                         <strong>{{ manual_content_pages|length }} صفحة تشغيلية موثقة</strong>
+                        <small>{{ manual_error_pages|length }} صفحة أخطاء وتنبيهات مرجعية</small>
                     </div>
                     <div class="uhb-cover__summary">
-                        <span>رابط النظام</span>
+                        <span>بيانات الوصول</span>
                         <strong dir="ltr">{{ manual_target_system_url }}</strong>
+                        <small dir="ltr">{{ manual_target_username }}</small>
                     </div>
                     <div class="uhb-cover__summary uhb-cover__summary--qr">
                         <img src="{{ manual_target_qr }}" alt="رمز QR للنظام">
-                        <span>مسح سريع للوصول</span>
+                        <div>
+                            <strong>وصول سريع</strong>
+                            <span>مسح QR لفتح النظام مباشرة</span>
+                        </div>
                     </div>
                 </div>
             </div>
