@@ -154,7 +154,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
 <script>
 // مخطط المصروفات
 const expensesCtx = document.getElementById('expensesChart').getContext('2d');

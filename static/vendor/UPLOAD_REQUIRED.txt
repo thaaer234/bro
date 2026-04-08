@@ -1,0 +1,19 @@
+ضع الملفات التالية داخل `static/vendor/` قبل رفع المشروع أو تشغيل `collectstatic`:
+
+1. `static/vendor/bootstrap/bootstrap.rtl.min.css`
+2. `static/vendor/bootstrap/bootstrap.bundle.min.js`
+3. `static/vendor/jquery/jquery.min.js`
+4. `static/vendor/fontawesome/css/all.min.css`
+5. `static/vendor/fontawesome/webfonts/` كامل
+6. `static/vendor/chartjs/chart.umd.min.js`
+7. `static/vendor/leaflet/leaflet.css`
+8. `static/vendor/leaflet/leaflet.js`
+9. `static/vendor/leaflet/images/` كامل
+10. `static/vendor/html2canvas/html2canvas.min.js`
+11. `static/vendor/html5-qrcode/html5-qrcode.min.js`
+
+بعد رفعها نفّذ:
+
+`python manage.py collectstatic --noinput`
+
+ثم أعد تشغيل التطبيق أو خدمة الويب على السيرفر.

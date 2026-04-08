@@ -309,7 +309,7 @@ LOGOUT_URL = "/logout/"
 
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_SAVE_EVERY_REQUEST = env_bool("DJANGO_SESSION_SAVE_EVERY_REQUEST", False)
 
 # ==============================
 # Security Settings (Production)
@@ -409,7 +409,7 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'mhmadwerc8@gmail.com')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'eyft acyj dccx qjvl')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', '1') == '1'
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', '0') == '1'
-EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '5'))
 EMAIL_SSL_CERTFILE = os.getenv('EMAIL_SSL_CERTFILE') or None
 EMAIL_SSL_KEYFILE = os.getenv('EMAIL_SSL_KEYFILE') or None
 EMAIL_SUBJECT_PREFIX = os.getenv('EMAIL_SUBJECT_PREFIX', '[مركز الأمن] ')
@@ -547,5 +547,8 @@ SECURITY_MONITORING = {
     'BRUTE_FORCE_WINDOW_SECONDS': 900,
     'BRUTE_FORCE_THRESHOLD': 8,
     'REPORT_INCLUDE_ARTIFACTS': True,
+    'ENABLE_GEO_LOOKUPS': env_bool('SECURITY_GEO_LOOKUPS_ENABLED', False),
+    'ENABLE_EMAIL_ALERTS': env_bool('SECURITY_EMAIL_ALERTS_ENABLED', False),
+    'ENABLE_LOGIN_EVENT_EMAILS': env_bool('SECURITY_LOGIN_EVENT_EMAILS_ENABLED', False),
 }
 

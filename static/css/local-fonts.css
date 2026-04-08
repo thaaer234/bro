@@ -1,0 +1,103 @@
+@font-face {
+    font-family: 'Tajawal';
+    src: url('../font/Cairo-400.ttf') format('truetype');
+    font-weight: 300 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Tajawal';
+    src: url('../font/Cairo-600.ttf') format('truetype');
+    font-weight: 500 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Tajawal';
+    src: url('../font/Cairo-800.ttf') format('truetype');
+    font-weight: 700 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Cairo';
+    src: url('../font/Cairo-400.ttf') format('truetype');
+    font-weight: 300 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Cairo';
+    src: url('../font/Cairo-600.ttf') format('truetype');
+    font-weight: 500 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Cairo';
+    src: url('../font/Cairo-800.ttf') format('truetype');
+    font-weight: 700 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Amiri';
+    src: url('../font/Cairo-400.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Amiri';
+    src: url('../font/Cairo-800.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Changa';
+    src: url('../font/Cairo-600.ttf') format('truetype');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Heebo';
+    src: url('../font/Cairo-400.ttf') format('truetype');
+    font-weight: 300 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Heebo';
+    src: url('../font/Cairo-600.ttf') format('truetype');
+    font-weight: 600 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Manrope';
+    src: url('../font/Cairo-600.ttf') format('truetype');
+    font-weight: 400 800;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Cocon Next Arabic';
+    src: url('../font/Cocon_ Next Arabic-Bold.otf') format('opentype');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}

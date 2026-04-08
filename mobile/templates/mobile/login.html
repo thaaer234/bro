@@ -2,7 +2,7 @@
 
 {% block extra_css %}
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Heebo:wght@300;400;500;600;700&display=swap');
+@import url("{% static 'css/local-fonts.css' %}");
 
 /* Custom font: Cocon Next Arabic */
 @font-face {
@@ -458,7 +458,7 @@ input {
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
+<script src="{% static 'vendor/html5-qrcode/html5-qrcode.min.js' %}"></script>
 <script>
   (function () {
     const scanBtn = document.getElementById('qr-scan-btn');

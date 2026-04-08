@@ -4,9 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Changa:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -658,7 +656,7 @@
 {% if selected_report %}
 {{ selected_report.summary|json_script:"report-data" }}
 {% endif %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
 <script>
     const themeToggle = document.getElementById('theme-toggle');
     const savedTheme = localStorage.getItem('systemReportTheme');

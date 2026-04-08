@@ -2,6 +2,7 @@ from django.http import Http404, HttpResponseForbidden, HttpResponseNotFound, Js
 from django.shortcuts import render
 from django.utils import timezone
 from django.core.cache import cache
+from django.conf import settings
 from .models import ErrorLog, SecurityAlert, UserTracking
 import user_agents
 import requests
@@ -204,6 +205,9 @@ class AdvancedErrorTrackingMiddleware:
         """
         الحصول على معلومات موقع متقدمة
         """
+        monitoring = getattr(settings, 'SECURITY_MONITORING', {})
+        if not monitoring.get('ENABLE_GEO_LOOKUPS', False):
+            return {}
         try:
             ip = self.get_client_ip(request)
             
@@ -211,7 +215,7 @@ class AdvancedErrorTrackingMiddleware:
                 return {}
             
             # استخدام خدمة ip-api.com للحصول على معلومات مفصلة
-            response = requests.get(f'http://ip-api.com/json/{ip}?fields=66846719', timeout=5)
+            response = requests.get(f'http://ip-api.com/json/{ip}?fields=66846719', timeout=2)
             if response.status_code == 200:
                 data = response.json()
                 if data.get('status') == 'success':
@@ -932,12 +936,12 @@ class SecurityHeadersMiddleware:
         # إضافة رأس Content Security Policy مبسط
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com; "
-            "script-src-elem 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com; "
-            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; "
-            "style-src-elem 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+            "script-src 'self' 'unsafe-inline'; "
+            "script-src-elem 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+            "style-src-elem 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
             "img-src 'self' data: https:; "
-            "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com;"
+            "font-src 'self' data: https://cdnjs.cloudflare.com;"
         )
         response['Content-Security-Policy'] = csp
         

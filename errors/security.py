@@ -180,6 +180,8 @@ def severity_from_score(score):
 
 
 def get_geo_context(request):
+    if not get_monitoring_settings().get('ENABLE_GEO_LOOKUPS', False):
+        return {'country': '', 'city': '', 'latitude': None, 'longitude': None}
     try:
         from .middleware import AdvancedErrorTrackingMiddleware
         middleware = AdvancedErrorTrackingMiddleware(lambda r: None)
@@ -494,8 +496,11 @@ def capture_login_event(request, success, username='', failure_reason=''):
 
 
 def send_incident_alert(incident):
+    cfg = get_monitoring_settings()
+    if not cfg.get('ENABLE_EMAIL_ALERTS', False):
+        return 0
     branding = SecurityBranding.objects.order_by('-updated_at').first()
-    recipients = [branding.alert_recipient] if branding and branding.alert_recipient else (get_monitoring_settings().get('ALERT_EMAILS') or [])
+    recipients = [branding.alert_recipient] if branding and branding.alert_recipient else (cfg.get('ALERT_EMAILS') or [])
     if not recipients:
         return
     subject = f"{settings.EMAIL_SUBJECT_PREFIX}تنبيه أمني {incident.severity} - {incident.title}"
@@ -556,8 +561,11 @@ def send_incident_alert(incident):
 
 
 def should_send_realtime_alert(incident, is_new_incident=False):
+    cfg = get_monitoring_settings()
+    if not cfg.get('ENABLE_EMAIL_ALERTS', False):
+        return False
     if incident.category in {'login_success', 'login_failure'}:
-        return True
+        return cfg.get('ENABLE_LOGIN_EVENT_EMAILS', False)
     if incident.category == 'frontend_signal' and incident.severity == 'low':
         return False
     throttle_key = f"security:alert:{incident.category}:{incident.ip_address}:{incident.fingerprint_hash}"
