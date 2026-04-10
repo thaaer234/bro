@@ -63,13 +63,14 @@
         {% endif %}
         {% endif %}
 
-        {% if user.is_superuser or 'admin_logs' in emp_perms %}
+        {% if user.is_superuser %}
         <a href="{% url 'security_dashboard' %}" class="menu-item {% if request.path == '/security/' %}active{% endif %}">
             <i class="fas fa-shield-halved"></i>
             <span>مركز الأمن</span>
         </a>
         {% endif %}
 
+        {% if user.is_superuser %}
         <a href="{% url 'manuals:home' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' %}active{% endif %}">
             <i class="fas fa-book-open-reader"></i>
             <span>دليل المستخدم</span>
@@ -79,6 +80,7 @@
             <i class="fas fa-book-atlas"></i>
             <span>دليل التشغيل</span>
         </a>
+        {% endif %}
 
         {% if user.is_superuser or 'students_view' in emp_perms or 'quick_students_view' in emp_perms or 'students_create' in emp_perms or 'quick_students_create' in emp_perms or 'course_accounting_view' in emp_perms %}
         <div class="menu-group">
@@ -273,10 +275,12 @@
                 <i class="fas fa-id-badge"></i>
                 <span>الملف الشخصي</span>
             </a>
+            {% if user.is_superuser %}
             <a href="{% url 'manuals:handbook' %}" class="sidebar-shortcut">
                 <i class="fas fa-book"></i>
                 <span>الدليل التفصيلي</span>
             </a>
+            {% endif %}
         </div>
 
         <form action="{% url 'logout' %}" method="post" class="logout-form">

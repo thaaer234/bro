@@ -12,6 +12,7 @@ from django.conf.urls.static import static
 from core.views import secure_backup
 from errors import security_views
 from errors.security import capture_login_event
+from employ.decorators import require_superuser
 # from . import views
 def root(request):
     if not request.user.is_authenticated:
@@ -101,12 +102,12 @@ urlpatterns = [
     path('api/v1/', include('api.urls')),
     path('mobile/', include('mobile.urls')),
     path('secure-backup/', secure_backup),
-    path('security/', security_views.security_dashboard, name='security_dashboard'),
-    path('security/api/telemetry/', security_views.security_telemetry_api, name='security_telemetry_api'),
-    path('security/block/', security_views.block_indicator, name='security_block_indicator'),
-    path('security/branding/', security_views.update_security_branding, name='security_update_branding'),
-    path('security/unblock/<uuid:rule_id>/', security_views.unblock_indicator, name='security_unblock_indicator'),
-    path('security/send-report/', security_views.send_security_report_now, name='security_send_report'),
+    path('security/', require_superuser(security_views.security_dashboard), name='security_dashboard'),
+    path('security/api/telemetry/', require_superuser(security_views.security_telemetry_api), name='security_telemetry_api'),
+    path('security/block/', require_superuser(security_views.block_indicator), name='security_block_indicator'),
+    path('security/branding/', require_superuser(security_views.update_security_branding), name='security_update_branding'),
+    path('security/unblock/<uuid:rule_id>/', require_superuser(security_views.unblock_indicator), name='security_unblock_indicator'),
+    path('security/send-report/', require_superuser(security_views.send_security_report_now), name='security_send_report'),
 
     # مسار عام لأي كلمة - يجب أن يكون الأخير
     path('<path:unknown_path>/', catch_all_404),
