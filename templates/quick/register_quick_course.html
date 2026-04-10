@@ -3,7 +3,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
-<link rel="stylesheet" href="{% static 'css/quick-register-course.css' %}">
+<link rel="stylesheet" href="{% static 'css/quick-register-course.css' %}?v=20260410b">
 
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
     <meta property="og:image" content="{% static 'img/logo.png' %}">
@@ -226,5 +226,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/quick-register-course.js' %}"></script>
+<script src="{% static 'js/quick-register-course.js' %}?v=20260410b"></script>
 {% endblock %}
