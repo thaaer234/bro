@@ -1,0 +1,232 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>أوقات الطالب</title>
+    <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
+    <style>
+      @page {
+        size: 80mm auto;
+        margin: 3mm;
+      }
+
+      :root {
+        --receipt-width: 80mm;
+        --brand-primary: #0f766e;
+        --brand-secondary: #164e63;
+        --brand-text: #15324a;
+        --brand-soft: #5b6b82;
+        --brand-border: #d5e7eb;
+        --brand-surface: #f4fbfc;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 4px 0;
+        background: #f4f7fb;
+        font-family: 'Tajawal', sans-serif;
+        color: var(--brand-text);
+        line-height: 1.45;
+        font-size: 11px;
+      }
+
+      .ticket {
+        width: min(100%, var(--receipt-width));
+        margin: 0 auto;
+        padding: 8px;
+        background: #fff;
+        border: 1px solid var(--brand-border);
+        border-radius: 7px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+      }
+
+      .center {
+        text-align: center;
+      }
+
+      .logo img {
+        width: 58px;
+        height: auto;
+      }
+
+      .title {
+        margin: 4px 0 2px;
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--brand-text);
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--brand-soft);
+        font-size: 10px;
+      }
+
+      .divider {
+        margin: 8px 0;
+        border-top: 1px dashed #b9d3d9;
+      }
+
+      .student-box,
+      .schedule-row {
+        border: 1px solid var(--brand-border);
+        border-radius: 6px;
+        background: var(--brand-surface);
+      }
+
+      .student-box {
+        padding: 7px;
+        margin-bottom: 8px;
+      }
+
+      .label {
+        color: var(--brand-soft);
+        font-size: 9px;
+        margin-bottom: 2px;
+      }
+
+      .student-name {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--brand-text);
+      }
+
+      .section-title {
+        font-size: 11px;
+        font-weight: 800;
+        margin: 0 0 6px;
+        color: var(--brand-primary);
+      }
+
+      .schedule-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      .schedule-row {
+        padding: 7px;
+      }
+
+      .course-name {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--brand-text);
+      }
+
+      .course-time {
+        margin-top: 3px;
+        font-size: 10px;
+        color: var(--brand-secondary);
+        font-weight: 700;
+      }
+
+      .footer {
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid #e5edf2;
+        font-size: 8px;
+        color: var(--brand-soft);
+        text-align: center;
+      }
+
+      .print-actions {
+        margin-top: 8px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 6px 10px;
+        border-radius: 5px;
+        border: 1px solid var(--brand-primary);
+        background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+        color: #fff;
+        text-decoration: none;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .btn-secondary {
+        background: #fff;
+        color: var(--brand-primary);
+      }
+
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+
+        body {
+          background: #fff;
+          padding: 0;
+        }
+
+        .ticket {
+          width: 100%;
+          max-width: none;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ticket">
+      <div class="center logo">
+        <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+      </div>
+      <div class="center">
+        <div class="title">معهد اليمان</div>
+        <p class="subtitle">أوقات الطالب</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="student-box">
+        <div class="label">اسم الطالب</div>
+        <div class="student-name">{{ student.full_name }}</div>
+      </div>
+
+      <h3 class="section-title">الدورات والأوقات المختارة</h3>
+      <div class="schedule-list">
+        {% for item in schedule_items %}
+        <div class="schedule-row">
+          <div class="label">الدورة</div>
+          <div class="course-name">{{ item.course_name }}</div>
+          <div class="label" style="margin-top:5px;">الوقت</div>
+          <div class="course-time">{{ item.time_label }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="print-actions center no-print">
+        <button type="button" class="btn" onclick="window.print()">طباعة</button>
+        {% if receipts_print_url %}
+        <a href="{{ receipts_print_url }}" class="btn" target="_blank" rel="noopener">طباعة الإيصالات</a>
+        {% endif %}
+        <a href="{{ return_url }}" class="btn btn-secondary">رجوع</a>
+      </div>
+
+      <div class="footer">
+        تم إنشاء هذه الورقة مباشرة بعد تسجيل الطالب في الدورات السريعة
+      </div>
+    </div>
+
+    <script>
+      window.addEventListener('DOMContentLoaded', function () {
+        window.print();
+      });
+    </script>
+  </body>
+</html>

@@ -815,6 +815,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // تهيئة تحديث الخصم
     initDiscountUpdate();
     autoOpenBatchReceiptPrint();
+    autoOpenStudentTimesPrint();
 });
 
 function autoOpenBatchReceiptPrint() {
@@ -833,6 +834,27 @@ function autoOpenBatchReceiptPrint() {
     }
 
     params.delete('print_receipts');
+    const cleanQuery = params.toString();
+    const cleanUrl = cleanQuery ? `${window.location.pathname}?${cleanQuery}` : window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+}
+
+function autoOpenStudentTimesPrint() {
+    const params = new URLSearchParams(window.location.search);
+    const enrollmentIds = params.get('print_student_times');
+    if (!enrollmentIds) {
+        return;
+    }
+
+    const printUrl = '{% url "quick:quick_student_times_print" student.id %}?enrollments=' + encodeURIComponent(enrollmentIds);
+    const printWindow = window.open(printUrl, 'quick_student_times_print');
+
+    if (!printWindow) {
+        alert('تم إنشاء ورقة أوقات الطالب، لكن المتصفح منع فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم أعد المحاولة.');
+        return;
+    }
+
+    params.delete('print_student_times');
     const cleanQuery = params.toString();
     const cleanUrl = cleanQuery ? `${window.location.pathname}?${cleanQuery}` : window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);

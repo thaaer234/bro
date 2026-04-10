@@ -1,191 +1,204 @@
 {% extends "base.html" %}
-{% load widget_tweaks %}
-{% load static %}
-
-
+{% load static widget_tweaks %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+<link rel="stylesheet" href="{% static 'css/quick-student-create.css' %}">
 {% endblock %}
+
 {% block content %}
-<section class="quick-student-page">
-    <div class="quick-student-hero">
-        <div class="quick-student-hero__copy">
-            <span class="quick-student-hero__eyebrow">تسجيل طالب سريع</span>
-            <h1>إضافة طالب سريع جديد</h1>
+<section class="quick-student-create-page">
+    <div class="quick-student-create-hero">
+        <div>
+            <span class="quick-student-create-kicker">
+                <i class="fas fa-user-plus"></i>
+                إنشاء طالب سريع
+            </span>
+            <h1>واجهة إدخال أسرع، أوضح، وتمنع التكرار قبل الحفظ</h1>
             <p>
-                استخدم هذا النموذج عندما تريد إدخال الطالب بأسرع شكل ممكن مع الحفاظ على
-                التحقق من الاسم ورقم الهاتف قبل الحفظ.
+                صممت هذه الصفحة لتجعل الإدخال اليومي أسرع: الاسم والهاتف في المقدمة، التحقق المباشر من التكرار،
+                ثم تصنيف الطالب والفصل الدراسي في نفس الشاشة بدون ازدحام.
             </p>
-        </div>
-        <div class="quick-student-hero__panel">
-            <div class="hero-panel-card">
-                <strong>ماذا يتحقق النظام؟</strong>
-                <ul>
-                    <li>كشف الاسم المكرر مباشرة</li>
-                    <li>كشف رقم الهاتف المكرر مباشرة</li>
-                    <li>تحويل الأرقام العربية إلى إنجليزية تلقائيًا</li>
-                </ul>
+            <div class="quick-student-create-chips">
+                <span class="quick-student-create-chip"><i class="fas fa-shield-check"></i>كشف الاسم المكرر</span>
+                <span class="quick-student-create-chip"><i class="fas fa-mobile-screen-button"></i>توحيد أرقام الهاتف العربية</span>
+                <span class="quick-student-create-chip"><i class="fas fa-bolt"></i>تنسيق إدخال أسرع للموظف</span>
             </div>
+        </div>
+        <div class="quick-student-create-stats">
+            <article class="quick-student-create-stat">
+                <span class="quick-student-create-label">الخطوة 1</span>
+                <strong>الهوية الأساسية</strong>
+                <p>الاسم الكامل والهاتف مع تحقق مباشر من التكرار.</p>
+            </article>
+            <article class="quick-student-create-stat">
+                <span class="quick-student-create-label">الخطوة 2</span>
+                <strong>تصنيف التسجيل</strong>
+                <p>نوع الطالب ونوع الدورة والفصل الدراسي في مكان واحد.</p>
+            </article>
+            <article class="quick-student-create-stat">
+                <span class="quick-student-create-label">الخطوة 3</span>
+                <strong>ملاحظات سريعة</strong>
+                <p>أي ملخص داخلي تحتاجه قبل الانتقال مباشرة إلى تسجيل الدورات.</p>
+            </article>
         </div>
     </div>
 
-    <div class="quick-student-layout">
-        <aside class="quick-student-aside">
-            <div class="quick-side-card">
-                <h2>دليل سريع</h2>
-                <div class="quick-side-list">
-                    <div class="quick-side-item">
-                        <span class="quick-side-item__index">1</span>
+    <div class="quick-student-create-layout">
+        <aside class="quick-student-create-sidebar">
+            <div class="quick-student-create-sidecard">
+                <h2>دليل الاستخدام السريع</h2>
+                <div class="quick-student-create-steps">
+                    <div class="quick-student-create-step">
+                        <span>1</span>
                         <div>
-                            <strong>أدخل الاسم الكامل</strong>
-                            <p>سيتم التحقق مباشرة إذا كان الطالب السريع مسجلًا من قبل.</p>
+                            <strong>اكتب الاسم كما سيظهر في الملف</strong>
+                            <p>التحقق الفوري سيخبرك إن كان الاسم موجودًا مسبقًا.</p>
                         </div>
                     </div>
-                    <div class="quick-side-item">
-                        <span class="quick-side-item__index">2</span>
+                    <div class="quick-student-create-step">
+                        <span>2</span>
                         <div>
-                            <strong>أدخل رقم الهاتف</strong>
-                            <p>الأرقام العربية تتحول تلقائيًا، مع كشف أي رقم مكرر موجود.</p>
+                            <strong>أدخل الهاتف بأي أرقام</strong>
+                            <p>سيتم تحويل الأرقام العربية إلى إنجليزية تلقائيًا قبل الإرسال.</p>
                         </div>
                     </div>
-                    <div class="quick-side-item">
-                        <span class="quick-side-item__index">3</span>
+                    <div class="quick-student-create-step">
+                        <span>3</span>
                         <div>
-                            <strong>أكمل الحقول السريعة</strong>
-                            <p>اختر النوع، المسار، والفصل ثم احفظ مباشرة.</p>
+                            <strong>أكمل التصنيف ثم احفظ</strong>
+                            <p>بعد الحفظ يمكنك الانتقال مباشرة إلى شاشة تسجيل الدورات السريعة.</p>
                         </div>
                     </div>
                 </div>
 
-                <a href="{% url 'quick:student_list' %}" class="btn btn--ghost quick-side-back">
+                <div class="quick-student-create-side-note">
+                    الأهم هنا هو منع التكرار قبل إنشاء سجل جديد، لذلك ستظهر رسائل مباشرة تحت الاسم والهاتف.
+                </div>
+
+                <a href="{% url 'quick:student_list' %}" class="btn btn--ghost">
                     <i class="fas fa-arrow-right"></i>
                     <span>العودة إلى قائمة الطلاب السريعين</span>
                 </a>
             </div>
         </aside>
 
-        <div class="quick-student-form-card">
-            <form method="POST" class="quick-student-form-shell">
+        <div class="quick-student-create-card">
+            <form method="POST" class="quick-student-create-form" id="quick-student-create-form" data-exists-url="{% url 'quick:student_exists' %}" novalidate>
                 {% csrf_token %}
 
                 {% if form.non_field_errors %}
-                <div class="quick-alert quick-alert--danger">
+                <div class="quick-student-create-alert">
                     {{ form.non_field_errors }}
                 </div>
                 {% endif %}
 
-                <div class="quick-form-section">
-                    <div class="quick-form-section__head">
-                        <h2>البيانات الأساسية</h2>
-                        <p>الحقول الأساسية اللازمة لإنشاء الطالب السريع.</p>
+                <section class="quick-student-create-section">
+                    <div class="quick-student-create-section__head">
+                        <div>
+                            <span class="quick-student-create-label">القسم الأول</span>
+                            <h2>البيانات الأساسية</h2>
+                        </div>
+                        <p>أدخل اسم الطالب الكامل ورقم الهاتف. هذان الحقلان يحصلان على تحقق مباشر قبل الحفظ.</p>
                     </div>
 
-                    <div class="grid">
-                        <div class="field">
-                            <label class="label" for="{{ form.full_name.id_for_label }}">الاسم الكامل</label>
-                            <div class="control control--with-icon">
+                    <div class="quick-student-create-grid">
+                        <div class="quick-student-create-field">
+                            <label for="{{ form.full_name.id_for_label }}">الاسم الكامل</label>
+                            <div class="quick-student-create-control">
                                 <i class="fas fa-user"></i>
-                                {{ form.full_name|add_class:"input quick-input" }}
+                                {% render_field form.full_name class+="form-control quick-student-create-input" placeholder="مثال: محمد أحمد علي" %}
                             </div>
-                            <small class="quick-help-text">أدخل الاسم كما تريد ظهوره في الملف والإيصالات.</small>
-                            {% if form.full_name.errors %}
-                            <div class="field__error">{{ form.full_name.errors }}</div>
-                            {% endif %}
+                            <div class="quick-student-create-status js-status-full_name">اكتب الاسم الكامل كما تريد ظهوره في الملف.</div>
+                            {% if form.full_name.errors %}<div class="field__error">{{ form.full_name.errors }}</div>{% endif %}
                         </div>
 
-                        <div class="field">
-                            <label class="label" for="{{ form.phone.id_for_label }}">رقم الهاتف</label>
-                            <div class="control control--with-icon">
+                        <div class="quick-student-create-field">
+                            <label for="{{ form.phone.id_for_label }}">رقم الهاتف</label>
+                            <div class="quick-student-create-control">
                                 <i class="fas fa-phone"></i>
-                                {{ form.phone|add_class:"input quick-input quick-phone-input" }}
+                                {% render_field form.phone class+="form-control quick-student-create-input js-phone-input" placeholder="09xxxxxxxx" %}
                             </div>
-                            <small class="quick-help-text">يُحفظ دائمًا بالأرقام الإنجليزية فقط.</small>
-                            {% if form.phone.errors %}
-                            <div class="field__error">{{ form.phone.errors }}</div>
-                            {% endif %}
+                            <div class="quick-student-create-status js-status-phone">سيتم حفظ الهاتف دائمًا بالأرقام الإنجليزية فقط.</div>
+                            {% if form.phone.errors %}<div class="field__error">{{ form.phone.errors }}</div>{% endif %}
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="quick-form-section">
-                    <div class="quick-form-section__head">
-                        <h2>تصنيف التسجيل</h2>
-                        <p>حدد معلومات التسجيل السريع المرتبطة بالطالب.</p>
+                <section class="quick-student-create-section">
+                    <div class="quick-student-create-section__head">
+                        <div>
+                            <span class="quick-student-create-label">القسم الثاني</span>
+                            <h2>تصنيف التسجيل</h2>
+                        </div>
+                        <p>حدد طريقة تصنيف الطالب داخل النظام لتسهل بعدها عملية اختيار الدورات المناسبة.</p>
                     </div>
 
-                    <div class="grid">
-                        <div class="field">
-                            <label class="label" for="{{ form.gender.id_for_label }}">الجنس</label>
-                            <div class="control control--with-icon">
+                    <div class="quick-student-create-grid quick-student-create-grid--three">
+                        <div class="quick-student-create-field">
+                            <label for="{{ form.gender.id_for_label }}">الجنس</label>
+                            <div class="quick-student-create-control">
                                 <i class="fas fa-venus-mars"></i>
-                                {{ form.gender|add_class:"input quick-input" }}
+                                {% render_field form.gender class+="form-select quick-student-create-input" %}
                             </div>
-                            {% if form.gender.errors %}
-                            <div class="field__error">{{ form.gender.errors }}</div>
-                            {% endif %}
+                            {% if form.gender.errors %}<div class="field__error">{{ form.gender.errors }}</div>{% endif %}
                         </div>
 
-                        <div class="field">
-                            <label class="label" for="{{ form.student_type.id_for_label }}">نوع الطالب</label>
-                            <div class="control control--with-icon">
+                        <div class="quick-student-create-field">
+                            <label for="{{ form.student_type.id_for_label }}">نوع الطالب</label>
+                            <div class="quick-student-create-control">
                                 <i class="fas fa-user-tag"></i>
-                                {{ form.student_type|add_class:"input quick-input" }}
+                                {% render_field form.student_type class+="form-select quick-student-create-input" %}
                             </div>
-                            {% if form.student_type.errors %}
-                            <div class="field__error">{{ form.student_type.errors }}</div>
-                            {% endif %}
+                            {% if form.student_type.errors %}<div class="field__error">{{ form.student_type.errors }}</div>{% endif %}
                         </div>
 
-                        <div class="field">
-                            <label class="label" for="{{ form.course_track.id_for_label }}">نوع الدورة</label>
-                            <div class="control control--with-icon">
+                        <div class="quick-student-create-field">
+                            <label for="{{ form.course_track.id_for_label }}">نوع الدورة</label>
+                            <div class="quick-student-create-control">
                                 <i class="fas fa-layer-group"></i>
-                                {{ form.course_track|add_class:"input quick-input" }}
+                                {% render_field form.course_track class+="form-select quick-student-create-input" %}
                             </div>
-                            {% if form.course_track.errors %}
-                            <div class="field__error">{{ form.course_track.errors }}</div>
-                            {% endif %}
+                            {% if form.course_track.errors %}<div class="field__error">{{ form.course_track.errors }}</div>{% endif %}
                         </div>
 
-                        <div class="field">
-                            <label class="label" for="{{ form.academic_year.id_for_label }}">الفصل الدراسي</label>
-                            <div class="control control--with-icon">
-                                <i class="fas fa-calendar"></i>
-                                {{ form.academic_year|add_class:"input quick-input" }}
+                        <div class="quick-student-create-field quick-student-create-field--wide">
+                            <label for="{{ form.academic_year.id_for_label }}">الفصل الدراسي</label>
+                            <div class="quick-student-create-control">
+                                <i class="fas fa-calendar-days"></i>
+                                {% render_field form.academic_year class+="form-select quick-student-create-input" %}
                             </div>
-                            {% if form.academic_year.errors %}
-                            <div class="field__error">{{ form.academic_year.errors }}</div>
-                            {% endif %}
+                            {% if form.academic_year.errors %}<div class="field__error">{{ form.academic_year.errors }}</div>{% endif %}
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="quick-form-section">
-                    <div class="quick-form-section__head">
-                        <h2>ملاحظات إضافية</h2>
-                        <p>اختياري، لإضافة أي ملاحظة مختصرة عن الطالب أو التسجيل.</p>
-                    </div>
-
-                    <div class="field field--full">
-                        <label class="label" for="{{ form.notes.id_for_label }}">ملاحظات</label>
-                        <div class="control control--with-icon control--textarea">
-                            <i class="fas fa-sticky-note"></i>
-                            {{ form.notes|add_class:"input quick-input quick-textarea" }}
+                <section class="quick-student-create-section">
+                    <div class="quick-student-create-section__head">
+                        <div>
+                            <span class="quick-student-create-label">القسم الثالث</span>
+                            <h2>ملاحظات إضافية</h2>
                         </div>
-                        {% if form.notes.errors %}
-                        <div class="field__error">{{ form.notes.errors }}</div>
-                        {% endif %}
+                        <p>اختياري. اكتب أي تذكير مختصر تحتاجه عند العودة إلى ملف الطالب لاحقًا.</p>
                     </div>
-                </div>
 
-                <div class="quick-form-actions">
-                    <button type="submit" class="btn quick-submit-btn">
+                    <div class="quick-student-create-field">
+                        <label for="{{ form.notes.id_for_label }}">ملاحظات</label>
+                        <div class="quick-student-create-control quick-student-create-control--textarea">
+                            <i class="fas fa-note-sticky"></i>
+                            {% render_field form.notes class+="form-control quick-student-create-input quick-student-create-textarea" placeholder="مثال: تم إدخاله من فرع المسائي أو يحتاج متابعة لاحقًا" %}
+                        </div>
+                        {% if form.notes.errors %}<div class="field__error">{{ form.notes.errors }}</div>{% endif %}
+                    </div>
+                </section>
+
+                <div class="quick-student-create-actions">
+                    <button type="submit" class="btn btn-primary quick-student-create-submit">
                         <i class="fas fa-save"></i>
                         <span>حفظ الطالب السريع</span>
                     </button>
-                    <a href="{% url 'quick:student_list' %}" class="btn btn--ghost">
-                        <i class="fas fa-times"></i>
+                    <a href="{% url 'quick:student_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-xmark"></i>
                         <span>إلغاء</span>
                     </a>
                 </div>
@@ -193,124 +206,8 @@
         </div>
     </div>
 </section>
+{% endblock %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.querySelector('form[method="POST"]');
-    const fullNameInput = document.getElementById('{{ form.full_name.id_for_label }}');
-    const phoneInput = document.getElementById('{{ form.phone.id_for_label }}');
-    const arabicDigitsMap = {
-        '\u0660': '0', '\u0661': '1', '\u0662': '2', '\u0663': '3', '\u0664': '4',
-        '\u0665': '5', '\u0666': '6', '\u0667': '7', '\u0668': '8', '\u0669': '9',
-        '\u06F0': '0', '\u06F1': '1', '\u06F2': '2', '\u06F3': '3', '\u06F4': '4',
-        '\u06F5': '5', '\u06F6': '6', '\u06F7': '7', '\u06F8': '8', '\u06F9': '9'
-    };
-
-    function normalizePhoneDigits(value) {
-        return Array.from(value || '').map(char => arabicDigitsMap[char] || char).join('');
-    }
-
-    function getErrorBox(input) {
-        const field = input ? input.closest('.field') : null;
-        if (!field) return null;
-        let box = field.querySelector('.js-inline-error');
-        if (!box) {
-            box = document.createElement('div');
-            box.className = 'field__error js-inline-error';
-            field.appendChild(box);
-        }
-        return box;
-    }
-
-    function showInlineError(input, message) {
-        const box = getErrorBox(input);
-        if (!box) return;
-        box.textContent = message;
-    }
-
-    function clearInlineError(input) {
-        const field = input ? input.closest('.field') : null;
-        const box = field ? field.querySelector('.js-inline-error') : null;
-        if (box) box.remove();
-    }
-
-    async function checkExists(field, value) {
-        const url = `{% url 'quick:student_exists' %}?field=${encodeURIComponent(field)}&value=${encodeURIComponent(value)}`;
-        const response = await fetch(url, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        if (!response.ok) {
-            return { exists: false };
-        }
-        return response.json();
-    }
-
-    async function validateFullName() {
-        if (!fullNameInput) return false;
-        const value = fullNameInput.value.trim();
-        if (!value) {
-            clearInlineError(fullNameInput);
-            return false;
-        }
-        const result = await checkExists('full_name', value);
-        if (result.exists) {
-            showInlineError(fullNameInput, `الطالب السريع موجود مسبقاً باسم: ${result.full_name}`);
-            return true;
-        }
-        clearInlineError(fullNameInput);
-        return false;
-    }
-
-    async function validatePhone() {
-        if (!phoneInput) return false;
-        phoneInput.value = normalizePhoneDigits(phoneInput.value);
-        const value = phoneInput.value.trim();
-        if (!value) {
-            clearInlineError(phoneInput);
-            return false;
-        }
-        const result = await checkExists('phone', value);
-        if (result.exists) {
-            showInlineError(phoneInput, `رقم الهاتف موجود مسبقاً باسم: ${result.full_name}`);
-            return true;
-        }
-        clearInlineError(phoneInput);
-        return false;
-    }
-
-    if (fullNameInput) {
-        fullNameInput.addEventListener('blur', validateFullName);
-    }
-
-    if (phoneInput) {
-        phoneInput.addEventListener('input', function () {
-            const normalized = normalizePhoneDigits(phoneInput.value);
-            if (phoneInput.value !== normalized) {
-                phoneInput.value = normalized;
-            }
-        });
-        phoneInput.addEventListener('paste', function () {
-            setTimeout(function () {
-                phoneInput.value = normalizePhoneDigits(phoneInput.value);
-            }, 0);
-        });
-        phoneInput.addEventListener('blur', validatePhone);
-    }
-
-    if (form) {
-        form.addEventListener('submit', async function (event) {
-            if (phoneInput) {
-                phoneInput.value = normalizePhoneDigits(phoneInput.value);
-            }
-            const [nameExists, phoneExists] = await Promise.all([
-                validateFullName(),
-                validatePhone()
-            ]);
-            if (nameExists || phoneExists) {
-                event.preventDefault();
-            }
-        });
-    }
-});
-</script>
+{% block extra_js %}
+<script src="{% static 'js/quick-student-create.js' %}"></script>
 {% endblock %}

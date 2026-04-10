@@ -1,307 +1,230 @@
-{% extends "base.html" %}
-
+{% comment %} {% extends "base.html" %} {% endcomment %}
 {% load static %}
-
-
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
-{% endblock %}
-{% block content %}
+<link rel="stylesheet" href="{% static 'css/quick-register-course.css' %}">
 
-<div class="page register-page">
-    <div class="page-header">
-        <div class="page-header__left">
-            <div class="page-header__icon"><i class="fas fa-book-open"></i></div>
-            <div>
-                <h1 class="page-title">تسجيل طلاب سريع</h1>
-                <p class="page-subtitle">اختر الدورات المطلوبة للطالب {{ student.full_name }}</p>
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{% static 'img/logo.png' %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{% static 'img/logo.png' %}">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <link rel="icon" type="image/x-icon" href="{% static 'img/logo.png' %}">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/logo.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
+
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ui-refresh.css' %}">
+
+    <link rel="stylesheet" href="{% static 'css/site-unify-overrides.css' %}">
+    <link rel="stylesheet" href="{% static 'css/module-unify-overrides.css' %}">
+    <link rel="stylesheet" href="{% static 'css/premium-redesign.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<section class="quick-register-page">
+    <div class="quick-register-hero">
+        <div>
+            <span class="quick-register-kicker">
+                <i class="fas fa-layer-group"></i>
+                تسجيل الطالب على الدورات السريعة
+            </span>
+            <h1>اختر الدورات وحدد الكلاس المناسب لكل دورة قبل الحفظ</h1>
+            <p>
+                هذه الشاشة أصبحت مخصصة لقرار واحد واضح: اختيار الدورات، ثم تثبيت الكلاس الذي سيدخل إليه الطالب مباشرة
+                بدل إبقائه ضمن غير المنزلين بدون توزيع.
+            </p>
+            <div class="quick-register-hero__chips">
+                <span class="quick-register-chip quick-register-chip--accent"><i class="fas fa-user"></i>{{ student.full_name }}</span>
+                <span class="quick-register-chip"><i class="fas fa-calendar-alt"></i>{% if student.academic_year %}{{ student.academic_year.name }} - {{ student.academic_year.year }}{% else %}بدون فصل دراسي{% endif %}</span>
+                <span class="quick-register-chip"><i class="fas fa-mobile-screen"></i>{{ student.phone }}</span>
             </div>
         </div>
-        <a href="{% url 'quick:student_profile' student.id %}" class="btn btn--ghost">
-            <i class="fas fa-arrow-right"></i>
-            <span>عرض الملف</span>
-        </a>
+        <div class="quick-register-hero__stats">
+            <article class="quick-register-stat">
+                <span class="quick-register-stat__label">الدورات المعروضة</span>
+                <p class="quick-register-stat__value">{{ available_courses_count }}</p>
+                <span class="quick-register-stat__hint">كل الدورات النشطة ضمن نفس الفصل الدراسي.</span>
+            </article>
+            <article class="quick-register-stat">
+                <span class="quick-register-stat__label">الدورات المسجل بها مسبقًا</span>
+                <p class="quick-register-stat__value">{{ already_enrolled_count }}</p>
+                <span class="quick-register-stat__hint">تظهر كبطاقات مقفلة حتى لا يتكرر التسجيل.</span>
+            </article>
+            <article class="quick-register-stat">
+                <span class="quick-register-stat__label">آلية الكلاسات</span>
+                <p class="quick-register-stat__value">مباشرة</p>
+                <span class="quick-register-stat__hint">اختيار الكلاس صار جزءًا من نفس العملية.</span>
+            </article>
+            <article class="quick-register-stat">
+                <span class="quick-register-stat__label">الوصول السريع</span>
+                <p class="quick-register-stat__value">1 شاشة</p>
+                <span class="quick-register-stat__hint">اختيار الدورة والكلاس والدفع الكامل من مكان واحد.</span>
+            </article>
+        </div>
     </div>
 
-    <div class="card">
-        <div class="card-body">
-            <div class="summary-panel">
-                <div class="summary-card">
-                    <div class="summary-icon">
-                        <i class="fas fa-money-bill-wave"></i>
-                    </div>
-                    <div class="summary-content">
-                        <p class="summary-label">إجمالي المطلوب</p>
-                        <p class="summary-total">
-                            <span id="selected-total">0</span> ل.س
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="summary-card">
-                    <div class="summary-icon">
-                        <i class="fas fa-layer-group"></i>
-                    </div>
-                    <div class="summary-content">
-                        <p class="summary-label">عدد الدورات المختارة</p>
-                        <p class="summary-count"><span id="selected-count">0</span> دورة</p>
-                    </div>
-                </div>
-                
-                <div class="summary-hint">
-                    <i class="fas fa-info-circle"></i>
-                    <div class="hint-content">
-                        <p class="hint-title">معلومة مهمة</p>
-                        <p class="hint-text">اختر الدورات التي سيدفع عنها الطالب أو حدد خيار الدفع الكامل لكل دورة لإنشاء إيصال خاص بها.</p>
-                    </div>
-                </div>
-            </div>
+    <form method="POST" action="{% url 'quick:register_quick_course' student.id %}" id="quick-register-form">
+        {% csrf_token %}
+        <div class="quick-register-layout">
+            <aside class="quick-register-sidebar">
+                <div class="quick-register-sidebar-card">
+                    <span class="quick-register-kicker"><i class="fas fa-compass"></i>ملخص فوري</span>
+                    <h2>كل ما ستسجله يظهر هنا مباشرة</h2>
+                    <p class="quick-register-inline-note">
+                        عند اختيار دورة فيها كلاسات متاحة سيتم فتح نافذة لاختيار الكلاس. يمكنك العودة لاحقًا وتغيير الاختيار قبل الحفظ.
+                    </p>
 
-            {% if courses %}
-            <form method="POST" action="{% url 'quick:register_quick_course' student.id %}">
-                {% csrf_token %}
-                <div class="course-filters">
-                    <div class="filter-group filter-group--search">
-                        <label for="course-search">بحث</label>
-                        <div class="search-input-wrapper">
-                            <i class="fas fa-search"></i>
-                            <input type="search" id="course-search" class="filter-input" placeholder="ابحث باسم الدورة أو الوصف">
+                    <div class="quick-register-summary">
+                        <div class="quick-register-summary__item">
+                            <span class="quick-register-summary__icon"><i class="fas fa-layer-group"></i></span>
+                            <div><span class="quick-register-stat__label">الدورات المحددة</span><strong class="quick-register-summary__value" id="selected-count">0</strong></div>
+                        </div>
+                        <div class="quick-register-summary__item">
+                            <span class="quick-register-summary__icon"><i class="fas fa-money-bill-wave"></i></span>
+                            <div><span class="quick-register-stat__label">إجمالي المبلغ</span><strong class="quick-register-summary__value"><span id="selected-total">0</span> ل.س</strong></div>
+                        </div>
+                        <div class="quick-register-summary__item">
+                            <span class="quick-register-summary__icon"><i class="fas fa-school"></i></span>
+                            <div><span class="quick-register-stat__label">اختيارات الكلاس المكتملة</span><strong class="quick-register-summary__value" id="selected-sessions-count">0</strong></div>
                         </div>
                     </div>
-                    <div class="filter-group">
-                        <label for="course-type-filter">فلتر النوع</label>
-                        <select id="course-type-filter" class="filter-input">
+
+                    <div class="quick-register-summary__note" id="quick-register-note">
+                        لم يتم اختيار أي دورة بعد. ابدأ من البطاقات على اليسار، ثم ثبت الكلاس عند الحاجة.
+                    </div>
+
+                    <div class="quick-register-sidebar-card__actions">
+                        <a href="{% url 'quick:student_profile' student.id %}" class="btn btn--ghost"><i class="fas fa-arrow-right"></i><span>العودة إلى ملف الطالب</span></a>
+                        <a href="{% url 'quick:student_list' %}" class="btn btn-outline-secondary"><i class="fas fa-list"></i><span>قائمة الطلاب</span></a>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="quick-register-panel">
+                <div class="quick-register-toolbar">
+                    <div class="quick-register-filter">
+                        <label class="quick-register-filter__label" for="course-search">بحث سريع</label>
+                        <div class="quick-register-search">
+                            <i class="fas fa-search"></i>
+                            <input type="search" id="course-search" class="form-control quick-register-input" placeholder="ابحث باسم الدورة أو وصفها أو نوعها">
+                        </div>
+                    </div>
+                    <div class="quick-register-filter">
+                        <label class="quick-register-filter__label" for="course-type-filter">فلترة حسب النوع</label>
+                        <select id="course-type-filter" class="form-select quick-register-input">
                             <option value="all">كل الأنواع</option>
                         </select>
                     </div>
-                    <div class="filter-group filter-group--summary">
-                        <span class="filter-result-label">المعروض حالياً</span>
-                        <strong id="visible-courses-count">{{ courses|length }}</strong>
+                    <div class="quick-register-filter">
+                        <label class="quick-register-filter__label" for="course-visibility-filter">إظهار البطاقات</label>
+                        <select id="course-visibility-filter" class="form-select quick-register-input">
+                            <option value="all">الكل</option>
+                            <option value="available">القابلة للتسجيل</option>
+                            <option value="locked">المسجلة مسبقًا</option>
+                        </select>
                     </div>
                 </div>
-                <div class="course-grid">
+
+                {% if courses %}
+                <div class="quick-register-grid" id="quick-register-grid">
                     {% for course in courses %}
-                    <div class="course-card" data-course-name="{{ course.name|lower }}" data-course-type="{{ course.course_type }}" data-course-description="{{ course.description|default:''|lower }}">
-                        <input type="checkbox" id="course-{{ course.id }}" name="course_ids" value="{{ course.id }}" class="course-selector" data-price="{{ course.price }}">
-                        <label for="course-{{ course.id }}" class="course-card__body">
-                            <div class="course-card__head">
-                                <div class="course-title-wrapper">
-                                    <h5>{{ course.name }}</h5>
-                                    <span class="course-tag">{{ course.get_course_type_display }}</span>
+                    <article class="quick-register-course{% if course.id in enrolled_course_ids %} is-locked{% endif %}" data-course-id="{{ course.id }}" data-course-name="{{ course.name|lower }}" data-course-description="{{ course.description|default:''|lower }}" data-course-type="{{ course.course_type }}" data-course-type-label="{{ course.get_course_type_display }}" data-course-price="{{ course.price|floatformat:0 }}" data-locked="{% if course.id in enrolled_course_ids %}true{% else %}false{% endif %}" data-has-sessions="{% if course.active_sessions %}true{% else %}false{% endif %}">
+                        <input type="hidden" name="session_id_{{ course.id }}" value="" class="js-session-id">
+                        <div class="quick-register-course__top quick-register-course__trigger js-course-trigger">
+                            <div>
+                                <div class="quick-register-course__badges">
+                                    <span class="quick-register-badge">{{ course.get_course_type_display }}</span>
+                                    <span class="quick-register-badge quick-register-badge--price">{{ course.price|floatformat:0 }} ل.س</span>
+                                    {% if course.active_sessions %}
+                                    <span class="quick-register-badge quick-register-badge--muted"><i class="fas fa-school"></i>{{ course.active_sessions|length }} كلاس</span>
+                                    {% else %}
+                                    <span class="quick-register-badge quick-register-badge--muted"><i class="fas fa-triangle-exclamation"></i>بدون كلاسات</span>
+                                    {% endif %}
                                 </div>
-                                <div class="course-checkbox">
-                                    <div class="checkbox-indicator"></div>
-                                </div>
+                                <h3 class="quick-register-course__title">{{ course.name }}</h3>
+                                <p class="quick-register-course__meta">{% if course.description %}{{ course.description|truncatewords:20 }}{% else %}دورة سريعة جاهزة للتسجيل المباشر مع إمكانية تثبيت الطالب على كلاس محدد.{% endif %}</p>
                             </div>
-                            <ul class="course-meta">
-                                <li>
-                                    <i class="fas fa-tag"></i>
-                                    <span class="meta-label">السعر:</span>
-                                    <span class="meta-value">{{ course.price|floatformat:0 }} ل.س</span>
-                                </li>
-                                <li>
-                                    <i class="fas fa-calendar-week"></i>
-                                    <span class="meta-label">المدة:</span>
-                                    <span class="meta-value">{{ course.duration_weeks }} أسابيع</span>
-                                </li>
-                                <li>
-                                    <i class="fas fa-clock"></i>
-                                    <span class="meta-label">ساعات / أسبوع:</span>
-                                    <span class="meta-value">{{ course.hours_per_week }}</span>
-                                </li>
-                            </ul>
-                            {% if course.description %}
-                            <div class="course-description">
-                                <i class="fas fa-align-left"></i>
-                                <p>{{ course.description|truncatewords:16 }}</p>
-                            </div>
-                            {% endif %}
-                        </label>
-                        <div class="form-group pay-full-group">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" name="pay_full_{{ course.id }}" value="1" id="pay-full-{{ course.id }}" class="pay-full-checkbox" disabled>
-                                <label for="pay-full-{{ course.id }}">
-                                    <span class="checkbox-custom"></span>
-                                    <span class="checkbox-label">
-                                        <i class="fas fa-receipt"></i>
-                                        دفع كامل وإنشاء إيصال
-                                    </span>
-                                </label>
-                            </div>
+                            <input type="checkbox" id="course-{{ course.id }}" name="course_ids" value="{{ course.id }}" class="quick-register-course__toggle js-course-checkbox" {% if course.id in enrolled_course_ids %}disabled{% endif %}>
                         </div>
-                    </div>
+
+                        <div class="quick-register-course__meta-row">
+                            <span><i class="fas fa-calendar-week"></i>{{ course.duration_weeks }} أسبوع</span>
+                            <span><i class="fas fa-clock"></i>{{ course.hours_per_week }} ساعة/أسبوع</span>
+                            {% if course.active_sessions %}
+                            <span><i class="fas fa-school"></i>{{ course.active_sessions|length }} كلاس</span>
+                            {% endif %}
+                        </div>
+
+                        {% if course.id in enrolled_course_ids %}
+                        <div class="quick-register-inline-note quick-register-inline-note--success">هذه الدورة مسجل بها الطالب مسبقًا، لذلك البطاقة مقفلة لمنع التكرار.</div>
+                        {% else %}
+                        <div class="quick-register-selected-session is-empty js-session-summary"><i class="fas fa-school"></i><div>لم يتم اختيار كلاس بعد.</div></div>
+                        {% endif %}
+
+                        <div class="quick-register-course__footer">
+                            {% if course.id not in enrolled_course_ids %}
+                            <button type="button" class="btn btn-outline-secondary btn-sm js-select-session-btn" data-course-id="{{ course.id }}" {% if not course.active_sessions %}disabled{% endif %}>
+                                <i class="fas fa-pen"></i>
+                                <span>{% if course.active_sessions %}تغيير الكلاس{% else %}لا يوجد كلاسات{% endif %}</span>
+                            </button>
+                            <label class="quick-register-pay">
+                                <input type="checkbox" name="pay_full_{{ course.id }}" value="1" class="js-pay-full" disabled>
+                                <span>دفع كامل وإنشاء إيصال مباشر</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                    </article>
                     {% endfor %}
                 </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary btn-submit">
-                        <i class="fas fa-save"></i>
-                        <span>حفظ التسجيل وإنشاء القيود</span>
-                    </button>
+
+                <div class="quick-register-actions">
+                    <div class="quick-register-actions__hint" id="quick-register-submit-hint">إذا اخترت دورة وفيها كلاسات متاحة، يجب تثبيت الكلاس قبل إرسال النموذج.</div>
+                    <button type="submit" class="btn btn-primary quick-register-submit"><i class="fas fa-save"></i><span>حفظ التسجيلات وإنشاء القيود</span></button>
                 </div>
-            </form>
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <div class="empty-icon-bg">
-                        <i class="fas fa-book"></i>
-                    </div>
+                {% else %}
+                <div class="quick-register-empty">
+                    <div class="quick-register-empty__icon"><i class="fas fa-book-open"></i></div>
+                    <h3 class="quick-register-section__title">لا توجد دورات متاحة لهذا الفصل</h3>
+                    <p>تحقق من فتح دورات سريعة مرتبطة بنفس العام الدراسي للطالب قبل متابعة التسجيل.</p>
                 </div>
-                <h4 class="empty-title">لا توجد دورات متاحة</h4>
-                <p class="empty-text">تأكد من إعداد الدورات للعام الدراسي الحالي.</p>
+                {% endif %}
             </div>
-            {% endif %}
+        </div>
+    </form>
+</section>
+
+{{ course_session_catalog|json_script:"quick-course-session-catalog" }}
+
+<div class="quick-register-modal" id="quick-session-modal" hidden>
+    <div class="quick-register-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="quick-session-modal-title">
+        <div class="quick-register-modal__head">
+            <div>
+                <span class="quick-register-modal__eyebrow">اختيار الكلاس</span>
+                <h2 class="quick-register-modal__title" id="quick-session-modal-title">الكلاسات المتاحة</h2>
+                <p class="quick-register-modal__subtitle" id="quick-session-modal-subtitle">اختر الكلاس الذي تريد تنزيل الطالب عليه مباشرة.</p>
+            </div>
+            <button type="button" class="quick-register-modal__close" id="quick-session-modal-close" aria-label="إغلاق"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="quick-register-modal__body" id="quick-session-modal-body"></div>
+        <div class="quick-register-modal__actions">
+            <div class="quick-register-modal__error" id="quick-session-modal-error"></div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn--ghost" id="quick-session-clear-btn">إزالة اختيار الكلاس</button>
+                <button type="button" class="btn btn-primary" id="quick-session-apply-btn">تثبيت الكلاس</button>
+            </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const totalEl = document.getElementById('selected-total');
-    const countEl = document.getElementById('selected-count');
-    const summaryHint = document.querySelector('.summary-hint');
-    const searchInput = document.getElementById('course-search');
-    const typeFilter = document.getElementById('course-type-filter');
-    const visibleCoursesCount = document.getElementById('visible-courses-count');
-    const courseCards = Array.from(document.querySelectorAll('.course-card'));
-
-    if (typeFilter) {
-        const existingTypes = new Set();
-        courseCards.forEach(card => {
-            const type = card.dataset.courseType;
-            const typeLabel = card.querySelector('.course-tag')?.textContent?.trim();
-            if (type && typeLabel && !existingTypes.has(type)) {
-                existingTypes.add(type);
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = typeLabel;
-                typeFilter.appendChild(option);
-            }
-        });
-    }
-
-    function applyFilters() {
-        const query = (searchInput?.value || '').trim().toLowerCase();
-        const selectedType = typeFilter?.value || 'all';
-        let visibleCount = 0;
-
-        courseCards.forEach(card => {
-            const matchesQuery = !query
-                || card.dataset.courseName.includes(query)
-                || card.dataset.courseDescription.includes(query);
-            const matchesType = selectedType === 'all' || card.dataset.courseType === selectedType;
-            const isVisible = matchesQuery && matchesType;
-            card.style.display = isVisible ? '' : 'none';
-            if (isVisible) {
-                visibleCount += 1;
-            }
-        });
-
-        if (visibleCoursesCount) {
-            visibleCoursesCount.textContent = visibleCount;
-        }
-    }
-
-    function updateSummary() {
-        let total = 0;
-        let selectedCount = 0;
-
-        const formatter = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
-        document.querySelectorAll('.course-selector').forEach(checkbox => {
-            const rawPrice = checkbox.dataset.price || '0';
-            const cleanedPrice = rawPrice.replace(/[^0-9,-]/g, '');
-            const price = parseFloat(cleanedPrice) || 0;
-            const payFull = document.getElementById(`pay-full-${checkbox.value}`);
-            const courseCard = checkbox.closest('.course-card');
-
-                if (checkbox.checked) {
-                    selectedCount += 1;
-                    total += price;
-                    if (courseCard) {
-                        courseCard.style.borderColor = 'var(--primary-color)';
-                        courseCard.style.boxShadow = 'var(--shadow-md)';
-                    }
-                    if (payFull) {
-                        payFull.disabled = false;
-                        payFull.removeAttribute('disabled');
-                        payFull.checked = true;
-                    }
-                } else {
-                    if (courseCard) {
-                        courseCard.style.borderColor = '';
-                    courseCard.style.boxShadow = '';
-                }
-                if (payFull) {
-                    payFull.disabled = true;
-                    payFull.setAttribute('disabled', 'disabled');
-                    payFull.checked = false;
-                }
-            }
-        });
-
-        totalEl.textContent = formatter.format(total);
-        countEl.textContent = selectedCount;
-
-        if (selectedCount === 0) {
-            summaryHint.innerHTML = `
-                <i class="fas fa-info-circle"></i>
-                <div class="hint-content">
-                    <p class="hint-title">ابدأ الاختيار</p>
-                    <p class="hint-text">اختر دورة واحدة على الأقل للمتابعة</p>
-                </div>
-            `;
-            summaryHint.style.background = 'linear-gradient(135deg, #f8f9ff 0%, #e9ecef 100%)';
-            summaryHint.style.borderColor = 'var(--border-color)';
-        } else {
-            summaryHint.innerHTML = `
-                <i class="fas fa-lightbulb"></i>
-                <div class="hint-content">
-                    <p class="hint-title">معلومة مهمة</p>
-                    <p class="hint-text">حدد خيار "دفع كامل" لكل دورة لإنشاء إيصال عند الحاجة</p>
-                </div>
-            `;
-            summaryHint.style.background = 'linear-gradient(135deg, #fff9db 0%, #fff3bf 100%)';
-            summaryHint.style.borderColor = '#ffec99';
-        }
-    }
-
-    document.querySelectorAll('.course-selector').forEach(checkbox => {
-        checkbox.addEventListener('change', updateSummary);
-    });
-
-    searchInput?.addEventListener('input', applyFilters);
-    typeFilter?.addEventListener('change', applyFilters);
-
-    // Add hover effect for course cards
-    document.querySelectorAll('.course-card').forEach(card => {
-        card.addEventListener('mouseenter', () => {
-            if (!card.querySelector('.course-selector').checked) {
-                card.style.transform = 'translateY(-4px)';
-            }
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            if (!card.querySelector('.course-selector').checked) {
-                card.style.transform = '';
-            }
-        });
-    });
-
-    applyFilters();
-    updateSummary();
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.querySelector('form');
-    if (!form) return;
-    form.addEventListener('submit', () => {
-        const windowName = 'quick_receipt_print';
-        window.open('about:blank', windowName);
-    });
-});
-</script>
+<script src="{% static 'js/quick-register-course.js' %}"></script>
 {% endblock %}

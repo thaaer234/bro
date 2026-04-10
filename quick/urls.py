@@ -86,6 +86,7 @@ urlpatterns = [
     path('student-receipt/<int:receipt_id>/print/', require_employee_perm('students_receipt')(views.quick_student_receipt_print), name='student_receipt_print'),
     path('receipt/<int:receipt_id>/print/', require_employee_perm('students_receipt')(views.quick_student_receipt_print), name='quick_student_receipt_print'),
     path('students/<int:student_id>/receipts/print-multiple/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_print), name='quick_multiple_receipt_print'),
+    path('students/<int:student_id>/times/print/', require_employee_perm('students_register_course')(views.quick_student_times_print), name='quick_student_times_print'),
     path('students/<int:student_id>/receipts/payload/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_payload), name='quick_multiple_receipt_payload'),
     path('students/<int:student_id>/receipts/enqueue-print/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_enqueue_print), name='quick_multiple_receipt_enqueue_print'),
     path('students/<int:student_id>/receipts/print-server/', require_employee_perm('students_receipt')(views.quick_multiple_receipt_server_print), name='quick_multiple_receipt_server_print'),

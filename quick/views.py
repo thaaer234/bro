@@ -5262,6 +5262,105 @@ def _assign_enrollment_to_available_session(enrollment, user=None):
     return None
 
 
+def _assign_enrollment_to_specific_session(enrollment, session, user=None):
+    if session.course_id != enrollment.course_id:
+        raise ValueError('الكلاس المختار لا يتبع لهذه الدورة.')
+
+    current_assignment = getattr(enrollment, 'session_assignment', None)
+    if current_assignment and current_assignment.session_id == session.id:
+        return current_assignment
+
+    if session.capacity and session.enrolled_count >= session.capacity:
+        raise ValueError('هذا الكلاس ممتلئ حالياً.')
+
+    if _student_has_conflict_for_session(enrollment.student_id, session):
+        raise ValueError('يوجد تعارض وقتي بين هذا الكلاس وأحد كلاسات الطالب الأخرى.')
+
+    assignment, _created = QuickCourseSessionEnrollment.objects.update_or_create(
+        enrollment=enrollment,
+        defaults={'session': session, 'assigned_by': user},
+    )
+    _sync_quick_manual_sorting_selection(enrollment=enrollment, session=assignment.session, user=user)
+    return assignment
+
+
+def _build_quick_register_course_context(student):
+    active_sessions_queryset = (
+        QuickCourseSession.objects.filter(is_active=True)
+        .select_related('room')
+        .annotate(
+            assigned_count=Count(
+                'session_enrollments',
+                filter=Q(
+                    session_enrollments__enrollment__is_completed=False,
+                    session_enrollments__enrollment__student__is_active=True,
+                ),
+            )
+        )
+        .order_by('start_date', 'start_time', 'id')
+    )
+
+    courses = list(
+        QuickCourse.objects.filter(is_active=True, academic_year=student.academic_year)
+        .prefetch_related(
+            Prefetch('sessions', queryset=active_sessions_queryset, to_attr='active_sessions')
+        )
+        .order_by('name')
+    )
+
+    enrolled_course_ids = set(
+        QuickEnrollment.objects.filter(student=student).values_list('course_id', flat=True)
+    )
+
+    course_session_catalog = {}
+    for course in courses:
+        session_rows = []
+        for session in getattr(course, 'active_sessions', []):
+            room_label = session.room.name if getattr(session, 'room', None) else (session.room_name or 'تحدد لاحقاً')
+            session_rows.append({
+                'id': session.id,
+                'title': session.title,
+                'code': session.display_code,
+                'date_range': f'{session.start_date:%Y-%m-%d} - {session.end_date:%Y-%m-%d}',
+                'time_range': (
+                    f'{session.start_time:%H:%M}'
+                    + (f' - {session.end_time:%H:%M}' if session.end_time else '')
+                ),
+                'meeting_days': session.meeting_days or 'يحدد حسب البرنامج',
+                'room_name': room_label,
+                'assigned_count': getattr(session, 'assigned_count', 0),
+                'capacity': session.capacity or 0,
+                'min_capacity': session.min_capacity or 0,
+                'is_full': bool(session.capacity and getattr(session, 'assigned_count', 0) >= session.capacity),
+                'is_upcoming': session.is_upcoming,
+                'is_finished': session.is_finished,
+            })
+        course_session_catalog[str(course.id)] = session_rows
+
+    return {
+        'student': student,
+        'courses': courses,
+        'enrolled_course_ids': enrolled_course_ids,
+        'already_enrolled_count': len(enrolled_course_ids),
+        'available_courses_count': len(courses),
+        'course_session_catalog': course_session_catalog,
+        'print_receipts_url': None,
+    }
+
+
+def _format_quick_session_time_label(session):
+    if session is None:
+        return 'يحدد لاحقاً'
+
+    time_range = session.start_time.strftime('%H:%M')
+    if session.end_time:
+        time_range += f' - {session.end_time.strftime("%H:%M")}'
+
+    if session.meeting_days:
+        return f'{session.meeting_days} | {time_range}'
+    return time_range
+
+
 def _generate_course_sessions_from_options(course, user):
     options = list(
         course.time_options.filter(is_active=True)
@@ -7645,7 +7744,8 @@ class QuickCourseStudentsView(LoginRequiredMixin, TemplateView):
 def register_quick_course(request, student_id):
     """تسجيل طالب سريع في دورة"""
     student = get_object_or_404(QuickStudent, id=student_id)
-    courses = QuickCourse.objects.filter(is_active=True, academic_year=student.academic_year)
+    context = _build_quick_register_course_context(student)
+    courses = context['courses']
     
     if request.method == 'POST':
         course_ids = request.POST.getlist('course_ids')
@@ -7662,11 +7762,19 @@ def register_quick_course(request, student_id):
             id__in=seen,
             is_active=True,
             academic_year=student.academic_year
+        ).prefetch_related(
+            Prefetch(
+                'sessions',
+                queryset=QuickCourseSession.objects.filter(is_active=True).order_by('start_date', 'start_time', 'id'),
+                to_attr='active_sessions',
+            )
         )
         available_map = {str(course.id): course for course in available_courses}
 
         created_enrollments = 0
+        assigned_sessions = 0
         created_receipts = []
+        created_enrollment_ids = []
         warnings = []
 
         for cid in seen:
@@ -7679,6 +7787,19 @@ def register_quick_course(request, student_id):
                 warnings.append(f'التسجيل للدورة "{course.name}" موجود مسبقاً، تم تجاهلها.')
                 continue
 
+            selected_session_id = (request.POST.get(f'session_id_{course.id}') or '').strip()
+            selected_session = None
+            if selected_session_id:
+                selected_session = next(
+                    (
+                        session for session in getattr(course, 'active_sessions', [])
+                        if str(session.id) == selected_session_id
+                    ),
+                    None,
+                )
+                if selected_session is None:
+                    warnings.append(f'الكلاس المختار لدورة "{course.name}" غير صالح وتم تجاهله.')
+
             enrollment = QuickEnrollment.objects.create(
                 student=student,
                 course=course,
@@ -7687,9 +7808,28 @@ def register_quick_course(request, student_id):
                 total_amount=course.price
             )
             created_enrollments += 1
-            warnings.append(
-                f'الطالب سُجل في دورة {course.name} وبقي ضمن غير المنزلين حتى يتم تنزيله يدوياً على كلاس.'
-            )
+            created_enrollment_ids.append(enrollment.id)
+
+            if selected_session is not None:
+                try:
+                    _assign_enrollment_to_specific_session(
+                        enrollment=enrollment,
+                        session=selected_session,
+                        user=request.user,
+                    )
+                    assigned_sessions += 1
+                except ValueError as exc:
+                    warnings.append(
+                        f'الطالب سُجل في دورة {course.name} لكن لم يتم تنزيله على الكلاس المختار: {exc}'
+                    )
+            elif getattr(course, 'active_sessions', []):
+                warnings.append(
+                    f'الطالب سُجل في دورة {course.name} لكن لم يتم اختيار كلاس لها، لذلك بقي ضمن غير المنزلين.'
+                )
+            else:
+                warnings.append(
+                    f'الطالب سُجل في دورة {course.name} ولا توجد كلاسات مفعلة لها حالياً، لذلك بقي ضمن غير المنزلين.'
+                )
 
             try:
                 enrollment.create_accrual_enrollment_entry(request.user)
@@ -7717,25 +7857,26 @@ def register_quick_course(request, student_id):
                     warnings.append(f'إنشاء إيصال لدورة {course.name} فشل: {exc}')
 
         if created_enrollments:
-            messages.success(request, f'تم تسجيل الطالب في {created_enrollments} دورة')
+            summary_message = f'تم تسجيل الطالب في {created_enrollments} دورة'
+            if assigned_sessions:
+                summary_message += f' وتنزيله مباشرة على {assigned_sessions} كلاس'
+            messages.success(request, summary_message)
         if warnings:
             for warning in warnings:
                 messages.warning(request, warning)
 
-        if created_receipts:
-            ids_str = ','.join(str(rid) for rid in created_receipts)
-            query = urlencode({
-                'print_receipts': ids_str
-            })
-            return redirect(f"{reverse('quick:student_profile', args=[student_id])}?{query}")
+        if created_enrollment_ids:
+            query_params = {
+                'enrollments': ','.join(str(enrollment_id) for enrollment_id in created_enrollment_ids),
+            }
+            if created_receipts:
+                query_params['receipts'] = ','.join(str(rid) for rid in created_receipts)
+            query = urlencode(query_params)
+            return redirect(f"{reverse('quick:quick_student_times_print', args=[student_id])}?{query}")
 
         return redirect('quick:student_profile', student_id=student_id)
 
-    return render(request, 'quick/register_quick_course.html', {
-        'student': student,
-        'courses': courses,
-        'print_receipts_url': None
-    })
+    return render(request, 'quick/register_quick_course.html', context)
 @login_required
 def quick_multiple_receipt_print(request, student_id):
     """طباعة مجموعة إيصالات دفعة واحدة"""
@@ -7778,6 +7919,47 @@ def quick_multiple_receipt_print(request, student_id):
         'local_agent_url': settings.QUICK_LOCAL_AGENT_URL,
         'server_printer_enabled': (
             settings.QUICK_RECEIPT_PRINTER_ENABLED or settings.QUICK_RECEIPT_PRINTER_DUMMY
+        ),
+    })
+
+
+@login_required
+def quick_student_times_print(request, student_id):
+    ids_param = request.GET.get('enrollments', '')
+    receipt_ids_param = request.GET.get('receipts', '')
+    if not ids_param:
+        raise Http404('Missing enrollment identifiers')
+
+    try:
+        enrollment_ids = [int(pk.strip()) for pk in ids_param.split(',') if pk.strip()]
+    except ValueError:
+        raise Http404('Invalid enrollment identifiers')
+
+    student = get_object_or_404(QuickStudent, id=student_id)
+    enrollments = list(
+        QuickEnrollment.objects.filter(id__in=enrollment_ids, student_id=student_id)
+        .select_related('course', 'session_assignment__session')
+        .order_by('id')
+    )
+    if not enrollments:
+        raise Http404('No enrollments found')
+
+    schedule_items = []
+    for enrollment in enrollments:
+        assignment = getattr(enrollment, 'session_assignment', None)
+        session = getattr(assignment, 'session', None)
+        schedule_items.append({
+            'course_name': enrollment.course.name if enrollment.course else '-',
+            'time_label': _format_quick_session_time_label(session),
+        })
+
+    return render(request, 'quick/quick_student_times_print.html', {
+        'student': student,
+        'schedule_items': schedule_items,
+        'return_url': reverse('quick:student_profile', args=[student_id]),
+        'receipts_print_url': (
+            f"{reverse('quick:quick_multiple_receipt_print', args=[student_id])}?ids={receipt_ids_param}"
+            if receipt_ids_param else ''
         ),
     })
 
