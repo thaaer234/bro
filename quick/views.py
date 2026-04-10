@@ -7927,19 +7927,23 @@ def quick_multiple_receipt_print(request, student_id):
 def quick_student_times_print(request, student_id):
     ids_param = request.GET.get('enrollments', '')
     receipt_ids_param = request.GET.get('receipts', '')
-    if not ids_param:
-        raise Http404('Missing enrollment identifiers')
-
-    try:
-        enrollment_ids = [int(pk.strip()) for pk in ids_param.split(',') if pk.strip()]
-    except ValueError:
-        raise Http404('Invalid enrollment identifiers')
 
     student = get_object_or_404(QuickStudent, id=student_id)
+
+    enrollments_queryset = QuickEnrollment.objects.filter(student_id=student_id)
+    if ids_param:
+        try:
+            enrollment_ids = [int(pk.strip()) for pk in ids_param.split(',') if pk.strip()]
+        except ValueError:
+            raise Http404('Invalid enrollment identifiers')
+        enrollments_queryset = enrollments_queryset.filter(id__in=enrollment_ids)
+    else:
+        enrollments_queryset = enrollments_queryset.filter(is_completed=False)
+
     enrollments = list(
-        QuickEnrollment.objects.filter(id__in=enrollment_ids, student_id=student_id)
+        enrollments_queryset
         .select_related('course', 'session_assignment__session')
-        .order_by('id')
+        .order_by('enrollment_date', 'id')
     )
     if not enrollments:
         raise Http404('No enrollments found')
