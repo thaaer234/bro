@@ -474,14 +474,33 @@
 }
 
 .quick-register-modal__body {
-    overflow: auto;
+    max-height: min(60vh, 520px);
+    overflow-y: auto;
+    overflow-x: hidden;
     display: grid;
     gap: 0.9rem;
+    padding-inline-end: 0.2rem;
+    overscroll-behavior: contain;
 }
 
 .quick-register-session-list {
     display: grid;
     gap: 0.85rem;
+    padding-inline-end: 0.2rem;
+}
+
+.quick-register-modal__body::-webkit-scrollbar {
+    width: 10px;
+}
+
+.quick-register-modal__body::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.12);
+    border-radius: 999px;
+}
+
+.quick-register-modal__body::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(15, 118, 110, 0.72), rgba(22, 78, 99, 0.78));
+    border-radius: 999px;
 }
 
 .quick-register-session {

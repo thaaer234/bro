@@ -4056,8 +4056,10 @@ def _filter_quick_courses_by_stage(courses, stage):
     return courses
 
 
-def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINTH', assignment_status='ALL', course_id=None, session_id=None):
+def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINTH', assignment_status='ALL', course_id=None, session_id=None, search_query=''):
     course_type = _resolve_quick_course_type_value(course_type, allow_all=True)
+    search_query = (search_query or '').strip()
+    normalized_search_query = _normalize_quick_student_name(search_query)
     stage = (stage or 'NON_NINTH').upper()
     valid_stages = {item['value'] for item in _get_quick_manual_stage_options()}
     if stage not in valid_stages:
@@ -4410,6 +4412,11 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             item['student'].id,
         )
     )
+    if normalized_search_query:
+        student_rows = [
+            row for row in student_rows
+            if normalized_search_query in _normalize_quick_student_name(row['student'].full_name)
+        ]
     if selected_course_student_ids is not None:
         student_rows = [
             row for row in student_rows
@@ -4475,8 +4482,14 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
             item['enrollment'].id,
         )
     )
+    if normalized_search_query:
+        unassigned_enrollments = [
+            item for item in unassigned_enrollments
+            if normalized_search_query in _normalize_quick_student_name(item['student'].full_name)
+        ]
 
     return {
+        'search_query': search_query,
         'course_type': course_type,
         'course_type_label': course_type_labels.get(course_type, course_type),
         'course_type_options': course_type_options,
@@ -4675,6 +4688,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
         course_type = self.request.GET.get('course_type') or self.request.POST.get('course_type') or 'INTENSIVE'
         course_id = self.request.GET.get('course_id') or self.request.POST.get('course_id') or ''
         session_id = self.request.GET.get('session_id') or self.request.POST.get('session_id') or ''
+        search_query = self.request.GET.get('q') or self.request.POST.get('q') or ''
         stage = self.request.GET.get('stage') or self.request.POST.get('stage') or 'NON_NINTH'
         assignment_status = (
             self.request.GET.get('assignment_status')
@@ -4685,6 +4699,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             course_type=course_type,
             course_id=course_id,
             session_id=session_id,
+            search_query=search_query,
             stage=stage,
             assignment_status=assignment_status,
         )
@@ -4703,6 +4718,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             and saved_cells_state.get('course_type') == payload['course_type']
             and saved_cells_state.get('course_id') == payload['selected_course_id']
             and saved_cells_state.get('session_id') == payload['selected_session_id']
+            and saved_cells_state.get('search_query', '') == payload.get('search_query', '')
             and saved_cells_state.get('stage') == payload['stage']
             and saved_cells_state.get('assignment_status') == payload['assignment_status']
             and saved_cells_state.get('page') == page_obj.number
@@ -4731,6 +4747,8 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             ('stage', payload['stage']),
             ('assignment_status', payload['assignment_status']),
         ]
+        if payload.get('search_query'):
+            base_query_items.append(('q', payload['search_query']))
         if payload['selected_course_id']:
             base_query_items.append(('course_id', payload['selected_course_id']))
         if payload['selected_session_id']:
@@ -4898,6 +4916,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
                 'course_type': payload['course_type'],
                 'course_id': payload['selected_course_id'],
                 'session_id': payload['selected_session_id'],
+                'search_query': payload.get('search_query', ''),
                 'stage': payload['stage'],
                 'assignment_status': payload['assignment_status'],
                 'page': page_obj.number,
@@ -4912,6 +4931,8 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
             ('page', page_obj.number),
             ('_ts', int(time.time())),
         ]
+        if payload.get('search_query'):
+            redirect_query_items.append(('q', payload['search_query']))
         if payload['selected_course_id']:
             redirect_query_items.append(('course_id', payload['selected_course_id']))
         if payload['selected_session_id']:
@@ -4931,6 +4952,7 @@ class QuickManualSortingPrintView(LoginRequiredMixin, TemplateView):
             course_type=self.request.GET.get('course_type') or 'INTENSIVE',
             course_id=self.request.GET.get('course_id') or '',
             session_id=self.request.GET.get('session_id') or '',
+            search_query=self.request.GET.get('q') or '',
             stage=self.request.GET.get('stage') or 'NON_NINTH',
             assignment_status=self.request.GET.get('assignment_status') or 'ALL',
         )
@@ -4953,6 +4975,7 @@ class QuickManualSortingUnassignedPrintView(LoginRequiredMixin, TemplateView):
             course_type=self.request.GET.get('course_type') or 'INTENSIVE',
             course_id=self.request.GET.get('course_id') or '',
             session_id=self.request.GET.get('session_id') or '',
+            search_query=self.request.GET.get('q') or '',
             stage=self.request.GET.get('stage') or 'NON_NINTH',
             assignment_status=self.request.GET.get('assignment_status') or 'ALL',
         )
@@ -5359,6 +5382,14 @@ def _format_quick_session_time_label(session):
     if session.meeting_days:
         return f'{session.meeting_days} | {time_range}'
     return time_range
+
+
+def _format_quick_session_date_label(session):
+    if session is None:
+        return 'يحدد لاحقاً'
+    if session.start_date == session.end_date:
+        return session.start_date.strftime('%Y-%m-%d')
+    return f'{session.start_date.strftime("%Y-%m-%d")} - {session.end_date.strftime("%Y-%m-%d")}'
 
 
 def _generate_course_sessions_from_options(course, user):
@@ -7954,6 +7985,7 @@ def quick_student_times_print(request, student_id):
         session = getattr(assignment, 'session', None)
         schedule_items.append({
             'course_name': enrollment.course.name if enrollment.course else '-',
+            'date_label': _format_quick_session_date_label(session),
             'time_label': _format_quick_session_time_label(session),
         })
 
