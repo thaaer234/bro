@@ -930,8 +930,11 @@ class SecurityHeadersMiddleware:
         response['X-Content-Type-Options'] = 'nosniff'
         response['X-Frame-Options'] = 'DENY'
         response['X-XSS-Protection'] = '1; mode=block'
-        response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        if request.is_secure():
+            response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        else:
+            response.pop('Strict-Transport-Security', None)
         
         # إضافة رأس Content Security Policy مبسط
         csp = (
