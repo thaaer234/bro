@@ -32,25 +32,48 @@ def env_int(name, default=0):
         return default
 
 
+def env_list(name, default=None):
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        return list(default or [])
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 RUNNING_LOCAL_SERVER = 'runserver' in sys.argv
 DEBUG = env_bool("DJANGO_DEBUG", RUNNING_LOCAL_SERVER)
 
-ALLOWED_HOSTS = [
+DEFAULT_ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
+    '0.0.0.0',
     'alyaman-institute.com',
     'www.alyaman-institute.com',
     '187.124.151.249',
 ]
+if DEBUG:
+    DEFAULT_ALLOWED_HOSTS.extend([
+        '.ngrok-free.dev',
+    ])
 
-CSRF_TRUSTED_ORIGINS = [
+DEFAULT_CSRF_TRUSTED_ORIGINS = [
     'http://alyaman-institute.com',
     'https://alyaman-institute.com',
     'http://www.alyaman-institute.com',
     'https://www.alyaman-institute.com',
     'http://187.124.151.249',
     'https://187.124.151.249',
+    'http://*.ngrok-free.dev',
+    'https://*.ngrok-free.dev',
 ]
+if DEBUG:
+    DEFAULT_CSRF_TRUSTED_ORIGINS.extend([
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+        'http://0.0.0.0:8000',
+    ])
+
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", DEFAULT_ALLOWED_HOSTS)
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", DEFAULT_CSRF_TRUSTED_ORIGINS)
 
 
 # ==============================
@@ -102,10 +125,17 @@ INSTALLED_APPS = [
 # ==============================
 # CORS Settings
 # ==============================
-CORS_ALLOWED_ORIGINS = [
+DEFAULT_CORS_ALLOWED_ORIGINS = [
     "https://alyaman-institute.com",
     "https://www.alyaman-institute.com",
 ]
+if DEBUG:
+    DEFAULT_CORS_ALLOWED_ORIGINS.extend([
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+    ])
+
+CORS_ALLOWED_ORIGINS = env_list("DJANGO_CORS_ALLOWED_ORIGINS", DEFAULT_CORS_ALLOWED_ORIGINS)
 
 CORS_ALLOW_HEADERS = [
     "accept",
@@ -310,10 +340,16 @@ LOGOUT_URL = "/logout/"
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 SESSION_SAVE_EVERY_REQUEST = env_bool("DJANGO_SESSION_SAVE_EVERY_REQUEST", False)
+SESSION_COOKIE_SAMESITE = os.getenv("DJANGO_SESSION_COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_SAMESITE = os.getenv("DJANGO_CSRF_COOKIE_SAMESITE", "Lax")
 
 # ==============================
 # Security Settings (Production)
 # ==============================
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = env_bool("DJANGO_USE_X_FORWARDED_HOST", True)
+USE_X_FORWARDED_PORT = env_bool("DJANGO_USE_X_FORWARDED_PORT", True)
+
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
