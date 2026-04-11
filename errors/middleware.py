@@ -934,7 +934,8 @@ class SecurityHeadersMiddleware:
         if request.is_secure():
             response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         else:
-            response.pop('Strict-Transport-Security', None)
+            if 'Strict-Transport-Security' in response:
+                del response['Strict-Transport-Security']
         
         # إضافة رأس Content Security Policy مبسط
         csp = (
