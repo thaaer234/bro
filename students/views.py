@@ -650,26 +650,28 @@ class StudentListView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         # 🔍 البحث عن الطلاب إذا كان هناك معايير بحث
-        search_query = self.request.GET.get('q', '')
+        search_query = (self.request.GET.get('q', '') or '').strip()
         academic_year_id = self.request.GET.get('academic_year')
         branch_filter = self.request.GET.get('branch')
         type_filter = self.request.GET.get('type')
+        show_all_students = search_query.lower() == 'all'
         
         students_list = []
         
         # إذا كان هناك بحث، جلب النتائج
-        if search_query or academic_year_id or branch_filter or type_filter:
+        if show_all_students or search_query or academic_year_id or branch_filter or type_filter:
+            normalized_search = '' if show_all_students else search_query
             # البحث في الطلاب النظاميين
             regular_students = Student.objects.all().select_related('academic_year', 'added_by')
             
             # تطبيق الفلاتر
-            if search_query:
+            if normalized_search:
                 regular_students = regular_students.filter(
-                    Q(full_name__icontains=search_query) |
-                    Q(student_number__icontains=search_query) |
-                    Q(phone__icontains=search_query) |
-                    Q(email__icontains=search_query) |
-                    Q(father_phone__icontains=search_query)
+                    Q(full_name__icontains=normalized_search) |
+                    Q(student_number__icontains=normalized_search) |
+                    Q(phone__icontains=normalized_search) |
+                    Q(email__icontains=normalized_search) |
+                    Q(father_phone__icontains=normalized_search)
                 )
             
             if academic_year_id and academic_year_id != '0':
@@ -685,6 +687,8 @@ class StudentListView(LoginRequiredMixin, TemplateView):
                 # فقط السريعين - سنضيفهم لاحقاً
                 regular_students = regular_students.none()
             
+            regular_students = regular_students.order_by('full_name', 'id')
+            
             # إعداد بيانات العرض
             for student in regular_students:
                 student.is_quick = False
@@ -693,38 +697,54 @@ class StudentListView(LoginRequiredMixin, TemplateView):
                 student.display_phone = student.get_display_phone()
                 student.display_status = student.get_status_for_display()
                 student.status_badge_class = student.get_status_badge_class()
+                student.profile_url = reverse('students:student_profile', kwargs={'student_id': student.id})
                 students_list.append(student)
             
             # 🔥 البحث في الطلاب السريعين إذا كان النوع "quick" أو "all"
-            if type_filter in ['quick', '']:
+            if type_filter != 'regular':
                 try:
                     from quick.models import QuickStudent
                     quick_students = QuickStudent.objects.filter(is_active=True).select_related('academic_year')
                     
-                    if search_query:
+                    if normalized_search:
                         quick_students = quick_students.filter(
-                            Q(full_name__icontains=search_query) |
-                            Q(phone__icontains=search_query)
+                            Q(full_name__icontains=normalized_search) |
+                            Q(phone__icontains=normalized_search)
                         )
                     
                     if academic_year_id and academic_year_id != '0':
                         quick_students = quick_students.filter(academic_year_id=academic_year_id)
+
+                    if branch_filter and branch_filter != '':
+                        quick_students = quick_students.none()
+
+                    quick_students = quick_students.order_by('full_name', 'id')
                     
                     for student in quick_students:
                         student.is_quick = True
                         student.student_type_display = 'سريع'
                         student.academic_year_display = student.academic_year.name if student.academic_year else "-"
                         student.display_phone = student.phone if student.phone else "-"
+                        student.branch = ''
+                        student.profile_url = reverse('quick:student_profile', kwargs={'student_id': student.id})
                         student.display_status = 'نشط' if student.is_active else 'غير نشط'
                         student.status_badge_class = 'badge-success' if student.is_active else 'badge-danger'
                         students_list.append(student)
                         
                 except ImportError:
                     pass
+
+            students_list.sort(
+                key=lambda student: (
+                    getattr(student, 'full_name', '') or '',
+                    1 if getattr(student, 'is_quick', False) else 0,
+                    getattr(student, 'id', 0),
+                )
+            )
         
         context['search_results'] = students_list
         context['has_search_results'] = len(students_list) > 0
-        context['search_query'] = search_query
+        context['search_query'] = '' if show_all_students else search_query
         context['current_filters'] = {
             'academic_year': academic_year_id,
             'branch': branch_filter,

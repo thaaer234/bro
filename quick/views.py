@@ -3,7 +3,7 @@ from django.views.generic import ListView, CreateView, DeleteView, UpdateView
 from django.views.generic.edit import FormView
 from django.urls import reverse, reverse_lazy
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum, Value, DecimalField, Count, Max
+from django.db.models import Q, Sum, Value, DecimalField, Count, Max, F
 from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.contrib.auth import get_user_model
@@ -2342,20 +2342,73 @@ def _extract_quick_student_id_from_entry(entry):
     return None
 
 
-def _resolve_quick_entry_source(entry, receipt=None, enrollment=None):
-    if receipt:
-        return 'قيد قبض'
-    if enrollment:
-        return 'قيد تسجيل'
+def _match_quick_courses_from_text(text, course_map):
+    normalized_text = str(text or '').strip()
+    if not normalized_text:
+        return set()
 
+    matched_ids = set()
+    for course_id, course in course_map.items():
+        course_names = [
+            getattr(course, 'name', '') or '',
+            getattr(course, 'name_ar', '') or '',
+        ]
+        for course_name in course_names:
+            course_name = str(course_name or '').strip()
+            if course_name and course_name in normalized_text:
+                matched_ids.add(course_id)
+                break
+    return matched_ids
+
+
+def _resolve_quick_entry_source(entry, receipt=None, enrollment=None):
     description = (entry.description or '').lower()
+    if 'تعديل حسم' in description or 'حسم' in description:
+        return 'قيد حسم'
+    if 'عكس قيد تسجيل' in description:
+        return 'عكس قيد تسجيل'
+    if 'عكس قيد قبض' in description or 'إلغاء إيصال' in description or 'عكس قبض' in description:
+        return 'عكس قيد قبض'
     if 'quick_withdraw' in description or 'سحب' in description:
         return 'قيد سحب'
     if 'استرداد' in description:
         return 'قيد استرداد'
     if entry.entry_type == 'ADJUSTMENT':
         return 'قيد تسوية'
+    if receipt:
+        return 'قيد قبض'
+    if enrollment:
+        return 'قيد تسجيل'
     return entry.get_entry_type_display()
+
+
+def _get_quick_entry_course_ids(entry, course_map, course_account_codes, receipt=None, enrollment=None):
+    entry_course_ids = set()
+
+    if receipt and receipt.course_id in course_map:
+        entry_course_ids.add(receipt.course_id)
+
+    if enrollment and enrollment.course_id in course_map:
+        entry_course_ids.add(enrollment.course_id)
+
+    for transaction in entry.transactions.all():
+        code = (transaction.account.code or '').strip()
+        for course_id, account_codes in course_account_codes.items():
+            if code in account_codes:
+                entry_course_ids.add(course_id)
+
+    if entry_course_ids:
+        return entry_course_ids
+
+    text_candidates = [entry.description or '']
+    text_candidates.extend(
+        transaction.description or ''
+        for transaction in entry.transactions.all()
+    )
+    for text in text_candidates:
+        entry_course_ids.update(_match_quick_courses_from_text(text, course_map))
+
+    return entry_course_ids
 
 
 def _build_quick_course_statement_rows(courses):
@@ -2396,11 +2449,23 @@ def _build_quick_course_statement_rows(courses):
     }
     receipt_entry_ids = set(receipt_by_entry_id.keys())
 
+    quick_adjustment_query = (
+        Q(entry_type='ADJUSTMENT') & (
+            Q(description__icontains='QUICK_WITHDRAW')
+            | Q(description__icontains='استرداد')
+            | Q(description__icontains='حسم')
+            | Q(description__icontains='إلغاء إيصال')
+            | Q(description__icontains='عكس قيد قبض')
+            | Q(transactions__account__code__startswith='1252-')
+        )
+    )
+
     journal_entries = list(
         JournalEntry.objects.filter(
             Q(reference__in=enrollment_ref_map.keys())
             | Q(id__in=receipt_entry_ids)
             | Q(transactions__account__code__in=all_course_account_codes)
+            | quick_adjustment_query
         ).distinct().select_related(
             'created_by', 'posted_by'
         ).prefetch_related(
@@ -2412,21 +2477,15 @@ def _build_quick_course_statement_rows(courses):
     quick_student_cache = {}
 
     for entry in journal_entries:
-        entry_course_ids = set()
-
         receipt = receipt_by_entry_id.get(entry.id)
-        if receipt and receipt.course_id in course_map:
-            entry_course_ids.add(receipt.course_id)
-
         enrollment = enrollment_ref_map.get(entry.reference)
-        if enrollment and enrollment.course_id in course_map:
-            entry_course_ids.add(enrollment.course_id)
-
-        for transaction in entry.transactions.all():
-            code = (transaction.account.code or '').strip()
-            for course_id, account_codes in course_account_codes.items():
-                if code in account_codes:
-                    entry_course_ids.add(course_id)
+        entry_course_ids = _get_quick_entry_course_ids(
+            entry,
+            course_map=course_map,
+            course_account_codes=course_account_codes,
+            receipt=receipt,
+            enrollment=enrollment,
+        )
 
         if not entry_course_ids:
             continue
@@ -3760,6 +3819,10 @@ class QuickClassroomUpdateView(LoginRequiredMixin, UpdateView):
 class QuickStudentIntersectionView(LoginRequiredMixin, TemplateView):
     template_name = 'quick/student_intersections.html'
 
+    def _get_scope(self):
+        scope = (self.request.GET.get('scope') or 'course').strip().lower()
+        return scope if scope in {'course', 'session'} else 'course'
+
     def _get_selected_course_ids(self):
         selected_ids = []
         seen_ids = set()
@@ -3784,11 +3847,35 @@ class QuickStudentIntersectionView(LoginRequiredMixin, TemplateView):
 
         return selected_ids
 
+    def _get_selected_session_ids(self):
+        selected_ids = []
+        seen_ids = set()
+
+        for raw_value in self.request.GET.getlist('session_ids'):
+            try:
+                session_id = int(raw_value)
+            except (TypeError, ValueError):
+                continue
+            if session_id not in seen_ids:
+                selected_ids.append(session_id)
+                seen_ids.add(session_id)
+
+        add_session_raw = self.request.GET.get('add_session')
+        if add_session_raw:
+            try:
+                add_session_id = int(add_session_raw)
+            except (TypeError, ValueError):
+                add_session_id = None
+            if add_session_id and add_session_id not in seen_ids:
+                selected_ids.append(add_session_id)
+
+        return selected_ids
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        selected_course_ids = self._get_selected_course_ids()
-        courses_queryset = (
+        scope = self._get_scope()
+        courses_queryset = list(
             QuickCourse.objects.filter(is_active=True)
             .select_related('academic_year')
             .annotate(
@@ -3801,70 +3888,381 @@ class QuickStudentIntersectionView(LoginRequiredMixin, TemplateView):
             .order_by('-academic_year__start_date', 'name')
         )
 
-        courses_map = {course.id: course for course in courses_queryset}
-        selected_courses = [courses_map[course_id] for course_id in selected_course_ids if course_id in courses_map]
-        selected_course_ids = [course.id for course in selected_courses]
-
-        intersection_ids = None
-        for course_id in selected_course_ids:
-            course_student_ids = set(
-                QuickEnrollment.objects.filter(
-                    course_id=course_id,
-                    is_completed=False,
-                    student__is_active=True,
-                ).values_list('student_id', flat=True)
-            )
-            if intersection_ids is None:
-                intersection_ids = course_student_ids
-            else:
-                intersection_ids &= course_student_ids
-
-        matching_student_ids = sorted(intersection_ids) if intersection_ids else []
-        matching_students = []
-        if matching_student_ids:
-            matching_students = list(
-                QuickStudent.objects.filter(id__in=matching_student_ids, is_active=True)
-                .select_related('student', 'academic_year')
-                .annotate(
-                    total_active_courses=Count(
-                        'enrollments',
-                        filter=Q(enrollments__is_completed=False),
-                        distinct=True,
+        sessions_queryset = list(
+            QuickCourseSession.objects.filter(is_active=True, course__is_active=True)
+            .select_related('course', 'course__academic_year', 'room')
+            .annotate(
+                active_students_count=Count(
+                    'session_enrollments',
+                    filter=Q(
+                        session_enrollments__enrollment__is_completed=False,
+                        session_enrollments__enrollment__student__is_active=True,
                     ),
-                    matched_courses_count=Count(
-                        'enrollments',
-                        filter=Q(enrollments__course_id__in=selected_course_ids, enrollments__is_completed=False),
-                        distinct=True,
-                    ),
+                    distinct=True,
                 )
-                .order_by('full_name', 'id')
             )
+            .order_by(
+                '-course__academic_year__start_date',
+                'course__name',
+                'start_date',
+                'start_time',
+                'title',
+                'id',
+            )
+        )
 
-        selected_course_entries = []
-        for index, course in enumerate(selected_courses):
-            remaining_ids = [str(course_id) for i, course_id in enumerate(selected_course_ids) if i != index]
-            remove_url = reverse('quick:student_intersections')
-            if remaining_ids:
-                remove_url = f"{remove_url}?{urlencode([('course_ids', course_id) for course_id in remaining_ids])}"
-            selected_course_entries.append({
-                'course': course,
-                'remove_url': remove_url,
-            })
+        selected_entries = []
+        selected_course_ids = []
+        selected_session_ids = []
+        intersection_ids = None
+        matching_label = 'matched_courses_count'
 
-        available_courses = [course for course in courses_queryset if course.id not in selected_course_ids]
+        if scope == 'session':
+            sessions_map = {session.id: session for session in sessions_queryset}
+            selected_session_ids = self._get_selected_session_ids()
+            selected_sessions = [sessions_map[session_id] for session_id in selected_session_ids if session_id in sessions_map]
+            selected_session_ids = [session.id for session in selected_sessions]
+
+            for session_id in selected_session_ids:
+                session_student_ids = set(
+                    QuickCourseSessionEnrollment.objects.filter(
+                        session_id=session_id,
+                        enrollment__is_completed=False,
+                        enrollment__student__is_active=True,
+                    ).values_list('enrollment__student_id', flat=True)
+                )
+                if intersection_ids is None:
+                    intersection_ids = session_student_ids
+                else:
+                    intersection_ids &= session_student_ids
+
+            matching_label = 'matched_sessions_count'
+            matching_student_ids = sorted(intersection_ids) if intersection_ids else []
+            matching_students = []
+            if matching_student_ids:
+                matching_students = list(
+                    QuickStudent.objects.filter(id__in=matching_student_ids, is_active=True)
+                    .select_related('student', 'academic_year')
+                    .annotate(
+                        total_active_courses=Count(
+                            'enrollments',
+                            filter=Q(enrollments__is_completed=False),
+                            distinct=True,
+                        ),
+                        matched_sessions_count=Count(
+                            'enrollments__session_assignment',
+                            filter=Q(
+                                enrollments__is_completed=False,
+                                enrollments__session_assignment__session_id__in=selected_session_ids,
+                            ),
+                            distinct=True,
+                        ),
+                    )
+                    .order_by('full_name', 'id')
+                )
+
+            for index, session in enumerate(selected_sessions):
+                remaining_ids = [str(session_id) for i, session_id in enumerate(selected_session_ids) if i != index]
+                query = [('scope', 'session')] + [('session_ids', session_id) for session_id in remaining_ids]
+                remove_url = reverse('quick:student_intersections')
+                if query:
+                    remove_url = f"{remove_url}?{urlencode(query)}"
+                selected_entries.append({
+                    'kind': 'session',
+                    'title': session.title,
+                    'subtitle': session.course.name,
+                    'meta': f'السنة: {getattr(session.course.academic_year, "name", "-")} | الطلاب النشطون: {session.active_students_count}',
+                    'remove_url': remove_url,
+                })
+            available_courses = courses_queryset
+            available_sessions = [session for session in sessions_queryset if session.id not in selected_session_ids]
+        else:
+            courses_map = {course.id: course for course in courses_queryset}
+            selected_course_ids = self._get_selected_course_ids()
+            selected_courses = [courses_map[course_id] for course_id in selected_course_ids if course_id in courses_map]
+            selected_course_ids = [course.id for course in selected_courses]
+
+            for course_id in selected_course_ids:
+                course_student_ids = set(
+                    QuickEnrollment.objects.filter(
+                        course_id=course_id,
+                        is_completed=False,
+                        student__is_active=True,
+                    ).values_list('student_id', flat=True)
+                )
+                if intersection_ids is None:
+                    intersection_ids = course_student_ids
+                else:
+                    intersection_ids &= course_student_ids
+
+            matching_student_ids = sorted(intersection_ids) if intersection_ids else []
+            matching_students = []
+            if matching_student_ids:
+                matching_students = list(
+                    QuickStudent.objects.filter(id__in=matching_student_ids, is_active=True)
+                    .select_related('student', 'academic_year')
+                    .annotate(
+                        total_active_courses=Count(
+                            'enrollments',
+                            filter=Q(enrollments__is_completed=False),
+                            distinct=True,
+                        ),
+                        matched_courses_count=Count(
+                            'enrollments',
+                            filter=Q(enrollments__course_id__in=selected_course_ids, enrollments__is_completed=False),
+                            distinct=True,
+                        ),
+                    )
+                    .order_by('full_name', 'id')
+                )
+
+            for index, course in enumerate(selected_courses):
+                remaining_ids = [str(course_id) for i, course_id in enumerate(selected_course_ids) if i != index]
+                query = [('scope', 'course')] + [('course_ids', course_id) for course_id in remaining_ids]
+                remove_url = reverse('quick:student_intersections')
+                if query:
+                    remove_url = f"{remove_url}?{urlencode(query)}"
+                selected_entries.append({
+                    'kind': 'course',
+                    'title': course.name,
+                    'subtitle': course.name_ar,
+                    'meta': f'السنة: {getattr(course.academic_year, "name", "-")} | الطلاب النشطون: {course.active_students_count}',
+                    'remove_url': remove_url,
+                })
+            available_courses = [course for course in courses_queryset if course.id not in selected_course_ids]
+            available_sessions = sessions_queryset
 
         context.update({
-            'selected_courses': selected_course_entries,
+            'scope': scope,
+            'selected_entries': selected_entries,
             'selected_course_ids': selected_course_ids,
+            'selected_session_ids': selected_session_ids,
             'available_courses': available_courses,
+            'available_sessions': available_sessions,
             'matching_students': matching_students,
             'matching_students_count': len(matching_students),
-            'selected_courses_count': len(selected_courses),
-            'total_available_courses': courses_queryset.count(),
-            'has_selection': bool(selected_courses),
-            'intersection_mode': 'single' if len(selected_courses) == 1 else 'multi',
-            'is_exact_intersection': len(selected_courses) > 1,
+            'matching_label': matching_label,
+            'selected_items_count': len(selected_entries),
+            'total_available_courses': len(courses_queryset),
+            'total_available_sessions': len(sessions_queryset),
+            'has_selection': bool(selected_entries),
+            'intersection_mode': 'single' if len(selected_entries) == 1 else 'multi',
+            'is_exact_intersection': len(selected_entries) > 1,
+            'session_intersection_print_url': (
+                f"{reverse('quick:student_intersections_sessions_print')}?"
+                f"{urlencode([('session_ids', session_id) for session_id in selected_session_ids])}"
+                if scope == 'session' and selected_session_ids else ''
+            ),
         })
+        return context
+
+
+def _get_quick_session_intersection_student_ids(session_ids):
+    cleaned_session_ids = []
+    seen_ids = set()
+    for raw_value in session_ids or []:
+        try:
+            session_id = int(raw_value)
+        except (TypeError, ValueError):
+            continue
+        if session_id not in seen_ids:
+            cleaned_session_ids.append(session_id)
+            seen_ids.add(session_id)
+
+    intersection_ids = None
+    for session_id in cleaned_session_ids:
+        session_student_ids = set(
+            QuickCourseSessionEnrollment.objects.filter(
+                session_id=session_id,
+                enrollment__is_completed=False,
+                enrollment__student__is_active=True,
+            ).values_list('enrollment__student_id', flat=True)
+        )
+        if intersection_ids is None:
+            intersection_ids = session_student_ids
+        else:
+            intersection_ids &= session_student_ids
+    return cleaned_session_ids, sorted(intersection_ids) if intersection_ids else []
+
+
+def _build_quick_session_intersection_print_payload(session_ids):
+    selected_session_ids, matching_student_ids = _get_quick_session_intersection_student_ids(session_ids)
+    selected_sessions = list(
+        QuickCourseSession.objects.filter(id__in=selected_session_ids, is_active=True)
+        .select_related('course', 'course__academic_year', 'room')
+        .order_by('course__name', 'start_date', 'start_time', 'title', 'id')
+    )
+    selected_sessions_map = {session.id: session for session in selected_sessions}
+    ordered_selected_sessions = [
+        selected_sessions_map[session_id]
+        for session_id in selected_session_ids
+        if session_id in selected_sessions_map
+    ]
+
+    payload = {
+        'selected_sessions': ordered_selected_sessions,
+        'selected_session_ids': [session.id for session in ordered_selected_sessions],
+        'matching_students': [],
+        'matching_students_count': 0,
+        'course_columns': [],
+        'student_rows_all': [],
+        'total_students': 0,
+        'total_courses': 0,
+        'generated_at': timezone.localtime(),
+        'print_back_url': '',
+    }
+    if not matching_student_ids:
+        return payload
+
+    enrollments = list(
+        QuickEnrollment.objects.filter(
+            student_id__in=matching_student_ids,
+            is_completed=False,
+            student__is_active=True,
+            course__is_active=True,
+        )
+        .select_related(
+            'student',
+            'student__created_by',
+            'student__student',
+            'student__academic_year',
+            'course',
+            'course__academic_year',
+            'session_assignment',
+            'session_assignment__session',
+        )
+        .order_by('student__full_name', 'course__name', 'id')
+    )
+    if not enrollments:
+        return payload
+
+    course_ids = sorted({enrollment.course_id for enrollment in enrollments})
+    courses = list(
+        QuickCourse.objects.filter(id__in=course_ids)
+        .select_related('academic_year')
+        .order_by('name', 'id')
+    )
+    course_map = {course.id: course for course in courses}
+
+    sessions = list(
+        QuickCourseSession.objects.filter(course_id__in=course_ids, is_active=True)
+        .select_related('course')
+        .order_by('course__name', 'start_date', 'start_time', 'id')
+    )
+    sessions_by_course = defaultdict(list)
+    for session in sessions:
+        sessions_by_course[session.course_id].append(session)
+
+    course_columns = []
+    for course in courses:
+        option_rows = []
+        active_sessions = sessions_by_course.get(course.id, [])
+        for period_number, session in enumerate(active_sessions, start=1):
+            session_title = (session.title or '').strip() or f"الفترة {period_number}"
+            option_rows.append({
+                'id': session.id,
+                'period_number': period_number,
+                'label': f"الفترة {period_number}",
+                'session_title': session_title,
+                'select_label': session_title,
+                'session': session,
+            })
+        course_columns.append({
+            'course': course,
+            'short_teacher_name': _extract_quick_teacher_short_name(course.name),
+            'teacher_full_name': _extract_quick_teacher_full_name(course.name),
+            'subject_name': _extract_quick_course_subject(course.name),
+            'sessions': option_rows,
+            'sessions_count': len(option_rows),
+            'single_session_id': option_rows[0]['id'] if len(option_rows) == 1 else None,
+            'has_sessions': bool(option_rows),
+        })
+
+    course_columns.sort(
+        key=lambda item: (
+            _manual_course_order_index(item),
+            -item['sessions_count'],
+            item['teacher_full_name'],
+            item['course'].name,
+            item['course'].id,
+        )
+    )
+
+    student_rows_by_id = {}
+    for enrollment in enrollments:
+        student = enrollment.student
+        student_row = student_rows_by_id.setdefault(
+            student.id,
+            {
+                'student': student,
+                'enrollments_by_course': {},
+                'enrolled_courses_count': 0,
+            },
+        )
+        if enrollment.course_id not in student_row['enrollments_by_course']:
+            student_row['enrollments_by_course'][enrollment.course_id] = enrollment
+            student_row['enrolled_courses_count'] += 1
+
+    student_order = {student_id: index for index, student_id in enumerate(matching_student_ids)}
+    student_rows_all = []
+    for student_id, student_row in student_rows_by_id.items():
+        cells = []
+        for column in course_columns:
+            course = column['course']
+            enrollment = student_row['enrollments_by_course'].get(course.id)
+            if enrollment is None:
+                cells.append({
+                    'course_id': course.id,
+                    'is_enrolled': False,
+                })
+                continue
+
+            assignment = getattr(enrollment, 'session_assignment', None)
+            current_session_id = getattr(assignment, 'session_id', None)
+            selected_session_option = next(
+                (item for item in column['sessions'] if item['id'] == current_session_id),
+                None,
+            )
+            cells.append({
+                'course_id': course.id,
+                'enrollment': enrollment,
+                'is_enrolled': True,
+                'has_sessions': column['has_sessions'],
+                'selected_session_id': current_session_id,
+                'selected_period_number': selected_session_option['period_number'] if selected_session_option else None,
+                'selected_session_title': selected_session_option['session_title'] if selected_session_option else '',
+            })
+        student_row['cells'] = cells
+        student_rows_all.append(student_row)
+
+    student_rows_all.sort(
+        key=lambda item: (
+            student_order.get(item['student'].id, 10**9),
+            item['student'].full_name,
+            item['student'].id,
+        )
+    )
+
+    payload.update({
+        'matching_students': [row['student'] for row in student_rows_all],
+        'matching_students_count': len(student_rows_all),
+        'course_columns': course_columns,
+        'student_rows_all': student_rows_all,
+        'total_students': len(student_rows_all),
+        'total_courses': len(course_columns),
+    })
+    return payload
+
+
+class QuickSessionIntersectionPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_session_intersection_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        payload = _build_quick_session_intersection_print_payload(
+            self.request.GET.getlist('session_ids')
+        )
+        context.update(payload)
         return context
 
 
@@ -6288,10 +6686,25 @@ class QuickFreeStudentsReportPrintView(LoginRequiredMixin, TemplateView):
         return context
 
 # الطلاب السريعين
-class QuickStudentListView(LoginRequiredMixin, ListView):
+class QuickStudentListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = QuickStudent
     template_name = 'quick/quick_student_list.html'
     context_object_name = 'students'
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def handle_no_permission(self):
+        return render(
+            self.request,
+            'errors/403.html',
+            {
+                'message': 'You do not have permission to access this page.',
+                'required_permission': 'superuser',
+                'permission_label': 'Superuser',
+            },
+            status=403,
+        )
     
     def get_queryset(self):
         academic_year_id = self.request.GET.get('academic_year')
@@ -6727,6 +7140,49 @@ def quick_accounting_fix_tool(request):
 
 
 @require_superuser
+def quick_discount_fix_tool(request):
+    if request.method == 'POST':
+        enrollment_id = request.POST.get('enrollment_id')
+        if not enrollment_id:
+            messages.error(request, 'لم يتم تحديد التسجيل المطلوب تصحيحه.')
+            return redirect('quick:discount_fix_tool')
+
+        enrollment = get_object_or_404(
+            QuickEnrollment.objects.select_related('student', 'course'),
+            pk=enrollment_id,
+        )
+        try:
+            result = _fix_one_quick_discount_enrollment(enrollment, request.user)
+            messages.success(
+                request,
+                f'تم تصحيح {enrollment.student.full_name} - {enrollment.course.name}: '
+                f'إعادة بناء قيد التسجيل={ "نعم" if result["fixed_registration"] else "لا" }، '
+                f'قيد الحسم={ "نعم" if result["fixed_discount"] else "لا" }، '
+                f'تنظيف قيود القبض={result["fixed_receipts"]}، '
+                f'تنظيف قيود الحسم/الاسترداد القديمة={result["cleaned_adjustments"]}.'
+            )
+        except Exception as exc:
+            messages.error(
+                request,
+                f'فشل تصحيح {enrollment.student.full_name} - {enrollment.course.name}: {exc}'
+            )
+        return redirect('quick:discount_fix_tool')
+
+    rows = _build_quick_discount_fix_rows()
+    issue_rows = [row for row in rows if row['issues']]
+    context = {
+        'rows': rows,
+        'issue_rows': issue_rows,
+        'audited_count': len(rows),
+        'issues_count': len(issue_rows),
+        'compliant_count': sum(1 for row in rows if row['is_compliant']),
+        'free_count': sum(1 for row in rows if row['is_free']),
+        'discounted_count': sum(1 for row in rows if row['expected_discount'] > 0),
+    }
+    return render(request, 'quick/quick_discount_fix_tool.html', context)
+
+
+@require_superuser
 def quick_withdrawal_fix_tool(request):
     if request.method == 'POST':
         result = _apply_quick_withdrawal_fixes(request.user)
@@ -6778,6 +7234,301 @@ def _get_quick_student_related_journal_entries(student):
         account=ar_account
     ).values_list('journal_entry_id', flat=True).distinct()
     return JournalEntry.objects.filter(id__in=entry_ids).distinct()
+
+
+def _find_quick_discount_adjustment_entries(enrollment):
+    if not enrollment:
+        return JournalEntry.objects.none()
+    return JournalEntry.objects.filter(
+        entry_type='ADJUSTMENT',
+    ).exclude(
+        Q(description__icontains='QUICK_WITHDRAW')
+        | Q(description__icontains='سحب')
+    ).filter(
+        Q(description__icontains=enrollment.student.full_name),
+        Q(description__icontains=enrollment.course.name),
+    ).filter(
+        Q(description__icontains='حسم')
+        | Q(description__icontains='استرداد مبلغ')
+        | Q(description__icontains='QUICK_DISCOUNT_FIX')
+    ).distinct()
+
+
+def _get_quick_enrollment_registration_amount(enrollment):
+    entry = _find_quick_enrollment_entry(enrollment)
+    if not entry:
+        return Decimal('0')
+    return entry.total_amount or Decimal('0')
+
+
+def _get_quick_enrollment_discount_effect(enrollment):
+    student_ar = Account.get_or_create_quick_student_ar_account(enrollment.student)
+    total = Decimal('0')
+    for entry in _find_quick_discount_adjustment_entries(enrollment):
+        for tx in entry.transactions.filter(account=student_ar, is_debit=False):
+            total += tx.amount or Decimal('0')
+    return total
+
+
+def _find_quick_discount_refund_entries(enrollment):
+    student_ar = Account.get_or_create_quick_student_ar_account(enrollment.student)
+    entries = []
+    for entry in _find_quick_discount_adjustment_entries(enrollment):
+        has_ar_debit = entry.transactions.filter(account=student_ar, is_debit=True).exists()
+        has_cash_credit = entry.transactions.filter(
+            is_debit=False,
+            account__code__startswith='121',
+        ).exists()
+        if has_ar_debit and has_cash_credit:
+            entries.append(entry)
+    return entries
+
+
+def _build_quick_discount_fix_rows():
+    rows = []
+    enrollments = list(
+        QuickEnrollment.objects.filter(
+            is_completed=False,
+        ).filter(
+            Q(discount_percent__gt=0)
+            | Q(discount_amount__gt=0)
+            | Q(net_amount__lt=F('total_amount'))
+        ).select_related('student', 'course').order_by('student__full_name', 'course__name', 'id')
+    )
+
+    for enrollment in enrollments:
+        receipts = list(
+            QuickStudentReceipt.objects.filter(
+                quick_enrollment=enrollment
+            ).select_related('journal_entry').order_by('date', 'id')
+        )
+        gross_amount = enrollment.total_amount or enrollment.course.price or Decimal('0')
+        net_amount = enrollment.net_amount or Decimal('0')
+        expected_discount = max(Decimal('0'), gross_amount - net_amount)
+        registration_entry = _find_quick_enrollment_entry(enrollment)
+        registration_amount = _get_quick_enrollment_registration_amount(enrollment)
+        discount_effect = _get_quick_enrollment_discount_effect(enrollment)
+        discount_refund_entries = _find_quick_discount_refund_entries(enrollment)
+        positive_paid_total = sum((receipt.paid_amount or Decimal('0')) for receipt in receipts)
+        zero_paid_receipts_with_journal = [
+            receipt for receipt in receipts
+            if (receipt.paid_amount or Decimal('0')) <= 0 and receipt.journal_entry_id
+        ]
+        is_free = (
+            (enrollment.discount_percent or Decimal('0')) >= Decimal('100')
+            or net_amount <= Decimal('0')
+        )
+
+        issues = []
+        suggested_actions = []
+
+        if gross_amount > 0 and registration_amount != gross_amount:
+            issues.append('قيد التسجيل لا يعكس إجمالي التسجيل المطلوب')
+            suggested_actions.append('إعادة بناء قيد التسجيل على الإجمالي')
+
+        if expected_discount > 0:
+            if discount_effect != expected_discount:
+                issues.append('قيد الحسم غير مطابق لفرق الحسم المطلوب')
+                suggested_actions.append('إعادة توليد قيد الحسم العكسي الصحيح')
+        elif discount_effect > 0:
+            issues.append('يوجد قيد حسم بينما التسجيل لا يحتاج حسم حالياً')
+            suggested_actions.append('إلغاء قيد الحسم الزائد')
+
+        if discount_refund_entries:
+            issues.append('يوجد قيد استرداد/تصحيح قديم مستخدم بدل قيد الحسم')
+            suggested_actions.append('عكس قيد الاسترداد القديم واستبداله بقيد حسم')
+
+        if is_free and positive_paid_total > 0:
+            issues.append('تسجيل مجاني ما زال يحتوي دفعات مقبوضة')
+            suggested_actions.append('تصفير الدفعات وعكس قيود القبض')
+
+        if zero_paid_receipts_with_journal:
+            issues.append('يوجد إيصال صفري ما زال مرتبطاً بقيد قبض')
+            suggested_actions.append('تنظيف قيود القبض الصفرية')
+
+        rows.append({
+            'enrollment': enrollment,
+            'registration_entry': registration_entry,
+            'gross_amount': gross_amount,
+            'net_amount': net_amount,
+            'expected_discount': expected_discount,
+            'registration_amount': registration_amount,
+            'discount_effect': discount_effect,
+            'discount_refund_entries': discount_refund_entries,
+            'receipts': receipts,
+            'receipts_count': len(receipts),
+            'positive_paid_total': positive_paid_total,
+            'zero_paid_receipts_with_journal': zero_paid_receipts_with_journal,
+            'is_free': is_free,
+            'issues': issues,
+            'suggested_actions': suggested_actions,
+            'is_compliant': not issues,
+        })
+
+    return rows
+
+
+def _create_quick_gross_enrollment_entry(enrollment, user):
+    gross_amount = enrollment.total_amount or enrollment.course.price or Decimal('0')
+    if gross_amount <= 0:
+        return None
+
+    student_ar_account = Account.get_or_create_quick_student_ar_account(enrollment.student)
+    deferred_account = Account.get_or_create_quick_course_deferred_account(enrollment.course)
+    _free_journal_reference(f'QE-{enrollment.id}')
+    entry = JournalEntry.objects.create(
+        reference=f'QE-{enrollment.id}',
+        date=enrollment.enrollment_date,
+        description=f"تسجيل سريع - {enrollment.student.full_name} في {enrollment.course.name}",
+        entry_type='enrollment',
+        total_amount=gross_amount,
+        created_by=user,
+    )
+    Transaction.objects.create(
+        journal_entry=entry,
+        account=student_ar_account,
+        amount=gross_amount,
+        is_debit=True,
+        description=f"تسجيل سريع - {enrollment.student.full_name}",
+    )
+    Transaction.objects.create(
+        journal_entry=entry,
+        account=deferred_account,
+        amount=gross_amount,
+        is_debit=False,
+        description=f"إيرادات مؤجلة - {enrollment.course.name}",
+    )
+    entry.post_entry(user)
+    return entry
+
+
+def _create_quick_discount_adjustment_entry(enrollment, user, amount):
+    amount = Decimal(amount or '0')
+    if amount <= 0:
+        return None
+
+    student_ar_account = Account.get_or_create_quick_student_ar_account(enrollment.student)
+    deferred_account = Account.get_or_create_quick_course_deferred_account(enrollment.course)
+    entry = JournalEntry.objects.create(
+        date=timezone.now().date(),
+        description=(
+            f"[QUICK_DISCOUNT_FIX #{enrollment.id}] "
+            f"قيد حسم سريع - {enrollment.student.full_name} - {enrollment.course.name}"
+        ),
+        entry_type='ADJUSTMENT',
+        total_amount=amount,
+        created_by=user,
+    )
+    Transaction.objects.create(
+        journal_entry=entry,
+        account=deferred_account,
+        amount=amount,
+        is_debit=True,
+        description=f"حسم سريع - {enrollment.course.name}",
+    )
+    Transaction.objects.create(
+        journal_entry=entry,
+        account=student_ar_account,
+        amount=amount,
+        is_debit=False,
+        description=f"حسم سريع - {enrollment.student.full_name}",
+    )
+    entry.post_entry(user)
+    return entry
+
+
+def _cleanup_quick_discount_entries(enrollment, user):
+    cleaned = []
+    for entry in _find_quick_discount_adjustment_entries(enrollment):
+        if entry.is_posted:
+            reversed_entry = entry.reverse_entry(
+                user,
+                description=(
+                    f"[QUICK_DISCOUNT_CLEANUP #{enrollment.id}] "
+                    f"إلغاء قيد حسم/استرداد قديم - {enrollment.student.full_name} - {enrollment.course.name}"
+                ),
+            )
+            cleaned.append(reversed_entry.id)
+            _make_journal_reference_available(entry, suffix='REPLACED')
+        else:
+            cleaned.append(entry.id)
+            entry.delete()
+    return cleaned
+
+
+def _fix_one_quick_discount_enrollment(enrollment, user):
+    result = {
+        'fixed_registration': False,
+        'fixed_discount': False,
+        'fixed_receipts': 0,
+        'cleaned_adjustments': 0,
+    }
+    gross_amount = enrollment.total_amount or enrollment.course.price or Decimal('0')
+    net_amount = enrollment.net_amount or Decimal('0')
+    expected_discount = max(Decimal('0'), gross_amount - net_amount)
+    is_free = (
+        (enrollment.discount_percent or Decimal('0')) >= Decimal('100')
+        or net_amount <= Decimal('0')
+    )
+
+    with transaction.atomic():
+        existing_entry = _find_quick_enrollment_entry(enrollment)
+        current_registration_amount = _get_quick_enrollment_registration_amount(enrollment)
+        if gross_amount > 0 and current_registration_amount != gross_amount:
+            if existing_entry:
+                if existing_entry.is_posted:
+                    existing_entry.reverse_entry(
+                        user,
+                        description=(
+                            f"[QUICK_DISCOUNT_FIX #{enrollment.id}] "
+                            f"إلغاء قيد تسجيل قديم لإعادة بنائه - {enrollment.student.full_name} - {enrollment.course.name}"
+                        ),
+                    )
+                    _make_journal_reference_available(existing_entry, suffix='REPLACED')
+                else:
+                    existing_entry.delete()
+            _create_quick_gross_enrollment_entry(enrollment, user)
+            result['fixed_registration'] = True
+
+        cleaned_ids = _cleanup_quick_discount_entries(enrollment, user)
+        result['cleaned_adjustments'] = len(cleaned_ids)
+
+        if expected_discount > 0:
+            _create_quick_discount_adjustment_entry(enrollment, user, expected_discount)
+            result['fixed_discount'] = True
+
+        receipts = list(
+            QuickStudentReceipt.objects.filter(
+                quick_enrollment=enrollment
+            ).select_related('journal_entry').order_by('date', 'id')
+        )
+        for receipt in receipts:
+            updates = []
+            desired_amount = net_amount
+            desired_discount_percent = enrollment.discount_percent or Decimal('0')
+            desired_discount_amount = enrollment.discount_amount or Decimal('0')
+            if receipt.amount != desired_amount:
+                receipt.amount = desired_amount
+                updates.append('amount')
+            if receipt.discount_percent != desired_discount_percent:
+                receipt.discount_percent = desired_discount_percent
+                updates.append('discount_percent')
+            if receipt.discount_amount != desired_discount_amount:
+                receipt.discount_amount = desired_discount_amount
+                updates.append('discount_amount')
+
+            if is_free and (receipt.paid_amount or Decimal('0')) != Decimal('0'):
+                receipt.paid_amount = Decimal('0')
+                updates.append('paid_amount')
+
+            if updates:
+                receipt.save(update_fields=updates)
+
+            if (receipt.paid_amount or Decimal('0')) <= 0 and receipt.journal_entry_id:
+                _rebuild_quick_receipt_entry(receipt, user)
+                result['fixed_receipts'] += 1
+
+    return result
 
 
 def _get_quick_student_delete_summary(student):
@@ -7202,7 +7953,11 @@ def update_quick_student_discount(request, student_id):
                 enrollment.discount_percent = discount_percent
                 enrollment.discount_amount = discount_amount
 
-            student.update_enrollment_discounts(request.user, enrollments=active_enrollments)
+            student.update_enrollment_discounts(
+                request.user,
+                enrollments=active_enrollments,
+                discount_reason=discount_reason,
+            )
         
         return JsonResponse({
             'success': True,
@@ -7239,6 +7994,7 @@ def quick_student_quick_receipt(request, student_id):
         discount_percent = Decimal(request.POST.get('discount_percent', '0'))
         discount_amount = Decimal(request.POST.get('discount_amount', '0'))
         receipt_date_str = request.POST.get('receipt_date')
+        discount_reason = (request.POST.get('discount_reason') or '').strip()
         is_free = str(request.POST.get('is_free', '')).strip().lower() in {'1', 'true', 'yes', 'on'}
         
         # ✅ التصحيح: إذا كان amount صغيراً (أقل من 1000) نعتبره يحتاج أصفار
@@ -7277,46 +8033,42 @@ def quick_student_quick_receipt(request, student_id):
             if course_id and str(course.id) != str(course_id):
                 return JsonResponse({'ok': False, 'error': 'الدورة المحددة لا تطابق تسجيل الطالب'}, status=400)
             
-            posted_net_amount = max(Decimal('0.00'), amount)
-            zero_value_receipt = (
-                is_free
-                or posted_net_amount <= Decimal('0.00')
-                or discount_percent >= Decimal('100')
-            )
-            if amount == 0 and not zero_value_receipt:
-                amount = enrollment.net_amount or Decimal('0.00')
-            elif zero_value_receipt:
-                amount = posted_net_amount
-
             if (
                 discount_percent != (enrollment.discount_percent or Decimal('0'))
                 or discount_amount != (enrollment.discount_amount or Decimal('0'))
             ):
                 enrollment.discount_percent = discount_percent
                 enrollment.discount_amount = discount_amount
-                enrollment.save()
-                student.update_enrollment_discounts(request.user, enrollments=[enrollment])
+                student.update_enrollment_discounts(
+                    request.user,
+                    enrollments=[enrollment],
+                    discount_reason=discount_reason,
+                )
+
+            effective_net_amount = max(Decimal('0.00'), enrollment.net_amount or Decimal('0.00'))
+            posted_net_amount = max(Decimal('0.00'), amount)
+            zero_value_receipt = (
+                is_free
+                or effective_net_amount <= Decimal('0.00')
+                or discount_percent >= Decimal('100')
+            )
+            if zero_value_receipt:
+                amount = effective_net_amount
+                paid_amount = Decimal('0.00')
+            elif posted_net_amount <= Decimal('0.00'):
+                amount = effective_net_amount
+            else:
+                amount = posted_net_amount
             
             # احسب المتبقي من نفس التسجيل فقط
             total_paid = _get_quick_enrollment_paid_total(enrollment, student)
             
-            net_amount = amount if amount > Decimal('0.00') or zero_value_receipt else (enrollment.net_amount or Decimal('0.00'))
+            net_amount = amount if amount > Decimal('0.00') or zero_value_receipt else effective_net_amount
             remaining_amount = max(Decimal('0.00'), net_amount - total_paid)
             
         elif course_id:
             course = QuickCourse.objects.get(pk=course_id)
             
-            posted_net_amount = max(Decimal('0.00'), amount)
-            zero_value_receipt = (
-                is_free
-                or posted_net_amount <= Decimal('0.00')
-                or discount_percent >= Decimal('100')
-            )
-            if amount == 0 and not zero_value_receipt:
-                amount = course.price or Decimal('0.00')
-            elif zero_value_receipt:
-                amount = posted_net_amount
-                
             # البحث عن enrollment لهذه الدورة
             enrollment = QuickEnrollment.objects.filter(
                 student=student, 
@@ -7332,13 +8084,44 @@ def quick_student_quick_receipt(request, student_id):
                 ):
                     enrollment.discount_percent = discount_percent
                     enrollment.discount_amount = discount_amount
-                    enrollment.save()
-                    student.update_enrollment_discounts(request.user, enrollments=[enrollment])
+                    student.update_enrollment_discounts(
+                        request.user,
+                        enrollments=[enrollment],
+                        discount_reason=discount_reason,
+                    )
 
-                net_amount = amount if amount > Decimal('0.00') or zero_value_receipt else (enrollment.net_amount or Decimal('0.00'))
+                effective_net_amount = max(Decimal('0.00'), enrollment.net_amount or Decimal('0.00'))
+                posted_net_amount = max(Decimal('0.00'), amount)
+                zero_value_receipt = (
+                    is_free
+                    or effective_net_amount <= Decimal('0.00')
+                    or discount_percent >= Decimal('100')
+                )
+                if zero_value_receipt:
+                    amount = effective_net_amount
+                    paid_amount = Decimal('0.00')
+                elif posted_net_amount <= Decimal('0.00'):
+                    amount = effective_net_amount
+                else:
+                    amount = posted_net_amount
+
+                net_amount = amount if amount > Decimal('0.00') or zero_value_receipt else effective_net_amount
                 remaining_amount = max(Decimal('0.00'), net_amount - total_paid)
             else:
-                remaining_amount = amount if amount > Decimal('0.00') or zero_value_receipt else (course.price or Decimal('0.00'))
+                posted_net_amount = max(Decimal('0.00'), amount)
+                zero_value_receipt = (
+                    is_free
+                    or posted_net_amount <= Decimal('0.00')
+                    or discount_percent >= Decimal('100')
+                )
+                if zero_value_receipt:
+                    amount = Decimal('0.00')
+                    paid_amount = Decimal('0.00')
+                elif posted_net_amount <= Decimal('0.00'):
+                    amount = course.price or Decimal('0.00')
+                else:
+                    amount = posted_net_amount
+                remaining_amount = amount
                 
     except (QuickEnrollment.DoesNotExist, QuickCourse.DoesNotExist) as e:
         return JsonResponse({'ok': False, 'error': 'الدورة أو التسجيل غير موجود'}, status=404)

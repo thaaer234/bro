@@ -13,6 +13,7 @@
                 </div>
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{% url 'quick:merge_students_tool' %}" class="btn btn-outline-primary">أداة دمج الطلاب المكررين</a>
+                    <a href="{% url 'quick:discount_fix_tool' %}" class="btn btn-outline-success">تصحيح المجاني والحسومات</a>
                     <a href="{% url 'quick:withdrawal_fix_tool' %}" class="btn btn-outline-warning">أداة تصحيح قيود السحب</a>
                     <form method="post">
                         {% csrf_token %}

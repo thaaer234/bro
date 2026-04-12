@@ -1,313 +1,653 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
+{% load static %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/registration.css' %}">
+<style>
+    .profile-shell {
+        --profile-bg: linear-gradient(180deg, #f5efe5 0%, #fcfaf6 42%, #ffffff 100%);
+        --profile-ink: #1f2937;
+        --profile-muted: #6b7280;
+        --profile-line: rgba(31, 41, 55, 0.1);
+        --profile-card: rgba(255, 255, 255, 0.82);
+        --profile-shadow: 0 24px 60px rgba(35, 31, 32, 0.12);
+        --profile-accent: #a3472f;
+        --profile-accent-2: #1d6b63;
+        background:
+            radial-gradient(circle at top right, rgba(163, 71, 47, 0.16), transparent 26%),
+            radial-gradient(circle at top left, rgba(29, 107, 99, 0.12), transparent 28%),
+            var(--profile-bg);
+        min-height: calc(100vh - 80px);
+        padding: 32px 0 48px;
+        color: var(--profile-ink);
+    }
+
+    .profile-shell,
+    .profile-shell * {
+        box-sizing: border-box;
+    }
+
+    .profile-shell .container {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+    }
+
+    .profile-hero-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        background:
+            linear-gradient(135deg, rgba(27, 34, 51, 0.96), rgba(27, 34, 51, 0.78)),
+            linear-gradient(135deg, #1d6b63, #a3472f);
+        color: #fff8ef;
+        box-shadow: var(--profile-shadow);
+        padding: 36px;
+    }
+
+    .profile-hero-card::before,
+    .profile-hero-card::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        pointer-events: none;
+    }
+
+    .profile-hero-card::before {
+        width: 320px;
+        height: 320px;
+        background: rgba(231, 184, 93, 0.12);
+        top: -140px;
+        left: -70px;
+    }
+
+    .profile-hero-card::after {
+        width: 260px;
+        height: 260px;
+        background: rgba(255, 255, 255, 0.08);
+        bottom: -140px;
+        right: -80px;
+    }
+
+    .profile-hero-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 160px minmax(0, 1fr) 300px;
+        gap: 28px;
+        align-items: center;
+    }
+
+    .profile-avatar-wrap {
+        display: flex;
+        justify-content: center;
+    }
+
+    .profile-avatar-frame {
+        width: 148px;
+        height: 148px;
+        border-radius: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-avatar-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .profile-avatar-fallback {
+        font-size: 56px;
+        color: #f8e7c1;
+    }
+
+    .profile-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 13px;
+        margin-bottom: 14px;
+    }
+
+    .profile-title {
+        margin: 0 0 10px;
+        font-size: clamp(28px, 5vw, 42px);
+        line-height: 1.08;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    .profile-subtitle {
+        margin: 0 0 22px;
+        color: rgba(255, 248, 239, 0.82);
+        font-size: 16px;
+        line-height: 1.8;
+        max-width: 60ch;
+    }
+
+    .profile-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .profile-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 14px;
+    }
+
+    .profile-hero-side {
+        display: grid;
+        gap: 14px;
+    }
+
+    .hero-stat {
+        border-radius: 22px;
+        padding: 18px 18px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+    }
+
+    .hero-stat-label {
+        display: block;
+        color: rgba(255, 248, 239, 0.78);
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+
+    .hero-stat-value {
+        display: block;
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    .hero-stat-note {
+        color: rgba(255, 248, 239, 0.72);
+        font-size: 13px;
+    }
+
+    .profile-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.9fr);
+        gap: 24px;
+        margin-top: 28px;
+        align-items: start;
+    }
+
+    .profile-panel {
+        background: var(--profile-card);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        border-radius: 28px;
+        box-shadow: var(--profile-shadow);
+        backdrop-filter: blur(12px);
+        overflow: hidden;
+    }
+
+    .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 26px 28px 0;
+    }
+
+    .panel-title {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .panel-title i {
+        color: var(--profile-accent);
+    }
+
+    .panel-subtitle {
+        margin: 8px 0 0;
+        color: var(--profile-muted);
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .panel-body {
+        padding: 24px 28px 28px;
+    }
+
+    .info-stack {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .info-card {
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 244, 239, 0.92));
+        border: 1px solid var(--profile-line);
+        padding: 18px 18px 16px;
+        min-height: 132px;
+    }
+
+    .info-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        color: #fff;
+        background: linear-gradient(135deg, var(--profile-accent), #d17b43);
+        box-shadow: 0 12px 25px rgba(163, 71, 47, 0.2);
+    }
+
+    .info-card:nth-child(2n) .info-icon {
+        background: linear-gradient(135deg, var(--profile-accent-2), #2e9085);
+        box-shadow: 0 12px 25px rgba(29, 107, 99, 0.18);
+    }
+
+    .info-label {
+        display: block;
+        color: var(--profile-muted);
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+
+    .info-value {
+        display: block;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.7;
+        color: var(--profile-ink);
+        word-break: break-word;
+    }
+
+    .action-list {
+        display: grid;
+        gap: 14px;
+    }
+
+    .action-link {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        text-decoration: none;
+        color: inherit;
+        padding: 16px;
+        border-radius: 22px;
+        border: 1px solid var(--profile-line);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 244, 238, 0.94));
+        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+
+    .action-link:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 30px rgba(31, 41, 55, 0.1);
+        border-color: rgba(163, 71, 47, 0.26);
+        color: inherit;
+    }
+
+    .action-badge {
+        width: 52px;
+        height: 52px;
+        border-radius: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        background: linear-gradient(135deg, #1d6b63, #2f9085);
+    }
+
+    .action-link:nth-child(2) .action-badge {
+        background: linear-gradient(135deg, #a3472f, #d17b43);
+    }
+
+    .action-heading {
+        margin: 0 0 5px;
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .action-copy {
+        margin: 0;
+        color: var(--profile-muted);
+        font-size: 13px;
+        line-height: 1.7;
+    }
+
+    .action-link i.fa-chevron-left {
+        color: var(--profile-muted);
+    }
+
+    .mini-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+    }
+
+    .mini-card {
+        border-radius: 22px;
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246, 241, 234, 0.94));
+        border: 1px solid var(--profile-line);
+    }
+
+    .mini-card strong {
+        display: block;
+        font-size: 20px;
+        margin-top: 8px;
+    }
+
+    .mini-card span {
+        color: var(--profile-muted);
+        font-size: 13px;
+    }
+
+    .profile-cta {
+        margin-top: 18px;
+        border-radius: 24px;
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(231, 184, 93, 0.18), rgba(163, 71, 47, 0.12));
+        border: 1px solid rgba(163, 71, 47, 0.14);
+    }
+
+    .profile-cta h3 {
+        margin: 0 0 10px;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .profile-cta p {
+        margin: 0 0 16px;
+        color: var(--profile-muted);
+        line-height: 1.8;
+        font-size: 14px;
+    }
+
+    .profile-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .profile-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 13px 18px;
+        border-radius: 16px;
+        text-decoration: none;
+        font-weight: 700;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .profile-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .profile-btn-primary {
+        color: #fff;
+        background: linear-gradient(135deg, var(--profile-accent), #d17b43);
+        box-shadow: 0 14px 24px rgba(163, 71, 47, 0.22);
+    }
+
+    .profile-btn-secondary {
+        color: var(--profile-ink);
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid var(--profile-line);
+    }
+
+    @media (max-width: 1100px) {
+        .profile-hero-grid {
+            grid-template-columns: 140px minmax(0, 1fr);
+        }
+
+        .profile-hero-side {
+            grid-column: 1 / -1;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .profile-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .profile-shell {
+            padding-top: 18px;
+        }
+
+        .profile-shell .container {
+            width: min(100% - 20px, 100%);
+        }
+
+        .profile-hero-card,
+        .panel-body,
+        .panel-head {
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+
+        .profile-hero-grid {
+            grid-template-columns: 1fr;
+            text-align: center;
+        }
+
+        .profile-pills,
+        .profile-buttons {
+            justify-content: center;
+        }
+
+        .info-stack,
+        .mini-grid,
+        .profile-hero-side {
+            grid-template-columns: 1fr;
+        }
+
+        .action-link {
+            grid-template-columns: 52px minmax(0, 1fr);
+        }
+
+        .action-link i.fa-chevron-left {
+            display: none;
+        }
+    }
+</style>
 {% endblock %}
 
-
 {% block content %}
-<div class="modern-profile">
-    <!-- Hero Section -->
-    <div class="profile-hero">
-        <div class="hero-background">
-            <div class="hero-overlay"></div>
-        </div>
-        <div class="container">
-            <div class="hero-content">
-                <div class="profile-avatar-section">
-                    <div class="avatar-container">
+<section class="profile-shell" dir="rtl">
+    <div class="container">
+        <div class="profile-hero-card">
+            <div class="profile-hero-grid">
+                <div class="profile-avatar-wrap">
+                    <div class="profile-avatar-frame">
                         {% if profile.profile_picture %}
-                            <img src="{{ profile.profile_picture.url }}" alt="صورة البروفايل" class="profile-avatar">
+                            <img src="{{ profile.profile_picture.url }}" alt="صورة الملف الشخصي">
                         {% else %}
-                            <div class="avatar-placeholder">
+                            <div class="profile-avatar-fallback">
                                 <i class="fas fa-user"></i>
                             </div>
                         {% endif %}
-                        <div class="avatar-badge">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    </div>
-                    <div class="avatar-actions">
-                        <button class="btn-avatar-action" onclick="location.href='{% url 'registration:profile_edit' %}'">
-                            <i class="fas fa-camera"></i>
-                        </button>
                     </div>
                 </div>
 
-                <div class="profile-intro">
-                    <h1 class="profile-name">{{ user.get_full_name|default:user.username }}</h1>
-                    <p class="profile-bio">{{ user.email }}</p>
-                    
-                    <div class="profile-meta">
-                        <div class="meta-item">
-                            <i class="fas fa-calendar"></i>
-                            <span>منذ {{ user.date_joined|date:"Y" }}</span>
-                        </div>
-                        <div class="meta-item">
-                            <i class="fas fa-star"></i>
-                            <span>عضو نشط</span>
-                        </div>
+                <div>
+                    <span class="profile-eyebrow">
+                        <i class="fas fa-id-badge"></i>
+                        لوحة الملف الشخصي
+                    </span>
+                    <h1 class="profile-title">{{ user.get_full_name|default:user.username }}</h1>
+                    <p class="profile-subtitle">
+                        مساحة مرتبة تعرض بياناتك الأساسية بسرعة، مع اختصارات واضحة لتعديل الملف الشخصي وإدارة الوصول والأمان.
+                    </p>
+
+                    <div class="profile-pills">
+                        <span class="profile-pill">
+                            <i class="fas fa-at"></i>
+                            {{ user.username }}
+                        </span>
+                        <span class="profile-pill">
+                            <i class="fas fa-envelope"></i>
+                            {{ user.email|default:"لا يوجد بريد إلكتروني" }}
+                        </span>
+                        <span class="profile-pill">
+                            <i class="fas fa-calendar-alt"></i>
+                            منذ {{ user.date_joined|date:"Y" }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="profile-hero-side">
+                    <div class="hero-stat">
+                        <span class="hero-stat-label">مدة العضوية</span>
+                        <span class="hero-stat-value">{{ user.date_joined|timesince }}</span>
+                        <span class="hero-stat-note">منذ أول تسجيل في المنصة</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="hero-stat-label">الحالة</span>
+                        <span class="hero-stat-value">نشط</span>
+                        <span class="hero-stat-note">الملف متاح للتحديث في أي وقت</span>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Main Content -->
-    <div class="container">
-        <div class="profile-layout">
-            <!-- Sidebar -->
-            <div class="profile-sidebar">
-                <!-- Quick Actions -->
-                <div class="sidebar-widget">
-                    <h3 class="widget-title">
-                        <i class="fas fa-bolt"></i>
-                        الإجراءات السريعة
-                    </h3>
-                    <div class="quick-actions">
-                        <a href="{% url 'registration:profile_edit' %}" class="action-card edit">
-                            <div class="action-icon">
-                                <i class="fas fa-edit"></i>
-                            </div>
-                            <div class="action-content">
-                                <h4>تعديل الملف الشخصي</h4>
-                                <p>تحديث معلوماتك الشخصية</p>
-                            </div>
-                            <i class="fas fa-chevron-left action-arrow"></i>
-                        </a>
-
-                        <a href="{% url 'registration:password_reset_request' %}" class="action-card security">
-                            <div class="action-icon">
-                                <i class="fas fa-key"></i>
-                            </div>
-                            <div class="action-content">
-                                <h4>طلب تعديل كلمة المرور</h4>
-                                <p>إعادة تعيين كلمة المرور</p>
-                            </div>
-                            <i class="fas fa-chevron-left action-arrow"></i>
-                        </a>
-
-                        <a href="{% url 'registration:password_reset_confirm' %}" class="action-card password">
-                            <div class="action-icon">
-                                <i class="fas fa-lock"></i>
-                            </div>
-                            <div class="action-content">
-                                <h4>تعديل كلمة المرور</h4>
-                                <p>تغيير كلمة المرور الحالية</p>
-                            </div>
-                            <i class="fas fa-chevron-left action-arrow"></i>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Stats Widget -->
-                <div class="sidebar-widget">
-                    <h3 class="widget-title">
-                        <i class="fas fa-chart-bar"></i>
-                        الإحصائيات
-                    </h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value">{{ user.date_joined|timesince }}</span>
-                                <span class="stat-label">في المنصة</span>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fas fa-badge-check"></i>
-                                    <i class="status-icon fas fa-bolt"></i>
-                            </div>
-                            <div class="stat-info">
-                            
-                                <span class="stat-value">نشط</span>
-                                 {% comment %} <span class="stat-value">نشط</span> {% endcomment %}
-                               
-                                <span class="stat-label">الحالة</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Debug Info -->
-          <!--      <div class="sidebar-widget debug-widget">
-                    <h3 class="widget-title">
-                        <i class="fas fa-code"></i>
-                        معلومات التصحيح
-                    </h3>
-                    <div class="debug-list">
-                        <div class="debug-item">
-                            <span class="debug-label">يوجد بروفايل:</span>
-                            <span class="debug-value {{ profile|yesno:'success,error' }}">
-                                {{ profile|yesno:"✓,✗" }}
-                            </span>
-                        </div>
-                        <div class="debug-item">
-                            <span class="debug-label">يوجد صورة:</span>
-                            <span class="debug-value {{ profile.profile_picture|yesno:'success,error' }}">
-                                {{ profile.profile_picture|yesno:"✓,✗" }}
-                            </span>
-                        </div>
-                        {% if profile.profile_picture %}
-                        <div class="debug-item">
-                            <span class="debug-label">مسار الصورة:</span>
-                            <span class="debug-value path">{{ profile.profile_picture.url }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            -->
-            </div>
-
-            <!-- Main Content Area -->
-            <div class="profile-main">
-                <!-- Personal Information Card -->
-                <div class="main-card">
-                    <div class="card-header">
-                        <h2>
-                            <i class="fas fa-user-circle"></i>
-                            المعلومات الشخصية
+        <div class="profile-grid">
+            <div class="profile-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2 class="panel-title">
+                            <i class="fas fa-address-card"></i>
+                            بيانات الحساب
                         </h2>
-                        <div class="header-actions">
-                            <button class="btn-icon" onclick="location.href='{% url 'registration:profile_edit' %}'">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        </div>
+                        <p class="panel-subtitle">عرض منظم للبيانات الشخصية ومعلومات التواصل والحساب.</p>
                     </div>
-                    
-                    <div class="card-body">
-                        <div class="info-sections">
-                            <!-- Basic Info -->
-                            <div class="info-section">
-                                <h3 class="section-title">
-                                    <i class="fas fa-id-card"></i>
-                                    المعلومات الأساسية
-                                </h3>
-                                <div class="info-grid">
-                                    <div class="info-field">
-                                        <div class="field-icon">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div class="field-content">
-                                            <label>اسم المستخدم</label>
-                                            <span class="field-value">{{ user.username }}</span>
-                                        </div>
-                                    </div>
+                </div>
 
-                                    <div class="info-field">
-                                        <div class="field-icon">
-                                            <i class="fas fa-id-card"></i>
-                                        </div>
-                                        <div class="field-content">
-                                            <label>الاسم الكامل</label>
-                                            <span class="field-value">{{ user.get_full_name|default:"غير محدد" }}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-field">
-                                        <div class="field-icon">
-                                            <i class="fas fa-envelope"></i>
-                                        </div>
-                                        <div class="field-content">
-                                            <label>البريد الإلكتروني</label>
-                                            <span class="field-value">{{ user.email|default:"غير محدد" }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="panel-body">
+                    <div class="info-stack">
+                        <article class="info-card">
+                            <div class="info-icon"><i class="fas fa-user"></i></div>
+                            <span class="info-label">اسم المستخدم</span>
+                            <span class="info-value">{{ user.username }}</span>
+                        </article>
 
-                            <!-- Contact Info -->
-                            <div class="info-section">
-                                <h3 class="section-title">
-                                    <i class="fas fa-address-book"></i>
-                                    معلومات الاتصال
-                                </h3>
-                                <div class="info-grid">
-                                    <div class="info-field">
-                                        <div class="field-icon">
-                                            <i class="fas fa-phone"></i>
-                                        </div>
-                                        <div class="field-content">
-                                            <label>رقم الهاتف</label>
-                                            <span class="field-value">{{ profile.phone|default:"غير محدد" }}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-field">
-                                        <div class="field-icon">
-                                            <i class="fas fa-map-marker-alt"></i>
-                                        </div>
-                                        <div class="field-content">
-                                            <label>العنوان</label>
-                                            <span class="field-value">{{ profile.address|default:"غير محدد" }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <article class="info-card">
+                            <div class="info-icon"><i class="fas fa-id-card"></i></div>
+                            <span class="info-label">الاسم الكامل</span>
+                            <span class="info-value">{{ user.get_full_name|default:"غير محدد" }}</span>
+                        </article>
 
-                            <!-- Account Info -->
-                            <div class="info-section">
-                                <h3 class="section-title">
-                                    <i class="fas fa-user-shield"></i>
-                                    معلومات الحساب
-                                </h3>
-                                <div class="info-grid">
-                                    <div class="info-field">
-                                        <div class="field-icon">
-                                            <i class="fas fa-calendar-alt"></i>
-                                        </div>
-                                        <div class="field-content">
-                                            <label>تاريخ الانضمام</label>
-                                            <span class="field-value">{{ user.date_joined|date:"Y/m/d" }}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-field">
-                                        <div class="field-icon">
-                                            <i class="fas fa-clock"></i>
-                                        </div>
-                                        <div class="field-content">
-                                            <label>آخر نشاط</label>
-                                            <span class="field-value">الآن</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <article class="info-card">
+                            <div class="info-icon"><i class="fas fa-envelope"></i></div>
+                            <span class="info-label">البريد الإلكتروني</span>
+                            <span class="info-value">{{ user.email|default:"غير محدد" }}</span>
+                        </article>
+
+                        <article class="info-card">
+                            <div class="info-icon"><i class="fas fa-phone"></i></div>
+                            <span class="info-label">رقم الهاتف</span>
+                            <span class="info-value">{{ profile.phone|default:"غير محدد" }}</span>
+                        </article>
+
+                        <article class="info-card">
+                            <div class="info-icon"><i class="fas fa-map-marker-alt"></i></div>
+                            <span class="info-label">العنوان</span>
+                            <span class="info-value">{{ profile.address|default:"غير محدد" }}</span>
+                        </article>
+
+                        <article class="info-card">
+                            <div class="info-icon"><i class="fas fa-calendar-check"></i></div>
+                            <span class="info-label">تاريخ الانضمام</span>
+                            <span class="info-value">{{ user.date_joined|date:"Y/m/d" }}</span>
+                        </article>
                     </div>
                 </div>
             </div>
+
+            <aside class="profile-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2 class="panel-title">
+                            <i class="fas fa-bolt"></i>
+                            إجراءات سريعة
+                        </h2>
+                        <p class="panel-subtitle">أهم العمليات التي قد تحتاجها من هذه الصفحة مباشرة.</p>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <div class="action-list">
+                        <a href="{% url 'registration:profile_edit' %}" class="action-link">
+                            <span class="action-badge"><i class="fas fa-pen"></i></span>
+                            <div>
+                                <h3 class="action-heading">تعديل الملف الشخصي</h3>
+                                <p class="action-copy">حدّث الصورة والاسم ومعلومات التواصل من شاشة مخصصة أوضح وأسهل.</p>
+                            </div>
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+
+                        <a href="{% url 'registration:password_reset_request' %}" class="action-link">
+                            <span class="action-badge"><i class="fas fa-key"></i></span>
+                            <div>
+                                <h3 class="action-heading">إدارة كلمة المرور</h3>
+                                <p class="action-copy">أرسل طلب إعادة تعيين كلمة المرور أو ابدأ إجراء الأمان عند الحاجة.</p>
+                            </div>
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </div>
+
+                    <div class="mini-grid">
+                        <div class="mini-card">
+                            <span>الصورة الشخصية</span>
+                            <strong>{% if profile.profile_picture %}مضافة{% else %}غير مضافة{% endif %}</strong>
+                        </div>
+                        <div class="mini-card">
+                            <span>اكتمال التواصل</span>
+                            <strong>{% if profile.phone or profile.address %}جيد{% else %}بحاجة تحديث{% endif %}</strong>
+                        </div>
+                    </div>
+
+                    <div class="profile-cta">
+                        <h3>لمسة أخيرة على ملفك</h3>
+                        <p>إذا كانت بياناتك ناقصة أو قديمة، ابدأ بتحديث الملف الشخصي ثم راجع معلومات التواصل حتى تظهر صفحتك بشكل مرتب وكامل.</p>
+                        <div class="profile-buttons">
+                            <a href="{% url 'registration:profile_edit' %}" class="profile-btn profile-btn-primary">
+                                <i class="fas fa-user-edit"></i>
+                                تعديل البيانات
+                            </a>
+                            <a href="{% url 'registration:password_reset_request' %}" class="profile-btn profile-btn-secondary">
+                                <i class="fas fa-key"></i>
+                                الأمان وكلمة المرور
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </aside>
         </div>
     </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Add smooth animations
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, observerOptions);
-
-    // Observe all cards and widgets
-    document.querySelectorAll('.sidebar-widget, .main-card, .info-field').forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(el);
-    });
-});
-</script>
+</section>
 {% endblock %}

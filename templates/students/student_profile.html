@@ -858,7 +858,7 @@
           {% for item in active_enrollments %}
             {% if item.enrollment.is_completed == False %}
               <option value="{{ item.enrollment.course.id }}" 
-                      data-price="{{ item.enrollment.course.price|unlocalize }}" 
+                      data-price="{{ item.net_amount|unlocalize }}" 
                       data-remaining="{{ item.balance_due }}"
                       data-enrollment-id="{{ item.enrollment.id }}"
                       data-course-name="{{ item.enrollment.course.name }}">
@@ -879,7 +879,11 @@
         <label for="qr-date">تاريخ الإيصال</label>
         <input id="qr-date" type="date" class="form-control" value="{% now 'Y-m-d' %}">
       </div>
-      
+      <div class="form-group">
+        <label for="qr-amount">Course Amount After Discount</label>
+        <input id="qr-amount" type="text" class="form-control" value="0" readonly>
+      </div>
+
       <div class="form-row">
         <div class="form-group">
           <label for="qr-disc-pct">نسبة الخصم %</label>
@@ -1449,6 +1453,7 @@ function initQuickReceipt() {
 // ✅ تهيئة الحسابات التلقائية للإيصال المحسنة
 function initReceiptCalculations() {
     const courseSelect = document.getElementById('qr-course');
+    const amountInput = document.getElementById('qr-amount');
     const discPctInput = document.getElementById('qr-disc-pct');
     const discAmtInput = document.getElementById('qr-disc-amt');
     const paidInput = document.getElementById('qr-paid');
@@ -1469,6 +1474,10 @@ function initReceiptCalculations() {
             const remaining = parseFloat(selectedOption.getAttribute('data-remaining')) || 0;
             
             console.log('سعر الدورة:', price, 'المتبقي:', remaining);
+
+            if (amountInput) {
+                amountInput.value = formatNumber(price);
+            }
             
             if (paidInput) {
                 paidInput.value = '0';
@@ -1486,6 +1495,8 @@ function initReceiptCalculations() {
                 paidInput.removeAttribute('data-max');
                 paidInput.removeAttribute('title');
             }
+        } else if (amountInput) {
+            amountInput.value = '0';
         }
     });
     
@@ -1523,7 +1534,8 @@ function initReceiptCalculations() {
 
 // حساب المبلغ الصافي
 function calculateNetAmount() {
-    if (isFreeReceipt()) {
+    const freeToggle = document.getElementById('qr-free-toggle');
+    if (freeToggle && freeToggle.checked) {
         return 0;
     }
 
@@ -1548,7 +1560,16 @@ function isFreeReceipt() {
         return true;
     }
 
-    return calculateNetAmount() <= 0;
+    const courseSelect = document.getElementById('qr-course');
+    const selectedOption = courseSelect?.options[courseSelect.selectedIndex];
+    const price = selectedOption ? parseFloat(selectedOption.getAttribute('data-price')) || 0 : 0;
+    const discPctInput = document.getElementById('qr-disc-pct');
+    const discAmtInput = document.getElementById('qr-disc-amt');
+    const discPct = parseFloat(discPctInput?.value) || 0;
+    const discAmt = parseFormattedNumber(discAmtInput?.value) || 0;
+    const netAmount = Math.max(0, price - (price * (discPct / 100)) - discAmt);
+
+    return price > 0 && netAmount <= 0;
 }
 
 function applyFreeToggleState() {

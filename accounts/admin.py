@@ -17,7 +17,7 @@ from django.utils.translation import gettext_lazy as _
 # ==============================
 # LIBRARIES & IMPORTS
 # ==============================
-from rangefilter.filter import DateRangeFilter
+from rangefilter.filters import DateRangeFilter
 from import_export.admin import ImportExportModelAdmin, ExportActionMixin
 from import_export import resources, fields
 from import_export.widgets import ForeignKeyWidget, DecimalWidget

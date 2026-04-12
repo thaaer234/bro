@@ -13,7 +13,7 @@
             <div>
                 <h2>الطلاب المشتركين</h2>
                 <p>
-                    اختر دورة واحدة ليظهر جميع طلابها، ثم أضف دورات أخرى ليعرض النظام فقط الطلاب المشتركين بين كل الدورات المحددة.
+                    اختر التقاطع على مستوى الدورات أو الكلاسات. عند تحديد 3 كلاسات مثلاً سيعرض النظام فقط الطلاب المشتركين بين هذه الكلاسات الثلاثة.
                 </p>
             </div>
             <div class="intersection-actions">
@@ -33,18 +33,52 @@
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h5 class="mb-1">بناء التقاطع</h5>
-                <div class="intersection-hint">كل إضافة جديدة تضيق النتائج إلى الطلاب الموجودين في جميع الدورات المختارة.</div>
+                <div class="intersection-hint">كل إضافة جديدة تضيق النتائج إلى الطلاب الموجودين في جميع العناصر المختارة ضمن نفس النوع.</div>
             </div>
             {% if has_selection %}
-            <a href="{% url 'quick:student_intersections' %}" class="btn btn-outline-secondary intersection-btn">
-                <i class="fas fa-rotate-left me-1"></i>
-                تصفير الاختيار
-            </a>
+            <div class="d-flex gap-2 flex-wrap">
+                {% if scope == 'session' and session_intersection_print_url %}
+                <a href="{{ session_intersection_print_url }}" target="_blank" class="btn btn-outline-primary intersection-btn">
+                    <i class="fas fa-print me-1"></i>
+                    طباعة جدول المتقاطعين
+                </a>
+                {% endif %}
+                <a href="{% url 'quick:student_intersections' %}" class="btn btn-outline-secondary intersection-btn">
+                    <i class="fas fa-rotate-left me-1"></i>
+                    تصفير الاختيار
+                </a>
+            </div>
             {% endif %}
         </div>
         <div class="card-body">
+            <form method="get" class="mb-3">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="scope" class="form-label fw-bold">نوع المقارنة</label>
+                        <select id="scope" name="scope" class="form-select" onchange="this.form.submit()">
+                            <option value="course" {% if scope == 'course' %}selected{% endif %}>تقاطع الدورات</option>
+                            <option value="session" {% if scope == 'session' %}selected{% endif %}>تقاطع الكلاسات</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
             <form method="get" class="intersection-form-grid">
+                <input type="hidden" name="scope" value="{{ scope }}">
                 <div>
+                    {% if scope == 'session' %}
+                    <label for="add-session" class="form-label fw-bold">إضافة كلاس إلى المقارنة</label>
+                    <select id="add-session" name="add_session" class="form-select" {% if not available_sessions %}disabled{% endif %}>
+                        <option value="">اختر كلاس لإضافته</option>
+                        {% for session in available_sessions %}
+                        <option value="{{ session.id }}">
+                            {{ session.course.name }} | {{ session.title }} | {{ session.active_students_count }} طالب
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if not available_sessions %}
+                    <div class="intersection-hint mt-2">تمت إضافة جميع الكلاسات المتاحة أو لا توجد كلاسات نشطة حالياً.</div>
+                    {% endif %}
+                    {% else %}
                     <label for="add-course" class="form-label fw-bold">إضافة دورة إلى المقارنة</label>
                     <select id="add-course" name="add_course" class="form-select" {% if not available_courses %}disabled{% endif %}>
                         <option value="">اختر دورة لإضافتها</option>
@@ -57,14 +91,18 @@
                     {% if not available_courses %}
                     <div class="intersection-hint mt-2">تمت إضافة جميع الدورات المتاحة أو لا توجد دورات نشطة حالياً.</div>
                     {% endif %}
+                    {% endif %}
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     {% for course_id in selected_course_ids %}
                     <input type="hidden" name="course_ids" value="{{ course_id }}">
                     {% endfor %}
-                    <button type="submit" class="btn btn-primary intersection-btn" {% if not available_courses %}disabled{% endif %}>
+                    {% for session_id in selected_session_ids %}
+                    <input type="hidden" name="session_ids" value="{{ session_id }}">
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary intersection-btn" {% if scope == 'session' and not available_sessions %}disabled{% elif scope == 'course' and not available_courses %}disabled{% endif %}>
                         <i class="fas fa-plus me-1"></i>
-                        إضافة وعرض النتائج
+                        {% if scope == 'session' %}إضافة كلاس وعرض النتائج{% else %}إضافة وعرض النتائج{% endif %}
                     </button>
                 </div>
             </form>
@@ -73,23 +111,23 @@
 
     <div class="card intersection-card intersection-panel mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>الدورات المحددة</h5>
+            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>{% if scope == 'session' %}الكلاسات المحددة{% else %}الدورات المحددة{% endif %}</h5>
         </div>
         <div class="card-body">
-            {% if selected_courses %}
+            {% if selected_entries %}
             <div class="intersection-chip-list">
-                {% for item in selected_courses %}
+                {% for item in selected_entries %}
                 <div class="intersection-chip">
                     <div class="title">
-                        <span>{{ item.course.name }}</span>
+                        <span>{{ item.title }}</span>
                         <a href="{{ item.remove_url }}" class="intersection-remove" title="إزالة الدورة">
                             <i class="fas fa-times"></i>
                         </a>
                     </div>
-                    {% if item.course.name_ar %}
-                    <div class="meta">{{ item.course.name_ar }}</div>
+                    {% if item.subtitle %}
+                    <div class="meta">{{ item.subtitle }}</div>
                     {% endif %}
-                    <div class="meta">السنة: {{ item.course.academic_year.name }} | الطلاب النشطون: {{ item.course.active_students_count }}</div>
+                    <div class="meta">{{ item.meta }}</div>
                 </div>
                 {% endfor %}
             </div>
@@ -106,8 +144,8 @@
     <div class="intersection-stats mb-4">
         <div class="card intersection-stat primary">
             <div class="card-body">
-                <div class="label">الدورات المحددة</div>
-                <div class="value">{{ selected_courses_count }}</div>
+                <div class="label">{% if scope == 'session' %}الكلاسات المحددة{% else %}الدورات المحددة{% endif %}</div>
+                <div class="value">{{ selected_items_count }}</div>
             </div>
         </div>
         <div class="card intersection-stat accent">
@@ -120,30 +158,40 @@
         </div>
         <div class="card intersection-stat success">
             <div class="card-body">
-                <div class="label">إجمالي الدورات النشطة</div>
-                <div class="value">{{ total_available_courses }}</div>
+                <div class="label">{% if scope == 'session' %}إجمالي الكلاسات النشطة{% else %}إجمالي الدورات النشطة{% endif %}</div>
+                <div class="value">{% if scope == 'session' %}{{ total_available_sessions }}{% else %}{{ total_available_courses }}{% endif %}</div>
             </div>
         </div>
     </div>
 
     <div class="intersection-table-wrap">
         <div class="card-header bg-transparent border-0 pt-4 px-4">
-            <h5 class="mb-1">
-                {% if not has_selection %}
-                نتائج التقاطع
-                {% elif intersection_mode == 'single' %}
-                جميع طلاب الدورة المحددة
-                {% else %}
-                الطلاب المشتركون بين الدورات المحددة
-                {% endif %}
-            </h5>
-            <div class="intersection-hint">
-                {% if not has_selection %}
-                لا توجد نتائج بعد لأنك لم تختر أي دورة.
-                {% elif intersection_mode == 'single' %}
-                هذه القائمة تمثل كل الطلاب النشطين المسجلين في الدورة المختارة.
-                {% else %}
-                هذه القائمة تعرض فقط الطلاب الموجودين في جميع الدورات التي أضفتها.
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                    <h5 class="mb-1">
+                        {% if not has_selection %}
+                        نتائج التقاطع
+                        {% elif intersection_mode == 'single' %}
+                        {% if scope == 'session' %}جميع طلاب الكلاس المحدد{% else %}جميع طلاب الدورة المحددة{% endif %}
+                        {% else %}
+                        {% if scope == 'session' %}الطلاب المشتركون بين الكلاسات المحددة{% else %}الطلاب المشتركون بين الدورات المحددة{% endif %}
+                        {% endif %}
+                    </h5>
+                    <div class="intersection-hint">
+                        {% if not has_selection %}
+                        لا توجد نتائج بعد لأنك لم تختر أي عنصر.
+                        {% elif intersection_mode == 'single' %}
+                        {% if scope == 'session' %}هذه القائمة تمثل كل الطلاب النشطين المنزلين في الكلاس المختار.{% else %}هذه القائمة تمثل كل الطلاب النشطين المسجلين في الدورة المختارة.{% endif %}
+                        {% else %}
+                        {% if scope == 'session' %}هذه القائمة تعرض فقط الطلاب الموجودين في جميع الكلاسات التي أضفتها.{% else %}هذه القائمة تعرض فقط الطلاب الموجودين في جميع الدورات التي أضفتها.{% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% if scope == 'session' and session_intersection_print_url %}
+                <a href="{{ session_intersection_print_url }}" target="_blank" class="btn btn-primary intersection-btn">
+                    <i class="fas fa-print me-1"></i>
+                    فتح جدول الطباعة
+                </a>
                 {% endif %}
             </div>
         </div>
@@ -156,7 +204,7 @@
                         <th>الطالب</th>
                         <th>الهاتف</th>
                         <th>السنة الدراسية</th>
-                        <th class="text-center">الدورات المطابقة</th>
+                        <th class="text-center">{% if scope == 'session' %}الكلاسات المطابقة{% else %}الدورات المطابقة{% endif %}</th>
                         <th class="text-center">كل الدورات النشطة</th>
                         <th class="text-end">الرصيد</th>
                         <th class="text-center">الإجراءات</th>
@@ -180,7 +228,7 @@
                         </td>
                         <td>{{ student.phone|default:"-" }}</td>
                         <td>{{ student.academic_year.name|default:"-" }}</td>
-                        <td class="text-center"><span class="pill accent">{{ student.matched_courses_count }}</span></td>
+                        <td class="text-center"><span class="pill accent">{% if scope == 'session' %}{{ student.matched_sessions_count }}{% else %}{{ student.matched_courses_count }}{% endif %}</span></td>
                         <td class="text-center"><span class="pill primary">{{ student.total_active_courses }}</span></td>
                         <td class="text-end">
                             <span class="pill {% if student.balance > 0 %}accent{% else %}success{% endif %}">
@@ -207,10 +255,10 @@
             <i class="fas fa-users-slash d-block"></i>
             {% if not has_selection %}
             <h4 class="mb-2">لا توجد نتائج حالياً</h4>
-            <p class="mb-0">اختر دورة واحدة على الأقل لتبدأ بعرض الطلاب.</p>
+            <p class="mb-0">اختر {% if scope == 'session' %}كلاساً{% else %}دورة{% endif %} واحدة على الأقل لتبدأ بعرض الطلاب.</p>
             {% else %}
             <h4 class="mb-2">لا يوجد طلاب مطابقون</h4>
-            <p class="mb-0">جرّب إزالة إحدى الدورات أو اختيار دورات أخرى للحصول على تقاطع فعلي بين الطلاب.</p>
+            <p class="mb-0">جرّب إزالة إحدى {% if scope == 'session' %}الكلاسات{% else %}الدورات{% endif %} أو اختيار عناصر أخرى للحصول على تقاطع فعلي بين الطلاب.</p>
             {% endif %}
         </div>
         {% endif %}

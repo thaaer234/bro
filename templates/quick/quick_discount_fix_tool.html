@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4" dir="rtl">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h2 class="mb-2">أداة تصحيح المجاني والحسومات السريعة</h2>
+                    <p class="text-muted mb-0">
+                        تعرض فقط تسجيلات الطلاب السريعين التي فيها حسم أو مجانية، وتكشف الحالات المخالفة للخطة المحاسبية.
+                        التصحيح هنا يتم واحداً بواحد، ويمس القيود والإيصالات فقط دون تعديل تنزيل الطالب أو الفرز اليدوي.
+                    </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'quick:accounting_fix_tool' %}" class="btn btn-outline-primary">أداة القيود العامة</a>
+                    <a href="{% url 'quick:withdrawal_fix_tool' %}" class="btn btn-outline-warning">أداة السحب</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small mb-2">إجمالي المفحوص</div><div class="fs-3 fw-bold">{{ audited_count }}</div></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small mb-2">الحالات المخالفة</div><div class="fs-3 fw-bold text-danger">{{ issues_count }}</div></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small mb-2">الحالات المجانية</div><div class="fs-3 fw-bold text-primary">{{ free_count }}</div></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small mb-2">حالات الحسم</div><div class="fs-3 fw-bold text-success">{{ discounted_count }}</div></div></div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if issue_rows %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>الطالب</th>
+                            <th>الدورة</th>
+                            <th>نوع الحالة</th>
+                            <th>الإجمالي</th>
+                            <th>الصافي الحالي</th>
+                            <th>قيد التسجيل الحالي</th>
+                            <th>فرق الحسم المطلوب</th>
+                            <th>أثر الحسم الحالي</th>
+                            <th>المقبوض الحالي</th>
+                            <th>المشكلات</th>
+                            <th>الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in issue_rows %}
+                        <tr class="table-warning">
+                            <td>{{ row.enrollment.student.full_name }}</td>
+                            <td>{{ row.enrollment.course.name }}</td>
+                            <td>
+                                {% if row.is_free %}
+                                <span class="badge bg-primary">مجاني</span>
+                                {% else %}
+                                <span class="badge bg-success">حسم</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ row.gross_amount|floatformat:2 }}</td>
+                            <td>{{ row.net_amount|floatformat:2 }}</td>
+                            <td>{{ row.registration_amount|floatformat:2 }}</td>
+                            <td>{{ row.expected_discount|floatformat:2 }}</td>
+                            <td>{{ row.discount_effect|floatformat:2 }}</td>
+                            <td>{{ row.positive_paid_total|floatformat:2 }}</td>
+                            <td>
+                                {% for issue in row.issues %}
+                                <div>{{ issue }}</div>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <form method="post" class="d-grid gap-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="enrollment_id" value="{{ row.enrollment.id }}">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('سيتم عكس/تنظيف القيود القديمة الخاطئة ثم توليد قيود جديدة مطابقة للخطة لهذا التسجيل فقط. هل تريد المتابعة؟');">
+                                        تصحيح
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">لا توجد حالياً تسجيلات مجانية أو محسومة مخالفة للخطة.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

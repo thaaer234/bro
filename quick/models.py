@@ -367,7 +367,7 @@ class QuickStudent(models.Model):
         except Exception:
             return Decimal('0')
 
-    def update_enrollment_discounts(self, user, enrollments=None):
+    def update_enrollment_discounts(self, user, enrollments=None, discount_reason=''):
         """تحديث جميع تسجيلات الطالب السريع النشطة بناءً على الحسم الجديد"""
         with db_transaction.atomic():
             active_enrollments = enrollments or QuickEnrollment.objects.filter(
@@ -381,11 +381,17 @@ class QuickStudent(models.Model):
                 new_net_amount = enrollment.net_amount or Decimal('0')
 
                 if old_net_amount != new_net_amount:
-                    self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
+                    self._update_enrollment_journal_entry(
+                        enrollment,
+                        user,
+                        old_net_amount,
+                        new_net_amount,
+                        discount_reason=discount_reason,
+                    )
 
-    def _update_enrollment_journal_entry(self, enrollment, user, old_amount, new_amount):
+    def _update_enrollment_journal_entry(self, enrollment, user, old_amount, new_amount, discount_reason=''):
         """تحديث قيد التسجيل المحاسبي بناءً على الفرق في المبلغ"""
-        from accounts.models import JournalEntry, Transaction, Account, get_user_cash_account
+        from accounts.models import JournalEntry, Transaction
         
         journal_entry = getattr(enrollment, 'enrollment_journal_entry', None)
         
@@ -423,11 +429,10 @@ class QuickStudent(models.Model):
         print(f"حساب ذمة الطالب: {student_ar_account}")
         print(f"حساب الإيرادات المؤجلة: {course_deferred_account}")
         
-        # استخدام date.today() بدلاً من timezone.now().date()
-        from datetime import date
+        reason_suffix = f" - سبب الحسم: {discount_reason}" if discount_reason else ""
         adjustment_entry = JournalEntry.objects.create(
-            date=date.today(),
-            description=f"تعديل حسم - {self.full_name} - {enrollment.course.name}",
+            date=timezone.now().date(),
+            description=f"تعديل حسم - {self.full_name} - {enrollment.course.name}{reason_suffix}",
             entry_type='ADJUSTMENT',
             total_amount=abs(amount_diff),
             created_by=user
@@ -442,7 +447,7 @@ class QuickStudent(models.Model):
                 account=student_ar_account,
                 amount=amount_diff,
                 is_debit=True,
-                description=f"تعديل زيادة حسم - {enrollment.course.name}"
+                description=f"تعديل زيادة حسم - {enrollment.course.name}{reason_suffix}"
             )
             # دائن: الإيرادات المؤجلة
             Transaction.objects.create(
@@ -450,7 +455,7 @@ class QuickStudent(models.Model):
                 account=course_deferred_account,
                 amount=amount_diff,
                 is_debit=False,
-                description=f"تعديل زيادة حسم - {self.full_name}"
+                description=f"تعديل زيادة حسم - {self.full_name}{reason_suffix}"
             )
         else:
             # تخفيض المبلغ - عكس اتجاه القيد الأصلي
@@ -462,7 +467,7 @@ class QuickStudent(models.Model):
                 account=course_deferred_account,
                 amount=amount_abs,
                 is_debit=True,
-                description=f"تعديل تخفيض حسم - {self.full_name}"
+                description=f"تعديل تخفيض حسم - {self.full_name}{reason_suffix}"
             )
             # دائن: ذمة الطالب
             Transaction.objects.create(
@@ -470,7 +475,7 @@ class QuickStudent(models.Model):
                 account=student_ar_account,
                 amount=amount_abs,
                 is_debit=False,
-                description=f"تعديل تخفيض حسم - {enrollment.course.name}"
+                description=f"تعديل تخفيض حسم - {enrollment.course.name}{reason_suffix}"
             )
         
         # ترحيل قيد التسوية
@@ -552,6 +557,63 @@ class QuickEnrollment(models.Model):
 
         super().save(*args, **kwargs)
 
+    @property
+    def gross_amount(self):
+        return self.total_amount or (self.course.price if self.course else Decimal('0'))
+
+    @property
+    def discount_value(self):
+        gross_amount = self.gross_amount or Decimal('0')
+        net_amount = self.net_amount or Decimal('0')
+        return max(Decimal('0'), gross_amount - net_amount)
+
+    def create_discount_adjustment_entry(self, user):
+        from accounts.models import Account, JournalEntry, Transaction
+
+        discount_value = self.discount_value
+        if discount_value <= 0:
+            return None
+
+        existing_entry = JournalEntry.objects.filter(
+            entry_type='ADJUSTMENT',
+            description__icontains=f'[QUICK_DISCOUNT #{self.id}]',
+        ).first()
+        if existing_entry:
+            return existing_entry
+
+        student_ar_account = Account.get_or_create_quick_student_ar_account(self.student)
+        deferred_account = Account.get_or_create_quick_course_deferred_account(self.course)
+
+        entry = JournalEntry.objects.create(
+            date=self.enrollment_date,
+            description=(
+                f"[QUICK_DISCOUNT #{self.id}] "
+                f"حسم تسجيل سريع - {self.student.full_name} - {self.course.name}"
+            ),
+            entry_type='ADJUSTMENT',
+            total_amount=discount_value,
+            created_by=user
+        )
+
+        Transaction.objects.create(
+            journal_entry=entry,
+            account=deferred_account,
+            amount=discount_value,
+            is_debit=True,
+            description=f"حسم سريع - {self.course.name}"
+        )
+
+        Transaction.objects.create(
+            journal_entry=entry,
+            account=student_ar_account,
+            amount=discount_value,
+            is_debit=False,
+            description=f"حسم سريع - {self.student.full_name}"
+        )
+
+        entry.post_entry(user)
+        return entry
+
     def create_accrual_enrollment_entry(self, user):
         """إنشاء قيد محاسبي للتسجيل السريع"""
         from accounts.models import Account, JournalEntry, Transaction
@@ -560,7 +622,8 @@ class QuickEnrollment(models.Model):
         if existing_entry:
             return existing_entry
 
-        if (self.net_amount or Decimal('0')) <= 0:
+        gross_amount = self.gross_amount or Decimal('0')
+        if gross_amount <= 0:
             return None
         
         # الحسابات الخاصة بالطلاب السريعين
@@ -573,7 +636,7 @@ class QuickEnrollment(models.Model):
             date=self.enrollment_date,
             description=f"تسجيل سريع - {self.student.full_name} في {self.course.name}",
             entry_type='enrollment',
-            total_amount=self.net_amount,
+            total_amount=gross_amount,
             created_by=user
         )
         
@@ -581,7 +644,7 @@ class QuickEnrollment(models.Model):
         Transaction.objects.create(
             journal_entry=entry,
             account=student_ar_account,
-            amount=self.net_amount,
+            amount=gross_amount,
             is_debit=True,
             description=f"تسجيل سريع - {self.student.full_name}"
         )
@@ -590,13 +653,14 @@ class QuickEnrollment(models.Model):
         Transaction.objects.create(
             journal_entry=entry,
             account=deferred_account,
-            amount=self.net_amount,
+            amount=gross_amount,
             is_debit=False,
             description=f"إيرادات مؤجلة - {self.course.name}"
         )
         
         # ترحيل القيد
         entry.post_entry(user)
+        self.create_discount_adjustment_entry(user)
 
         return entry
 # Signals: ensure AR account exists on create
@@ -713,6 +777,13 @@ class QuickStudentReceipt(models.Model):
     def create_accrual_journal_entry(self, user):
         """إنشاء قيد محاسبي للإيصال السريع"""
         from accounts.models import JournalEntry, Transaction, Account, get_user_cash_account
+
+        if self.journal_entry_id:
+            return self.journal_entry
+
+        paid_amount = self.paid_amount or Decimal('0')
+        if paid_amount <= 0:
+            return None
         
         # الحسابات الخاصة بالطلاب السريعين
         student_ar_account = Account.get_or_create_quick_student_ar_account(self.quick_student)
@@ -726,7 +797,7 @@ class QuickStudentReceipt(models.Model):
             date=self.date,
             description=f"إيصال سريع - {self.student_name} - {self.course_name}",
             entry_type='receipt',
-            total_amount=self.paid_amount,
+            total_amount=paid_amount,
             created_by=user
         )
         
@@ -734,7 +805,7 @@ class QuickStudentReceipt(models.Model):
         Transaction.objects.create(
             journal_entry=entry,
             account=cash_account,
-            amount=self.paid_amount,
+            amount=paid_amount,
             is_debit=True,
             description=f"إيصال سريع - {self.student_name}"
         )
@@ -743,7 +814,7 @@ class QuickStudentReceipt(models.Model):
         Transaction.objects.create(
             journal_entry=entry,
             account=student_ar_account,
-            amount=self.paid_amount,
+            amount=paid_amount,
             is_debit=False,
             description=f"تسديد ذمم - {self.course_name}"
         )

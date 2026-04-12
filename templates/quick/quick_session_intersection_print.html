@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>طباعة تقاطعات الكلاسات</title>
+    <style>
+        @page { size: A4 landscape; margin: 5mm; }
+        body { margin: 0; font-family: "Cairo", "Segoe UI", sans-serif; background: #f3f7fb; color: #10243d; }
+        .print-shell { padding: 8px; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+        .toolbar__title { display: grid; gap: 6px; }
+        .toolbar__eyebrow { color: #0f766e; font-weight: 800; letter-spacing: .04em; }
+        .toolbar__meta { color: #667085; font-size: 14px; }
+        .toolbar__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700; cursor: pointer; text-decoration: none; }
+        .btn-primary { background: #10243d; color: #fff; }
+        .btn-secondary { background: #e7eef6; color: #10243d; }
+        .sheet { background: #fff; border-radius: 24px; box-shadow: 0 22px 55px rgba(15, 23, 42, .12); overflow: hidden; }
+        .hero { padding: 12px 14px; color: #fff; background: radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 30%), linear-gradient(135deg, #0f172a, #17324e 54%, #0f766e); }
+        .hero h1 { margin: 0 0 8px; font-size: 30px; }
+        .hero p { margin: 0; line-height: 1.9; color: rgba(255,255,255,.88); max-width: 1100px; }
+        .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 10px 12px 0; }
+        .stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 8px 10px; }
+        .stat__label { display: block; color: #667085; margin-bottom: 6px; }
+        .stat__value { font-size: 22px; font-weight: 800; color: #10243d; }
+        .sessions-list { padding: 8px 12px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+        .session-pill { background: #eef4fb; border: 1px solid #d6e0eb; border-radius: 999px; padding: 6px 12px; font-size: 12px; color: #16324f; }
+        .table-wrap { padding: 8px 10px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9px; }
+        thead { display: table-header-group; }
+        th, td { border: 1px solid #d0d8e3; padding: 2px 1px; vertical-align: middle; text-align: center; word-wrap: break-word; }
+        th { background: #10243d; color: #fff; font-weight: 800; }
+        th:first-child { width: 24px; background: #d7e3f1; color: #16324f; }
+        th:nth-child(2) { width: 72px; background: #0f766e; }
+        td:first-child { background: #eef4fb; text-align: center; font-weight: 800; font-size: 7px; }
+        td:nth-child(2) { background: #f8fafc; text-align: right; font-weight: 700; white-space: normal; overflow-wrap: anywhere; }
+        .course-title { display: block; font-size: 8px; margin-bottom: 1px; line-height: 1; }
+        .course-meta { color: rgba(255,255,255,.84); font-size: 7px; line-height: 1; }
+        .student-name { display: block; color: #10243d; margin-bottom: 1px; font-size: 7px; line-height: 1; word-break: break-word; }
+        .student-meta { color: #667085; font-size: 5.5px; line-height: 1; display: block; margin-bottom: 1px; }
+        .student-creator { color: #0f766e; font-size: 5.5px; line-height: 1; font-weight: 700; display: block; }
+        .cell-state { display: inline-block; border-radius: 6px; width: 12px; height: 12px; min-width: 12px; min-height: 12px; line-height: 9px; padding: 1px; font-weight: 800; font-size: 5px; margin-bottom: 1px; overflow: hidden; }
+        .cell-state--ok { background: #e8fff5; color: #067647; }
+        .cell-state--bad { background: #fee4e2; color: #b42318; }
+        .cell-state--muted { background: transparent; color: transparent; border: 1.5px solid #cbd5e1; }
+        .period-badge { display: inline-block; border-radius: 6px; background: #fff4d6; color: #a16207; width: 12px; height: 12px; min-width: 12px; min-height: 12px; line-height: 9px; padding: 1px; font-size: 5px; font-weight: 800; }
+        .footer { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 0 10px 10px; color: #667085; font-size: 12px; }
+        @media print {
+            body { background: #fff; }
+            .print-shell { padding: 0; }
+            .toolbar { display: none; }
+            .sheet { box-shadow: none; border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-shell">
+        <div class="toolbar">
+            <div class="toolbar__title">
+                <span class="toolbar__eyebrow">QUICK SESSION INTERSECTIONS</span>
+                <strong>جدول الطلاب المتقاطعين بين الكلاسات مع كل تسجيلاتهم</strong>
+                <span class="toolbar__meta">{{ generated_at|date:"Y-m-d h:i A" }}</span>
+            </div>
+            <div class="toolbar__actions">
+                <a href="{% url 'quick:student_intersections' %}?scope=session{% for session_id in selected_session_ids %}&session_ids={{ session_id }}{% endfor %}" class="btn btn-secondary">العودة للتقاطعات</a>
+                <button type="button" class="btn btn-primary" onclick="window.print()">طباعة</button>
+            </div>
+        </div>
+        <div class="sheet">
+            <section class="hero">
+                <h1>جدول الطلاب المتقاطعين بين الكلاسات</h1>
+                <p>هذا التقرير يعرض فقط الطلاب المشتركين بين الكلاسات المحددة، لكنه يطبع جميع تسجيلاتهم النشطة في الدورات السريعة ضمن جدول واحد مشابه لجدول الفرز اليدوي.</p>
+            </section>
+            <section class="stats">
+                <div class="stat"><span class="stat__label">عدد الكلاسات المحددة</span><strong class="stat__value">{{ selected_sessions|length }}</strong></div>
+                <div class="stat"><span class="stat__label">عدد الطلاب المتقاطعين</span><strong class="stat__value">{{ total_students }}</strong></div>
+                <div class="stat"><span class="stat__label">عدد الدورات الظاهرة</span><strong class="stat__value">{{ total_courses }}</strong></div>
+                <div class="stat"><span class="stat__label">وقت التوليد</span><strong class="stat__value">{{ generated_at|date:"H:i" }}</strong></div>
+            </section>
+            {% if selected_sessions %}
+            <section class="sessions-list">
+                {% for session in selected_sessions %}
+                <span class="session-pill">{{ session.course.name }} - {{ session.title }}</span>
+                {% endfor %}
+            </section>
+            {% endif %}
+            <section class="table-wrap">
+                {% if student_rows_all and course_columns %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الطالب</th>
+                            {% for column in course_columns %}
+                            <th><span class="course-title">{{ column.short_teacher_name }}</span><span class="course-meta">{{ column.subject_name }}</span></th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in student_rows_all %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <span class="student-name">{{ row.student.full_name }}</span>
+                                <span class="student-meta">{{ row.student.phone|default:"-" }}</span>
+                                <span class="student-creator">{{ row.student.created_by.get_full_name|default:row.student.created_by.username|default:"-" }}</span>
+                            </td>
+                            {% for cell in row.cells %}
+                            <td>
+                                {% if cell.is_enrolled %}
+                                <span class="cell-state cell-state--ok">&#10003;</span><br>
+                                {% if cell.selected_period_number %}
+                                <span class="period-badge">{{ cell.selected_period_number }}</span>
+                                {% elif cell.has_sessions %}
+                                <span class="cell-state cell-state--muted">-</span>
+                                {% else %}
+                                <span class="cell-state cell-state--muted"></span>
+                                {% endif %}
+                                {% else %}
+                                <span class="cell-state cell-state--bad">&#10005;</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div style="padding:32px 0;text-align:center;color:#667085;">لا توجد بيانات قابلة للطباعة ضمن هذا التقاطع.</div>
+                {% endif %}
+            </section>
+            <div class="footer">
+                <span>معهد الإيمان</span>
+                <span>تم توليد هذه النسخة بتاريخ {{ generated_at|date:"Y-m-d h:i A" }}</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

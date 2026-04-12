@@ -36,7 +36,7 @@ urlpatterns = [
     path('attendance/quick-courses/', require_employee_perm('attendance_view')(views.QuickCourseAttendanceDashboardView.as_view()), name='quick_course_attendance'),
     path('attendance/quick-courses/archive/', require_employee_perm('attendance_view')(views.QuickCourseAttendanceArchiveView.as_view()), name='quick_course_attendance_archive'),
 
-    path('students/', require_employee_perm('students_view')(views.QuickStudentListView.as_view()), name='student_list'),
+    path('students/', require_superuser(views.QuickStudentListView.as_view()), name='student_list'),
     path('students/create/', require_employee_perm('students_create')(views.QuickStudentCreateView.as_view()), name='student_create'),
     path('students/check-exists/', require_employee_perm('students_create')(views.quick_student_exists), name='student_exists'),
     path('students/<int:pk>/', require_employee_perm('students_profile')(views.QuickStudentDetailView.as_view()), name='student_detail'),
@@ -56,6 +56,7 @@ urlpatterns = [
     path('reports/late-payments/<int:course_id>/bulk-withdraw/', require_employee_perm('students_withdraw')(views.bulk_withdraw_quick_students), name='bulk_withdraw_quick_students'),
     path('reports/late-payments/print/', require_employee_perm('accounting_outstanding')(views.QuickLatePaymentCoursesPrintView.as_view()), name='late_payment_courses_print'),
     path('reports/student-intersections/', require_employee_perm('students_view')(views.QuickStudentIntersectionView.as_view()), name='student_intersections'),
+    path('reports/student-intersections/sessions-print/', require_employee_perm('students_view')(views.QuickSessionIntersectionPrintView.as_view()), name='student_intersections_sessions_print'),
     path('reports/manual-sorting/', require_employee_perm('students_view')(views.QuickManualSortingView.as_view()), name='manual_sorting'),
     path('reports/manual-sorting/print/', require_employee_perm('students_view')(views.QuickManualSortingPrintView.as_view()), name='manual_sorting_print'),
     path('reports/manual-sorting/print/unassigned/', require_employee_perm('students_view')(views.QuickManualSortingUnassignedPrintView.as_view()), name='manual_sorting_unassigned_print'),
@@ -73,6 +74,7 @@ urlpatterns = [
     path('reports/duplicate-students/print/', require_superuser(views.quick_duplicate_students_print), name='duplicate_students_print'),
     path('reports/duplicate-students/print/all/', require_superuser(views.quick_duplicate_students_full_print), name='duplicate_students_full_print'),
     path('reports/accounting-fix/', require_superuser(views.quick_accounting_fix_tool), name='accounting_fix_tool'),
+    path('reports/discount-fix/', require_superuser(views.quick_discount_fix_tool), name='discount_fix_tool'),
     path('reports/withdrawal-fix/', require_superuser(views.quick_withdrawal_fix_tool), name='withdrawal_fix_tool'),
 
     path('student/<int:student_id>/profile/', require_employee_perm('students_profile')(views.QuickStudentProfileView.as_view()), name='student_profile'),
