@@ -5514,6 +5514,39 @@ def _build_quick_conflict_resolution(first_session, second_session):
     )
 
 
+_QUICK_CONFLICT_PRIORITY_LABELS = [
+    'قصي الجابي',
+    'علاء رحال',
+    'كلاوي',
+    'سلطجي',
+    'عامر',
+    'عمار مرزوق',
+    'مهند',
+]
+
+
+def _quick_conflict_course_priority_key(course):
+    course_name = str(getattr(course, 'name', '') or '').strip()
+    normalized_name = course_name.casefold()
+
+    if 'التاسع' in course_name or 'التاسع' in normalized_name:
+        return (999, course_name)
+
+    for index, label in enumerate(_QUICK_CONFLICT_PRIORITY_LABELS):
+        if label in course_name:
+            return (index, course_name)
+
+    return (len(_QUICK_CONFLICT_PRIORITY_LABELS) + 1, course_name)
+
+
+def _order_conflict_sessions(first_session, second_session):
+    first_key = _quick_conflict_course_priority_key(first_session.course)
+    second_key = _quick_conflict_course_priority_key(second_session.course)
+    if first_key <= second_key:
+        return first_session, second_session
+    return second_session, first_session
+
+
 def _build_quick_session_conflict_report(course_type='ALL', selected_course_ids=None):
     courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
     if course_type != 'ALL':
@@ -5521,7 +5554,7 @@ def _build_quick_session_conflict_report(course_type='ALL', selected_course_ids=
     if selected_course_ids:
         courses = courses.filter(id__in=selected_course_ids)
 
-    course_list = list(courses)
+    course_list = sorted(list(courses), key=_quick_conflict_course_priority_key)
     course_ids = [course.id for course in course_list]
     assignments = (
         QuickCourseSessionEnrollment.objects.filter(
@@ -5563,6 +5596,10 @@ def _build_quick_session_conflict_report(course_type='ALL', selected_course_ids=
             if not _sessions_conflict(first_session, second_session):
                 continue
 
+            first_session, second_session = _order_conflict_sessions(first_session, second_session)
+            if first_assignment.session_id != first_session.id:
+                first_assignment, second_assignment = second_assignment, first_assignment
+
             overlap_start_date = max(first_session.start_date, second_session.start_date)
             overlap_end_date = min(first_session.end_date, second_session.end_date)
             overlap_start_time = max(first_session.start_time, second_session.start_time)
@@ -5598,12 +5635,23 @@ def _build_quick_session_conflict_report(course_type='ALL', selected_course_ids=
 
     conflict_rows.sort(
         key=lambda row: (
+            _quick_conflict_course_priority_key(row['first_session'].course),
+            _quick_conflict_course_priority_key(row['second_session'].course),
             row['overlap_start_date'],
             row['overlap_start_time'],
             row['student'].full_name,
             row['first_session'].course.name,
         )
     )
+    for row in grouped_students:
+        row['conflicts'].sort(
+            key=lambda conflict: (
+                _quick_conflict_course_priority_key(conflict['first_session'].course),
+                _quick_conflict_course_priority_key(conflict['second_session'].course),
+                conflict['overlap_start_date'],
+                conflict['overlap_start_time'],
+            )
+        )
     grouped_students.sort(
         key=lambda row: (-row['conflicts_count'], row['student'].full_name)
     )

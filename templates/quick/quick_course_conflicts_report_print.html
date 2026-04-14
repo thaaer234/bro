@@ -157,6 +157,7 @@
         tbody tr:nth-child(even) td { background:#fffdfc; }
         .course-title, .session-title { font-weight:800; color:var(--text); }
         .subtle { color:var(--muted); font-size:11px; }
+        .resolution-text { color:#7a2216; font-size:12px; line-height:1.9; font-weight:700; }
         .empty-state {
             padding:42px 24px;
             text-align:center;
@@ -268,7 +269,7 @@
                                         <div class="subtle">{{ conflict.second_session.room_name|default:"بدون قاعة" }}</div>
                                     </td>
                                     <td>
-                                        <div class="subtle" style="font-size:12px; line-height:1.9; color:#7a2216; font-weight:700;">
+                                        <div class="resolution-text">
                                             {{ conflict.recommended_resolution }}
                                         </div>
                                     </td>

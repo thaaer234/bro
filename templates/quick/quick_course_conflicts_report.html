@@ -3,6 +3,266 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+<style>
+    .conflict-page {
+        --conf-ink: #13253f;
+        --conf-muted: #62748d;
+        --conf-line: #dbe4ef;
+        --conf-soft: #f5f8fc;
+        --conf-primary: #135da3;
+        --conf-primary-dark: #0c355f;
+        --conf-warm: #d97706;
+        --conf-danger: #bf3f2f;
+    }
+
+    .conflict-page .conflict-card {
+        border: 1px solid var(--conf-line);
+        border-radius: 28px;
+        box-shadow: 0 18px 40px rgba(19, 37, 63, 0.08);
+        overflow: hidden;
+    }
+
+    .conflict-page .conflict-hero {
+        background:
+            radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 26%),
+            linear-gradient(135deg, #0c2e58 0%, #135da3 58%, #46b5d7 100%);
+        color: #fff;
+    }
+
+    .conflict-page .conflict-hero h1 {
+        margin: 0 0 0.55rem;
+        font-size: clamp(1.6rem, 2vw, 2.3rem);
+        font-weight: 900;
+    }
+
+    .conflict-page .conflict-hero p {
+        margin: 0;
+        max-width: 850px;
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.8;
+    }
+
+    .conflict-page .conflict-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .conflict-page .conflict-actions .btn {
+        border-radius: 14px;
+        font-weight: 800;
+        padding: 0.8rem 1rem;
+    }
+
+    .conflict-page .conflict-filter .card-body,
+    .conflict-page .conflict-student .card-body {
+        background: #fff;
+    }
+
+    .conflict-page .conflict-form-grid {
+        display: grid;
+        grid-template-columns: minmax(220px, 260px) minmax(280px, 1fr) minmax(180px, 220px);
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .conflict-page .conflict-label {
+        display: block;
+        color: var(--conf-ink);
+        font-size: 0.92rem;
+        font-weight: 900;
+        margin-bottom: 0.5rem;
+    }
+
+    .conflict-page .conflict-filter select.form-control {
+        border-radius: 16px;
+        border: 1px solid #cad9ea;
+        min-height: 48px;
+    }
+
+    .conflict-page .conflict-hint {
+        margin-top: 1rem;
+        padding: 0.9rem 1rem;
+        border-radius: 16px;
+        background: #fff8eb;
+        color: #7a5314;
+        border: 1px solid #f1dec0;
+        font-weight: 700;
+    }
+
+    .conflict-page .conflict-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .conflict-page .conflict-stat {
+        border: 1px solid var(--conf-line);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 14px 30px rgba(19, 37, 63, 0.07);
+    }
+
+    .conflict-page .conflict-stat .card-body {
+        padding: 1.1rem 1.2rem;
+    }
+
+    .conflict-page .conflict-stat .label {
+        color: var(--conf-muted);
+        font-weight: 800;
+        font-size: 0.9rem;
+        margin-bottom: 0.45rem;
+    }
+
+    .conflict-page .conflict-stat .value {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: var(--conf-ink);
+        line-height: 1;
+    }
+
+    .conflict-page .conflict-stat.primary .card-body {
+        background: linear-gradient(180deg, #eef6ff, #ffffff);
+    }
+
+    .conflict-page .conflict-stat.accent .card-body {
+        background: linear-gradient(180deg, #fff5e8, #ffffff);
+    }
+
+    .conflict-page .conflict-stat.danger .card-body {
+        background: linear-gradient(180deg, #fff0ec, #ffffff);
+    }
+
+    .conflict-page .conflict-student {
+        border: 1px solid var(--conf-line);
+        border-radius: 26px;
+        overflow: hidden;
+        box-shadow: 0 16px 34px rgba(19, 37, 63, 0.07);
+    }
+
+    .conflict-page .conflict-student__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding: 1.2rem 1.35rem;
+        background: linear-gradient(180deg, #f8fbff, #ffffff);
+        border-bottom: 1px solid var(--conf-line);
+    }
+
+    .conflict-page .conflict-student__head h3 {
+        margin: 0 0 0.35rem;
+        color: var(--conf-ink);
+        font-size: 1.25rem;
+        font-weight: 900;
+    }
+
+    .conflict-page .conflict-student__meta {
+        color: var(--conf-muted);
+        font-weight: 700;
+    }
+
+    .conflict-page .conflict-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.48rem 0.85rem;
+        border-radius: 999px;
+        font-weight: 800;
+        font-size: 0.85rem;
+    }
+
+    .conflict-page .conflict-badge.primary {
+        background: #e6f2ff;
+        color: #0f4d8b;
+    }
+
+    .conflict-page .conflict-badge.danger {
+        background: #fde9e5;
+        color: var(--conf-danger);
+    }
+
+    .conflict-page .conflict-table {
+        margin: 0;
+    }
+
+    .conflict-page .conflict-table thead th {
+        background: linear-gradient(135deg, #123c6d 0%, #1b5d9a 65%, #47b6d9 100%);
+        color: #fff;
+        border: none;
+        padding: 1rem 0.85rem;
+        font-size: 0.88rem;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .conflict-page .conflict-table tbody td {
+        padding: 1rem 0.85rem;
+        border-color: #edf2f8;
+        vertical-align: top;
+    }
+
+    .conflict-page .conflict-table tbody tr:nth-child(even) td {
+        background: #fbfdff;
+    }
+
+    .conflict-page .session-title,
+    .conflict-page .course-title {
+        color: var(--conf-ink);
+        font-weight: 900;
+        line-height: 1.7;
+    }
+
+    .conflict-page .subtle {
+        color: var(--conf-muted);
+        font-size: 0.86rem;
+        line-height: 1.7;
+    }
+
+    .conflict-page .resolution-text {
+        font-size: 0.88rem;
+        line-height: 1.9;
+        color: #8a2d1f;
+        font-weight: 800;
+    }
+
+    .conflict-page .conflict-empty {
+        padding: 3rem 1.5rem;
+        text-align: center;
+        color: var(--conf-muted);
+    }
+
+    .conflict-page .conflict-empty i {
+        font-size: 2.5rem;
+        color: #1e9f6e;
+        margin-bottom: 0.85rem;
+    }
+
+    .conflict-page .conflict-empty h3 {
+        color: var(--conf-ink);
+        font-weight: 900;
+        margin-bottom: 0.6rem;
+    }
+
+    @media (max-width: 1199.98px) {
+        .conflict-page .conflict-form-grid,
+        .conflict-page .conflict-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .conflict-page .conflict-form-grid,
+        .conflict-page .conflict-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .conflict-page .conflict-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
 {% endblock %}
 
 
@@ -134,7 +394,7 @@
                                     <div class="subtle">{{ conflict.second_session.room_name|default:"بدون قاعة" }}</div>
                                 </td>
                                 <td>
-                                    <div class="subtle" style="font-size:.88rem; line-height:1.8; color:#8a2d1f; font-weight:700;">
+                                    <div class="resolution-text">
                                         {{ conflict.recommended_resolution }}
                                     </div>
                                 </td>
