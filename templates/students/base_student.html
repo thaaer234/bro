@@ -21,6 +21,23 @@
     {% block student_content %}{% endblock %}
 </section>
 
+<style>
+#teachersTable .student-list-name,
+#studentsTable .student-list-name {
+    color: #10243d !important;
+    font-weight: 800 !important;
+    text-decoration: none !important;
+}
+
+#teachersTable .student-list-name:hover,
+#teachersTable .student-list-name:focus-visible,
+#studentsTable .student-list-name:hover,
+#studentsTable .student-list-name:focus-visible {
+    color: #0b5ed7 !important;
+    text-decoration: none !important;
+}
+</style>
+
 <script>
 function initializeTableFeatures() {
     const tableRows = Array.from(document.querySelectorAll('#teachersTable tbody tr'));

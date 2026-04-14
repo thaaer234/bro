@@ -8,6 +8,25 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+<style>
+.student-profile .student-info h1,
+.student-profile .student-primary-name {
+  color: #10243d !important;
+  font-weight: 900 !important;
+}
+
+.student-profile .student-number,
+.student-profile .info-value,
+.student-profile .card-value,
+.student-profile .course-header h4,
+.student-profile .section-header h3 {
+  color: #16324f !important;
+}
+
+.student-profile .info-label {
+  color: #5b6b82 !important;
+}
+</style>
 {% endblock %}
 {% block content %}
 <div class="student-profile" dir="rtl">
@@ -20,11 +39,11 @@
         </div>
       </div>
       <div class="student-info">
-        <h1>{{ student.full_name }}</h1>
+        <h1 class="student-primary-name">{{ student.full_name }}</h1>
         <p class="student-number">طالب سريع - {{ student.academic_year.name }}</p>
         <div class="student-status">
           <span class="status-badge {% if student.is_active %}active{% else %}inactive{% endif %}">
-            {% if active_enrollments %}نشط{% else %}غير نشط{% endif %}
+            {% if has_active_enrollments %}نشط{% else %}غير نشط{% endif %}
           </span>
           <span class="status-badge badge-warning ml-2">سريع</span>
         </div>
@@ -251,13 +270,16 @@
         <div class="section-header">
           <h3><i class="fas fa-school"></i> الدورات المسجلة</h3>
         </div>
-        {% if active_enrollments %}
+        {% if all_enrollments %}
           <div class="courses-grid">
-            {% for item in active_enrollments %}
-              <div class="course-card">
+            {% for item in all_enrollments %}
+              <div class="course-card {% if item.enrollment.is_completed %}border border-danger{% endif %}">
                 <div class="course-header">
                   <h4>{{ item.enrollment.course.name }}</h4>
-                  <span class="course-type">{{ item.enrollment.course.get_course_type_display }}</span>
+                  <span class="course-type {% if item.enrollment.is_completed %}text-danger fw-bold{% endif %}">
+                    {{ item.enrollment.course.get_course_type_display }}
+                    {% if item.enrollment.is_completed %}- مسحوب{% endif %}
+                  </span>
                 </div>
                 <div class="course-body">
                   <div class="course-info">
@@ -277,7 +299,27 @@
                     </div>
                     <div class="info-item">
                       <i class="fas fa-check-circle"></i>
-                      <span>الحالة: {% if item.enrollment.is_completed %}مكتمل{% else %}نشط{% endif %}</span>
+                      <span>
+                        الحالة:
+                        {% if item.enrollment.is_completed %}
+                          <span class="text-danger fw-bold">مسحوب</span>
+                        {% else %}
+                          <span style="color: green;">نشط</span>
+                        {% endif %}
+                      </span>
+                    </div>
+                    <div class="info-item">
+                      <i class="fas fa-chalkboard-teacher"></i>
+                      <span>
+                        الكلاس:
+                        {% if item.assigned_session %}
+                          {{ item.assigned_session.title }}
+                        {% elif item.enrollment.is_completed %}
+                          <span class="text-danger fw-bold">تم حذف فرزه من الصف عند السحب</span>
+                        {% else %}
+                          <span style="color: #8a5a00;">غير منزل على كلاس</span>
+                        {% endif %}
+                      </span>
                     </div>
                     <div class="info-item">
                       <i class="fas fa-percentage"></i>
@@ -307,7 +349,7 @@
           <h3><i class="fas fa-coins"></i> الوضع المالي</h3>
         </div>
         
-        {% if active_enrollments %}
+        {% if all_enrollments %}
           <!-- Financial Summary -->
           <div class="finance-summary">
             <div class="summary-item">
@@ -358,8 +400,8 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for item in active_enrollments %}
-                    <tr>
+                  {% for item in all_enrollments %}
+                    <tr {% if item.enrollment.is_completed %}class="table-danger"{% endif %}>
                       <td>{{ item.enrollment.course.name }}</td>
                       <td>{{ item.net_amount|default_if_none:0|floatformat:2 }} ل.س</td>
                       <td>{{ item.total_paid|default_if_none:0|floatformat:2 }} ل.س</td>
@@ -368,7 +410,12 @@
                         {{ item.enrollment.discount_percent }}% / {{ item.enrollment.discount_amount|floatformat:2 }} ل.س
                       </td>
                       <td>
-                        {% if item.balance_due <= 0 %}
+                        {% if item.enrollment.is_completed %}
+                          <span class="payment-status pending" style="background:#fde8e8;color:#b42318;border-color:#f5c2c7;">
+                            <i class="fas fa-user-minus"></i>
+                            مسحوب
+                          </span>
+                        {% elif item.balance_due <= 0 %}
                           <span class="payment-status completed">
                             <i class="fas fa-check-circle"></i>
                             مكتمل الدفع
@@ -390,7 +437,7 @@
                             سحب
                           </button>
                         {% else %}
-                          <span class="text-muted">تم السحب</span>
+                          <span class="text-danger fw-bold">تم السحب</span>
                         {% endif %}
                       </td>
                     </tr>

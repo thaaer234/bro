@@ -162,7 +162,7 @@
                         <tr class="{% if row.is_fully_paid %}table-row-paid{% elif not row.has_receipts %}table-row-no-receipts{% elif row.remaining > 0 %}table-row-outstanding{% endif %}">
                             <td class="text-muted fw-bold">{{ forloop.counter }}</td>
                             <td data-sort-name="1">
-                                <a href="{% url 'students:student_profile' row.student.id %}" class="text-decoration-none fw-bold d-block">
+                                <a href="{% url 'students:student_profile' row.student.id %}" class="text-decoration-none fw-bold d-block student-name-link">
                                     {{ row.student.full_name }}
                                 </a>
                                 {% if row.student.phone %}

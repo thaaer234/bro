@@ -62,6 +62,7 @@ urlpatterns = [
     path('reports/manual-sorting/print/unassigned/', require_employee_perm('students_view')(views.QuickManualSortingUnassignedPrintView.as_view()), name='manual_sorting_unassigned_print'),
     path('reports/schedules/quick-courses/', require_employee_perm('course_accounting_view')(views.QuickCourseSchedulePrintView.as_view()), name='quick_course_schedule_print'),
     path('reports/conflicts/quick-courses/', require_employee_perm('course_accounting_view')(views.QuickCourseConflictReportView.as_view()), name='quick_course_conflicts_report'),
+    path('reports/conflicts/quick-courses/print/', require_employee_perm('course_accounting_view')(views.QuickCourseConflictReportPrintView.as_view()), name='quick_course_conflicts_report_print'),
     path('reports/session-counts/quick-courses/', require_employee_perm('course_accounting_view')(views.QuickCourseSessionCountsReportView.as_view()), name='quick_course_session_counts_report'),
     path('reports/session-counts/quick-courses/print/', require_employee_perm('course_accounting_view')(views.QuickCourseSessionCountsReportPrintView.as_view()), name='quick_course_session_counts_report_print'),
     path('reports/free-students/quick-courses/', require_employee_perm('course_accounting_view')(views.QuickFreeStudentsReportView.as_view()), name='quick_free_students_report'),

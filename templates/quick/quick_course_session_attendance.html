@@ -1,56 +1,524 @@
 {% extends "base.html" %}
-{% load widget_tweaks %}
+
+{% block extra_css %}
+<style>
+.quick-attendance-page{
+    --qa-ink:#13263f;
+    --qa-muted:#62748d;
+    --qa-line:#d8e3ee;
+    --qa-soft:#f4f8fc;
+    --qa-primary:#135da3;
+    --qa-primary-dark:#0d3867;
+    --qa-success:#14815f;
+    --qa-success-soft:#def5ec;
+    --qa-danger:#c14a37;
+    --qa-danger-soft:#fde7e2;
+    --qa-shadow:0 18px 42px rgba(19,38,63,.08);
+}
+.quick-attendance-page .qa-shell{max-width:1440px;margin:0 auto;display:grid;gap:1.25rem}
+.quick-attendance-page .qa-hero{
+    background:
+        radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 24%),
+        linear-gradient(135deg,#0c2e58 0%,#155ea3 58%,#3fb2d6 100%);
+    color:#fff;border-radius:30px;padding:1.5rem;box-shadow:0 24px 50px rgba(10,37,72,.18)
+}
+.quick-attendance-page .qa-hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.quick-attendance-page .qa-kicker{font-size:.92rem;font-weight:800;color:rgba(255,255,255,.8);margin-bottom:.35rem}
+.quick-attendance-page .qa-title{margin:0;font-size:clamp(1.55rem,2vw,2.25rem);font-weight:900}
+.quick-attendance-page .qa-subtitle{margin:.55rem 0 0;color:rgba(255,255,255,.88);max-width:850px;font-size:1rem}
+.quick-attendance-page .qa-hero-actions{display:flex;gap:.75rem;flex-wrap:wrap}
+.quick-attendance-page .qa-hero-actions .btn{border-radius:14px;font-weight:800;padding:.78rem 1rem}
+.quick-attendance-page .qa-hero-actions .btn-outline-light{border-width:2px;color:#fff}
+.quick-attendance-page .qa-hero-actions .btn-light{color:var(--qa-primary-dark)}
+.quick-attendance-page .qa-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin-top:1.1rem}
+.quick-attendance-page .qa-stat{
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+    border-radius:20px;padding:1rem;backdrop-filter:blur(10px)
+}
+.quick-attendance-page .qa-stat-label{font-size:.88rem;font-weight:700;color:rgba(255,255,255,.82);margin-bottom:.45rem}
+.quick-attendance-page .qa-stat-value{font-size:1.55rem;font-weight:900;line-height:1.05}
+.quick-attendance-page .qa-panel{
+    background:#fff;border:1px solid var(--qa-line);border-radius:28px;
+    box-shadow:var(--qa-shadow);padding:1.25rem
+}
+.quick-attendance-page .qa-panel-title{margin:0 0 .35rem;color:var(--qa-ink);font-size:1.2rem;font-weight:900}
+.quick-attendance-page .qa-panel-subtitle{margin:0;color:var(--qa-muted)}
+.quick-attendance-page .qa-days{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:.85rem;margin-top:1rem
+}
+.quick-attendance-page .qa-day{
+    display:block;text-decoration:none;color:var(--qa-ink);background:var(--qa-soft);
+    border:1px solid var(--qa-line);border-radius:20px;padding:1rem;min-height:116px;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease
+}
+.quick-attendance-page .qa-day:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(19,38,63,.08);border-color:#bed1e4}
+.quick-attendance-page .qa-day.is-active{background:linear-gradient(135deg,#0f3b71 0%,#145da0 100%);color:#fff;border-color:#145da0}
+.quick-attendance-page .qa-day.is-future{opacity:.55;pointer-events:none}
+.quick-attendance-page .qa-day-number{font-size:.98rem;font-weight:900;margin-bottom:.35rem}
+.quick-attendance-page .qa-day-date{font-size:.92rem;opacity:.9}
+.quick-attendance-page .qa-day-badge{
+    display:inline-flex;margin-top:.85rem;padding:.33rem .7rem;border-radius:999px;
+    font-size:.8rem;font-weight:800;background:rgba(19,38,63,.08)
+}
+.quick-attendance-page .qa-day.is-active .qa-day-badge{background:rgba(255,255,255,.16)}
+.quick-attendance-page .qa-toolbar{
+    display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:1rem;margin-top:1rem
+}
+.quick-attendance-page .qa-box{
+    background:var(--qa-soft);border:1px solid var(--qa-line);border-radius:22px;padding:1rem
+}
+.quick-attendance-page .qa-box-title{margin:0 0 .4rem;color:var(--qa-ink);font-size:.98rem;font-weight:900}
+.quick-attendance-page .qa-box-text{margin:0;color:var(--qa-muted);line-height:1.7}
+.quick-attendance-page .qa-add-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.75rem;align-items:end}
+.quick-attendance-page .qa-input,.quick-attendance-page .qa-note{
+    border-radius:15px;border:1px solid #ccd8e6;min-height:46px;color:var(--qa-ink)
+}
+.quick-attendance-page .qa-input:focus,.quick-attendance-page .qa-note:focus{
+    border-color:#79addd;box-shadow:0 0 0 .2rem rgba(19,93,163,.12)
+}
+.quick-attendance-page .qa-live-summary{
+    display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin:1rem 0 0
+}
+.quick-attendance-page .qa-summary-pill{
+    display:inline-flex;align-items:center;gap:.45rem;padding:.55rem .9rem;border-radius:999px;
+    border:1px solid var(--qa-line);background:#fff;color:var(--qa-ink);font-weight:800
+}
+.quick-attendance-page .qa-summary-pill strong{font-weight:900}
+.quick-attendance-page .qa-list{display:grid;gap:1rem;margin-top:1rem}
+.quick-attendance-page .qa-row{
+    border:1px solid var(--qa-line);border-radius:24px;background:#fff;padding:1rem;
+    box-shadow:0 12px 28px rgba(19,38,63,.06)
+}
+.quick-attendance-page .qa-row.is-present{background:linear-gradient(180deg,rgba(20,129,95,.05),#fff 44%)}
+.quick-attendance-page .qa-row.is-absent{background:linear-gradient(180deg,rgba(193,74,55,.07),#fff 44%)}
+.quick-attendance-page .qa-row-top{
+    display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:1rem;align-items:start
+}
+.quick-attendance-page .qa-index{
+    width:44px;height:44px;border-radius:14px;background:#eaf1f8;color:var(--qa-primary-dark);
+    display:flex;align-items:center;justify-content:center;font-weight:900;flex-shrink:0
+}
+.quick-attendance-page .qa-name{display:inline-flex;gap:.45rem;align-items:center;text-decoration:none;color:var(--qa-ink);font-weight:900;font-size:1.04rem}
+.quick-attendance-page .qa-name:hover{color:var(--qa-primary)}
+.quick-attendance-page .qa-meta{margin-top:.35rem;color:var(--qa-muted);font-size:.92rem}
+.quick-attendance-page .qa-badges{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.55rem}
+.quick-attendance-page .qa-badge{
+    display:inline-flex;padding:.34rem .7rem;border-radius:999px;font-size:.8rem;font-weight:800
+}
+.quick-attendance-page .qa-badge.assigned{background:#e5f1fd;color:#0d4c89}
+.quick-attendance-page .qa-badge.extra{background:#fff1dc;color:#8c4d00}
+.quick-attendance-page .qa-badge.saved{background:#def5ec;color:#0d6d4f}
+.quick-attendance-page .qa-remove{border-radius:13px;font-weight:800;min-width:96px}
+.quick-attendance-page .qa-controls{
+    display:grid;grid-template-columns:minmax(230px,320px) minmax(0,1fr);gap:1rem;align-items:start;margin-top:1rem
+}
+.quick-attendance-page .qa-toggle{display:flex;gap:.7rem;flex-wrap:wrap}
+.quick-attendance-page .qa-choice{position:relative;margin:0;cursor:pointer}
+.quick-attendance-page .qa-choice input{position:absolute;opacity:0;pointer-events:none}
+.quick-attendance-page .qa-choice span{
+    display:inline-flex;align-items:center;justify-content:center;padding:.75rem 1.05rem;min-width:110px;
+    border-radius:16px;font-weight:900;border:2px solid transparent;background:#edf3f9;color:#48607c;transition:all .16s ease
+}
+.quick-attendance-page .qa-choice.active[data-status="present"] span{background:var(--qa-success-soft);color:var(--qa-success);border-color:#96d2bb}
+.quick-attendance-page .qa-choice.active[data-status="absent"] span{background:var(--qa-danger-soft);color:var(--qa-danger);border-color:#eeb7ac}
+.quick-attendance-page .qa-actions{
+    display:flex;justify-content:space-between;gap:.85rem;flex-wrap:wrap;margin-top:1.25rem;padding-top:1rem;border-top:1px solid #e7eef6
+}
+.quick-attendance-page .qa-bulk{display:flex;gap:.65rem;flex-wrap:wrap}
+.quick-attendance-page .qa-bulk .btn,.quick-attendance-page .qa-save-btn{border-radius:15px;font-weight:900;padding:.8rem 1rem}
+.quick-attendance-page .qa-empty{
+    text-align:center;padding:2.4rem 1rem;border:1px dashed #cad6e4;border-radius:22px;background:var(--qa-soft);color:var(--qa-muted)
+}
+@media (max-width:1199.98px){
+    .quick-attendance-page .qa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .quick-attendance-page .qa-toolbar,.quick-attendance-page .qa-controls{grid-template-columns:1fr}
+}
+@media (max-width:767.98px){
+    .quick-attendance-page .qa-shell{gap:1rem}
+    .quick-attendance-page .qa-hero,.quick-attendance-page .qa-panel{padding:1rem}
+    .quick-attendance-page .qa-stats{grid-template-columns:1fr 1fr;gap:.75rem}
+    .quick-attendance-page .qa-days{grid-template-columns:1fr 1fr}
+    .quick-attendance-page .qa-day{min-height:100px;padding:.9rem}
+    .quick-attendance-page .qa-add-grid,.quick-attendance-page .qa-actions,.quick-attendance-page .qa-bulk{grid-template-columns:1fr;display:grid}
+    .quick-attendance-page .qa-hero-actions .btn,.quick-attendance-page .qa-bulk .btn,.quick-attendance-page .qa-save-btn,.quick-attendance-page .qa-remove{width:100%}
+    .quick-attendance-page .qa-row-top{grid-template-columns:1fr;gap:.85rem}
+    .quick-attendance-page .qa-index{width:40px;height:40px}
+    .quick-attendance-page .qa-toggle{display:grid;grid-template-columns:1fr 1fr}
+    .quick-attendance-page .qa-choice span{width:100%;min-width:0}
+}
+@media (max-width:479.98px){
+    .quick-attendance-page .qa-stats,.quick-attendance-page .qa-days,.quick-attendance-page .qa-toggle{grid-template-columns:1fr}
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="page">
-    <div class="page-header">
-        <div class="page-header__left">
-            <div class="page-header__icon"><i class="fas fa-clipboard-check"></i></div>
-            <div>
-                <h1 class="page-title">{{ session.title }}</h1>
-                <p class="page-subtitle">{{ course.name }} | اليوم رقم {{ day_number }} | {{ attendance_date|date:"Y-m-d" }}</p>
-            </div>
-        </div>
-        <div class="header-actions">
-            <a href="{% url 'quick:course_session_students' session.id %}" class="btn btn-outline-info">الطلاب</a>
-            <a href="{% url 'quick:quick_course_attendance' %}" class="btn btn--ghost">العودة</a>
-        </div>
-    </div>
+<div class="quick-attendance-page">
+    {% include "partials/_alerts.html" %}
 
-    <div class="card">
-        <form method="post" class="card-body">
-            {% csrf_token %}
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <label class="label" for="{{ attendance_form.attendance_date.id_for_label }}">تاريخ الحضور</label>
-                    {{ attendance_form.attendance_date|add_class:"input" }}
+    <div class="qa-shell">
+        <section class="qa-hero">
+            <div class="qa-hero-top">
+                <div>
+                    <div class="qa-kicker">حضور الدورات السريعة</div>
+                    <h1 class="qa-title">{{ session.title }}</h1>
+                    <p class="qa-subtitle">{{ course.name }} | اختر اليوم ثم سجّل الحضور أو عدّل عليه. الشاشة صارت مبنية لتشتغل صح على الجوال والتابلت والديسكتوب.</p>
                 </div>
-                <div class="col-md-8 d-flex align-items-end">
-                    <div class="text-muted">يمكنك أخذ الحضور من تاريخ البداية وحتى اليوم الحالي فقط.</div>
+                <div class="qa-hero-actions">
+                    <a href="{% url 'quick:course_session_students' session.id %}" class="btn btn-outline-light">طلاب الجلسة</a>
+                    <a href="{% url 'quick:quick_course_attendance' %}" class="btn btn-light">العودة</a>
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead><tr><th>الطالب</th><th>الحالة</th><th>ملاحظات</th></tr></thead>
-                    <tbody>
-                        {% for row in attendance_rows %}
-                        <tr>
-                            <td>{{ row.assignment.enrollment.student.full_name }}</td>
-                            <td>{{ row.status_field|add_class:"input" }}</td>
-                            <td>{{ row.notes_field|add_class:"input" }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="3" class="text-center text-muted py-4">لا يوجد طلاب موزعون على هذا الصف.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="qa-stats">
+                <div class="qa-stat">
+                    <div class="qa-stat-label">اليوم المحدد</div>
+                    <div class="qa-stat-value">اليوم {{ selected_day_number }}</div>
+                </div>
+                <div class="qa-stat">
+                    <div class="qa-stat-label">الأساسي</div>
+                    <div class="qa-stat-value" id="baseCount">{{ assigned_count }}</div>
+                </div>
+                <div class="qa-stat">
+                    <div class="qa-stat-label">إضافات اليوم</div>
+                    <div class="qa-stat-value" id="extraCount">{{ extra_count }}</div>
+                </div>
+                <div class="qa-stat">
+                    <div class="qa-stat-label">إجمالي الكشف</div>
+                    <div class="qa-stat-value" id="totalCount">{{ attendance_rows|length }}</div>
+                </div>
             </div>
+        </section>
 
-            <div class="form-actions">
-                <button type="submit" class="btn btn--primary"><i class="fas fa-save"></i> حفظ الحضور</button>
+        <section class="qa-panel">
+            <h2 class="qa-panel-title">أيام الدورة</h2>
+            <p class="qa-panel-subtitle">اختر اليوم المطلوب. الأيام القادمة تظهر بشكل هادئ ولا يمكن إدخال حضورها قبل موعدها.</p>
+            <div class="qa-days">
+                {% for item in day_options %}
+                <a href="{{ item.url }}" class="qa-day{% if item.is_selected %} is-active{% endif %}{% if item.is_future %} is-future{% endif %}">
+                    <div class="qa-day-number">اليوم {{ item.number }}</div>
+                    <div class="qa-day-date">{{ item.date|date:"Y-m-d" }}</div>
+                    <div class="qa-day-badge">
+                        {% if item.is_future %}
+                        غير متاح بعد
+                        {% elif item.is_selected %}
+                        اليوم الحالي
+                        {% else %}
+                        فتح اليوم
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
             </div>
-        </form>
+        </section>
+
+        <section class="qa-panel">
+            <h2 class="qa-panel-title">كشف حضور اليوم {{ selected_day_number }}</h2>
+            <p class="qa-panel-subtitle">التاريخ المرتبط بهذا اليوم هو {{ attendance_date|date:"Y-m-d" }}. تستطيع إدخال الحضور الأساسي وإضافة أسماء مؤقتة لهذا اليوم فقط.</p>
+
+            <form method="post" id="quickAttendanceForm">
+                {% csrf_token %}
+                <input type="hidden" name="attendance_date" value="{{ attendance_date|date:'Y-m-d' }}">
+                <input type="hidden" name="day_number" value="{{ selected_day_number }}">
+
+                {% if not guest_attendance_ready %}
+                <div class="alert alert-warning mt-3 mb-0">
+                    الإضافة اليدوية بالأسماء تحتاج تشغيل <code>python manage.py migrate</code> أولًا. الحضور الأساسي يعمل الآن بشكل طبيعي.
+                </div>
+                {% endif %}
+
+                <div class="qa-toolbar">
+                    <div class="qa-box">
+                        <h3 class="qa-box-title">ملخص اليوم</h3>
+                        <p class="qa-box-text">إذا كان الأساسي عندك 25 وأضفت اسمين يدويًا، سيصبح كشف هذا اليوم 27. كل شيء هنا مرتبط بهذا اليوم فقط، وليس فرزًا دائمًا على الجلسة.</p>
+                        <div class="qa-live-summary">
+                            <span class="qa-summary-pill">الأساسي: <strong id="summaryBase">{{ assigned_count }}</strong></span>
+                            <span class="qa-summary-pill">إضافات: <strong id="summaryExtra">{{ extra_count }}</strong></span>
+                            <span class="qa-summary-pill">الإجمالي: <strong id="summaryTotal">{{ attendance_rows|length }}</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="qa-box">
+                        <h3 class="qa-box-title">إضافة اسم يدوي لهذا اليوم فقط</h3>
+                        <div class="qa-add-grid">
+                            <div>
+                                <input type="text" id="extraGuestNameInput" class="form-control qa-input" placeholder="اكتب الاسم مباشرة مثل: محمد أحمد" {% if not guest_attendance_ready %}disabled{% endif %}>
+                                <div class="qa-box-text mt-2">الاسم يضاف كسطر جديد داخل كشف اليوم، مع حاضر أو غائب وملاحظة إن احتجت.</div>
+                            </div>
+                            <button type="button" id="addExtraGuestBtn" class="btn btn-primary" {% if not guest_attendance_ready %}disabled{% endif %}>إضافة</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="attendanceList" class="qa-list">
+                    {% for row in attendance_rows %}
+                    <article class="qa-row {% if row.normalized_status == 'present' %}is-present{% else %}is-absent{% endif %} attendance-row"
+                             data-row-key="{{ row.row_key }}"
+                             {% if row.row_type == 'enrollment' %}data-enrollment-id="{{ row.enrollment.id }}"{% endif %}
+                             data-is-extra="{% if row.is_extra %}true{% else %}false{% endif %}">
+
+                        <div class="qa-row-top">
+                            <div class="qa-index attendance-row-index">{{ forloop.counter }}</div>
+
+                            <div>
+                                {% if row.row_type == 'enrollment' %}
+                                <input type="hidden" name="displayed_enrollment_ids" value="{{ row.enrollment.id }}">
+                                <a href="{% url 'quick:student_profile' row.enrollment.student.id %}" class="qa-name">
+                                    <i class="fas fa-user-graduate"></i>
+                                    <span>{{ row.enrollment.student.full_name }}</span>
+                                </a>
+                                <div class="qa-meta">{{ row.enrollment.student.phone|default:"-" }} | تسجيل #{{ row.enrollment.id }}</div>
+                                <div class="qa-badges">
+                                    {% if row.is_assigned %}<span class="qa-badge assigned">ضمن الجلسة الأساسية</span>{% endif %}
+                                    {% if row.is_extra %}<span class="qa-badge extra">إضافة مؤقتة لليوم</span>{% endif %}
+                                    {% if row.record %}<span class="qa-badge saved">له حضور محفوظ</span>{% endif %}
+                                </div>
+                                {% else %}
+                                <input type="hidden" name="guest_row_keys" value="{{ row.row_key }}" class="guest-key-hidden">
+                                <input type="hidden" name="guest_name_{{ row.row_key }}" value="{{ row.guest_record.full_name }}" class="guest-name-hidden">
+                                <div class="qa-name">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span class="qa-name-text">{{ row.guest_record.full_name }}</span>
+                                </div>
+                                <div class="qa-meta">اسم مضاف يدويًا لهذا اليوم فقط</div>
+                                <div class="qa-badges">
+                                    <span class="qa-badge extra">إضافة يدوية مؤقتة</span>
+                                    <span class="qa-badge saved">محفوظ لهذا اليوم</span>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                {% if row.is_extra %}
+                                <button type="button" class="btn btn-outline-danger qa-remove remove-extra-row">إزالة</button>
+                                {% else %}
+                                <span class="qa-summary-pill">أساسي</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="qa-controls">
+                            <div class="qa-toggle">
+                                {% if row.row_type == 'enrollment' %}
+                                {% for status_value, status_label in status_choices %}
+                                <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}">
+                                    <input type="radio" name="student_{{ row.enrollment.id }}_status" value="{{ status_value }}" {% if row.normalized_status == status_value %}checked{% endif %}>
+                                    <span>{{ status_label }}</span>
+                                </label>
+                                {% endfor %}
+                                {% else %}
+                                {% for status_value, status_label in status_choices %}
+                                <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}">
+                                    <input type="radio" name="guest_status_{{ row.row_key }}" value="{{ status_value }}" {% if row.normalized_status == status_value %}checked{% endif %}>
+                                    <span>{{ status_label }}</span>
+                                </label>
+                                {% endfor %}
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                {% if row.row_type == 'enrollment' %}
+                                <input type="text" name="student_{{ row.enrollment.id }}_notes" class="form-control qa-note" value="{{ row.notes_field.value|default_if_none:'' }}" placeholder="ملاحظة إضافية إن وجدت">
+                                {% else %}
+                                <input type="text" name="guest_notes_{{ row.row_key }}" class="form-control qa-note" value="{{ row.guest_record.notes|default_if_none:'' }}" placeholder="ملاحظة إضافية إن وجدت">
+                                {% endif %}
+                            </div>
+                        </div>
+                    </article>
+                    {% empty %}
+                    <div class="qa-empty">لا يوجد طلاب ضمن هذا اليوم حاليًا.</div>
+                    {% endfor %}
+                </div>
+
+                <div class="qa-actions">
+                    <div class="qa-bulk">
+                        <button type="button" class="btn btn-outline-success" data-bulk-status="present">تحديد الكل حاضر</button>
+                        <button type="button" class="btn btn-outline-danger" data-bulk-status="absent">تحديد الكل غائب</button>
+                    </div>
+                    <button type="submit" class="btn btn-success qa-save-btn">حفظ حضور اليوم {{ selected_day_number }}</button>
+                </div>
+            </form>
+        </section>
     </div>
 </div>
+
+<template id="guestRowTemplate">
+    <article class="qa-row is-present attendance-row" data-row-key="" data-is-extra="true">
+        <div class="qa-row-top">
+            <div class="qa-index attendance-row-index"></div>
+            <div>
+                <input type="hidden" name="guest_row_keys" value="" class="guest-key-hidden">
+                <input type="hidden" name="" value="" class="guest-name-hidden">
+                <div class="qa-name">
+                    <i class="fas fa-user-plus"></i>
+                    <span class="qa-name-text"></span>
+                </div>
+                <div class="qa-meta">اسم مضاف يدويًا لهذا اليوم فقط</div>
+                <div class="qa-badges">
+                    <span class="qa-badge extra">إضافة يدوية مؤقتة</span>
+                </div>
+            </div>
+            <div>
+                <button type="button" class="btn btn-outline-danger qa-remove remove-extra-row">إزالة</button>
+            </div>
+        </div>
+
+        <div class="qa-controls">
+            <div class="qa-toggle">
+                <label class="qa-choice active" data-status="present">
+                    <input type="radio" value="present">
+                    <span>حاضر</span>
+                </label>
+                <label class="qa-choice" data-status="absent">
+                    <input type="radio" value="absent">
+                    <span>غائب</span>
+                </label>
+            </div>
+            <div>
+                <input type="text" class="form-control qa-note" placeholder="ملاحظة إضافية إن وجدت">
+            </div>
+        </div>
+    </article>
+</template>
+
+<script>
+(function(){
+    const input = document.getElementById('extraGuestNameInput');
+    const addBtn = document.getElementById('addExtraGuestBtn');
+    const list = document.getElementById('attendanceList');
+    const template = document.getElementById('guestRowTemplate');
+    let guestCounter = 0;
+
+    function rows(){
+        return Array.from(list.querySelectorAll('.attendance-row'));
+    }
+
+    function summaryNodes(){
+        return {
+            extra: document.getElementById('extraCount'),
+            total: document.getElementById('totalCount'),
+            sExtra: document.getElementById('summaryExtra'),
+            sTotal: document.getElementById('summaryTotal'),
+        };
+    }
+
+    function refreshIndexes(){
+        rows().forEach((row, index) => {
+            row.querySelectorAll('.attendance-row-index').forEach(node => {
+                node.textContent = index + 1;
+            });
+        });
+    }
+
+    function refreshSummary(){
+        const allRows = rows();
+        const extraRows = allRows.filter(row => row.dataset.isExtra === 'true').length;
+        const nodes = summaryNodes();
+        if (nodes.extra) nodes.extra.textContent = extraRows;
+        if (nodes.sExtra) nodes.sExtra.textContent = extraRows;
+        if (nodes.total) nodes.total.textContent = allRows.length;
+        if (nodes.sTotal) nodes.sTotal.textContent = allRows.length;
+    }
+
+    function setStatus(row, status){
+        row.classList.remove('is-present', 'is-absent');
+        row.classList.add(status === 'present' ? 'is-present' : 'is-absent');
+        row.querySelectorAll('.qa-choice').forEach(choice => {
+            const active = choice.dataset.status === status;
+            choice.classList.toggle('active', active);
+            const radio = choice.querySelector('input[type="radio"]');
+            if (radio) radio.checked = active;
+        });
+    }
+
+    function bindRow(row){
+        const rowKey = row.dataset.rowKey || row.dataset.enrollmentId;
+
+        row.querySelectorAll('.qa-choice').forEach(choice => {
+            choice.addEventListener('click', function(){
+                setStatus(row, this.dataset.status);
+            });
+        });
+
+        row.querySelectorAll('.remove-extra-row').forEach(button => {
+            button.addEventListener('click', function(){
+                row.remove();
+                refreshIndexes();
+                refreshSummary();
+            });
+        });
+
+        row.querySelectorAll('.qa-note').forEach(note => {
+            note.addEventListener('input', function(){
+                const peer = list.querySelector(`.attendance-row[data-row-key="${rowKey}"] .qa-note`);
+                if (peer && peer !== this && peer.value !== this.value) {
+                    peer.value = this.value;
+                }
+            });
+        });
+    }
+
+    function addGuestRow(){
+        const fullName = (input.value || '').trim();
+        if (!fullName) return;
+
+        guestCounter += 1;
+        const rowKey = `guest-new-${Date.now()}-${guestCounter}`;
+        const fragment = template.content.cloneNode(true);
+        const row = fragment.querySelector('.attendance-row');
+
+        row.dataset.rowKey = rowKey;
+        row.querySelector('.guest-key-hidden').value = rowKey;
+
+        const hiddenName = row.querySelector('.guest-name-hidden');
+        hiddenName.name = `guest_name_${rowKey}`;
+        hiddenName.value = fullName;
+
+        row.querySelector('.qa-name-text').textContent = fullName;
+
+        const note = row.querySelector('.qa-note');
+        note.name = `guest_notes_${rowKey}`;
+
+        row.querySelectorAll('.qa-choice input').forEach(radio => {
+            radio.name = `guest_status_${rowKey}`;
+            radio.checked = radio.value === 'present';
+        });
+
+        const emptyNode = list.querySelector('.qa-empty');
+        if (emptyNode) emptyNode.remove();
+
+        list.appendChild(fragment);
+        const inserted = list.querySelector(`.attendance-row[data-row-key="${rowKey}"]`);
+        bindRow(inserted);
+        setStatus(inserted, 'present');
+        input.value = '';
+        refreshIndexes();
+        refreshSummary();
+    }
+
+    document.querySelectorAll('[data-bulk-status]').forEach(button => {
+        button.addEventListener('click', function(){
+            const status = this.dataset.bulkStatus;
+            rows().forEach(row => setStatus(row, status));
+        });
+    });
+
+    if (addBtn) {
+        addBtn.addEventListener('click', addGuestRow);
+    }
+
+    if (input) {
+        input.addEventListener('keydown', function(event){
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addGuestRow();
+            }
+        });
+    }
+
+    rows().forEach(bindRow);
+    refreshIndexes();
+    refreshSummary();
+})();
+</script>
 {% endblock %}

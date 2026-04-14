@@ -1,259 +1,342 @@
 {% extends 'accounts/base.html' %}
 
-
 {% load emp_perms %}
 {% load student_filters %}
 {% block title %}{{ journal_entry.reference }} - تفاصيل القيد / Journal Entry Details{% endblock %}
 
+{% block extra_css %}
+<style>
+.journal-entry-detail-page {
+    display: grid;
+    gap: 1rem;
+}
+
+.journal-entry-detail-page .card {
+    border: 0;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 22px 48px rgba(15, 23, 42, 0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(247,250,255,.95));
+}
+
+.journal-entry-detail-page h2,
+.journal-entry-detail-page .card-title,
+.journal-entry-detail-page h6,
+.journal-entry-detail-page th,
+.journal-entry-detail-page strong,
+.journal-entry-detail-page .fw-bold {
+    color: #16324f;
+}
+
+.journal-entry-detail-page .breadcrumb,
+.journal-entry-detail-page td,
+.journal-entry-detail-page p,
+.journal-entry-detail-page small,
+.journal-entry-detail-page .text-muted {
+    color: #5b6b82 !important;
+}
+
+.journal-entry-detail-page .table tbody td a:not(.btn),
+.journal-entry-detail-page .list-group-item a:not(.btn),
+.journal-entry-detail-page .breadcrumb a {
+    color: #10243d !important;
+    text-decoration: none !important;
+    font-weight: 800;
+}
+
+.journal-entry-detail-page .table tbody td a:not(.btn):hover,
+.journal-entry-detail-page .list-group-item a:not(.btn):hover,
+.journal-entry-detail-page .breadcrumb a:hover {
+    color: #0b5ed7 !important;
+}
+
+.journal-entry-detail-page .table-light th {
+    background: linear-gradient(180deg, #17324e, #12243b) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+.journal-entry-detail-page .table-dark th,
+.journal-entry-detail-page .table-dark td {
+    background: linear-gradient(180deg, #16324f, #10243d) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+.journal-entry-detail-page .badge.bg-warning {
+    color: #2f2416 !important;
+    background: linear-gradient(135deg, #f6d365, #f3b53f) !important;
+}
+
+.journal-entry-detail-page .bg-light {
+    background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,246,255,.92)) !important;
+    color: #16324f !important;
+}
+
+.journal-entry-detail-page .list-group-item {
+    background: transparent;
+    border-color: rgba(95, 121, 196, 0.12);
+}
+
+.journal-entry-detail-page .alert-info {
+    color: #0f4c81 !important;
+    background: rgba(66, 197, 255, 0.12) !important;
+    border-color: rgba(66, 197, 255, 0.22) !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>{{ journal_entry.reference }} - تفاصيل القيد / Journal Entry Details</h2>
-    <div>
-        {% if request.user.is_superuser %}
-        <form method="post" action="{% url 'accounts:fix_single_journal_mojibake' journal_entry.pk %}" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-warning"
-                    onclick="return confirm('سيتم إصلاح النصوص العربية المعطوبة في هذا القيد ومعاملاته فقط. هل تريد المتابعة؟')">
-                <i class="fas fa-language"></i> إصلاح هذا القيد
-            </button>
-        </form>
-        {% endif %}
-        {% if not journal_entry.is_posted %}
-        <a href="{% url 'accounts:journal_entry_update' journal_entry.pk %}" class="btn btn-primary">
-            <i class="fas fa-edit"></i> تعديل / Edit
-        </a>
-        <form method="post" action="{% url 'accounts:journal_entry_post' journal_entry.pk %}" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-success" 
-                    onclick="return confirm('هل أنت متأكد من ترحيل هذا القيد؟ / Are you sure you want to post this entry?')">
-                <i class="fas fa-check"></i> ترحيل / Post
-            </button>
-        </form>
-        {% else %}
-        <span class="badge bg-success fs-6">مرحل / Posted</span>
-        {% endif %}
+<div class="journal-entry-detail-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ journal_entry.reference }} - تفاصيل القيد / Journal Entry Details</h2>
+        <div>
+            {% if request.user.is_superuser %}
+            <form method="post" action="{% url 'accounts:fix_single_journal_mojibake' journal_entry.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning"
+                        onclick="return confirm('سيتم إصلاح النصوص العربية المعطوبة في هذا القيد ومعاملاته فقط. هل تريد المتابعة؟')">
+                    <i class="fas fa-language"></i> إصلاح هذا القيد
+                </button>
+            </form>
+            {% endif %}
+            {% if not journal_entry.is_posted %}
+            <a href="{% url 'accounts:journal_entry_update' journal_entry.pk %}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> تعديل / Edit
+            </a>
+            <form method="post" action="{% url 'accounts:journal_entry_post' journal_entry.pk %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success"
+                        onclick="return confirm('هل أنت متأكد من ترحيل هذا القيد؟ / Are you sure you want to post this entry?')">
+                    <i class="fas fa-check"></i> ترحيل / Post
+                </button>
+            </form>
+            {% else %}
+            <span class="badge bg-success fs-6">مرحل / Posted</span>
+            {% endif %}
+        </div>
     </div>
-</div>
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'accounts:journal_entry_list' %}">قيود اليومية / Journal Entries</a></li>
-        <li class="breadcrumb-item active">{{ journal_entry.reference }}</li>
-    </ol>
-</nav>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'accounts:journal_entry_list' %}">قيود اليومية / Journal Entries</a></li>
+            <li class="breadcrumb-item active">{{ journal_entry.reference }}</li>
+        </ol>
+    </nav>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">معلومات القيد / Entry Information</h5>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <table class="table table-borderless">
-                            <tr>
-                                <th>المرجع / Reference:</th>
-                                <td><strong>{{ journal_entry.reference }}</strong></td>
-                            </tr>
-                            <tr>
-                                <th>التاريخ / Date:</th>
-                                <td>{{ journal_entry.date }}</td>
-                            </tr>
-                            <tr>
-                                <th>المبلغ الإجمالي / Total Amount:</th>
-                                <td><strong>{{ journal_entry.total_amount|floatformat:2 }}</strong></td>
-                            </tr>
-                        </table>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">معلومات القيد / Entry Information</h5>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th>المرجع / Reference:</th>
+                                    <td><strong>{{ journal_entry.reference }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>التاريخ / Date:</th>
+                                    <td>{{ journal_entry.date }}</td>
+                                </tr>
+                                <tr>
+                                    <th>المبلغ الإجمالي / Total Amount:</th>
+                                    <td><strong>{{ journal_entry.total_amount|floatformat:2 }}</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th>الحالة / Status:</th>
+                                    <td>
+                                        {% if journal_entry.is_posted %}
+                                            <span class="badge bg-success">مرحل / Posted</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">غير مرحل / Unposted</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>أنشأ بواسطة / Created By:</th>
+                                    <td>{{ journal_entry.created_by.get_full_name|default:journal_entry.created_by.username }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ الإنشاء / Created At:</th>
+                                    <td>{{ journal_entry.created_at|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
-                    
-                    <div class="col-md-6">
-                        <table class="table table-borderless">
-                            <tr>
-                                <th>الحالة / Status:</th>
-                                <td>
-                                    {% if journal_entry.is_posted %}
-                                        <span class="badge bg-success">مرحل / Posted</span>
-                                    {% else %}
-                                        <span class="badge bg-warning">غير مرحل / Unposted</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>أنشأ بواسطة / Created By:</th>
-                                <td>{{ journal_entry.created_by.get_full_name|default:journal_entry.created_by.username }}</td>
-                            </tr>
-                            <tr>
-                                <th>تاريخ الإنشاء / Created At:</th>
-                                <td>{{ journal_entry.created_at|date:"Y-m-d H:i" }}</td>
-                            </tr>
-                        </table>
+
+                    <div class="mt-3">
+                        <h6>الوصف / Description:</h6>
+                        <p class="text-muted">{{ journal_entry.description|fix_arabic_text }}</p>
                     </div>
                 </div>
-                
-                <div class="mt-3">
-                    <h6>الوصف / Description:</h6>
-                    <p class="text-muted">{{ journal_entry.description|fix_arabic_text }}</p>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">المعاملات / Transactions</h5>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الحساب / Account</th>
+                                    <th>الوصف / Description</th>
+                                    <th class="text-center">مدين / Debit</th>
+                                    <th class="text-center">دائن / Credit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ transaction.account.get_absolute_url }}" class="text-decoration-none">
+                                            <strong>{{ transaction.account.code }}</strong>
+                                            <br>
+                                            <small>{{ transaction.account.display_name }}</small>
+                                        </a>
+                                    </td>
+                                    <td>{{ transaction.description|fix_arabic_text|default:"-" }}</td>
+                                    <td class="text-center">
+                                        {% if transaction.is_debit %}
+                                            <strong class="text-success">{{ transaction.amount|floatformat:2 }}</strong>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if not transaction.is_debit %}
+                                            <strong class="text-danger">{{ transaction.amount|floatformat:2 }}</strong>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-dark">
+                                <tr>
+                                    <th colspan="2">الإجمالي / Total</th>
+                                    <th class="text-center">{{ journal_entry.get_total_debits|floatformat:2 }}</th>
+                                    <th class="text-center">{{ journal_entry.get_total_credits|floatformat:2 }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="card mt-3">
-            <div class="card-body">
-                <h5 class="card-title">المعاملات / Transactions</h5>
-                
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>الحساب / Account</th>
-                                <th>الوصف / Description</th>
-                                <th class="text-center">مدين / Debit</th>
-                                <th class="text-center">دائن / Credit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for transaction in transactions %}
-                            <tr>
-                                <td>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">ملخص القيد / Entry Summary</h5>
+
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border rounded p-2 mb-2">
+                                <small class="text-muted">إجمالي المدين / Total Debits</small>
+                                <div class="fw-bold text-success">{{ journal_entry.get_total_debits|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 mb-2">
+                                <small class="text-muted">إجمالي الدائن / Total Credits</small>
+                                <div class="fw-bold text-danger">{{ journal_entry.get_total_credits|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="border rounded p-2 bg-light">
+                            <small class="text-muted">حالة التوازن / Balance Status</small>
+                            <div class="fw-bold">
+                                {% if journal_entry.is_balanced %}
+                                    <span class="text-success">
+                                        <i class="fas fa-check-circle"></i> متوازن / Balanced
+                                    </span>
+                                {% else %}
+                                    <span class="text-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> غير متوازن / Unbalanced
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">إجراءات / Actions</h5>
+
+                    <div class="d-grid gap-2">
+                        {% if not journal_entry.is_posted %}
+                        <a href="{% url 'accounts:journal_entry_update' journal_entry.pk %}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> تعديل القيد / Edit Entry
+                        </a>
+
+                        <form method="post" action="{% url 'accounts:journal_entry_post' journal_entry.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success w-100"
+                                    onclick="return confirm('هل أنت متأكد من ترحيل هذا القيد؟ / Are you sure you want to post this entry?')">
+                                <i class="fas fa-check"></i> ترحيل القيد / Post Entry
+                            </button>
+                        </form>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-lock"></i>
+                            هذا القيد مرحل ولا يمكن تعديله
+                            <br>
+                            <small>This entry is posted and cannot be modified</small>
+                        </div>
+                        {% endif %}
+
+                        <a href="{% url 'accounts:journal_entry_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-list"></i> قائمة القيود / Entry List
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">الحسابات المتأثرة / Affected Accounts</h5>
+
+                    <div class="list-group list-group-flush">
+                        {% for transaction in transactions %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
                                     <a href="{{ transaction.account.get_absolute_url }}" class="text-decoration-none">
                                         <strong>{{ transaction.account.code }}</strong>
                                         <br>
                                         <small>{{ transaction.account.display_name }}</small>
                                     </a>
-                                </td>
-                                <td>{{ transaction.description|fix_arabic_text|default:"-" }}</td>
-                                <td class="text-center">
+                                </div>
+                                <div class="text-end">
                                     {% if transaction.is_debit %}
-                                        <strong class="text-success">{{ transaction.amount|floatformat:2 }}</strong>
+                                        <span class="text-success">مدين / Dr</span>
+                                        <br>
+                                        <strong>{{ transaction.amount|floatformat:2 }}</strong>
                                     {% else %}
-                                        -
+                                        <span class="text-danger">دائن / Cr</span>
+                                        <br>
+                                        <strong>{{ transaction.amount|floatformat:2 }}</strong>
                                     {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    {% if not transaction.is_debit %}
-                                        <strong class="text-danger">{{ transaction.amount|floatformat:2 }}</strong>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                        <tfoot class="table-dark">
-                            <tr>
-                                <th colspan="2">الإجمالي / Total</th>
-                                <th class="text-center">{{ journal_entry.get_total_debits|floatformat:2 }}</th>
-                                <th class="text-center">{{ journal_entry.get_total_credits|floatformat:2 }}</th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">ملخص القيد / Entry Summary</h5>
-                
-                <div class="row text-center">
-                    <div class="col-6">
-                        <div class="border rounded p-2 mb-2">
-                            <small class="text-muted">إجمالي المدين / Total Debits</small>
-                            <div class="fw-bold text-success">{{ journal_entry.get_total_debits|floatformat:2 }}</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="border rounded p-2 mb-2">
-                            <small class="text-muted">إجمالي الدائن / Total Credits</small>
-                            <div class="fw-bold text-danger">{{ journal_entry.get_total_credits|floatformat:2 }}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="text-center">
-                    <div class="border rounded p-2 bg-light">
-                        <small class="text-muted">حالة التوازن / Balance Status</small>
-                        <div class="fw-bold">
-                            {% if journal_entry.is_balanced %}
-                                <span class="text-success">
-                                    <i class="fas fa-check-circle"></i> متوازن / Balanced
-                                </span>
-                            {% else %}
-                                <span class="text-danger">
-                                    <i class="fas fa-exclamation-triangle"></i> غير متوازن / Unbalanced
-                                </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card mt-3">
-            <div class="card-body">
-                <h5 class="card-title">إجراءات / Actions</h5>
-                
-                <div class="d-grid gap-2">
-                    {% if not journal_entry.is_posted %}
-                    <a href="{% url 'accounts:journal_entry_update' journal_entry.pk %}" class="btn btn-primary">
-                        <i class="fas fa-edit"></i> تعديل القيد / Edit Entry
-                    </a>
-                    
-                    <form method="post" action="{% url 'accounts:journal_entry_post' journal_entry.pk %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-success w-100" 
-                                onclick="return confirm('هل أنت متأكد من ترحيل هذا القيد؟ / Are you sure you want to post this entry?')">
-                            <i class="fas fa-check"></i> ترحيل القيد / Post Entry
-                        </button>
-                    </form>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-lock"></i>
-                        هذا القيد مرحل ولا يمكن تعديله
-                        <br>
-                        <small>This entry is posted and cannot be modified</small>
-                    </div>
-                    {% endif %}
-                    
-                    <a href="{% url 'accounts:journal_entry_list' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-list"></i> قائمة القيود / Entry List
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card mt-3">
-            <div class="card-body">
-                <h5 class="card-title">الحسابات المتأثرة / Affected Accounts</h5>
-                
-                <div class="list-group list-group-flush">
-                    {% for transaction in transactions %}
-                    <div class="list-group-item px-0">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <a href="{{ transaction.account.get_absolute_url }}" class="text-decoration-none">
-                                    <strong>{{ transaction.account.code }}</strong>
-                                    <br>
-                                    <small>{{ transaction.account.display_name }}</small>
-                                </a>
-                            </div>
-                            <div class="text-end">
-                                {% if transaction.is_debit %}
-                                    <span class="text-success">مدين / Dr</span>
-                                    <br>
-                                    <strong>{{ transaction.amount|floatformat:2 }}</strong>
-                                {% else %}
-                                    <span class="text-danger">دائن / Cr</span>
-                                    <br>
-                                    <strong>{{ transaction.amount|floatformat:2 }}</strong>
-                                {% endif %}
+                                </div>
                             </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
             </div>
         </div>

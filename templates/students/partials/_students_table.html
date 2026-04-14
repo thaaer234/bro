@@ -27,9 +27,9 @@
                 <td>
                     <strong>
                     {% if student.student_type == 'QUICK' or student.is_quick_student %}
-                        <a href="{% url 'quick:student_profile' student.id %}">{{ student.full_name }}</a>
+                        <a href="{% url 'quick:student_profile' student.id %}" class="student-name-link">{{ student.full_name }}</a>
                     {% else %}
-                        <a href="{% url 'students:student_profile' student.id %}">{{ student.full_name }}</a>
+                        <a href="{% url 'students:student_profile' student.id %}" class="student-name-link">{{ student.full_name }}</a>
                     {% endif %}
                     </strong>
                 </td>

@@ -322,37 +322,53 @@ body.app-body .login-screen {
 }
 
 body.app-body {
-    --student-name-color: #122b33;
-    --student-name-hover: #0f766e;
-    --student-name-shadow: rgba(15, 118, 110, 0.10);
+    --student-name-color: #0f2540;
+    --student-name-hover: #0b5ed7;
+    --student-name-shadow: rgba(11, 94, 215, 0.12);
 }
 
 body.app-body .student-card__name,
 body.app-body .student-name,
+body.app-body .student-name-link,
+body.app-body .student-display-name,
 body.app-body .student-card .name,
+body.app-body .table tbody td .fw-bold.student-name,
+body.app-body .table tbody td .fw-bold.student-display-name,
 body.app-body .table tbody td strong > a:not(.btn),
 body.app-body .table tbody td > a.fw-bold:not(.btn),
+body.app-body .table tbody td > a.student-name-link:not(.btn),
 body.app-body .table tbody td a.text-decoration-none.fw-bold:not(.btn),
 body.app-body a[href*="/students/"][href*="/profile/"]:not(.btn):not(.nav-link),
 body.app-body a[href*="/quick/student/"][href*="/profile/"]:not(.btn):not(.nav-link) {
     color: var(--student-name-color) !important;
     font-weight: 800 !important;
     text-decoration: none !important;
+    letter-spacing: -0.01em;
 }
 
 body.app-body .student-card__name:hover,
 body.app-body .student-name:hover,
+body.app-body .student-name-link:hover,
+body.app-body .student-display-name:hover,
 body.app-body .student-card .name:hover,
+body.app-body .table tbody td .fw-bold.student-name:hover,
+body.app-body .table tbody td .fw-bold.student-display-name:hover,
 body.app-body .table tbody td strong > a:not(.btn):hover,
 body.app-body .table tbody td > a.fw-bold:not(.btn):hover,
+body.app-body .table tbody td > a.student-name-link:not(.btn):hover,
 body.app-body .table tbody td a.text-decoration-none.fw-bold:not(.btn):hover,
 body.app-body a[href*="/students/"][href*="/profile/"]:not(.btn):not(.nav-link):hover,
 body.app-body a[href*="/quick/student/"][href*="/profile/"]:not(.btn):not(.nav-link):hover,
 body.app-body .student-card__name:focus-visible,
 body.app-body .student-name:focus-visible,
+body.app-body .student-name-link:focus-visible,
+body.app-body .student-display-name:focus-visible,
 body.app-body .student-card .name:focus-visible,
+body.app-body .table tbody td .fw-bold.student-name:focus-visible,
+body.app-body .table tbody td .fw-bold.student-display-name:focus-visible,
 body.app-body .table tbody td strong > a:not(.btn):focus-visible,
 body.app-body .table tbody td > a.fw-bold:not(.btn):focus-visible,
+body.app-body .table tbody td > a.student-name-link:not(.btn):focus-visible,
 body.app-body .table tbody td a.text-decoration-none.fw-bold:not(.btn):focus-visible,
 body.app-body a[href*="/students/"][href*="/profile/"]:not(.btn):not(.nav-link):focus-visible,
 body.app-body a[href*="/quick/student/"][href*="/profile/"]:not(.btn):not(.nav-link):focus-visible {

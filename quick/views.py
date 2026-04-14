@@ -33,6 +33,7 @@ from .forms import (
     _normalize_quick_phone,
 )
 from collections import defaultdict
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from itertools import combinations
 from math import ceil
@@ -3571,6 +3572,16 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
         raise ValueError('هذه الدورة مسحوبة مسبقاً')
 
     with transaction.atomic():
+        assignment = getattr(enrollment, 'session_assignment', None)
+        assignment_session_title = ''
+        if assignment and getattr(assignment, 'session', None):
+            assignment_session_title = assignment.session.title or ''
+
+        if assignment is not None:
+            assignment.delete()
+
+        _sync_quick_manual_sorting_selection(enrollment=enrollment, session=None, user=user)
+
         paid_total = QuickStudentReceipt.objects.filter(
             quick_student=student,
             quick_enrollment=enrollment,
@@ -3600,6 +3611,8 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
         'actual_refund': actual_refund,
         'student_name': student.full_name,
         'course_name': enrollment.course.name,
+        'assignment_cleared': bool(assignment_session_title),
+        'cleared_session_title': assignment_session_title,
         'created_entry_ids': [entry.id for entry in created_entries],
     }
 
@@ -5447,6 +5460,60 @@ def _sessions_conflict(first_session, second_session):
     )
 
 
+def _build_quick_conflict_summary(first_session, second_session):
+    return (
+        f"{first_session.course.name} / {first_session.title} "
+        f"متعارض مع {second_session.course.name} / {second_session.title}"
+    )
+
+
+def _build_quick_conflict_resolution(first_session, second_session):
+    today = timezone.localdate()
+
+    def is_live(session):
+        return session.start_date <= today <= session.end_date
+
+    first_is_live = is_live(first_session)
+    second_is_live = is_live(second_session)
+    first_options = first_session.course.active_sessions_count
+    second_options = second_session.course.active_sessions_count
+
+    move_session = second_session
+    keep_session = first_session
+    reason = 'لأن الحل الأسرع عادة هو تثبيت الطالب على أحد الكلاسين ثم نقله من الكلاس الآخر إلى بديل غير متقاطع.'
+
+    if first_is_live and not second_is_live:
+        keep_session = first_session
+        move_session = second_session
+        reason = 'لأن هذا الكلاس جارٍ حالياً، فالأفضل الحفاظ عليه والبحث عن بديل للكلاس الآخر.'
+    elif second_is_live and not first_is_live:
+        keep_session = second_session
+        move_session = first_session
+        reason = 'لأن هذا الكلاس جارٍ حالياً، فالأفضل الحفاظ عليه والبحث عن بديل للكلاس الآخر.'
+    elif first_session.start_date < second_session.start_date:
+        keep_session = first_session
+        move_session = second_session
+        reason = 'لأن هذا الكلاس بدأ أبكر، وغالباً تغييره يربك حضور الطالب أكثر من نقل الكلاس اللاحق.'
+    elif second_session.start_date < first_session.start_date:
+        keep_session = second_session
+        move_session = first_session
+        reason = 'لأن هذا الكلاس بدأ أبكر، وغالباً تغييره يربك حضور الطالب أكثر من نقل الكلاس اللاحق.'
+    elif first_options > second_options:
+        keep_session = second_session
+        move_session = first_session
+        reason = 'لأن هذه الدورة فيها خيارات صفوف أكثر، وبالتالي احتمال إيجاد بديل غير متقاطع فيها أعلى.'
+    elif second_options > first_options:
+        keep_session = first_session
+        move_session = second_session
+        reason = 'لأن هذه الدورة فيها خيارات صفوف أكثر، وبالتالي احتمال إيجاد بديل غير متقاطع فيها أعلى.'
+
+    return (
+        f"أفضل حل: تثبيت الطالب في {keep_session.course.name} / {keep_session.title}، "
+        f"ثم محاولة نقله من {move_session.course.name} / {move_session.title} إلى كلاس بديل غير متقاطع. "
+        f"{reason}"
+    )
+
+
 def _build_quick_session_conflict_report(course_type='ALL', selected_course_ids=None):
     courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
     if course_type != 'ALL':
@@ -5514,6 +5581,8 @@ def _build_quick_session_conflict_report(course_type='ALL', selected_course_ids=
                 'overlap_end_date': overlap_end_date,
                 'overlap_start_time': overlap_start_time,
                 'overlap_end_time': overlap_end_time,
+                'conflict_summary': _build_quick_conflict_summary(first_session, second_session),
+                'recommended_resolution': _build_quick_conflict_resolution(first_session, second_session),
             }
             conflict_rows.append(row)
             student_conflicts.append(row)
@@ -6439,6 +6508,21 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
 
     def _resolve_attendance_date(self, session):
         today = timezone.localdate()
+        raw_day_number = self.request.GET.get('day') or self.request.POST.get('day_number')
+        if raw_day_number:
+            try:
+                day_number = int(raw_day_number)
+            except (TypeError, ValueError):
+                day_number = None
+            if day_number:
+                day_number = max(1, min(day_number, session.total_days or 1))
+                attendance_date = session.start_date + timedelta(days=day_number - 1)
+                if attendance_date > today:
+                    attendance_date = today
+                if attendance_date > session.end_date:
+                    attendance_date = session.end_date
+                return attendance_date
+
         raw_value = self.request.GET.get('date') or self.request.POST.get('attendance_date')
         attendance_date = parse_date(raw_value) if raw_value else today
         if attendance_date is None:
@@ -6451,79 +6535,191 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
             attendance_date = session.end_date
         return attendance_date
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        session = self._get_session()
-        attendance_date = self._resolve_attendance_date(session)
-        assignments = list(
+    def _get_assignments(self, session):
+        return list(
             session.session_enrollments.select_related('enrollment__student')
             .order_by('enrollment__student__full_name')
         )
+
+    def _get_available_enrollments(self, session):
+        return list(
+            QuickEnrollment.objects.filter(
+                course=session.course,
+                is_completed=False,
+                student__is_active=True,
+            )
+            .select_related('student')
+            .order_by('student__full_name', 'id')
+        )
+
+    def _build_attendance_context(self, session, attendance_date, form=None):
+        assignments = self._get_assignments(session)
+        available_enrollments = self._get_available_enrollments(session)
+        assigned_ids = {assignment.enrollment_id for assignment in assignments}
+
         records = {
             record.enrollment_id: record
-            for record in session.attendance_records.filter(attendance_date=attendance_date)
+            for record in session.attendance_records.filter(attendance_date=attendance_date).select_related('enrollment__student')
         }
-        form = QuickSessionAttendanceBulkForm(
-            initial={'attendance_date': attendance_date},
-            session=session,
-            assignments=assignments,
+        guest_attendance_ready = True
+        try:
+            guest_records = list(
+                session.guest_attendance_records.filter(attendance_date=attendance_date).order_by('id')
+            )
+        except OperationalError:
+            guest_records = []
+            guest_attendance_ready = False
+        extra_enrollments = sorted(
+            [record.enrollment for enrollment_id, record in records.items() if enrollment_id not in assigned_ids],
+            key=lambda enrollment: (enrollment.student.full_name or '', enrollment.id),
         )
-        for assignment in assignments:
-            record = records.get(assignment.enrollment_id)
-            if not record:
-                continue
-            prefix = f"student_{assignment.enrollment_id}"
-            form.fields[f"{prefix}_status"].initial = record.status
-            form.fields[f"{prefix}_notes"].initial = record.notes
+        displayed_enrollments = [assignment.enrollment for assignment in assignments] + extra_enrollments
+
+        if form is None:
+            form = QuickSessionAttendanceBulkForm(
+                initial={'attendance_date': attendance_date},
+                session=session,
+                enrollments=displayed_enrollments,
+            )
+            for enrollment in displayed_enrollments:
+                record = records.get(enrollment.id)
+                if not record:
+                    continue
+                prefix = f"student_{enrollment.id}"
+                form.fields[f"{prefix}_status"].initial = 'present' if record.status == 'present' else 'absent'
+                form.fields[f"{prefix}_notes"].initial = record.notes
 
         attendance_rows = []
-        for assignment in assignments:
-            prefix = f"student_{assignment.enrollment_id}"
+        for enrollment in displayed_enrollments:
+            prefix = f"student_{enrollment.id}"
+            record = records.get(enrollment.id)
+            normalized_status = 'present' if not record or record.status == 'present' else 'absent'
             attendance_rows.append({
-                'assignment': assignment,
+                'row_type': 'enrollment',
+                'row_key': f"enrollment-{enrollment.id}",
+                'enrollment': enrollment,
+                'record': record,
+                'normalized_status': normalized_status,
+                'is_assigned': enrollment.id in assigned_ids,
+                'is_extra': enrollment.id not in assigned_ids,
                 'status_field': form[f"{prefix}_status"],
                 'notes_field': form[f"{prefix}_notes"],
             })
 
-        context.update({
+        for guest_record in guest_records:
+            attendance_rows.append({
+                'row_type': 'guest',
+                'row_key': f"guest-{guest_record.id}",
+                'guest_record': guest_record,
+                'normalized_status': 'present' if guest_record.status == 'present' else 'absent',
+                'is_assigned': False,
+                'is_extra': True,
+            })
+
+        candidate_enrollments = [enrollment for enrollment in available_enrollments if enrollment.id not in {item.id for item in displayed_enrollments}]
+        selected_day_number = session.get_day_number_for_date(attendance_date) or 1
+        today = timezone.localdate()
+        day_options = []
+        for day_number in range(1, (session.total_days or 0) + 1):
+            day_date = session.start_date + timedelta(days=day_number - 1)
+            is_future = day_date > today
+            saved_count = sum(1 for record in records.values() if record.day_number == day_number)
+            day_options.append({
+                'number': day_number,
+                'date': day_date,
+                'is_selected': day_number == selected_day_number,
+                'is_future': is_future,
+                'saved_count': saved_count if day_number == selected_day_number else None,
+                'url': f"{reverse('quick:course_session_attendance', kwargs={'session_id': session.id})}?day={day_number}",
+            })
+
+        return {
             'session': session,
             'course': session.course,
             'attendance_form': form,
             'assignments': assignments,
             'attendance_rows': attendance_rows,
             'attendance_date': attendance_date,
-            'day_number': session.get_day_number_for_date(attendance_date),
-            'today': timezone.localdate(),
+            'day_number': selected_day_number,
+            'today': today,
             'can_take_attendance': attendance_date >= session.start_date,
             'max_attendance_date': min(timezone.localdate(), session.end_date),
-        })
+            'assigned_count': len(assignments),
+            'extra_count': len(extra_enrollments) + len(guest_records),
+            'saved_records_count': len(records) + len(guest_records),
+            'candidate_enrollments': candidate_enrollments,
+            'guest_attendance_ready': guest_attendance_ready,
+            'status_choices': (
+                ('present', 'حاضر'),
+                ('absent', 'غائب'),
+            ),
+            'day_options': day_options,
+            'selected_day_number': selected_day_number,
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session = self._get_session()
+        attendance_date = self._resolve_attendance_date(session)
+        context.update(self._build_attendance_context(session, attendance_date))
         return context
 
     def post(self, request, *args, **kwargs):
         session = self._get_session()
         attendance_date = self._resolve_attendance_date(session)
-        assignments = list(
-            session.session_enrollments.select_related('enrollment__student')
-            .order_by('enrollment__student__full_name')
-        )
+        assignments = self._get_assignments(session)
         if attendance_date < session.start_date:
             messages.error(request, 'لا يمكن أخذ الحضور قبل بداية الصف.')
             return redirect('quick:course_session_attendance', session_id=session.id)
 
-        form = QuickSessionAttendanceBulkForm(request.POST, session=session, assignments=assignments)
+        available_enrollments = self._get_available_enrollments(session)
+        available_lookup = {enrollment.id: enrollment for enrollment in available_enrollments}
+        assigned_enrollments = [assignment.enrollment for assignment in assignments]
+        assigned_ids = {enrollment.id for enrollment in assigned_enrollments}
+
+        posted_displayed_ids = []
+        for raw_value in request.POST.getlist('displayed_enrollment_ids'):
+            try:
+                enrollment_id = int(raw_value)
+            except (TypeError, ValueError):
+                continue
+            if enrollment_id in available_lookup and enrollment_id not in posted_displayed_ids:
+                posted_displayed_ids.append(enrollment_id)
+
+        displayed_enrollments = list(assigned_enrollments)
+        for enrollment_id in posted_displayed_ids:
+            if enrollment_id in assigned_ids:
+                continue
+            displayed_enrollments.append(available_lookup[enrollment_id])
+
+        form = QuickSessionAttendanceBulkForm(request.POST, session=session, enrollments=displayed_enrollments)
         if not form.is_valid():
-            messages.error(request, 'تعذر حفظ الحضور.')
-            return self.get(request, *args, **kwargs)
+            error_messages = []
+            for field_name, errors in form.errors.items():
+                if field_name == '__all__':
+                    error_messages.extend([str(error) for error in errors])
+                    continue
+                label = form.fields.get(field_name).label if field_name in form.fields else field_name
+                error_messages.extend([f'{label}: {error}' for error in errors])
+            if error_messages:
+                messages.error(request, 'تعذر حفظ الحضور: ' + ' | '.join(error_messages[:6]))
+            else:
+                messages.error(request, 'تعذر حفظ الحضور.')
+            context = self.get_context_data(**kwargs)
+            context.update(self._build_attendance_context(session, attendance_date, form=form))
+            return self.render_to_response(context)
 
         day_number = session.get_day_number_for_date(attendance_date) or 1
         saved = 0
-        for assignment in assignments:
-            prefix = f"student_{assignment.enrollment_id}"
+        desired_enrollment_ids = []
+        for enrollment in displayed_enrollments:
+            prefix = f"student_{enrollment.id}"
             status = form.cleaned_data.get(f"{prefix}_status") or 'present'
+            status = 'present' if status == 'present' else 'absent'
             notes = form.cleaned_data.get(f"{prefix}_notes", '')
             QuickCourseSessionAttendance.objects.update_or_create(
                 session=session,
-                enrollment=assignment.enrollment,
+                enrollment=enrollment,
                 attendance_date=attendance_date,
                 defaults={
                     'day_number': day_number,
@@ -6532,10 +6728,75 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
                     'created_by': request.user,
                 },
             )
+            desired_enrollment_ids.append(enrollment.id)
             saved += 1
 
-        messages.success(request, f'تم حفظ حضور {saved} طالب لليوم رقم {day_number}.')
-        return redirect(f"{reverse('quick:course_session_attendance', kwargs={'session_id': session.id})}?date={attendance_date.isoformat()}")
+        persisted_guest_ids = []
+        guest_save_failed = False
+        try:
+            guest_keys = []
+            for raw_value in request.POST.getlist('guest_row_keys'):
+                row_key = (raw_value or '').strip()
+                if row_key and row_key not in guest_keys:
+                    guest_keys.append(row_key)
+
+            for row_key in guest_keys:
+                full_name = (request.POST.get(f'guest_name_{row_key}') or '').strip()
+                if not full_name:
+                    continue
+                status = request.POST.get(f'guest_status_{row_key}') or 'present'
+                status = 'present' if status == 'present' else 'absent'
+                notes = (request.POST.get(f'guest_notes_{row_key}') or '').strip()
+
+                if row_key.startswith('guest-'):
+                    try:
+                        guest_id = int(row_key.split('-', 1)[1])
+                    except (TypeError, ValueError):
+                        guest_id = None
+                    if guest_id:
+                        guest_record, _ = session.guest_attendance_records.update_or_create(
+                            id=guest_id,
+                            defaults={
+                                'attendance_date': attendance_date,
+                                'day_number': day_number,
+                                'full_name': full_name,
+                                'status': status,
+                                'notes': notes,
+                                'created_by': request.user,
+                            },
+                        )
+                        persisted_guest_ids.append(guest_record.id)
+                        saved += 1
+                        continue
+
+                guest_record = session.guest_attendance_records.create(
+                    attendance_date=attendance_date,
+                    day_number=day_number,
+                    full_name=full_name,
+                    status=status,
+                    notes=notes,
+                    created_by=request.user,
+                )
+                persisted_guest_ids.append(guest_record.id)
+                saved += 1
+        except OperationalError:
+            guest_save_failed = True
+
+        session.attendance_records.filter(attendance_date=attendance_date).exclude(
+            enrollment_id__in=desired_enrollment_ids
+        ).delete()
+        try:
+            session.guest_attendance_records.filter(attendance_date=attendance_date).exclude(
+                id__in=persisted_guest_ids
+            ).delete()
+        except OperationalError:
+            guest_save_failed = True
+
+        if guest_save_failed:
+            messages.warning(request, 'تم حفظ حضور الطلاب الأساسيين، لكن الأسماء اليدوية تحتاج تشغيل migrate أولاً لتعمل بشكل كامل.')
+        else:
+            messages.success(request, f'تم حفظ حضور {saved} طالب لليوم رقم {day_number}.')
+        return redirect(f"{reverse('quick:course_session_attendance', kwargs={'session_id': session.id})}?day={day_number}")
 
 
 class QuickCourseSchedulePrintView(LoginRequiredMixin, TemplateView):
@@ -6623,6 +6884,12 @@ class QuickCourseConflictReportView(LoginRequiredMixin, TemplateView):
             'course_type_choices': [('ALL', 'كل الأنواع')] + list(QuickCourse.COURSE_TYPE_CHOICES),
             'generated_at': timezone.localtime(),
         })
+        _attach_quick_report_urls(
+            context,
+            self.request,
+            'quick:quick_course_conflicts_report',
+            'quick:quick_course_conflicts_report_print',
+        )
         return context
 
 
@@ -6682,6 +6949,45 @@ class QuickFreeStudentsReportPrintView(LoginRequiredMixin, TemplateView):
             self.request,
             'quick:quick_free_students_report',
             'quick:quick_free_students_report_print',
+        )
+        return context
+
+
+class QuickCourseConflictReportPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_conflicts_report_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        selected_ids = []
+        for raw_value in self.request.GET.getlist('course_ids'):
+            try:
+                selected_ids.append(int(raw_value))
+            except (TypeError, ValueError):
+                continue
+        course_type = self.request.GET.get('course_type') or 'ALL'
+        report = _build_quick_session_conflict_report(
+            course_type=course_type,
+            selected_course_ids=selected_ids,
+        )
+        course_type_map = dict(QuickCourse.COURSE_TYPE_CHOICES)
+        context.update({
+            'available_courses': report['courses'],
+            'grouped_students': report['grouped_students'],
+            'conflict_rows': report['conflict_rows'],
+            'unique_students_count': report['unique_students_count'],
+            'unique_courses_count': report['unique_courses_count'],
+            'unique_sessions_count': report['unique_sessions_count'],
+            'total_conflicts': report['total_conflicts'],
+            'selected_course_ids': selected_ids,
+            'selected_course_type': course_type,
+            'course_type_report_label': 'كل الأنواع' if course_type == 'ALL' else course_type_map.get(course_type, course_type),
+            'generated_at': timezone.localtime(),
+        })
+        _attach_quick_report_urls(
+            context,
+            self.request,
+            'quick:quick_course_conflicts_report',
+            'quick:quick_course_conflicts_report_print',
         )
         return context
 
@@ -7729,45 +8035,44 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
         student = self.get_object()
         
         try:
-            # ✅ جلب التسجيلات النشطة فقط
-            active_enrollments_queryset = QuickEnrollment.objects.filter(
-                student=student, 
-                is_completed=False
-            ).select_related('course')
-            
-            # ✅ إنشاء قائمة بالبيانات المحسوبة للتسجيلات النشطة
+            enrollments_queryset = (
+                QuickEnrollment.objects.filter(student=student)
+                .select_related('course', 'session_assignment__session')
+                .order_by('-enrollment_date', '-id')
+            )
+
             enrollment_data = []
-            for enrollment in active_enrollments_queryset:
-                # اربط الدفعات بهذا التسجيل نفسه لمنع خلط إيصالات تسجيل آخر
+            for enrollment in enrollments_queryset:
                 total_paid = _get_quick_enrollment_paid_total(enrollment, student)
-                
                 net_amount = enrollment.net_amount or Decimal('0.00')
                 balance_due = max(Decimal('0.00'), net_amount - total_paid)
-                
+                assignment = getattr(enrollment, 'session_assignment', None)
+                assigned_session = getattr(assignment, 'session', None)
+
                 enrollment_data.append({
                     'enrollment': enrollment,
                     'total_paid': total_paid,
                     'balance_due': balance_due,
                     'net_amount': net_amount,
-                    'is_active': not enrollment.is_completed
+                    'is_active': not enrollment.is_completed,
+                    'assigned_session': assigned_session,
                 })
-            
-            # ✅ حساب الإجماليات
-            total_paid = sum(item['total_paid'] for item in enrollment_data)
-            total_due = sum(item['net_amount'] for item in enrollment_data)
-            total_remaining = total_due - total_paid
-            
-            # ✅ جلب جميع الإيصالات السريعة
+
+            active_enrollment_data = [item for item in enrollment_data if item['is_active']]
+
+            total_paid = sum(item['total_paid'] for item in active_enrollment_data)
+            total_due = sum(item['net_amount'] for item in active_enrollment_data)
+            total_remaining = max(Decimal('0.00'), total_due - total_paid)
+
             receipts = QuickStudentReceipt.objects.filter(
                 quick_student=student
             ).select_related('course').order_by('-date', '-id')
-            
-            # ✅ التحقق من وجود تسجيلات نشطة
-            has_active_enrollments = len(enrollment_data) > 0
-            
+
+            has_active_enrollments = len(active_enrollment_data) > 0
+
             context.update({
                 'enrollment_data': enrollment_data,
-                'active_enrollments': enrollment_data,
+                'active_enrollments': active_enrollment_data,
                 'all_enrollments': enrollment_data,
                 'total_paid': total_paid,
                 'total_due': total_due,
@@ -7859,29 +8164,43 @@ class QuickStudentStatementView(LoginRequiredMixin, DetailView):
             for entry in journal_entries:
                 transactions = list(entry.transactions.select_related('account').all())
                 transactions.sort(key=lambda tx: (not tx.is_debit, tx.id))
+                entry_debit = Decimal('0.00')
+                entry_credit = Decimal('0.00')
+                ar_effect = Decimal('0.00')
+                accounts_touched = []
+
                 for tx in transactions:
                     debit = tx.amount if tx.is_debit else Decimal('0.00')
                     credit = tx.amount if not tx.is_debit else Decimal('0.00')
-                    if student_ar_account and tx.account_id == student_ar_account.id:
-                        running_balance += debit - credit
+                    entry_debit += debit
+                    entry_credit += credit
 
-                    rows.append({
-                        'date': entry.date,
-                        'ref': entry.reference or '-',
-                        'desc': entry.description or tx.description or '-',
-                        'account_code': tx.account.code,
-                        'account_name': tx.account.name_ar or tx.account.name,
-                        'tx_desc': tx.description or '-',
-                        'debit': debit,
-                        'credit': credit,
-                        'balance': running_balance,
-                        'created_by': (
-                            entry.created_by.get_full_name()
-                            or entry.created_by.username
-                            if entry.created_by else '-'
-                        ),
-                        'entry_type': entry.get_entry_type_display(),
-                    })
+                    account_label = f'{tx.account.code} - {(tx.account.name_ar or tx.account.name)}'
+                    if account_label not in accounts_touched:
+                        accounts_touched.append(account_label)
+
+                    if student_ar_account and tx.account_id == student_ar_account.id:
+                        ar_effect += debit - credit
+
+                running_balance += ar_effect
+
+                rows.append({
+                    'id': entry.id,
+                    'date': entry.date,
+                    'ref': entry.reference or '-',
+                    'desc': entry.description or '-',
+                    'debit': entry_debit,
+                    'credit': entry_credit,
+                    'balance': running_balance,
+                    'created_by': (
+                        entry.created_by.get_full_name()
+                        or entry.created_by.username
+                        if entry.created_by else '-'
+                    ),
+                    'entry_type': entry.get_entry_type_display(),
+                    'accounts_summary': ' | '.join(accounts_touched[:3]),
+                    'accounts_more_count': max(0, len(accounts_touched) - 3),
+                })
 
             total_remaining = max(Decimal('0.00'), total_due - total_paid)
             balance = student.balance

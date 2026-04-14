@@ -5,6 +5,7 @@ from accounts import api_views as accounts_api_views
 
 app_name = "api"
 
+
 urlpatterns = [
     # اختبار الاتصال
     path('test/', views.test_connection, name='test_connection'),

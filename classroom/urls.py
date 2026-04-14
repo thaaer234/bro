@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from employ.decorators import require_employee_perm
 
+
 app_name = "classroom"
 
 urlpatterns = [

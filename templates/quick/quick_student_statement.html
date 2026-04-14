@@ -2,115 +2,345 @@
 {% load static %}
 {% load student_filters %}
 
-
-
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+<style>
+.quick-statement-page {
+    display: grid;
+    gap: 1rem;
+}
+
+.statement-hero,
+.statement-panel,
+.statement-stat {
+    border: 0;
+    border-radius: 28px !important;
+    overflow: hidden;
+    box-shadow: 0 24px 50px rgba(15, 23, 42, .08);
+}
+
+.statement-hero {
+    background:
+        radial-gradient(circle at top left, rgba(49, 201, 255, .18), transparent 0 32%),
+        radial-gradient(circle at bottom right, rgba(15, 118, 110, .18), transparent 0 28%),
+        linear-gradient(135deg, #fdfefe, #f5faff 58%, #eef7f4);
+}
+
+.statement-hero .card-body,
+.statement-panel .card-body,
+.statement-panel .card-header,
+.statement-stat .card-body {
+    padding: 1.35rem;
+}
+
+.statement-title {
+    margin: 0 0 .35rem;
+    color: #16324f;
+    font-size: 2rem;
+    font-weight: 900;
+}
+
+.statement-subtitle {
+    margin: 0;
+    color: #5b6b82;
+    line-height: 1.9;
+}
+
+.statement-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+}
+
+.statement-actions .btn {
+    min-height: 46px;
+    border-radius: 14px;
+}
+
+.statement-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.statement-stat {
+    background: linear-gradient(180deg, rgba(255,255,255,.99), rgba(243,248,255,.95));
+}
+
+.statement-stat__label {
+    display: block;
+    margin-bottom: .45rem;
+    color: #5b6b82;
+    font-size: .82rem;
+    font-weight: 800;
+}
+
+.statement-stat__value {
+    color: #16324f;
+    font-size: 1.9rem;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+.statement-stat__value.money {
+    color: #b42318;
+}
+
+.statement-panel {
+    background: linear-gradient(180deg, rgba(255,255,255,.99), rgba(247,250,255,.95));
+}
+
+.statement-panel .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0;
+    background: transparent;
+}
+
+.statement-panel .card-header h3 {
+    margin: 0;
+    color: #16324f;
+    font-size: 1.2rem;
+    font-weight: 900;
+}
+
+.statement-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: .45rem .85rem;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 900;
+    background: rgba(76, 125, 255, .12);
+    color: #204ebc;
+}
+
+.statement-table-wrap {
+    overflow: auto;
+    border-radius: 22px;
+    border: 1px solid rgba(95, 121, 196, .12);
+    background: #fff;
+}
+
+.statement-table {
+    margin: 0 !important;
+}
+
+.statement-table thead th {
+    background: linear-gradient(180deg, #17324e, #12243b);
+    color: #fff;
+    border: 0;
+    font-size: .82rem;
+    white-space: nowrap;
+}
+
+.statement-table td {
+    vertical-align: middle;
+}
+
+.statement-entry-ref {
+    font-weight: 900;
+    color: #16324f;
+}
+
+.statement-entry-desc {
+    max-width: 320px;
+    color: #40526b;
+    line-height: 1.8;
+}
+
+.statement-accounts {
+    max-width: 320px;
+    color: #5b6b82;
+    font-size: .84rem;
+    line-height: 1.7;
+}
+
+.money-debit {
+    color: #b42318;
+    font-weight: 900;
+}
+
+.money-credit {
+    color: #067647;
+    font-weight: 900;
+}
+
+.money-balance {
+    color: #16324f;
+    font-weight: 900;
+}
+
+.statement-empty {
+    padding: 3.5rem 1.5rem;
+    text-align: center;
+    color: #667085;
+}
+
+.statement-empty i {
+    font-size: 2.6rem;
+    margin-bottom: .9rem;
+    opacity: .45;
+}
+
+@media print {
+    .statement-actions,
+    .statement-panel .card-header .statement-chip,
+    .statement-table .btn {
+        display: none !important;
+    }
+
+    .quick-statement-page {
+        gap: .75rem;
+    }
+
+    .statement-hero,
+    .statement-panel,
+    .statement-stat {
+        box-shadow: none !important;
+        border: 1px solid #dbe5f0 !important;
+    }
+}
+
+@media (max-width: 992px) {
+    .statement-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .statement-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .statement-title {
+        font-size: 1.55rem;
+    }
+}
+</style>
 {% endblock %}
+
 {% block content %}
-<div class="container py-4" dir="rtl">
-    <div class="card shadow-sm border-0 mb-4">
+<div class="container py-4 quick-statement-page" dir="rtl">
+    <div class="card statement-hero">
         <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
-                <h2 class="mb-1">{{ student.full_name }}</h2>
-                <div class="text-muted">كشف حساب الطالب السريع</div>
+                <h2 class="statement-title">{{ student.full_name }}</h2>
+                <div class="statement-subtitle">كشف حساب الطالب السريع مع ملخص مالي مختصر وروابط مباشرة لتفاصيل القيود والإيصالات.</div>
             </div>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="statement-actions">
                 <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-outline-primary">العودة إلى البروفايل</a>
                 <button onclick="window.print()" class="btn btn-primary">طباعة الكشف</button>
             </div>
         </div>
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+    <div class="statement-stats">
+        <div class="statement-stat">
+            <div class="card border-0 h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-2">الرصيد الحالي</div>
-                    <div class="fs-4 fw-bold">{{ balance|floatformat:2 }} ل.س</div>
+                    <span class="statement-stat__label">الرصيد الحالي</span>
+                    <div class="statement-stat__value money">{{ balance|floatformat:2 }} ل.س</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+        <div class="statement-stat">
+            <div class="card border-0 h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-2">إجمالي القيود</div>
-                    <div class="fs-4 fw-bold">{{ entry_count }}</div>
+                    <span class="statement-stat__label">إجمالي القيود</span>
+                    <div class="statement-stat__value">{{ entry_count }}</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+        <div class="statement-stat">
+            <div class="card border-0 h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-2">إجمالي المدفوع</div>
-                    <div class="fs-4 fw-bold">{{ total_paid|floatformat:2 }} ل.س</div>
+                    <span class="statement-stat__label">إجمالي المدفوع</span>
+                    <div class="statement-stat__value">{{ total_paid|floatformat:2 }} ل.س</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+        <div class="statement-stat">
+            <div class="card border-0 h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-2">المتبقي الحالي</div>
-                    <div class="fs-4 fw-bold">{{ total_remaining|floatformat:2 }} ل.س</div>
+                    <span class="statement-stat__label">المتبقي الحالي</span>
+                    <div class="statement-stat__value">{{ total_remaining|floatformat:2 }} ل.س</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white">
-            <h3 class="mb-0">الحركات والقيود</h3>
+    <div class="card statement-panel">
+        <div class="card-header">
+            <h3>القيود والحركات</h3>
+            <span class="statement-chip">{{ entry_count }} قيد</span>
         </div>
         <div class="card-body">
             {% if rows %}
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle">
+            <div class="statement-table-wrap">
+                <table class="table table-striped table-hover align-middle statement-table">
                     <thead>
                         <tr>
                             <th>التاريخ</th>
                             <th>المرجع</th>
                             <th>نوع القيد</th>
-                            <th>الحساب</th>
                             <th>وصف القيد</th>
-                            <th>وصف الحركة</th>
+                            <th>الحسابات</th>
                             <th>مدين</th>
                             <th>دائن</th>
                             <th>الرصيد</th>
                             <th>تم بواسطة</th>
+                            <th>التفاصيل</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in rows %}
                         <tr>
                             <td>{{ row.date|date:"Y-m-d" }}</td>
-                            <td>{{ row.ref|default:"-" }}</td>
-                            <td>{{ row.entry_type }}</td>
-                            <td dir="ltr">{{ row.account_code }} - {{ row.account_name|fix_arabic_text }}</td>
-                            <td>{{ row.desc|fix_arabic_text }}</td>
-                            <td>{{ row.tx_desc|fix_arabic_text }}</td>
-                            <td class="text-danger">{{ row.debit|floatformat:2 }}</td>
-                            <td class="text-success">{{ row.credit|floatformat:2 }}</td>
-                            <td>{{ row.balance|floatformat:2 }}</td>
+                            <td class="statement-entry-ref">{{ row.ref|default:"-" }}</td>
+                            <td><span class="badge bg-light text-dark">{{ row.entry_type }}</span></td>
+                            <td class="statement-entry-desc">{{ row.desc|fix_arabic_text }}</td>
+                            <td>
+                                <div class="statement-accounts" dir="ltr">{{ row.accounts_summary|fix_arabic_text }}</div>
+                                {% if row.accounts_more_count %}
+                                <span class="text-muted">+{{ row.accounts_more_count }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="money-debit">{{ row.debit|floatformat:2 }}</td>
+                            <td class="money-credit">{{ row.credit|floatformat:2 }}</td>
+                            <td class="money-balance">{{ row.balance|floatformat:2 }}</td>
                             <td>{{ row.created_by }}</td>
+                            <td>
+                                <a href="{% url 'accounts:journal_entry_detail' row.id %}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+                                    فتح القيد
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
             {% else %}
-            <div class="text-center text-muted py-5">لا توجد قيود أو حركات مالية لهذا الطالب.</div>
+            <div class="statement-empty">
+                <i class="fas fa-scale-balanced d-block"></i>
+                <div>لا توجد قيود أو حركات مالية لهذا الطالب.</div>
+            </div>
             {% endif %}
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white">
-            <h3 class="mb-0">الإيصالات</h3>
+    <div class="card statement-panel">
+        <div class="card-header">
+            <h3>الإيصالات</h3>
+            <span class="statement-chip">{{ receipts|length }} إيصال</span>
         </div>
         <div class="card-body">
             {% if receipts %}
-            <div class="table-responsive">
-                <table class="table table-striped align-middle">
+            <div class="statement-table-wrap">
+                <table class="table table-striped align-middle statement-table">
                     <thead>
                         <tr>
                             <th>رقم الإيصال</th>
@@ -119,17 +349,17 @@
                             <th>المبلغ</th>
                             <th>المدفوع</th>
                             <th>القيد</th>
-                            <th>طباعة</th>
+                            <th>الطباعة</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for receipt in receipts %}
                         <tr>
-                            <td>{{ receipt.receipt_number|default:"-" }}</td>
+                            <td class="statement-entry-ref">{{ receipt.receipt_number|default:"-" }}</td>
                             <td>{{ receipt.course.name|default:receipt.course_name|default:"-" }}</td>
                             <td>{{ receipt.date|date:"Y-m-d" }}</td>
-                            <td>{{ receipt.amount|floatformat:2 }} ل.س</td>
-                            <td>{{ receipt.paid_amount|floatformat:2 }} ل.س</td>
+                            <td class="money-balance">{{ receipt.amount|floatformat:2 }} ل.س</td>
+                            <td class="money-credit">{{ receipt.paid_amount|floatformat:2 }} ل.س</td>
                             <td>{{ receipt.journal_entry.reference|default:"-" }}</td>
                             <td>
                                 {% if receipt.receipt_number %}
@@ -144,19 +374,23 @@
                 </table>
             </div>
             {% else %}
-            <div class="text-center text-muted py-5">لا توجد إيصالات مسجلة لهذا الطالب.</div>
+            <div class="statement-empty">
+                <i class="fas fa-receipt d-block"></i>
+                <div>لا توجد إيصالات مسجلة لهذا الطالب.</div>
+            </div>
             {% endif %}
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white">
-            <h3 class="mb-0">ملخص الدورات</h3>
+    <div class="card statement-panel">
+        <div class="card-header">
+            <h3>ملخص الدورات</h3>
+            <span class="statement-chip">{{ per_course|length }} دورة</span>
         </div>
         <div class="card-body">
             {% if per_course %}
-            <div class="table-responsive">
-                <table class="table table-striped align-middle">
+            <div class="statement-table-wrap">
+                <table class="table table-striped align-middle statement-table">
                     <thead>
                         <tr>
                             <th>الدورة</th>
@@ -170,9 +404,9 @@
                         {% for course in per_course %}
                         <tr>
                             <td>{{ course.course.name }}</td>
-                            <td>{{ course.price|floatformat:2 }} ل.س</td>
-                            <td>{{ course.paid|floatformat:2 }} ل.س</td>
-                            <td>{{ course.outstanding|floatformat:2 }} ل.س</td>
+                            <td class="money-balance">{{ course.price|floatformat:2 }} ل.س</td>
+                            <td class="money-credit">{{ course.paid|floatformat:2 }} ل.س</td>
+                            <td class="money-debit">{{ course.outstanding|floatformat:2 }} ل.س</td>
                             <td>
                                 {% if course.is_completed %}
                                 <span class="badge bg-secondary">مسحوب</span>
@@ -188,10 +422,12 @@
                 </table>
             </div>
             {% else %}
-            <div class="text-center text-muted py-5">لا توجد دورات مسجلة لهذا الطالب.</div>
+            <div class="statement-empty">
+                <i class="fas fa-book-open d-block"></i>
+                <div>لا توجد دورات مسجلة لهذا الطالب.</div>
+            </div>
             {% endif %}
         </div>
     </div>
 </div>
-
 {% endblock %}

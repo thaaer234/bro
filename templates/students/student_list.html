@@ -158,7 +158,7 @@
                         </td>
                         <td>
                             <strong>
-                                <a href="{{ student.profile_url|default:'#' }}">
+                                <a href="{{ student.profile_url|default:'#' }}" class="student-list-name">
                                     {{ student.full_name }}
                                 </a>
                             </strong>
@@ -528,6 +528,18 @@
 
 #studentsTable tbody tr:hover {
     background-color: #f8f9fa;
+}
+
+#studentsTable .student-list-name {
+    color: #10243d !important;
+    font-weight: 800 !important;
+    text-decoration: none !important;
+}
+
+#studentsTable .student-list-name:hover,
+#studentsTable .student-list-name:focus-visible {
+    color: #0b5ed7 !important;
+    text-decoration: none !important;
 }
 
 /* أزرار الإجراءات */

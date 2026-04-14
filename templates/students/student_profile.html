@@ -5,6 +5,30 @@
 {% load student_filters %}
 {% load l10n %}
 
+{% block extra_css %}
+<style>
+.student-profile .student-info h1,
+.student-profile .student-primary-name {
+  color: #10243d !important;
+  font-weight: 900 !important;
+}
+
+.student-profile .student-number,
+.student-profile .info-value,
+.student-profile .card-value,
+.student-profile .course-header h4,
+.student-profile .section-header h3,
+.student-profile .section-header2 h3 {
+  color: #16324f !important;
+}
+
+.student-profile .info-label,
+.student-profile .card-label {
+  color: #5b6b82 !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="student-profile" dir="rtl">
   <!-- Header Section -->
@@ -16,7 +40,7 @@
         </div>
       </div>
       <div class="student-info">
-        <h1>{{ student.full_name }}</h1>
+        <h1 class="student-primary-name">{{ student.full_name }}</h1>
         <p class="student-number">{{ student.student_number|default:"لا يوجد رقم طالب" }}</p>
         <div class="student-status">
           <span class="status-badge {% if active_enrollments %}active{% else %}inactive{% endif %}">

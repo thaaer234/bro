@@ -87,7 +87,7 @@
                     {% for row in assignment_rows %}
                     <tr>
                         <td>
-                            <a href="{% url 'quick:student_profile' row.assignment.enrollment.student.id %}" class="fw-bold text-decoration-none">
+                            <a href="{% url 'quick:student_profile' row.assignment.enrollment.student.id %}" class="fw-bold text-decoration-none student-name-link">
                                 {{ row.assignment.enrollment.student.full_name }}
                             </a>
                         </td>

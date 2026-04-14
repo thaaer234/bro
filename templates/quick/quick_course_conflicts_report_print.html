@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>طباعة تقرير تعارض الطلاب بين كلاسات الدورات</title>
+    <style>
+        @page { size: A4; margin: 10mm; }
+        :root {
+            --primary:#a61b1b;
+            --primary-dark:#4a1010;
+            --accent:#f59e0b;
+            --surface:#ffffff;
+            --surface-soft:#fff8f6;
+            --border:#ead7d1;
+            --text:#2f1c1c;
+            --muted:#7c5b56;
+            --danger:#b42318;
+            --success:#166534;
+        }
+        * { box-sizing:border-box; }
+        body {
+            margin:0;
+            background:#f7f3f1;
+            color:var(--text);
+            font-family:"Cairo", Tahoma, sans-serif;
+            font-size:13px;
+            line-height:1.65;
+        }
+        .print-toolbar {
+            position:sticky;
+            top:0;
+            z-index:10;
+            display:flex;
+            justify-content:center;
+            gap:10px;
+            padding:14px;
+            background:rgba(247,243,241,.94);
+            backdrop-filter:blur(8px);
+        }
+        .btn {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:42px;
+            padding:0 16px;
+            border-radius:12px;
+            border:1px solid transparent;
+            text-decoration:none;
+            font-weight:700;
+            cursor:pointer;
+            background:linear-gradient(135deg, var(--primary-dark), var(--primary), var(--accent));
+            color:#fff;
+        }
+        .btn-secondary {
+            background:#fff;
+            border-color:var(--border);
+            color:var(--text);
+        }
+        .report-page {
+            width:min(1120px, calc(100% - 24px));
+            margin:0 auto 24px;
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:24px;
+            box-shadow:0 20px 50px rgba(15,23,42,.08);
+            overflow:hidden;
+        }
+        .report-hero {
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:18px;
+            padding:24px 28px;
+            background:linear-gradient(135deg, #4a1010, #a61b1b 58%, #f59e0b);
+            color:#fff;
+        }
+        .report-hero h1 { margin:0 0 8px; font-size:28px; }
+        .report-hero p, .report-meta { margin:0; color:rgba(255,255,255,.88); }
+        .report-body { padding:22px; }
+        .summary-grid {
+            display:grid;
+            grid-template-columns:repeat(4, minmax(0, 1fr));
+            gap:14px;
+            margin-bottom:18px;
+        }
+        .summary-card {
+            padding:16px;
+            border-radius:18px;
+            background:var(--surface-soft);
+            border:1px solid var(--border);
+        }
+        .summary-label { color:var(--muted); font-size:12px; font-weight:700; }
+        .summary-value { margin-top:6px; font-size:24px; font-weight:800; color:var(--text); }
+        .filters-note {
+            margin-bottom:18px;
+            padding:14px 16px;
+            border-radius:16px;
+            background:#fff8ef;
+            border:1px solid #f1dcc0;
+            color:#7a5212;
+        }
+        .student-card {
+            margin-bottom:16px;
+            border:1px solid var(--border);
+            border-radius:20px;
+            overflow:hidden;
+            break-inside:avoid;
+            page-break-inside:avoid;
+        }
+        .student-head {
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:14px;
+            padding:16px 18px;
+            background:linear-gradient(180deg, #fff7f5, #fff);
+            border-bottom:1px solid var(--border);
+        }
+        .student-head h3 { margin:0 0 6px; font-size:20px; }
+        .student-meta { color:var(--muted); font-size:12px; }
+        .badge-row {
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+        }
+        .pill {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:30px;
+            padding:0 10px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:800;
+        }
+        .pill.primary { background:rgba(180,35,24,.12); color:var(--danger); }
+        .pill.success { background:rgba(22,101,52,.12); color:var(--success); }
+        .table-wrap {
+            overflow:hidden;
+            border-radius:0 0 20px 20px;
+        }
+        table { width:100%; border-collapse:collapse; }
+        thead th {
+            padding:12px 10px;
+            background:linear-gradient(135deg, #4a1010, #a61b1b);
+            color:#fff;
+            font-size:12px;
+            font-weight:800;
+            text-align:right;
+        }
+        tbody td {
+            padding:11px 10px;
+            border-bottom:1px solid #f0e3de;
+            vertical-align:top;
+        }
+        tbody tr:nth-child(even) td { background:#fffdfc; }
+        .course-title, .session-title { font-weight:800; color:var(--text); }
+        .subtle { color:var(--muted); font-size:11px; }
+        .empty-state {
+            padding:42px 24px;
+            text-align:center;
+            border:1px dashed var(--border);
+            border-radius:20px;
+            color:var(--muted);
+            background:#fffdfc;
+        }
+        .footer-note { margin-top:10px; color:var(--muted); font-size:11px; }
+        @media print {
+            body { background:#fff; }
+            .print-toolbar { display:none !important; }
+            .report-page { width:100%; margin:0; border:0; border-radius:0; box-shadow:none; }
+        }
+        @media (max-width: 900px) {
+            .summary-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+            .student-head, .report-hero { flex-direction:column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar">
+        <button type="button" class="btn" onclick="window.print()">طباعة</button>
+        <a href="{{ report_url }}" class="btn btn-secondary">العودة للتقرير</a>
+    </div>
+
+    <div class="report-page">
+        <div class="report-hero">
+            <div>
+                <h1>تقرير تعارض الطلاب بين كلاسات الدورات</h1>
+                <p>نسخة مخصصة للطباعة تعرض الطلاب المسجلين في كلاسات متقاطعة زمنياً مع تفاصيل كل حالة تعارض.</p>
+            </div>
+            <div class="report-meta">
+                <div>نوع الدورة: {{ course_type_report_label }}</div>
+                <div>تاريخ الطباعة: {{ generated_at|date:"Y-m-d H:i" }}</div>
+            </div>
+        </div>
+
+        <div class="report-body">
+            <div class="summary-grid">
+                <div class="summary-card"><div class="summary-label">إجمالي حالات التعارض</div><div class="summary-value">{{ total_conflicts }}</div></div>
+                <div class="summary-card"><div class="summary-label">الطلاب المتعارضون</div><div class="summary-value">{{ unique_students_count }}</div></div>
+                <div class="summary-card"><div class="summary-label">الدورات المتأثرة</div><div class="summary-value">{{ unique_courses_count }}</div></div>
+                <div class="summary-card"><div class="summary-label">الصفوف المتأثرة</div><div class="summary-value">{{ unique_sessions_count }}</div></div>
+            </div>
+
+            <div class="filters-note">
+                {% if selected_course_ids %}
+                تمت الطباعة على دورات محددة فقط، وعددها {{ selected_course_ids|length }}.
+                {% else %}
+                تمت الطباعة على جميع الدورات المطابقة لنوع الدورة المحدد.
+                {% endif %}
+            </div>
+
+            {% if grouped_students %}
+                {% for row in grouped_students %}
+                <section class="student-card">
+                    <div class="student-head">
+                        <div>
+                            <h3>{{ row.student.full_name }}</h3>
+                            <div class="student-meta">
+                                {% if row.student.phone %}الهاتف: {{ row.student.phone }} | {% endif %}
+                                عدد التعارضات: {{ row.conflicts_count }}
+                            </div>
+                        </div>
+                        <div class="badge-row">
+                            <span class="pill primary">متعارض حالياً</span>
+                            <span class="pill success">{{ row.conflicts_count }} حالة</span>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>الفترة المتقاطعة</th>
+                                    <th>مع شو متعارض</th>
+                                    <th>الدورة الأولى</th>
+                                    <th>كلاسها</th>
+                                    <th>الدورة الثانية</th>
+                                    <th>كلاسها</th>
+                                    <th>أفضل حل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for conflict in row.conflicts %}
+                                <tr>
+                                    <td>
+                                        <div class="session-title">{{ conflict.overlap_start_date|date:"Y-m-d" }}{% if conflict.overlap_end_date != conflict.overlap_start_date %} حتى {{ conflict.overlap_end_date|date:"Y-m-d" }}{% endif %}</div>
+                                        <div class="subtle">{{ conflict.overlap_start_time|time:"H:i" }}{% if conflict.overlap_end_time %} - {{ conflict.overlap_end_time|time:"H:i" }}{% endif %}</div>
+                                    </td>
+                                    <td>
+                                        <div class="session-title">{{ conflict.conflict_summary }}</div>
+                                        <div class="subtle">التعارض بين كلاسين من دورتين مختلفتين خلال نفس الفترة.</div>
+                                    </td>
+                                    <td>
+                                        <div class="course-title">{{ conflict.first_session.course.name }}</div>
+                                        <div class="subtle">{{ conflict.first_session.start_date|date:"Y-m-d" }} | {{ conflict.first_session.start_time|time:"H:i" }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="session-title">{{ conflict.first_session.title }}</div>
+                                        <div class="subtle">{{ conflict.first_session.room_name|default:"بدون قاعة" }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="course-title">{{ conflict.second_session.course.name }}</div>
+                                        <div class="subtle">{{ conflict.second_session.start_date|date:"Y-m-d" }} | {{ conflict.second_session.start_time|time:"H:i" }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="session-title">{{ conflict.second_session.title }}</div>
+                                        <div class="subtle">{{ conflict.second_session.room_name|default:"بدون قاعة" }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="subtle" style="font-size:12px; line-height:1.9; color:#7a2216; font-weight:700;">
+                                            {{ conflict.recommended_resolution }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    لا يوجد طلاب متعارضون ضمن الفلتر الحالي، لذلك لا توجد عناصر للطباعة في هذا التقرير.
+                </div>
+            {% endif %}
+
+            <div class="footer-note">هذه النسخة تتبع نفس الفلاتر المختارة في تقرير التعارض الرئيسي.</div>
+        </div>
+    </div>
+</body>
+</html>

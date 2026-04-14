@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
@@ -16,6 +17,7 @@
             <div class="conflict-actions">
                 <a href="{% url 'quick:course_list' %}" class="btn btn-outline-light">الدورات السريعة</a>
                 <a href="{% url 'quick:quick_course_schedule_print' %}" class="btn btn-light">برنامج الصفوف</a>
+                <a href="{{ print_url }}" target="_blank" class="btn btn-outline-light">طباعة التقرير</a>
             </div>
         </div>
     </div>
@@ -96,10 +98,12 @@
                         <thead>
                             <tr>
                                 <th>الفترة المتقاطعة</th>
+                                <th>مع شو متعارض</th>
                                 <th>الدورة الأولى</th>
                                 <th>كلاسها</th>
                                 <th>الدورة الثانية</th>
                                 <th>كلاسها</th>
+                                <th>أفضل حل</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -108,6 +112,10 @@
                                 <td>
                                     <div class="session-title">{{ conflict.overlap_start_date|date:"Y-m-d" }}{% if conflict.overlap_end_date != conflict.overlap_start_date %} حتى {{ conflict.overlap_end_date|date:"Y-m-d" }}{% endif %}</div>
                                     <div class="subtle">{{ conflict.overlap_start_time|time:"H:i" }}{% if conflict.overlap_end_time %} - {{ conflict.overlap_end_time|time:"H:i" }}{% endif %}</div>
+                                </td>
+                                <td>
+                                    <div class="session-title">{{ conflict.conflict_summary }}</div>
+                                    <div class="subtle">التعارض بين كلاسين من دورتين مختلفتين خلال نفس الفترة.</div>
                                 </td>
                                 <td>
                                     <div class="course-title">{{ conflict.first_session.course.name }}</div>
@@ -124,6 +132,11 @@
                                 <td>
                                     <a href="{% url 'quick:course_session_students' conflict.second_session.id %}" class="session-title text-decoration-none">{{ conflict.second_session.title }}</a>
                                     <div class="subtle">{{ conflict.second_session.room_name|default:"بدون قاعة" }}</div>
+                                </td>
+                                <td>
+                                    <div class="subtle" style="font-size:.88rem; line-height:1.8; color:#8a2d1f; font-weight:700;">
+                                        {{ conflict.recommended_resolution }}
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}

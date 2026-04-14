@@ -346,19 +346,20 @@ class QuickSessionTransferForm(forms.Form):
 class QuickSessionAttendanceBulkForm(forms.Form):
     attendance_date = forms.DateField(widget=forms.DateInput(attrs={"type": "date"}), label="تاريخ الحضور")
 
-    def __init__(self, *args, session=None, assignments=None, **kwargs):
+    def __init__(self, *args, session=None, enrollments=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.session = session
-        self.assignments = list(assignments or [])
+        self.enrollments = list(enrollments or [])
 
-        for assignment in self.assignments:
-            field_prefix = f"student_{assignment.enrollment_id}"
+        for enrollment in self.enrollments:
+            field_prefix = f"student_{enrollment.id}"
             self.fields[f"{field_prefix}_status"] = forms.ChoiceField(
                 choices=QuickCourseSessionAttendance.STATUS_CHOICES,
                 initial="present",
-                label=assignment.enrollment.student.full_name,
+                required=False,
+                label=enrollment.student.full_name,
             )
             self.fields[f"{field_prefix}_notes"] = forms.CharField(
                 required=False,
-                label=f"ملاحظات {assignment.enrollment.student.full_name}",
+                label=f"ملاحظات {enrollment.student.full_name}",
             )

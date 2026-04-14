@@ -80,7 +80,7 @@
         </td>
         <td>
             <strong>
-                <a href="{% url 'quick:student_profile' student.id %}">{{ student.full_name }}</a>
+                <a href="{% url 'quick:student_profile' student.id %}" class="student-list-name">{{ student.full_name }}</a>
             </strong>
             {% if student.student_number %}
             <br><small class="text-muted">{{ student.student_number }}</small>

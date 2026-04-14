@@ -301,6 +301,37 @@ class QuickCourseSessionAttendance(models.Model):
         if not self.day_number:
             self.day_number = self.session.get_day_number_for_date(self.attendance_date) or 1
 
+
+class QuickCourseSessionAttendanceGuest(models.Model):
+    STATUS_CHOICES = [
+        ('present', 'حاضر'),
+        ('absent', 'غائب'),
+    ]
+
+    session = models.ForeignKey(QuickCourseSession, on_delete=models.CASCADE, related_name='guest_attendance_records')
+    attendance_date = models.DateField(verbose_name='تاريخ الحضور')
+    day_number = models.PositiveIntegerField(default=1, verbose_name='رقم اليوم')
+    full_name = models.CharField(max_length=200, verbose_name='الاسم')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='present', verbose_name='الحالة')
+    notes = models.CharField(max_length=255, blank=True, verbose_name='ملاحظات')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_quick_guest_attendance')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'حضور اسم إضافي لجلسة سريعة'
+        verbose_name_plural = 'حضور الأسماء الإضافية للجلسات السريعة'
+        ordering = ['attendance_date', 'id']
+
+    def __str__(self):
+        return f"{self.session.title} - {self.full_name} - {self.attendance_date}"
+
+    def clean(self):
+        if self.attendance_date < self.session.start_date or self.attendance_date > self.session.end_date:
+            raise ValidationError('تاريخ الحضور خارج مدة الصف.')
+        if not self.day_number:
+            self.day_number = self.session.get_day_number_for_date(self.attendance_date) or 1
+
 class QuickStudent(models.Model):
     STUDENT_TYPE_CHOICES = [
         ('QUICK', 'سريع'),
