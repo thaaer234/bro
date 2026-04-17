@@ -16,23 +16,23 @@
         <a href="{% url 'quick:checking_tool' %}" class="btn btn-danger">
             <i class="fas fa-stethoscope"></i> أداة تشييك
         </a>
-        <a href="{% url 'quick:duplicate_students_report' %}" class="btn btn-dark">
+        <a href="{% url 'quick:duplicate_students_report' %}" class="btn btn-dark" data-guide-key="quick-duplicate-students">
             <i class="fas fa-clone"></i> الأسماء المكررة
         </a>
         <a href="{% url 'quick:discount_fix_tool' %}" class="btn btn-outline-danger">
             <i class="fas fa-percent"></i> Discount Fix
         </a>
         {% endif %}
-        <a href="{% url 'quick:student_intersections' %}" class="btn btn-outline-info">
+        <a href="{% url 'quick:student_intersections' %}" class="btn btn-outline-info" data-guide-key="quick-student-intersections">
             <i class="fas fa-diagram-project"></i> الطلاب المشتركون
         </a>
-        <a href="{% url 'quick:manual_sorting' %}" class="btn btn-outline-warning">
+        <a href="{% url 'quick:manual_sorting' %}" class="btn btn-outline-warning" data-guide-key="quick-manual-sorting">
             <i class="fas fa-table-cells-large"></i> فرز شبه يدوي
         </a>
-        <a href="{% url 'quick:student_create' %}" class="btn btn-primary">
+        <a href="{% url 'quick:student_create' %}" class="btn btn-primary" data-guide-key="quick-student-create">
             <i class="fas fa-plus"></i> إضافة طالب سريع
         </a>
-        <a href="{% url 'quick:auto_assign_years' %}" class="btn btn-warning"
+        <a href="{% url 'quick:auto_assign_years' %}" class="btn btn-warning" data-guide-key="quick-auto-assign-years"
            onclick="return confirm('هل تريد ربط جميع الطلاب السريعين غير المرتبطين تلقائيًا بالفصول الدراسية؟')">
             <i class="fas fa-link"></i> ربط تلقائي بالفصول
         </a>

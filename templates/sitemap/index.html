@@ -1,21 +1,23 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}خريطة الموقع التفاعلية{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+<link rel="stylesheet" href="{% static 'sitemap/styles.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="sitemap-shell">
+<div class="sitemap-shell site-map-shell">
     <section class="sitemap-stage card">
         <div class="sitemap-stage__copy">
-            <span class="sitemap-kicker">واجهة جديدة للمستخدمين</span>
-            <h1>خريطة الموقع</h1>
+            <span class="sitemap-kicker">تطبيق sitemap</span>
+            <h1>خريطة تفاعلية للتنقل داخل النظام</h1>
             <p>
-                صفحة تفاعلية بشكل شبه ثلاثي الأبعاد تعرض لك التطبيقات، الروابط، والأزرار المهمة داخل النظام.
-                تحت كل زر ستجد ملاحظة توضّح متى يُستخدم، لمن يخص، وما النتيجة المتوقعة منه.
+                كل بطاقة هنا تنقلك مباشرة إلى الشاشة الصحيحة، ومعها إرشاد بصري مؤقت يوضح لك أين تتابع الخطوة التالية
+                بدون بحث يدوي أو ارتباك.
             </p>
-
             <div class="sitemap-stage__actions">
                 <a href="#buttons-map" class="btn btn-primary">
                     <i class="fas fa-hand-pointer"></i>
@@ -36,12 +38,12 @@
                 <span>إضافة طالب</span>
             </div>
             <div class="sitemap-floating-card sitemap-floating-card--secondary">
-                <i class="fas fa-receipt"></i>
-                <span>إيصالات</span>
+                <i class="fas fa-file-circle-plus"></i>
+                <span>قيد جديد</span>
             </div>
             <div class="sitemap-floating-card sitemap-floating-card--accent">
-                <i class="fas fa-calendar-check"></i>
-                <span>حضور</span>
+                <i class="fas fa-location-arrow"></i>
+                <span>إرشاد مباشر</span>
             </div>
         </div>
     </section>
@@ -49,11 +51,11 @@
     <section class="sitemap-toolbar card">
         <div class="sitemap-toolbar__head">
             <h2>فلترة الخريطة</h2>
-            <p>ابحث باسم زر، رابط، شاشة، أو قسم حتى تصل مباشرة للشيء الذي تريده.</p>
+            <p>ابحث باسم الشاشة أو الزر أو الإجراء للوصول مباشرة إلى العنصر المطلوب.</p>
         </div>
         <label class="sitemap-search" for="sitemapSearchInput">
             <i class="fas fa-magnifying-glass"></i>
-            <input id="sitemapSearchInput" type="text" placeholder="مثال: إضافة طالب - إيصال - حضور - محاسبة">
+            <input id="sitemapSearchInput" type="text" placeholder="مثال: قيد جديد - دفعات الأستاذ - طالب سريع - حضور">
         </label>
         <div class="sitemap-toolbar__stats">
             <span class="sitemap-pill">{{ manual_user_screen_total }} شاشة مرئية</span>
@@ -65,16 +67,12 @@
     <section class="sitemap-section">
         <div class="sitemap-section__head">
             <h2>خريطة التطبيقات</h2>
-            <p>كل مكعب يمثل جزءاً من النظام مع عدد الشاشات والعناصر الموثقة داخله.</p>
+            <p>كل بطاقة تلخص جزءاً من النظام وعدد الشاشات والأزرار والمسارات المرتبطة به.</p>
         </div>
 
         <div class="sitemap-cube-grid">
             {% for app in manual_app_coverage %}
-            <article
-                class="sitemap-cube"
-                data-searchable
-                data-search="{{ app.display_title }} {{ app.description }} {{ app.title }}"
-            >
+            <article class="sitemap-cube" data-searchable data-search="{{ app.display_title }} {{ app.description }} {{ app.title }}">
                 <div class="sitemap-cube__top">
                     <strong>{{ app.display_title }}</strong>
                     {% if app.title in manual_user_allowed_group_keys %}
@@ -96,8 +94,8 @@
 
     <section class="sitemap-section" id="buttons-map">
         <div class="sitemap-section__head">
-            <h2>الأزرار والوظائف المهمة</h2>
-            <p>هذا هو الجزء الأهم للمستخدم: الزر، مكانه، متى يُستخدم، ولمن هو مخصص.</p>
+            <h2>الأزرار والتنقل المباشر</h2>
+            <p>اضغط الزر المطلوب للانتقال الفوري إلى الصفحة المناسبة مع تفعيل الإرشاد التفاعلي تلقائياً.</p>
         </div>
 
         <div class="sitemap-screen-grid">
@@ -105,32 +103,18 @@
             <article
                 class="sitemap-screen card"
                 data-searchable
-                data-search="{{ screen.title }} {{ screen.goal }} {{ screen.used_by }} {% for button in screen.buttons %} {{ button.label }} {{ button.when }} {{ button.purpose }} {{ button.used_by }} {% endfor %}"
+                data-search="{{ screen.title }} {{ screen.goal }} {{ screen.used_by }} {% for button in screen.buttons %} {{ button.label }} {{ button.when }} {{ button.purpose }} {% endfor %}"
             >
                 <div class="sitemap-screen__hero">
                     <div>
                         <span class="sitemap-kicker">{{ screen.group }}</span>
                         <h3>{{ screen.title }}</h3>
-                        <p>{{ screen.goal }}</p>
-                    </div>
-                    <div class="sitemap-screen__path">
-                        <span>المسار</span>
-                        <strong dir="ltr">{{ screen.path }}</strong>
                     </div>
                 </div>
-
-                {% if screen.screenshot %}
-                <div class="sitemap-screen__shot">
-                    <img src="{{ screen.screenshot.path }}" alt="{{ screen.screenshot.title }}">
-                </div>
-                {% endif %}
 
                 <div class="sitemap-button-grid">
                     {% for button in screen.buttons %}
-                    <a
-                        href="{{ button.action_url|default:'#' }}"
-                        class="sitemap-button-card {% if button.action_url %}sitemap-button-card--linked{% endif %}"
-                    >
+                    <a href="{{ button.action_url|default:'#' }}" class="sitemap-button-card sitemap-button-card--linked">
                         <div class="sitemap-button-card__icon">
                             <i class="{{ button.icon|default:'fas fa-cube' }}"></i>
                         </div>
@@ -138,11 +122,6 @@
                             <h4>{{ button.label }}</h4>
                             <p class="sitemap-note"><strong>متى يُستخدم:</strong> {{ button.when }}</p>
                             <p class="sitemap-note"><strong>لمن:</strong> {{ button.used_by }}</p>
-                            <p class="sitemap-note"><strong>الفائدة:</strong> {{ button.purpose }}</p>
-                            <p class="sitemap-note"><strong>المكان:</strong> {{ button.location }}</p>
-                            {% if button.result %}
-                            <p class="sitemap-note"><strong>النتيجة:</strong> {{ button.result }}</p>
-                            {% endif %}
                             <span class="sitemap-button-card__cta">
                                 <i class="fas fa-location-arrow"></i>
                                 افتح الصفحة المناسبة
@@ -158,19 +137,59 @@
         </div>
     </section>
 
+    <section class="sitemap-section" id="system-controls">
+        <div class="sitemap-section__head">
+            <h2>الأزرار والإرشادات المكتشفة من النظام</h2>
+            <p>هذه طبقة أوسع لمراجعة العناصر المكتشفة من القوالب نفسها حتى نظهر ما كان ناقصاً من الخريطة اليدوية. العدد الحالي: {{ sitemap_template_control_total }} عنصر.</p>
+        </div>
+
+        <div class="sitemap-route-groups">
+            {% for group in sitemap_template_control_groups %}
+            <article class="sitemap-route-group card" data-searchable data-search="{{ group.title }} {% for template in group.templates %} {{ template.label }} {% for control in template.controls %} {{ control.label }} {{ control.when }} {{ control.used_by }} {% endfor %} {% endfor %}">
+                <div class="sitemap-route-group__head">
+                    <h3>{{ group.title }}</h3>
+                    <span class="sitemap-badge">{{ group.control_count }} عنصر</span>
+                </div>
+
+                <div class="site-map-audit-list">
+                    {% for template in group.templates %}
+                    <details class="site-map-audit-template">
+                        <summary>
+                            <strong>{{ template.label }}</strong>
+                            <span>{{ template.control_count }} عنصر</span>
+                        </summary>
+                        <div class="site-map-audit-controls">
+                            {% for control in template.controls %}
+                            <a href="{{ control.action_url|default:'#' }}" class="site-map-audit-control {% if control.action_url %}site-map-audit-control--linked{% endif %}">
+                                <span class="site-map-audit-control__icon"><i class="{{ control.icon }}"></i></span>
+                                <span class="site-map-audit-control__body">
+                                    <strong>{{ control.label }}</strong>
+                                    <small>{{ control.kind }}</small>
+                                    <small><b>متى:</b> {{ control.when }}</small>
+                                    <small><b>لمن:</b> {{ control.used_by }}</small>
+                                </span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    {% endfor %}
+                </div>
+            </article>
+            {% empty %}
+            <div class="sitemap-empty">لا توجد عناصر إضافية مكتشفة حالياً.</div>
+            {% endfor %}
+        </div>
+    </section>
+
     <section class="sitemap-section">
         <div class="sitemap-section__head">
             <h2>مجموعات الصلاحيات</h2>
-            <p>تلخيص بصري للصلاحيات الفعلية الموجودة داخل النظام، مع عدد ما هو ظاهر للمستخدم الحالي.</p>
+            <p>ملخص مرئي للصلاحيات التشغيلية المرتبطة بأجزاء النظام المختلفة.</p>
         </div>
 
         <div class="sitemap-permissions-grid">
             {% for group in sitemap_permission_groups %}
-            <article
-                class="sitemap-permission-card card"
-                data-searchable
-                data-search="{{ group.title }} {% for item in group.items %} {{ item.label }} {{ item.code }} {% endfor %}"
-            >
+            <article class="sitemap-permission-card card" data-searchable data-search="{{ group.title }} {% for item in group.items %} {{ item.label }} {{ item.code }} {% endfor %}">
                 <div class="sitemap-permission-card__head">
                     <h3><i class="{{ group.icon }}"></i> {{ group.title }}</h3>
                     <span class="sitemap-badge">{{ group.granted_count }}/{{ group.total_count }}</span>
@@ -194,21 +213,16 @@
     <section class="sitemap-section" id="route-map">
         <div class="sitemap-section__head">
             <h2>الروابط والمسارات</h2>
-            <p>فهرس الروابط الرسمية لكل تطبيق، مناسب للتجربة والتتبع والمراجعة.</p>
+            <p>فهرس لمسارات النظام الرسمية لمراجعة التنقل والتغطية.</p>
         </div>
 
         <div class="sitemap-route-groups">
             {% for group in manual_route_groups %}
-            <article
-                class="sitemap-route-group card"
-                data-searchable
-                data-search="{{ group.title }} {% for route in group.routes %} {{ route.name }} {{ route.path }} {{ route.hint }} {% endfor %}"
-            >
+            <article class="sitemap-route-group card" data-searchable data-search="{{ group.title }} {% for route in group.routes %} {{ route.name }} {{ route.path }} {{ route.hint }} {% endfor %}">
                 <div class="sitemap-route-group__head">
                     <h3>{{ group.title }}</h3>
                     <span class="sitemap-badge">{{ group.count }} رابط</span>
                 </div>
-
                 <div class="sitemap-route-table">
                     <div class="sitemap-route-table__head">
                         <span>اسم الرابط</span>
@@ -228,7 +242,9 @@
         </div>
     </section>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('sitemapSearchInput');
@@ -252,7 +268,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const y = ((event.clientY - rect.top) / rect.height) - 0.5;
             cube.style.transform = `perspective(1300px) rotateX(${(-y * 12).toFixed(2)}deg) rotateY(${(x * 16).toFixed(2)}deg) translateY(-6px)`;
         });
-
         cube.addEventListener('mouseleave', function () {
             cube.style.transform = '';
         });

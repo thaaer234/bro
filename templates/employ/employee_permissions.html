@@ -582,9 +582,12 @@
 <!-- Quick Actions -->
 <div class="card mt-4">
     <div class="card-header">
-        <h6 class="card-title">إجراءات سريعة</h6>
+        <h6 class="card-title">باقات صلاحيات جاهزة</h6>
     </div>
     <div class="card-body">
+        <p class="text-muted mb-3">
+            هذه الباقات تساعدك تضبط صلاحيات الموظف بسرعة، وتم تحديثها لتطابق الأكواد الموجودة فعلياً داخل النظام.
+        </p>
         <div class="row">
             <div class="col-md-3">
                 <button type="button" class="btn btn-outline-success w-100" onclick="selectAllPermissions()">
@@ -598,27 +601,27 @@
             </div>
             <div class="col-md-3">
                 <button type="button" class="btn btn-outline-info w-100" onclick="selectBasicPermissions()">
-                    <i class="fas fa-user"></i> صلاحيات أساسية
+                    <i class="fas fa-user"></i> أساسي متابعة
                 </button>
             </div>
             <div class="col-md-3">
                 <button type="button" class="btn btn-outline-warning w-100" onclick="selectManagerPermissions()">
-                    <i class="fas fa-user-tie"></i> صلاحيات إدارية
+                    <i class="fas fa-user-tie"></i> إداري شامل
                 </button>
             </div>
             <div class="col-md-3 mt-2">
                 <button type="button" class="btn btn-outline-success w-100" onclick="selectAccountingPermissions()">
-                    <i class="fas fa-calculator"></i> صلاحيات محاسبية
+                    <i class="fas fa-calculator"></i> محاسبي
                 </button>
             </div>
             <div class="col-md-3 mt-2">
                 <button type="button" class="btn btn-outline-info w-100" onclick="selectReceptionPermissions()">
-                    <i class="fas fa-desk"></i> صلاحيات استقبال
+                    <i class="fas fa-headset"></i> استقبال وتسجيل
                 </button>
             </div>
             <div class="col-md-3 mt-2">
                 <button type="button" class="btn btn-outline-warning w-100" onclick="selectQuickStudentsPermissions()">
-                    <i class="fas fa-bolt"></i> صلاحيات طلاب سريعين
+                    <i class="fas fa-bolt"></i> طلاب سريعون
                 </button>
             </div>
         </div>
@@ -639,9 +642,10 @@ function clearAllPermissions() {
 function selectBasicPermissions() {
     clearAllPermissions();
     const basicPermissions = [
-        'students_view', 'students_profile', 'students_receipt',
-        'attendance_view', 'attendance_take', 'attendance_teacher_view',
-        'classroom_view', 'classroom_students', 'grades_view'
+        'students_view', 'students_profile', 'students_statement',
+        'quick_students_view', 'quick_students_profile',
+        'attendance_view', 'attendance_teacher_view',
+        'classroom_view', 'classroom_students'
     ];
     basicPermissions.forEach(permission => {
         const checkbox = document.getElementById(`perm_${permission}`);
@@ -652,13 +656,18 @@ function selectManagerPermissions() {
     clearAllPermissions();
     const managerPermissions = [
         'students_view', 'students_create', 'students_edit', 'students_profile', 'students_receipt', 'students_register_course',
+        'students_statement', 'students_withdraw', 'students_export',
         'teachers_view', 'teachers_create', 'teachers_edit', 'teachers_profile', 'teachers_salary', 'teachers_salary_pay',
+        'teachers_advance', 'teachers_advance_create',
         'attendance_view', 'attendance_take', 'attendance_edit', 'attendance_teacher_view', 'attendance_teacher_take',
+        'attendance_export', 'attendance_teacher_export',
         'classroom_view', 'classroom_create', 'classroom_edit', 'classroom_assign', 'classroom_students', 'classroom_subjects',
-        'grades_view', 'grades_edit', 'grades_export', 'grades_print',
-        'accounting_view', 'accounting_receipts', 'accounting_expenses', 'accounting_reports',
-        'hr_view', 'hr_salary', 'hr_advances', 'hr_vacations',
-        'reports_students', 'reports_teachers', 'reports_financial', 'reports_attendance'
+        'classroom_export', 'courses_view', 'courses_create', 'courses_edit',
+        'exams_view', 'exams_create', 'exams_edit', 'exams_grades_view', 'exams_grades_edit', 'exams_stats',
+        'accounting_dashboard', 'accounting_view', 'accounting_receipts', 'accounting_expenses', 'accounting_reports',
+        'hr_dashboard', 'hr_view', 'hr_create', 'hr_edit', 'hr_permissions', 'hr_salary', 'hr_advances', 'hr_vacations',
+        'reports_dashboard', 'reports_students', 'reports_teachers', 'reports_financial', 'reports_attendance',
+        'admin_dashboard'
     ];
     managerPermissions.forEach(permission => {
         const checkbox = document.getElementById(`perm_${permission}`);
@@ -674,7 +683,9 @@ function selectAccountingPermissions() {
         'accounting_ledger', 'accounting_receipts', 'accounting_receipts_create',
         'accounting_expenses', 'accounting_expenses_create', 'accounting_budgets',
         'accounting_periods', 'accounting_cost_centers', 'accounting_outstanding',
-        'accounting_export', 'course_accounting_view', 'course_accounting_create'
+        'accounting_export', 'accounting_quick_receipt',
+        'course_accounting_view', 'course_accounting_create', 'course_accounting_edit', 'course_accounting_pricing',
+        'reports_financial', 'reports_financial_export'
     ];
     accountingPermissions.forEach(permission => {
         const checkbox = document.getElementById(`perm_${permission}`);
@@ -684,9 +695,11 @@ function selectAccountingPermissions() {
 function selectReceptionPermissions() {
     clearAllPermissions();
     const receptionPermissions = [
-        'students_view', 'students_create', 'students_profile', 'students_receipt', 'students_register_course',
-        'attendance_view', 'attendance_take', 'classroom_view', 'classroom_students',
-        'accounting_receipts', 'accounting_receipts_create', 'accounting_expenses_create',
+        'students_view', 'students_create', 'students_profile', 'students_receipt', 'students_statement', 'students_register_course',
+        'quick_students_view', 'quick_students_create', 'quick_students_profile', 'quick_students_receipt', 'quick_students_register',
+        'attendance_view', 'attendance_take',
+        'classroom_view', 'classroom_students',
+        'accounting_receipts', 'accounting_receipts_create', 'accounting_quick_receipt',
         'reports_students', 'reports_attendance'
     ];
     receptionPermissions.forEach(permission => {
@@ -697,8 +710,10 @@ function selectReceptionPermissions() {
 function selectQuickStudentsPermissions() {
     clearAllPermissions();
     const quickStudentsPermissions = [
-        'quick_students_view', 'quick_students_create', 'quick_students_profile',
-        'quick_students_receipt', 'quick_students_register', 'quick_students_withdraw'
+        'quick_students_view', 'quick_students_create', 'quick_students_edit', 'quick_students_profile',
+        'quick_students_receipt', 'quick_students_statement', 'quick_students_register',
+        'quick_students_withdraw', 'quick_students_refund', 'quick_students_export',
+        'course_accounting_view'
     ];
     quickStudentsPermissions.forEach(permission => {
         const checkbox = document.getElementById(`perm_${permission}`);

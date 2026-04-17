@@ -13,7 +13,7 @@
                 <p>ملخص تنفيذي سريع للحسابات والسيولة والنشاط اليومي داخل قسم المحاسبة.</p>
             </div>
             <div class="accounts-actions">
-                <a href="{% url 'accounts:journal_entry_create' %}" class="btn btn-primary">
+                <a href="{% url 'accounts:journal_entry_create' %}" class="btn btn-primary" data-guide-key="accounts-journal-create">
                     <i class="fas fa-plus"></i>
                     قيد جديد
                 </a>
@@ -126,12 +126,12 @@
     </div>
 
     <div class="accounts-quick-grid">
-        <a href="{% url 'accounts:journal_entry_create' %}" class="accounts-quick-card">
+        <a href="{% url 'accounts:journal_entry_create' %}" class="accounts-quick-card" data-guide-key="accounts-journal-create-card">
             <span class="accounts-quick-card__icon"><i class="fas fa-plus-circle"></i></span>
             <h3 class="accounts-quick-card__title">قيد جديد</h3>
             <p class="accounts-quick-card__desc">إدخال قيد يومي جديد بسرعة ضمن shell موحد.</p>
         </a>
-        <a href="{% url 'accounts:account_create' %}" class="accounts-quick-card">
+        <a href="{% url 'accounts:account_create' %}" class="accounts-quick-card" data-guide-key="accounts-account-create-card">
             <span class="accounts-quick-card__icon"><i class="fas fa-sitemap"></i></span>
             <h3 class="accounts-quick-card__title">حساب جديد</h3>
             <p class="accounts-quick-card__desc">إضافة حساب جديد إلى دليل الحسابات.</p>

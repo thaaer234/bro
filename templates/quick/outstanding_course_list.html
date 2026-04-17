@@ -266,13 +266,13 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
                 <a href="{% url 'quick:export_quick_outstanding_excel' %}?course_type={{ course_type }}" class="btn btn-light quick-btn">
                     <i class="fas fa-file-excel me-1"></i> تصدير المستحقات مع الطلاب
                 </a>
-                <a href="{% url 'quick:late_payment_courses' %}?course_type={{ course_type }}" class="btn btn-warning quick-btn">
+                <a href="{% url 'quick:late_payment_courses' %}?course_type={{ course_type }}" class="btn btn-warning quick-btn" data-guide-key="quick-outstanding-late-payments">
                     <i class="fas fa-user-clock me-1"></i> المتأخرون عن السداد
                 </a>
-                <a href="{% url 'quick:outstanding_courses_print' %}?course_type=INTENSIVE" target="_blank" class="btn btn-outline-light quick-btn">
+                <a href="{% url 'quick:outstanding_courses_print' %}?course_type=INTENSIVE" target="_blank" class="btn btn-outline-light quick-btn" data-guide-key="quick-outstanding-print-intensive">
                     <i class="fas fa-print me-1"></i> طباعة المكثفات
                 </a>
-                <a href="{% url 'quick:outstanding_courses_print' %}?course_type=EXAM" target="_blank" class="btn btn-outline-light quick-btn">
+                <a href="{% url 'quick:outstanding_courses_print' %}?course_type=EXAM" target="_blank" class="btn btn-outline-light quick-btn" data-guide-key="quick-outstanding-print-exam">
                     <i class="fas fa-print me-1"></i> طباعة الامتحانيات
                 </a>
                 <a href="{% url 'quick:course_list' %}" class="btn btn-outline-light quick-btn">
@@ -374,13 +374,14 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
                             <td class="text-end quick-money">{{ item.teacher_withdrawals|floatformat:0 }} ل.س</td>
                             <td class="text-end quick-money">{{ item.net_remaining_after_withdrawals|floatformat:0 }} ل.س</td>
                             <td class="text-center quick-actions-cell">
-                                <a href="{% url 'quick:course_students' item.course.id %}?course_type={{ course_type }}" class="btn btn-sm btn-outline-primary quick-btn">
+                                <a href="{% url 'quick:course_students' item.course.id %}?course_type={{ course_type }}" class="btn btn-sm btn-outline-primary quick-btn" data-guide-key="quick-outstanding-show-students">
                                     <i class="fas fa-users me-1"></i> جميع الطلاب
                                 </a>
                                 {% if item.course.course_type == 'INTENSIVE' or item.course.course_type == 'EXAM' %}
                                 <button
                                     type="button"
                                     class="btn btn-sm btn-outline-success quick-btn ms-1 js-open-teacher-payout-modal"
+                                    data-guide-key="quick-teacher-payout"
                                     data-course-id="{{ item.course.id }}"
                                     data-course-name="{{ item.course.name }}"
                                     data-available="{{ item.net_remaining_after_withdrawals|floatformat:0 }}"

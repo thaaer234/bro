@@ -82,6 +82,11 @@
         </a>
         {% endif %}
 
+        <a href="{% url 'sitemap:sitemap_index' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'sitemap' %}active{% endif %}">
+            <i class="fas fa-cubes"></i>
+            <span>خريطة الموقع</span>
+        </a>
+
         {% if user.is_superuser or 'students_view' in emp_perms or 'quick_students_view' in emp_perms or 'students_create' in emp_perms or 'quick_students_create' in emp_perms or 'course_accounting_view' in emp_perms %}
         <div class="menu-group">
             <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="students-submenu">
@@ -274,6 +279,10 @@
             <a href="{% url 'registration:profile' %}" class="sidebar-shortcut">
                 <i class="fas fa-id-badge"></i>
                 <span>الملف الشخصي</span>
+            </a>
+            <a href="{% url 'sitemap:sitemap_index' %}" class="sidebar-shortcut">
+                <i class="fas fa-cubes"></i>
+                <span>خريطة الموقع</span>
             </a>
             {% if user.is_superuser %}
             <a href="{% url 'manuals:handbook' %}" class="sidebar-shortcut">

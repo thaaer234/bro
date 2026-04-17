@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     
     # Project apps
     "pages.apps.PagesConfig",
+    "sitemap.apps.SitemapConfig",
     "manuals.apps.ManualsConfig",
     "students",
     "employ",
