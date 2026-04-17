@@ -46,6 +46,10 @@ urlpatterns = [
     path('enrollments/create/', require_employee_perm('students_register_course')(views.QuickEnrollmentCreateView.as_view()), name='enrollment_create'),
 
     path('reports/outstanding/', require_employee_perm('accounting_outstanding')(views.QuickOutstandingCoursesView.as_view()), name='outstanding_courses'),
+    path('reports/outstanding/<int:course_id>/teacher-payout/', require_employee_perm('accounting_outstanding')(views.quick_course_teacher_payout), name='quick_course_teacher_payout'),
+    path('reports/outstanding/<int:course_id>/teacher-payouts/', require_employee_perm('accounting_outstanding')(views.quick_course_teacher_payouts_json), name='quick_course_teacher_payouts_json'),
+    path('reports/outstanding/<int:course_id>/teacher-payout/<int:payout_id>/update/', require_employee_perm('accounting_outstanding')(views.quick_course_teacher_payout_update), name='quick_course_teacher_payout_update'),
+    path('reports/outstanding/<int:course_id>/teacher-payout/<int:payout_id>/delete/', require_employee_perm('accounting_outstanding')(views.quick_course_teacher_payout_delete), name='quick_course_teacher_payout_delete'),
     path('reports/outstanding/<int:course_id>/', require_employee_perm('accounting_outstanding')(views.QuickOutstandingCourseDetailView.as_view()), name='outstanding_course_detail'),
     path('reports/outstanding/<int:course_id>/students/', require_employee_perm('accounting_outstanding')(views.QuickCourseStudentsView.as_view()), name='course_students'),
     path('reports/outstanding/export/quick-courses/', require_employee_perm('accounting_outstanding')(views.export_quick_outstanding_excel), name='export_quick_outstanding_excel'),

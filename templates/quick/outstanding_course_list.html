@@ -1,53 +1,292 @@
 {% extends "base.html" %}
 {% load static %}
 
-
-
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+<style>
+body.page-outstanding_courses .quick-report-page {
+    --report-bg: #f4f7fb;
+    --report-surface: #ffffff;
+    --report-border: #dbe3ee;
+    --report-muted: #5f6f86;
+    --report-heading: #142133;
+    --report-primary: #1f4fa8;
+    --report-success: #0f766e;
+    --report-warning: #a16207;
+    --report-danger: #b42318;
+    display: grid;
+    gap: 1rem;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-hero {
+    background: linear-gradient(135deg, #163a74 0%, #1e4f9f 55%, #2b6dca 100%) !important;
+    color: #fff !important;
+    border: 0 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 16px 34px rgba(17, 40, 82, 0.28) !important;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-hero h2 {
+    margin: 0 0 0.45rem;
+    color: #fff;
+    font-size: clamp(1.2rem, 1.7vw, 1.8rem);
+    font-weight: 800;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-hero p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 62ch;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-hero .quick-hero-actions {
+    justify-content: flex-start;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-hero .btn {
+    border-radius: 10px;
+    font-weight: 700;
+    min-height: 42px;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-card {
+    background: var(--report-surface) !important;
+    border: 1px solid var(--report-border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05) !important;
+}
+body.page-outstanding_courses .quick-report-page .quick-subtle {
+    color: var(--report-muted);
+}
+body.page-outstanding_courses .quick-report-page .outstanding-card .card-header {
+    background: #f8fbff !important;
+    border-bottom: 1px solid var(--report-border) !important;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-stat {
+    border: 1px solid var(--report-border);
+    border-radius: 14px;
+    background: #fff;
+    padding: 0.95rem 1rem;
+    height: 100%;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-stat .label {
+    margin-bottom: 0.35rem;
+    color: var(--report-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-stat .value {
+    color: var(--report-heading);
+    font-size: clamp(1.25rem, 1.55vw, 1.75rem);
+    font-weight: 800;
+    line-height: 1.1;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-stat--primary { border-top: 4px solid #2b6dca; }
+body.page-outstanding_courses .quick-report-page .outstanding-stat--info { border-top: 4px solid #0891b2; }
+body.page-outstanding_courses .quick-report-page .outstanding-stat--warning { border-top: 4px solid #d97706; }
+body.page-outstanding_courses .quick-report-page .outstanding-stat--danger { border-top: 4px solid #b42318; }
+body.page-outstanding_courses .quick-report-page .outstanding-stat--success { border-top: 4px solid #0f766e; }
+body.page-outstanding_courses .quick-report-page .outstanding-toolbar {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-search {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-search .form-control {
+    min-width: 280px;
+}
+body.page-outstanding_courses .quick-report-page .quick-report-table {
+    margin-bottom: 0 !important;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #ffffff;
+    border: 1px solid #d7e1ee;
+    border-radius: 14px;
+    overflow: hidden;
+}
+body.page-outstanding_courses .quick-report-page .quick-report-table thead th {
+    background: #153b63;
+    color: #f8fbff;
+    font-size: 0.79rem;
+    font-weight: 800;
+    border: 0 !important;
+    padding: 0.95rem 0.85rem;
+    white-space: nowrap;
+}
+body.page-outstanding_courses .quick-report-page .quick-report-table tbody td {
+    border-top: 1px solid #e7edf6 !important;
+    border-right: 0 !important;
+    border-left: 0 !important;
+    border-bottom: 0 !important;
+    vertical-align: middle;
+    padding: 0.9rem 0.85rem;
+    color: #22354a;
+    font-size: 0.91rem;
+}
+body.page-outstanding_courses .quick-report-page .quick-report-table tbody tr:hover {
+    background: #edf4ff !important;
+}
+body.page-outstanding_courses .quick-report-page .quick-report-table tbody tr:nth-child(even) {
+    background: #f8fbff;
+}
+body.page-outstanding_courses .quick-report-page .quick-course-name {
+    color: #10243a;
+    font-weight: 800;
+    margin-bottom: 0.1rem;
+}
+body.page-outstanding_courses .quick-report-page .quick-badge {
+    min-height: 31px;
+    padding: 0.32rem 0.68rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+body.page-outstanding_courses .quick-report-page .quick-money {
+    color: #0f2740 !important;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.015em;
+}
+body.page-outstanding_courses .quick-report-page .quick-actions-cell {
+    min-width: 300px;
+}
+body.page-outstanding_courses .quick-report-page .quick-actions-cell .btn {
+    margin-top: 0.2rem;
+    min-height: 34px;
+    border-radius: 9px;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-table-shell {
+    padding: 0.85rem;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-table-shell .table-responsive {
+    border: 0;
+    border-radius: 12px;
+    overflow: auto;
+    background: transparent;
+}
+body.page-outstanding_courses .quick-report-page .outstanding-empty {
+    min-height: 250px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: var(--report-muted);
+    gap: 0.7rem;
+}
+body.page-outstanding_courses .quick-report-page .modal-content {
+    border-radius: 14px;
+    border: 1px solid var(--report-border);
+}
+
+/* Design Lock: isolate all outstanding tables from global system styles */
+body.page-outstanding_courses .quick-report-page .outstanding-table-shell .table-responsive,
+body.page-outstanding_courses .quick-report-page #teacherPayoutsListWrap {
+    border: 1px solid #c8d7e9 !important;
+    border-radius: 12px !important;
+    overflow: auto !important;
+    background: #ffffff !important;
+}
+body.page-outstanding_courses .quick-report-page #quickCoursesTable,
+body.page-outstanding_courses .quick-report-page .teacher-payouts-table {
+    width: 100% !important;
+    margin: 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: 0 !important;
+}
+body.page-outstanding_courses .quick-report-page #quickCoursesTable thead th,
+body.page-outstanding_courses .quick-report-page .teacher-payouts-table thead th {
+    background: #163f6f !important;
+    color: #f8fbff !important;
+    font-size: 0.79rem !important;
+    font-weight: 800 !important;
+    border: 0 !important;
+    padding: 0.9rem 0.78rem !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+}
+body.page-outstanding_courses .quick-report-page #quickCoursesTable tbody td,
+body.page-outstanding_courses .quick-report-page .teacher-payouts-table tbody td {
+    background: #ffffff !important;
+    color: #1f334a !important;
+    border: 0 !important;
+    border-top: 1px solid #e6edf6 !important;
+    padding: 0.82rem 0.78rem !important;
+    vertical-align: middle !important;
+}
+body.page-outstanding_courses .quick-report-page #quickCoursesTable tbody tr:nth-child(even) td,
+body.page-outstanding_courses .quick-report-page .teacher-payouts-table tbody tr:nth-child(even) td {
+    background: #f7fbff !important;
+}
+body.page-outstanding_courses .quick-report-page #quickCoursesTable tbody tr:hover td,
+body.page-outstanding_courses .quick-report-page .teacher-payouts-table tbody tr:hover td {
+    background: #edf5ff !important;
+}
+body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actions-cell {
+    min-width: 300px !important;
+}
+body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actions-cell .btn {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+}
+@media (max-width: 768px) {
+    body.page-outstanding_courses .quick-report-page .outstanding-search .form-control {
+        min-width: 100%;
+    }
+    body.page-outstanding_courses .quick-report-page .quick-actions-cell {
+        min-width: 220px;
+    }
+    body.page-outstanding_courses .quick-report-page .quick-report-table thead th {
+        font-size: 0.73rem;
+        padding: 0.72rem 0.58rem;
+    }
+    body.page-outstanding_courses .quick-report-page .quick-report-table tbody td {
+        padding: 0.7rem 0.58rem;
+        font-size: 0.86rem;
+    }
+}
+</style>
 {% endblock %}
+
 {% block content %}
 <div class="container-fluid quick-report-page">
-    <div class="card quick-hero mb-4">
+    <div class="card outstanding-hero mb-2">
         <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
                 <h2>الدورات السريعة - تقرير المستحقات ({{ course_type_report_label }})</h2>
-                <p>عرض شامل لأعداد الطلاب والحسابات بحسب كل دورة.</p>
+                <p>لوحة متابعة مالية واضحة لكل دورة: المدفوع، مسحوبات الأستاذ، والرصيد الصافي المتبقي.</p>
             </div>
             <div class="quick-hero-actions">
                 <a href="{% url 'quick:export_quick_course_statement_excel' %}?course_type={{ course_type }}" class="btn btn-light quick-btn">
-                    <i class="fas fa-file-excel me-1"></i>
-                    كشف حساب الدورات
+                    <i class="fas fa-file-excel me-1"></i> كشف حساب الدورات
                 </a>
                 <a href="{% url 'quick:export_quick_outstanding_excel' %}?course_type={{ course_type }}" class="btn btn-light quick-btn">
-                    <i class="fas fa-file-excel me-1"></i>
-                    تصدير المستحقات مع الطلاب
+                    <i class="fas fa-file-excel me-1"></i> تصدير المستحقات مع الطلاب
                 </a>
                 <a href="{% url 'quick:late_payment_courses' %}?course_type={{ course_type }}" class="btn btn-warning quick-btn">
-                    <i class="fas fa-user-clock me-1"></i>
-                    المتأخرون عن السداد
+                    <i class="fas fa-user-clock me-1"></i> المتأخرون عن السداد
                 </a>
                 <a href="{% url 'quick:outstanding_courses_print' %}?course_type=INTENSIVE" target="_blank" class="btn btn-outline-light quick-btn">
-                    <i class="fas fa-print me-1"></i>
-                    طباعة المكثفات
+                    <i class="fas fa-print me-1"></i> طباعة المكثفات
                 </a>
                 <a href="{% url 'quick:outstanding_courses_print' %}?course_type=EXAM" target="_blank" class="btn btn-outline-light quick-btn">
-                    <i class="fas fa-print me-1"></i>
-                    طباعة الامتحانيات
+                    <i class="fas fa-print me-1"></i> طباعة الامتحانيات
                 </a>
                 <a href="{% url 'quick:course_list' %}" class="btn btn-outline-light quick-btn">
-                    <i class="fas fa-arrow-left me-1"></i>
-                    رجوع للدورات
+                    <i class="fas fa-arrow-left me-1"></i> رجوع للدورات
                 </a>
             </div>
         </div>
     </div>
 
-    <div class="card quick-panel mb-4">
+    <div class="card outstanding-card">
         <div class="card-body quick-filter-grid">
             <div>
                 <h5 class="mb-1">تصفية التقرير</h5>
-                <div class="quick-subtle">اختر نوع الدورة لعرض الملخص المطلوب.</div>
+                <div class="quick-subtle">اختر نوع الدورة لعرض ملخص دقيق للبيانات المالية.</div>
             </div>
             <form method="get">
                 <label class="form-label">نوع الدورة</label>
@@ -60,41 +299,52 @@
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-4 mb-3">
-            <div class="card quick-stat quick-stat-primary">
-                <div class="card-body">
-                    <div class="label">عدد الدورات</div>
-                    <div class="value">{{ total_courses }}</div>
-                </div>
+    <div class="row g-3">
+        <div class="col-lg-6 col-md-6">
+            <div class="outstanding-stat outstanding-stat--primary">
+                <div class="label">عدد الدورات</div>
+                <div class="value">{{ total_courses }}</div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
-            <div class="card quick-stat quick-stat-info">
-                <div class="card-body">
-                    <div class="label">إجمالي المدفوع</div>
-                    <div class="value">{{ total_paid_amount|floatformat:0 }}</div>
-                </div>
+        <div class="col-lg-6 col-md-6">
+            <div class="outstanding-stat outstanding-stat--info">
+                <div class="label">إجمالي المدفوع</div>
+                <div class="value">{{ total_paid_amount|floatformat:0 }}</div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
-            <div class="card quick-stat quick-stat-warning">
-                <div class="card-body">
-                    <div class="label">متوسط المدفوع لكل دورة</div>
-                    <div class="value">{{ average_paid_per_course|floatformat:0 }}</div>
-                </div>
+        <div class="col-lg-6 col-md-6">
+            <div class="outstanding-stat outstanding-stat--danger">
+                <div class="label">إجمالي مسحوبات الأستاذ</div>
+                <div class="value">{{ total_teacher_withdrawals|floatformat:0 }}</div>
+            </div>
+        </div>
+        <div class="col-lg-6 col-md-6">
+            <div class="outstanding-stat outstanding-stat--success">
+                <div class="label">إجمالي الرصيد الصافي المتبقي</div>
+                <div class="value">{{ total_net_remaining_after_withdrawals|floatformat:0 }}</div>
             </div>
         </div>
     </div>
 
-    <div class="card quick-panel">
+    <div class="card outstanding-card">
+        <div class="card-body outstanding-toolbar">
+            <div class="quick-subtle mb-0">ابحث ضمن الدورات الظاهرة</div>
+            <div class="outstanding-search">
+                <input id="quickCourseSearchInput" type="search" class="form-control" placeholder="ابحث باسم الدورة...">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="quickCourseSearchReset">مسح</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card outstanding-card">
         <div class="card-header">
             <h5 class="mb-0"><i class="fas fa-list me-2"></i>جميع الدورات السريعة</h5>
         </div>
         <div class="card-body p-0">
             {% if courses %}
+            <div class="outstanding-table-shell">
             <div class="table-responsive">
-                <table class="table quick-report-table align-middle">
+                <table class="table quick-report-table align-middle" id="quickCoursesTable">
                     <thead>
                         <tr>
                             <th>الدورة</th>
@@ -102,12 +352,14 @@
                             <th class="text-center">المسددون</th>
                             <th class="text-center">غير المسددين</th>
                             <th class="text-end">إجمالي المدفوع</th>
+                            <th class="text-end">مسحوبات الأستاذ</th>
+                            <th class="text-end">الرصيد الصافي المتبقي</th>
                             <th class="text-center">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in courses %}
-                        <tr>
+                        <tr data-course-name="{{ item.course.name|lower }} {% if item.course.name_ar %}{{ item.course.name_ar|lower }}{% endif %}">
                             <td>
                                 <div class="quick-course-name">{{ item.course.name }}</div>
                                 {% if item.course.name_ar %}
@@ -119,25 +371,356 @@
                             <td class="text-center"><span class="quick-badge quick-badge-success">{{ item.paid_students }}</span></td>
                             <td class="text-center"><span class="quick-badge quick-badge-warning">{{ item.outstanding_students }}</span></td>
                             <td class="text-end quick-money">{{ item.total_paid|floatformat:0 }} ل.س</td>
-                            <td class="text-center">
+                            <td class="text-end quick-money">{{ item.teacher_withdrawals|floatformat:0 }} ل.س</td>
+                            <td class="text-end quick-money">{{ item.net_remaining_after_withdrawals|floatformat:0 }} ل.س</td>
+                            <td class="text-center quick-actions-cell">
                                 <a href="{% url 'quick:course_students' item.course.id %}?course_type={{ course_type }}" class="btn btn-sm btn-outline-primary quick-btn">
-                                    <i class="fas fa-users me-1"></i>
-                                    جميع الطلاب
+                                    <i class="fas fa-users me-1"></i> جميع الطلاب
                                 </a>
+                                {% if item.course.course_type == 'INTENSIVE' or item.course.course_type == 'EXAM' %}
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-success quick-btn ms-1 js-open-teacher-payout-modal"
+                                    data-course-id="{{ item.course.id }}"
+                                    data-course-name="{{ item.course.name }}"
+                                    data-available="{{ item.net_remaining_after_withdrawals|floatformat:0 }}"
+                                >
+                                    <i class="fas fa-hand-holding-usd me-1"></i> دفعات الأستاذ
+                                </button>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            </div>
             {% else %}
-            <div class="quick-empty">
+            <div class="outstanding-empty">
                 <i class="fas fa-check-circle d-block"></i>
-                <h4 class="mb-2">لا توجد دورات فيها متبقيات حالياً</h4>
+                <h4 class="mb-1">لا توجد دورات فيها متبقيات حالياً</h4>
                 <p class="mb-0">جميع الطلاب مسددون بالكامل ضمن هذا التصنيف.</p>
             </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="teacherPayoutModal" tabindex="-1" aria-labelledby="teacherPayoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" id="teacherPayoutForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="teacherPayoutModalLabel">دفع للأستاذ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="course_type" value="{{ course_type }}">
+                    <div class="mb-2 quick-subtle">الدورة: <span id="teacherPayoutCourseName">-</span></div>
+                    <div class="mb-3 quick-subtle">الرصيد المتاح للدفع: <span id="teacherPayoutAvailable">0</span> ل.س</div>
+                    <div class="mb-3">
+                        <label for="teacherPayoutAmountDisplay" class="form-label">المبلغ</label>
+                        <input
+                            type="text"
+                            id="teacherPayoutAmountDisplay"
+                            inputmode="numeric"
+                            autocomplete="off"
+                            required
+                            class="form-control"
+                            placeholder="أدخل مبلغ الدفعة"
+                        >
+                        <input type="hidden" name="amount" id="teacherPayoutAmount" value="">
+                    </div>
+                    <div>
+                        <label for="teacherPayoutNote" class="form-label">ملاحظة (اختياري)</label>
+                        <input type="text" name="note" id="teacherPayoutNote" class="form-control" maxlength="200" placeholder="مثال: دفعة أولى">
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">دفعات الأستاذ المسجلة</h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshTeacherPayoutsBtn">
+                            تحديث
+                        </button>
+                    </div>
+                    <div id="teacherPayoutsListWrap" class="table-responsive">
+                        <table class="table table-sm align-middle mb-0 teacher-payouts-table">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th class="text-end">المبلغ</th>
+                                    <th>ملاحظة</th>
+                                    <th class="text-center">الإجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherPayoutsListBody">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">لا توجد دفعات بعد.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" data-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i> تأكيد الدفع
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalButtons = document.querySelectorAll('.js-open-teacher-payout-modal');
+    const payoutForm = document.getElementById('teacherPayoutForm');
+    const payoutModalEl = document.getElementById('teacherPayoutModal');
+    const courseNameLabel = document.getElementById('teacherPayoutCourseName');
+    const availableLabel = document.getElementById('teacherPayoutAvailable');
+    const amountInput = document.getElementById('teacherPayoutAmount');
+    const amountDisplayInput = document.getElementById('teacherPayoutAmountDisplay');
+    const noteInput = document.getElementById('teacherPayoutNote');
+    const courseSearchInput = document.getElementById('quickCourseSearchInput');
+    const courseSearchReset = document.getElementById('quickCourseSearchReset');
+    const coursesTable = document.getElementById('quickCoursesTable');
+    const payoutsBody = document.getElementById('teacherPayoutsListBody');
+    const refreshPayoutsBtn = document.getElementById('refreshTeacherPayoutsBtn');
+
+    let activeCourseId = null;
+    let activeCourseName = '';
+    let activePayoutMax = 0;
+
+    const getCsrfToken = () => {
+        const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    };
+
+    if (!payoutForm || !amountInput || !amountDisplayInput) return;
+
+    if (courseSearchInput && coursesTable) {
+        const rows = Array.from(coursesTable.querySelectorAll('tbody tr'));
+        const applyFilter = function () {
+            const query = (courseSearchInput.value || '').trim().toLowerCase();
+            rows.forEach(function (row) {
+                const text = row.getAttribute('data-course-name') || '';
+                row.style.display = (!query || text.includes(query)) ? '' : 'none';
+            });
+        };
+
+        courseSearchInput.addEventListener('input', applyFilter);
+        if (courseSearchReset) {
+            courseSearchReset.addEventListener('click', function () {
+                courseSearchInput.value = '';
+                applyFilter();
+                courseSearchInput.focus();
+            });
+        }
+    }
+
+    const escapeHtml = function (raw) {
+        return (raw || '').toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    const formatAmount = function (raw) {
+        const value = parseFloat(raw || '0');
+        if (!Number.isFinite(value)) return '0';
+        return Math.round(value).toLocaleString('en-US');
+    };
+
+    const normalizeDigits = function (raw) {
+        return String(raw || '').replace(/[^\d]/g, '');
+    };
+
+    const syncHiddenAmount = function () {
+        const digits = normalizeDigits(amountDisplayInput.value);
+        amountInput.value = digits || '';
+    };
+
+    amountDisplayInput.addEventListener('input', function () {
+        const digits = normalizeDigits(amountDisplayInput.value);
+        amountDisplayInput.value = digits ? Number(digits).toLocaleString('en-US') : '';
+        syncHiddenAmount();
+    });
+
+    amountDisplayInput.addEventListener('blur', function () {
+        syncHiddenAmount();
+    });
+
+    const renderPayoutRows = function (rows) {
+        if (!payoutsBody) return;
+        if (!rows || rows.length === 0) {
+            payoutsBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">لا توجد دفعات بعد.</td></tr>';
+            return;
+        }
+        payoutsBody.innerHTML = rows.map(function (row) {
+            const note = row.note ? escapeHtml(row.note) : '-';
+            return '' +
+                '<tr data-payout-id="' + row.id + '">' +
+                    '<td>' + escapeHtml(row.date || '-') + '</td>' +
+                    '<td class="text-end fw-bold">' + formatAmount(row.amount) + ' ل.س</td>' +
+                    '<td>' + note + '</td>' +
+                    '<td class="text-center">' +
+                        '<button type="button" class="btn btn-sm btn-outline-primary js-edit-payout me-1">تعديل</button>' +
+                        '<button type="button" class="btn btn-sm btn-outline-danger js-delete-payout">حذف</button>' +
+                    '</td>' +
+                '</tr>';
+        }).join('');
+    };
+
+    const loadPayouts = function () {
+        if (!activeCourseId) return Promise.resolve();
+        const url = "{% url 'quick:quick_course_teacher_payouts_json' 0 %}".replace('/0/', '/' + activeCourseId + '/');
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data.ok) {
+                    renderPayoutRows([]);
+                    return;
+                }
+                renderPayoutRows(data.payouts || []);
+            })
+            .catch(function () {
+                renderPayoutRows([]);
+            });
+    };
+
+    const openPayoutModal = function () {
+        if (!payoutModalEl) return;
+        if (window.bootstrap && window.bootstrap.Modal) {
+            window.bootstrap.Modal.getOrCreateInstance(payoutModalEl).show();
+            return;
+        }
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.modal) {
+            window.jQuery(payoutModalEl).modal('show');
+            return;
+        }
+        payoutModalEl.classList.add('show');
+        payoutModalEl.style.display = 'block';
+        payoutModalEl.removeAttribute('aria-hidden');
+    };
+
+    modalButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const courseId = btn.getAttribute('data-course-id');
+            const courseName = btn.getAttribute('data-course-name') || '-';
+            const available = btn.getAttribute('data-available') || '0';
+            const availableDisplay = btn.getAttribute('data-available-display') || available;
+            const availableNumber = parseInt(available.replace(/[^\d]/g, ''), 10) || 0;
+
+            activeCourseId = courseId;
+            activeCourseName = courseName;
+            payoutForm.action = "{% url 'quick:quick_course_teacher_payout' 0 %}".replace('/0/', '/' + courseId + '/');
+            courseNameLabel.textContent = courseName;
+            availableLabel.textContent = availableDisplay;
+            activePayoutMax = availableNumber > 0 ? availableNumber : 0;
+            amountInput.value = '';
+            amountDisplayInput.value = '';
+            amountDisplayInput.placeholder = activePayoutMax > 0 ? ('الحد الأقصى: ' + formatAmount(activePayoutMax)) : 'أدخل مبلغ الدفعة';
+            noteInput.value = '';
+            loadPayouts();
+            openPayoutModal();
+            amountDisplayInput.focus();
+        });
+    });
+
+    payoutForm.addEventListener('submit', function (event) {
+        syncHiddenAmount();
+        const entered = Number(amountInput.value || '0');
+        if (entered <= 0) {
+            event.preventDefault();
+            alert('الرجاء إدخال مبلغ صحيح أكبر من الصفر.');
+            amountDisplayInput.focus();
+            return;
+        }
+        if (activePayoutMax > 0 && entered > activePayoutMax) {
+            event.preventDefault();
+            alert('المبلغ يتجاوز الرصيد المتاح للدفع.');
+            amountDisplayInput.focus();
+        }
+    });
+
+    if (refreshPayoutsBtn) {
+        refreshPayoutsBtn.addEventListener('click', function () {
+            loadPayouts();
+        });
+    }
+
+    if (payoutsBody) {
+        payoutsBody.addEventListener('click', function (event) {
+            const editBtn = event.target.closest('.js-edit-payout');
+            const deleteBtn = event.target.closest('.js-delete-payout');
+            const row = event.target.closest('tr[data-payout-id]');
+            if (!row || !activeCourseId) return;
+            const payoutId = row.getAttribute('data-payout-id');
+            if (!payoutId) return;
+
+            if (editBtn) {
+                const currentAmountText = row.children[1] ? row.children[1].textContent : '';
+                const currentAmount = (currentAmountText || '').replace(/[^\d]/g, '');
+                const currentNote = row.children[2] ? (row.children[2].textContent || '').trim() : '';
+                const newAmount = prompt('أدخل قيمة الدفعة الجديدة:', currentAmount || '');
+                if (newAmount === null) return;
+                const newNote = prompt('ملاحظة الدفعة (اختياري):', currentNote === '-' ? '' : currentNote);
+                if (newNote === null) return;
+
+                const updateUrl = "{% url 'quick:quick_course_teacher_payout_update' 0 0 %}"
+                    .replace('/0/teacher-payout/0/', '/' + activeCourseId + '/teacher-payout/' + payoutId + '/');
+                const formData = new URLSearchParams();
+                formData.append('amount', newAmount);
+                formData.append('note', newNote);
+                fetch(updateUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData.toString(),
+                })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        if (!data.ok) {
+                            alert(data.error || 'تعذر تعديل الدفعة');
+                            return;
+                        }
+                        loadPayouts().then(function () { window.location.reload(); });
+                    })
+                    .catch(function () { alert('تعذر تعديل الدفعة حالياً'); });
+                return;
+            }
+
+            if (deleteBtn) {
+                if (!confirm('تأكيد حذف الدفعة؟ سيتم حذف قيودها المحاسبية أيضاً.')) return;
+                const deleteUrl = "{% url 'quick:quick_course_teacher_payout_delete' 0 0 %}"
+                    .replace('/0/teacher-payout/0/', '/' + activeCourseId + '/teacher-payout/' + payoutId + '/');
+                fetch(deleteUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                })
+                    .then(function (res) { return res.json(); })
+                    .then(function (data) {
+                        if (!data.ok) {
+                            alert(data.error || 'تعذر حذف الدفعة');
+                            return;
+                        }
+                        loadPayouts().then(function () { window.location.reload(); });
+                    })
+                    .catch(function () { alert('تعذر حذف الدفعة حالياً'); });
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

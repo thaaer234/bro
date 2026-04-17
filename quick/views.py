@@ -38,6 +38,7 @@ from decimal import Decimal, InvalidOperation
 from itertools import combinations
 from math import ceil
 import logging
+import re
 import time
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_GET
@@ -48,6 +49,7 @@ from urllib.parse import urlencode
 from django.db.models import Prefetch
 from django.conf import settings
 from django.db import transaction, connection, OperationalError, close_old_connections
+from django.utils.http import url_has_allowed_host_and_scheme
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
@@ -70,6 +72,8 @@ from .services.receipt_printer import QuickReceiptPrinterError, print_many_recei
 from employ.decorators import require_superuser
 User = get_user_model()
 logger = logging.getLogger('django')
+
+QUICK_TEACHER_PAYOUT_MARKER = '[QUICK_TEACHER_PAYOUT'
 
 
 def _parse_quick_posted_int(raw_value):
@@ -2343,6 +2347,34 @@ def _extract_quick_student_id_from_entry(entry):
     return None
 
 
+def _extract_quick_enrollment_ids_from_text(text):
+    normalized_text = str(text or '').strip()
+    if not normalized_text:
+        return set()
+
+    enrollment_ids = set()
+    for match in re.findall(r'QE-(\d+)', normalized_text):
+        try:
+            enrollment_ids.add(int(match))
+        except (TypeError, ValueError):
+            continue
+
+    for match in re.findall(r'\[(?:QUICK_[^\]]*?)#(\d+)\]', normalized_text):
+        try:
+            enrollment_ids.add(int(match))
+        except (TypeError, ValueError):
+            continue
+
+    return enrollment_ids
+
+
+def _extract_quick_receipt_numbers_from_text(text):
+    normalized_text = str(text or '').strip()
+    if not normalized_text:
+        return set()
+    return {match for match in re.findall(r'\bQS\d{12}\b', normalized_text)}
+
+
 def _match_quick_courses_from_text(text, course_map):
     normalized_text = str(text or '').strip()
     if not normalized_text:
@@ -2383,11 +2415,28 @@ def _resolve_quick_entry_source(entry, receipt=None, enrollment=None):
     return entry.get_entry_type_display()
 
 
-def _get_quick_entry_course_ids(entry, course_map, course_account_codes, receipt=None, enrollment=None):
+def _get_quick_entry_course_ids(
+    entry,
+    course_map,
+    course_account_codes,
+    receipt=None,
+    enrollment=None,
+    enrollment_by_id=None,
+    receipt_by_number=None,
+):
     entry_course_ids = set()
 
     if receipt and receipt.course_id in course_map:
         entry_course_ids.add(receipt.course_id)
+    if (
+        receipt
+        and not entry_course_ids
+        and getattr(receipt, 'quick_enrollment_id', None)
+        and enrollment_by_id
+    ):
+        linked_enrollment = enrollment_by_id.get(receipt.quick_enrollment_id)
+        if linked_enrollment and linked_enrollment.course_id in course_map:
+            entry_course_ids.add(linked_enrollment.course_id)
 
     if enrollment and enrollment.course_id in course_map:
         entry_course_ids.add(enrollment.course_id)
@@ -2397,6 +2446,46 @@ def _get_quick_entry_course_ids(entry, course_map, course_account_codes, receipt
         for course_id, account_codes in course_account_codes.items():
             if code in account_codes:
                 entry_course_ids.add(course_id)
+
+    if entry_course_ids:
+        return entry_course_ids
+
+    if enrollment_by_id:
+        text_candidates = [entry.reference or '', entry.description or '']
+        text_candidates.extend(
+            transaction.description or ''
+            for transaction in entry.transactions.all()
+        )
+        for text in text_candidates:
+            for enrollment_id in _extract_quick_enrollment_ids_from_text(text):
+                linked_enrollment = enrollment_by_id.get(enrollment_id)
+                if linked_enrollment and linked_enrollment.course_id in course_map:
+                    entry_course_ids.add(linked_enrollment.course_id)
+
+    if entry_course_ids:
+        return entry_course_ids
+
+    if receipt_by_number:
+        text_candidates = [entry.reference or '', entry.description or '']
+        text_candidates.extend(
+            transaction.description or ''
+            for transaction in entry.transactions.all()
+        )
+        for text in text_candidates:
+            for receipt_number in _extract_quick_receipt_numbers_from_text(text):
+                linked_receipt = receipt_by_number.get(receipt_number)
+                if not linked_receipt:
+                    continue
+                if linked_receipt.course_id in course_map:
+                    entry_course_ids.add(linked_receipt.course_id)
+                    continue
+                if (
+                    linked_receipt.quick_enrollment_id
+                    and enrollment_by_id
+                ):
+                    linked_enrollment = enrollment_by_id.get(linked_receipt.quick_enrollment_id)
+                    if linked_enrollment and linked_enrollment.course_id in course_map:
+                        entry_course_ids.add(linked_enrollment.course_id)
 
     if entry_course_ids:
         return entry_course_ids
@@ -2434,6 +2523,7 @@ def _build_quick_course_statement_rows(courses):
         .order_by('course__name', 'student__full_name', 'id')
     )
     enrollment_ref_map = {f"QE-{enrollment.id}": enrollment for enrollment in enrollments}
+    enrollment_by_id = {enrollment.id: enrollment for enrollment in enrollments}
     enrollment_by_course = defaultdict(list)
     for enrollment in enrollments:
         enrollment_by_course[enrollment.course_id].append(enrollment)
@@ -2447,6 +2537,11 @@ def _build_quick_course_statement_rows(courses):
         receipt.journal_entry_id: receipt
         for receipt in receipts
         if receipt.journal_entry_id
+    }
+    receipt_by_number = {
+        (receipt.receipt_number or '').strip(): receipt
+        for receipt in receipts
+        if (receipt.receipt_number or '').strip()
     }
     receipt_entry_ids = set(receipt_by_entry_id.keys())
 
@@ -2486,6 +2581,8 @@ def _build_quick_course_statement_rows(courses):
             course_account_codes=course_account_codes,
             receipt=receipt,
             enrollment=enrollment,
+            enrollment_by_id=enrollment_by_id,
+            receipt_by_number=receipt_by_number,
         )
 
         if not entry_course_ids:
@@ -2554,7 +2651,7 @@ def export_quick_course_statement_excel(request):
     course_type, _, report_label = _get_outstanding_course_type(request)
     academic_year_id = request.GET.get('academic_year')
 
-    courses_qs = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
+    courses_qs = QuickCourse.objects.all().select_related('academic_year').order_by('name')
     if course_type != 'ALL':
         courses_qs = courses_qs.filter(course_type=course_type)
     if academic_year_id:
@@ -3393,8 +3490,132 @@ def _attach_quick_report_urls(context, request, report_url_name, print_url_name)
     return context
 
 
+def _normalize_quick_decimal_input(raw_value):
+    raw_text = str(raw_value or '').strip()
+    if not raw_text:
+        raise InvalidOperation('empty')
+    for token in (' ', ',', '،', '٬'):
+        raw_text = raw_text.replace(token, '')
+    return Decimal(raw_text)
+
+
+def _get_quick_teacher_payout_totals(courses):
+    courses = list(courses)
+    if not courses:
+        return {}
+
+    account_to_course = {}
+    for course in courses:
+        deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+        account_to_course[deferred_account.id] = course.id
+
+    payout_rows = (
+        Transaction.objects.filter(
+            is_debit=True,
+            account_id__in=account_to_course.keys(),
+            journal_entry__is_posted=True,
+            journal_entry__description__icontains=QUICK_TEACHER_PAYOUT_MARKER,
+        )
+        .values('account_id')
+        .annotate(total=Sum('amount'))
+    )
+
+    payout_by_course = {course.id: Decimal('0.00') for course in courses}
+    for row in payout_rows:
+        course_id = account_to_course.get(row['account_id'])
+        if course_id is None:
+            continue
+        payout_by_course[course_id] = row['total'] or Decimal('0.00')
+    return payout_by_course
+
+
+def _build_quick_teacher_payout_description(course, note=''):
+    description = f'{QUICK_TEACHER_PAYOUT_MARKER} #{course.id}] دفع للأستاذ - {course.name}'
+    note = str(note or '').strip()
+    if note:
+        description = f'{description} - {note}'
+    return description
+
+
+def _extract_quick_teacher_payout_note(entry_description, course):
+    prefix = f'{QUICK_TEACHER_PAYOUT_MARKER} #{course.id}] دفع للأستاذ - {course.name}'
+    text = str(entry_description or '')
+    if not text.startswith(prefix):
+        return ''
+    note = text[len(prefix):].strip()
+    if note.startswith('-'):
+        note = note[1:].strip()
+    return note
+
+
+def _get_quick_teacher_payout_entries(course):
+    deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+    entries = (
+        JournalEntry.objects.filter(
+            transactions__account=deferred_account,
+            transactions__is_debit=True,
+            description__icontains=QUICK_TEACHER_PAYOUT_MARKER,
+        )
+        .distinct()
+        .prefetch_related('transactions__account')
+        .order_by('-date', '-id')
+    )
+
+    rows = []
+    for entry in entries:
+        amount = sum(
+            (tx.amount or Decimal('0'))
+            for tx in entry.transactions.all()
+            if tx.is_debit and tx.account_id == deferred_account.id
+        )
+        if amount <= 0:
+            continue
+        rows.append({
+            'id': entry.id,
+            'amount': amount,
+            'date': entry.date,
+            'reference': entry.reference,
+            'created_by': (
+                (entry.created_by.get_full_name() or entry.created_by.get_username())
+                if entry.created_by_id else '-'
+            ),
+            'note': _extract_quick_teacher_payout_note(entry.description, course),
+        })
+    return rows
+
+
+def _get_quick_teacher_payout_entry_for_course(course, entry_id, for_update=False):
+    deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+    qs = JournalEntry.objects.filter(
+        pk=entry_id,
+        description__icontains=QUICK_TEACHER_PAYOUT_MARKER,
+        transactions__account=deferred_account,
+        transactions__is_debit=True,
+    ).distinct()
+    if for_update:
+        qs = qs.select_for_update()
+    entry = qs.first()
+    if not entry:
+        raise Http404('Teacher payout entry not found for this course')
+    return entry, deferred_account
+
+
+def _get_quick_course_total_paid(course):
+    enrollment_ids = list(
+        QuickEnrollment.objects.filter(course=course, is_completed=False).values_list('id', flat=True)
+    )
+    if not enrollment_ids:
+        return Decimal('0.00')
+    return (
+        QuickStudentReceipt.objects.filter(quick_enrollment_id__in=enrollment_ids)
+        .aggregate(total=Sum('paid_amount'))['total']
+        or Decimal('0.00')
+    )
+
+
 def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=False, start_date=None, end_date=None):
     courses = list(courses)
+    teacher_payout_map = _get_quick_teacher_payout_totals(courses)
     course_map = {
         course.id: {
             'course': course,
@@ -3406,6 +3627,8 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
             'outstanding_students': 0,
             'total_outstanding': Decimal('0.00'),
             'total_paid': Decimal('0.00'),
+            'teacher_withdrawals': teacher_payout_map.get(course.id, Decimal('0.00')),
+            'net_remaining_after_withdrawals': Decimal('0.00'),
         }
         for course in courses
     }
@@ -3451,6 +3674,10 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
         else:
             stats['paid_students'] += 1
         stats['total_paid'] += paid_total
+        stats['net_remaining_after_withdrawals'] = max(
+            Decimal('0.00'),
+            stats['total_paid'] - stats['teacher_withdrawals']
+        )
 
     course_data = list(course_map.values())
     if not include_zero_outstanding:
@@ -3466,6 +3693,10 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
         'total_paid_students': sum(row['paid_students'] for row in course_data),
         'total_students': sum(row['total_students'] for row in course_data),
         'total_paid_amount': sum(row['total_paid'] for row in course_data),
+        'total_teacher_withdrawals': sum(row['teacher_withdrawals'] for row in course_data),
+        'total_net_remaining_after_withdrawals': sum(
+            row['net_remaining_after_withdrawals'] for row in course_data
+        ),
     }
 
     return course_data, totals
@@ -8684,6 +8915,8 @@ class QuickOutstandingCoursesView(LoginRequiredMixin, ListView):
             'total_outstanding_students': totals.get('total_outstanding_students', 0),
             'total_outstanding_amount': totals.get('total_outstanding_amount', Decimal('0')),
             'total_paid_amount': totals.get('total_paid_amount', Decimal('0')),
+            'total_teacher_withdrawals': totals.get('total_teacher_withdrawals', Decimal('0')),
+            'total_net_remaining_after_withdrawals': totals.get('total_net_remaining_after_withdrawals', Decimal('0')),
             'course_type': getattr(self, '_course_type', 'INTENSIVE'),
             'course_type_label': getattr(self, '_course_type_label', 'مكثفة'),
             'course_type_report_label': getattr(self, '_course_type_report_label', 'المكثفات'),
@@ -8695,6 +8928,196 @@ class QuickOutstandingCoursesView(LoginRequiredMixin, ListView):
             (total_paid_amount / total_courses) if total_courses else Decimal('0')
         )
         return context
+
+
+@require_POST
+def quick_course_teacher_payout(request, course_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    course_type_redirect = request.POST.get('course_type') or request.GET.get('course_type') or ''
+    next_url = (request.POST.get('next') or request.GET.get('next') or '').strip()
+    redirect_url = reverse('quick:outstanding_courses')
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        redirect_url = next_url
+    elif course_type_redirect:
+        redirect_url = f'{redirect_url}?{urlencode({"course_type": course_type_redirect})}'
+
+    if course.course_type not in {'INTENSIVE', 'EXAM'}:
+        messages.error(request, 'الدفع للأستاذ متاح فقط للدورات المكثفة أو الامتحانية.')
+        return redirect(redirect_url)
+
+    try:
+        payout_amount = _normalize_quick_decimal_input(request.POST.get('amount'))
+    except (InvalidOperation, TypeError, ValueError):
+        messages.error(request, 'قيمة الدفعة غير صحيحة.')
+        return redirect(redirect_url)
+
+    if payout_amount <= 0:
+        messages.error(request, 'يجب أن تكون قيمة الدفعة أكبر من الصفر.')
+        return redirect(redirect_url)
+
+    total_paid = _get_quick_course_total_paid(course)
+    paid_so_far = _get_quick_teacher_payout_totals([course]).get(course.id, Decimal('0.00'))
+    available_amount = max(Decimal('0.00'), total_paid - paid_so_far)
+    if payout_amount > available_amount:
+        messages.error(
+            request,
+            f'المبلغ يتجاوز الرصيد المتاح للدفع ({available_amount:,.0f} ل.س).'
+        )
+        return redirect(redirect_url)
+
+    payout_note = (request.POST.get('note') or '').strip()
+    description = _build_quick_teacher_payout_description(course, payout_note)
+
+    try:
+        with transaction.atomic():
+            deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+            cash_account = _get_employee_cash_account(request.user)
+
+            entry = JournalEntry.objects.create(
+                date=timezone.localdate(),
+                description=description,
+                entry_type='PAYMENT',
+                total_amount=payout_amount,
+                created_by=request.user,
+            )
+
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=deferred_account,
+                amount=payout_amount,
+                is_debit=True,
+                description=f'دفع للأستاذ - {course.name}',
+            )
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=cash_account,
+                amount=payout_amount,
+                is_debit=False,
+                description=f'صرف نقدي للأستاذ - {course.name}',
+            )
+            entry.post_entry(request.user)
+    except Exception as exc:
+        messages.error(request, f'فشل إنشاء دفعة الأستاذ: {exc}')
+        return redirect(redirect_url)
+
+    messages.success(request, f'تم تسجيل دفعة للأستاذ بقيمة {payout_amount:,.0f} ل.س بنجاح.')
+    return redirect(redirect_url)
+
+
+@require_GET
+def quick_course_teacher_payouts_json(request, course_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    if course.course_type not in {'INTENSIVE', 'EXAM'}:
+        return JsonResponse({'ok': False, 'error': 'الدورة لا تدعم دفعات الأستاذ.'}, status=400)
+
+    payouts = _get_quick_teacher_payout_entries(course)
+    return JsonResponse({
+        'ok': True,
+        'course': {
+            'id': course.id,
+            'name': course.name,
+        },
+        'payouts': [
+            {
+                'id': row['id'],
+                'amount': f"{(row['amount'] or Decimal('0')):.2f}",
+                'date': row['date'].isoformat() if row['date'] else '',
+                'reference': row['reference'] or '',
+                'created_by': row['created_by'] or '-',
+                'note': row['note'] or '',
+            }
+            for row in payouts
+        ],
+    })
+
+
+@require_POST
+def quick_course_teacher_payout_update(request, course_id, payout_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    if course.course_type not in {'INTENSIVE', 'EXAM'}:
+        return JsonResponse({'ok': False, 'error': 'الدورة لا تدعم دفعات الأستاذ.'}, status=400)
+
+    try:
+        new_amount = _normalize_quick_decimal_input(request.POST.get('amount'))
+    except (InvalidOperation, TypeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'قيمة الدفعة غير صحيحة.'}, status=400)
+
+    if new_amount <= 0:
+        return JsonResponse({'ok': False, 'error': 'يجب أن تكون قيمة الدفعة أكبر من الصفر.'}, status=400)
+
+    note = (request.POST.get('note') or '').strip()
+
+    try:
+        with transaction.atomic():
+            entry, deferred_account = _get_quick_teacher_payout_entry_for_course(
+                course, payout_id, for_update=True
+            )
+            txs = list(entry.transactions.select_related('account'))
+            debit_txs = [tx for tx in txs if tx.is_debit and tx.account_id == deferred_account.id]
+            credit_txs = [tx for tx in txs if not tx.is_debit]
+            if len(debit_txs) != 1 or len(credit_txs) != 1:
+                return JsonResponse({'ok': False, 'error': 'قيد الدفعة غير قابل للتعديل آلياً.'}, status=400)
+
+            current_amount = debit_txs[0].amount or Decimal('0')
+            total_paid = _get_quick_course_total_paid(course)
+            paid_so_far = _get_quick_teacher_payout_totals([course]).get(course.id, Decimal('0.00'))
+            available_amount = max(Decimal('0.00'), total_paid - (paid_so_far - current_amount))
+            if new_amount > available_amount:
+                return JsonResponse(
+                    {'ok': False, 'error': f'المبلغ يتجاوز الرصيد المتاح ({available_amount:,.0f} ل.س).'},
+                    status=400
+                )
+
+            entry.description = _build_quick_teacher_payout_description(course, note)
+            entry.total_amount = new_amount
+            entry.save(update_fields=['description', 'total_amount'])
+
+            debit_tx = debit_txs[0]
+            credit_tx = credit_txs[0]
+            debit_tx.amount = new_amount
+            debit_tx.description = f'دفع للأستاذ - {course.name}'
+            debit_tx.save(update_fields=['amount', 'description'])
+            credit_tx.amount = new_amount
+            credit_tx.description = f'صرف نقدي للأستاذ - {course.name}'
+            credit_tx.save(update_fields=['amount', 'description'])
+
+            if entry.is_posted:
+                touched_accounts = {debit_tx.account, credit_tx.account}
+                for account in touched_accounts:
+                    account.recalculate_tree_balances()
+    except Http404:
+        return JsonResponse({'ok': False, 'error': 'الدفعة غير موجودة.'}, status=404)
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'error': f'تعذر تعديل الدفعة: {exc}'}, status=500)
+
+    return JsonResponse({'ok': True, 'message': 'تم تعديل الدفعة والقيود المحاسبية بنجاح.'})
+
+
+@require_POST
+def quick_course_teacher_payout_delete(request, course_id, payout_id):
+    course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)
+    if course.course_type not in {'INTENSIVE', 'EXAM'}:
+        return JsonResponse({'ok': False, 'error': 'الدورة لا تدعم دفعات الأستاذ.'}, status=400)
+
+    try:
+        with transaction.atomic():
+            entry, _ = _get_quick_teacher_payout_entry_for_course(course, payout_id, for_update=True)
+            txs = list(entry.transactions.select_related('account'))
+            touched_accounts = {tx.account for tx in txs if tx.account_id}
+            entry.transactions.all().delete()
+            entry.delete()
+            for account in touched_accounts:
+                account.recalculate_tree_balances()
+    except Http404:
+        return JsonResponse({'ok': False, 'error': 'الدفعة غير موجودة.'}, status=404)
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'error': f'تعذر حذف الدفعة: {exc}'}, status=500)
+
+    return JsonResponse({'ok': True, 'message': 'تم حذف الدفعة والقيود المحاسبية بنجاح.'})
 
 
 class QuickOutstandingCourseDetailView(LoginRequiredMixin, TemplateView):
@@ -8798,6 +9221,14 @@ class QuickCourseStudentsView(LoginRequiredMixin, TemplateView):
         student_data, statistics = self.calculate_student_data(course, enrolled_students)
         filter_type = self.request.GET.get('filter', 'all')
         filtered_students, filtered_statistics = self.apply_filter(student_data, filter_type)
+        teacher_payout_rows = _get_quick_teacher_payout_entries(course)
+        teacher_withdrawals_total = sum(
+            (row.get('amount') or Decimal('0')) for row in teacher_payout_rows
+        )
+        teacher_available_amount = max(
+            Decimal('0'),
+            (statistics.get('total_paid') or Decimal('0')) - teacher_withdrawals_total
+        )
 
         context.update({
             'course': course,
@@ -8817,6 +9248,10 @@ class QuickCourseStudentsView(LoginRequiredMixin, TemplateView):
             'course_type': course_type,
             'course_type_label': course_type_label,
             'course_type_report_label': report_label,
+            'teacher_payout_rows': teacher_payout_rows,
+            'teacher_withdrawals_total': teacher_withdrawals_total,
+            'teacher_available_amount': teacher_available_amount,
+            'can_teacher_payout': course.course_type in {'INTENSIVE', 'EXAM'},
         })
         return context
 

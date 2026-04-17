@@ -134,6 +134,14 @@ body.app-quick {
     --quick-accent: rgba(246, 185, 74, 0.18);
 }
 
+.quick-stat-success {
+    --quick-accent: rgba(31, 211, 155, 0.2);
+}
+
+.quick-stat-danger {
+    --quick-accent: rgba(228, 72, 101, 0.2);
+}
+
 .quick-stat,
 .late-stat {
     background:
@@ -144,6 +152,93 @@ body.app-quick {
 .quick-report-table,
 .late-table {
     margin-bottom: 0 !important;
+}
+
+.quick-report-table thead th,
+.quick-students-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8fafc;
+    white-space: nowrap;
+}
+
+.quick-report-table tbody tr:hover,
+.quick-students-table tbody tr:hover {
+    background: #f7fbff;
+}
+
+.quick-report-toolbar .form-control,
+.quick-students-toolbar .form-control {
+    min-width: 250px;
+}
+
+.quick-actions-cell {
+    min-width: 260px;
+}
+
+.quick-students-page {
+    display: grid;
+    gap: 1rem;
+}
+
+.quick-students-card {
+    border-radius: var(--ui-radius-lg) !important;
+}
+
+.quick-students-hero {
+    overflow: hidden;
+    border-radius: var(--ui-radius-lg) !important;
+    background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 0 30%),
+        radial-gradient(circle at bottom right, rgba(76, 125, 255, 0.14), transparent 0 26%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 255, 0.94)) !important;
+}
+
+.quick-students-hero .card-body {
+    padding: 1.4rem !important;
+}
+
+.quick-students-hero h2 {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-display);
+    color: var(--ui-heading);
+}
+
+.quick-students-stat {
+    overflow: hidden;
+    border-radius: 22px !important;
+    border: 1px solid rgba(95, 121, 196, 0.12) !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 247, 255, 0.92)) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+}
+
+.quick-students-stat .card-body {
+    display: grid;
+    gap: 0.4rem;
+    padding: 1.15rem !important;
+}
+
+.quick-students-stat .label {
+    color: var(--ui-text-soft);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.quick-students-stat .value {
+    margin: 0;
+    color: var(--ui-heading);
+    font-size: clamp(1.45rem, 1.9vw, 2.1rem);
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.quick-students-table .status-badge {
+    min-width: 88px;
+}
+
+.quick-students-table tfoot td {
+    white-space: nowrap;
 }
 
 .quick-course-name {
@@ -457,4 +552,139 @@ body.app-quick {
     .course-filters {
         grid-template-columns: 1fr;
     }
+}
+
+@media (max-width: 768px) {
+    .quick-report-toolbar .form-control,
+    .quick-students-toolbar .form-control {
+        min-width: 100%;
+    }
+
+    .quick-actions-cell {
+        min-width: 220px;
+    }
+}
+
+/* ===== Clean Refresh: Outstanding + Students Pages ===== */
+.quick-report-page,
+.quick-students-page {
+    gap: 1.25rem;
+}
+
+.quick-report-page .quick-hero,
+.quick-students-page .quick-students-hero {
+    background: #ffffff !important;
+    border: 1px solid #e6ebf2 !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.quick-report-page .quick-hero h2,
+.quick-students-page .quick-students-hero h2 {
+    font-size: clamp(1.2rem, 1.6vw, 1.65rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.quick-report-page .quick-panel,
+.quick-students-page .quick-students-card {
+    background: #ffffff !important;
+    border: 1px solid #e6ebf2 !important;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05) !important;
+}
+
+.quick-report-page .card-header,
+.quick-students-page .card-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e6ebf2 !important;
+}
+
+.quick-report-page .quick-stat,
+.quick-students-page .quick-students-stat {
+    border: 1px solid #e5eaf2 !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04) !important;
+}
+
+.quick-report-page .quick-stat .card-body,
+.quick-students-page .quick-students-stat .card-body {
+    padding: 1rem 1.05rem !important;
+    gap: 0.3rem;
+}
+
+.quick-report-page .quick-stat .label,
+.quick-students-page .quick-students-stat .label {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.quick-report-page .quick-stat .value,
+.quick-students-page .quick-students-stat .value {
+    font-size: clamp(1.3rem, 1.7vw, 1.9rem);
+    color: #0f172a;
+}
+
+.quick-report-page .btn,
+.quick-students-page .btn {
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.quick-report-page .form-control,
+.quick-report-page .form-select,
+.quick-students-page .form-control,
+.quick-students-page .form-select {
+    border-radius: 10px;
+    border-color: #d8e1ec;
+}
+
+.quick-report-page .form-control:focus,
+.quick-report-page .form-select:focus,
+.quick-students-page .form-control:focus,
+.quick-students-page .form-select:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.16);
+}
+
+.quick-report-table th,
+.quick-students-table th {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #334155;
+    border-bottom: 1px solid #dce4ef !important;
+}
+
+.quick-report-table td,
+.quick-students-table td {
+    vertical-align: middle;
+    border-color: #ecf1f7 !important;
+}
+
+.quick-report-table tbody tr:hover,
+.quick-students-table tbody tr:hover {
+    background: #f8fbff !important;
+}
+
+.quick-report-page .quick-badge,
+.quick-students-page .status-badge {
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    min-height: 30px;
+    padding: 0.35rem 0.7rem;
+}
+
+.quick-report-page .quick-money {
+    color: #0f172a !important;
+    font-weight: 800;
+}
+
+.quick-report-page .quick-subtle,
+.quick-students-page .quick-subtle {
+    color: #64748b;
+}
+
+.quick-report-page .modal-content {
+    border-radius: 14px;
+    border: 1px solid #e6ebf2;
 }
