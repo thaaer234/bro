@@ -235,96 +235,188 @@ def _page_status_label(chunk_index, chunk_total):
     return "متابعة"
 
 
+def _should_use_visual_page(page_type, items):
+    item_count = len(items or [])
+    total_weight = sum(_action_weight(item) for item in items) if items and page_type != "workflow" else 0
+    if page_type == "workflow":
+        return item_count >= 5
+    return item_count >= 4 or total_weight >= 38
+
+
 def _build_user_handbook_content_pages(manual_workflows, manual_screens, manual_error_pages):
     pages = []
 
     for workflow_index, workflow in enumerate(manual_workflows, start=1):
-        step_chunks = _chunk_weighted_progressive(workflow["steps"], 26, 34, _workflow_step_weight)
+        step_chunks = _chunk_weighted_progressive(workflow["steps"], 20, 26, _workflow_step_weight)
         step_counter = 1
         for chunk_index, steps in enumerate(step_chunks, start=1):
+            chunk_items = [
+                {"index": step_counter + offset, "text": step}
+                for offset, step in enumerate(steps)
+            ]
+            use_visual_page = chunk_index == 1 and _should_use_visual_page("workflow", chunk_items)
+            if use_visual_page:
+                pages.append(
+                    {
+                        "type": "workflow",
+                        "layout": "visual",
+                        "title": workflow["title"],
+                        "toc_title": workflow["title"],
+                        "toc_kind": "مرحلة",
+                        "toc_include": True,
+                        "eyebrow": f"مرحلة {workflow_index}",
+                        "intro": workflow["intro"],
+                        "image_title": workflow["screenshot"]["title"],
+                        "image_path": workflow["screenshot"]["path"],
+                        "image_caption": workflow["screenshot"]["caption"],
+                        "show_image": True,
+                        "items": [],
+                        "continued": False,
+                    }
+                )
             pages.append(
                 {
                     "type": "workflow",
+                    "layout": "content",
                     "title": _continuation_title(workflow["title"], chunk_index, len(step_chunks)),
                     "toc_title": workflow["title"],
                     "toc_kind": "مرحلة",
-                    "toc_include": chunk_index == 1,
+                    "toc_include": chunk_index == 1 and not use_visual_page,
                     "eyebrow": f"مرحلة {workflow_index}",
-                    "intro": workflow["intro"] if chunk_index == 1 else "استكمال الخطوات التنفيذية لنفس المرحلة مع الحفاظ على نفس التسلسل العملي.",
+                    "intro": (
+                        "استكمال الخطوات التنفيذية لنفس المرحلة مع الحفاظ على نفس التسلسل العملي."
+                        if use_visual_page or chunk_index > 1
+                        else workflow["intro"]
+                    ),
                     "image_title": workflow["screenshot"]["title"],
                     "image_path": workflow["screenshot"]["path"],
                     "image_caption": workflow["screenshot"]["caption"],
-                    "show_image": chunk_index == 1,
+                    "show_image": chunk_index == 1 and not use_visual_page,
                     "image_mode": "hero" if chunk_index == 1 and len(steps) <= 4 else "full",
-                    "items": [
-                        {"index": step_counter + offset, "text": step}
-                        for offset, step in enumerate(steps)
-                    ],
-                    "continued": chunk_index > 1,
+                    "items": chunk_items,
+                    "continued": chunk_index > 1 or use_visual_page,
                 }
             )
             step_counter += len(steps)
 
     for screen in manual_screens:
-        button_chunks = _chunk_weighted_progressive(screen["buttons"], 64, 88, _action_weight)
+        button_chunks = _chunk_weighted_progressive(screen["buttons"], 46, 58, _action_weight)
         button_counter = 1
         for chunk_index, buttons in enumerate(button_chunks, start=1):
+            chunk_items = [
+                {
+                    **button,
+                    "index": button_counter + offset,
+                }
+                for offset, button in enumerate(buttons)
+            ]
+            use_visual_page = chunk_index == 1 and _should_use_visual_page("screen", chunk_items)
+            if use_visual_page:
+                pages.append(
+                    {
+                        "type": "screen",
+                        "layout": "visual",
+                        "title": screen["title"],
+                        "toc_title": screen["title"],
+                        "toc_kind": screen["group"],
+                        "toc_include": True,
+                        "eyebrow": screen["group"],
+                        "intro": screen["goal"],
+                        "used_by": screen["used_by"],
+                        "path": screen["path"],
+                        "image_title": screen["screenshot"]["title"],
+                        "image_path": screen["screenshot"]["path"],
+                        "image_caption": screen["screenshot"]["caption"],
+                        "show_image": True,
+                        "items": [],
+                        "continued": False,
+                    }
+                )
             pages.append(
                 {
                     "type": "screen",
+                    "layout": "content",
                     "title": _continuation_title(screen["title"], chunk_index, len(button_chunks)),
                     "toc_title": screen["title"],
                     "toc_kind": screen["group"],
-                    "toc_include": chunk_index == 1,
+                    "toc_include": chunk_index == 1 and not use_visual_page,
                     "eyebrow": screen["group"],
-                    "intro": screen["goal"] if chunk_index == 1 else "متابعة عناصر الشاشة نفسها بعد توزيع المحتوى على صفحة إضافية.",
+                    "intro": (
+                        "متابعة عناصر الشاشة نفسها بعد تخصيص صفحة مستقلة لعرض الشاشة."
+                        if use_visual_page
+                        else screen["goal"] if chunk_index == 1
+                        else "متابعة عناصر الشاشة نفسها بعد توزيع المحتوى على صفحة إضافية."
+                    ),
                     "used_by": screen["used_by"],
                     "path": screen["path"],
                     "image_title": screen["screenshot"]["title"],
                     "image_path": screen["screenshot"]["path"],
                     "image_caption": screen["screenshot"]["caption"],
-                    "show_image": chunk_index == 1,
+                    "show_image": chunk_index == 1 and not use_visual_page,
                     "image_mode": "hero" if chunk_index == 1 and len(buttons) <= 4 else "full",
-                    "items": [
-                        {
-                            **button,
-                            "index": button_counter + offset,
-                        }
-                        for offset, button in enumerate(buttons)
-                    ],
-                    "continued": chunk_index > 1,
+                    "items": chunk_items,
+                    "continued": chunk_index > 1 or use_visual_page,
                 }
             )
             button_counter += len(buttons)
 
     for error_page in manual_error_pages:
-        button_chunks = _chunk_weighted_progressive(error_page["buttons"], 62, 86, _action_weight)
+        button_chunks = _chunk_weighted_progressive(error_page["buttons"], 42, 54, _action_weight)
         button_counter = 1
         for chunk_index, buttons in enumerate(button_chunks, start=1):
+            chunk_items = [
+                {
+                    **button,
+                    "index": button_counter + offset,
+                }
+                for offset, button in enumerate(buttons)
+            ]
+            use_visual_page = chunk_index == 1 and _should_use_visual_page("error", chunk_items)
+            if use_visual_page:
+                pages.append(
+                    {
+                        "type": "error",
+                        "layout": "visual",
+                        "title": error_page["title"],
+                        "toc_title": error_page["title"],
+                        "toc_kind": "خطأ",
+                        "toc_include": True,
+                        "eyebrow": error_page["group"],
+                        "intro": error_page["goal"],
+                        "used_by": error_page["used_by"],
+                        "path": error_page["path"],
+                        "image_title": error_page["screenshot"]["title"],
+                        "image_path": error_page["screenshot"]["path"],
+                        "image_caption": error_page["screenshot"]["caption"],
+                        "show_image": True,
+                        "items": [],
+                        "continued": False,
+                    }
+                )
             pages.append(
                 {
                     "type": "error",
+                    "layout": "content",
                     "title": _continuation_title(error_page["title"], chunk_index, len(button_chunks)),
                     "toc_title": error_page["title"],
                     "toc_kind": "خطأ",
-                    "toc_include": chunk_index == 1,
+                    "toc_include": chunk_index == 1 and not use_visual_page,
                     "eyebrow": error_page["group"],
-                    "intro": error_page["goal"] if chunk_index == 1 else "استكمال عناصر التعامل مع الخطأ نفسه في صفحة إضافية أوضح للطباعة.",
+                    "intro": (
+                        "استكمال عناصر التعامل مع الخطأ نفسه بعد تخصيص صفحة مستقلة للرسالة المرجعية."
+                        if use_visual_page
+                        else error_page["goal"] if chunk_index == 1
+                        else "استكمال عناصر التعامل مع الخطأ نفسه في صفحة إضافية أوضح للطباعة."
+                    ),
                     "used_by": error_page["used_by"],
                     "path": error_page["path"],
                     "image_title": error_page["screenshot"]["title"],
                     "image_path": error_page["screenshot"]["path"],
                     "image_caption": error_page["screenshot"]["caption"],
-                    "show_image": chunk_index == 1,
+                    "show_image": chunk_index == 1 and not use_visual_page,
                     "image_mode": "hero" if chunk_index == 1 and len(buttons) <= 4 else "full",
-                    "items": [
-                        {
-                            **button,
-                            "index": button_counter + offset,
-                        }
-                        for offset, button in enumerate(buttons)
-                    ],
-                    "continued": chunk_index > 1,
+                    "items": chunk_items,
+                    "continued": chunk_index > 1 or use_visual_page,
                 }
             )
             button_counter += len(buttons)
