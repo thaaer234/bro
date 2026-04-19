@@ -439,8 +439,16 @@
             const active = choice.dataset.status === status;
             choice.classList.toggle('active', active);
             const radio = choice.querySelector('input[type="radio"]');
-            if (radio) radio.checked = active;
+            if (radio) {
+                radio.checked = active;
+                if (active) {
+                    radio.setAttribute('checked', 'checked');
+                } else {
+                    radio.removeAttribute('checked');
+                }
+            }
         });
+        refreshSummary();
     }
 
     function bindRow(row){
@@ -448,7 +456,19 @@
 
         row.querySelectorAll('.qa-choice').forEach(choice => {
             choice.addEventListener('click', function(){
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                }
                 setStatus(row, this.dataset.status);
+            });
+        });
+
+        row.querySelectorAll('.qa-choice input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', function(){
+                if (this.checked) {
+                    setStatus(row, this.value);
+                }
             });
         });
 

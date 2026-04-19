@@ -5,7 +5,516 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>برنامج الصفوف السريعة</title>
-        <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
+    <style>
+        :root{
+            --bg:#eef4fb;
+            --paper:#ffffff;
+            --ink:#11243a;
+            --muted:#607086;
+            --line:#d9e4ef;
+            --primary:#145da0;
+            --primary-dark:#0c3c6d;
+            --accent:#d8a93a;
+            --success:#14815f;
+            --shadow:0 18px 42px rgba(17,36,58,.10);
+            --radius:24px;
+        }
+
+        *{box-sizing:border-box}
+        body{
+            margin:0;
+            font-family:"Segoe UI", Tahoma, Arial, sans-serif;
+            background:linear-gradient(180deg,#f6f9fd 0%, var(--bg) 100%);
+            color:var(--ink);
+        }
+
+        .report{
+            max-width:1400px;
+            margin:0 auto;
+            padding:24px;
+        }
+
+        .toolbar{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:16px;
+            margin-bottom:18px;
+            flex-wrap:wrap;
+        }
+
+        .toolbar__title{
+            display:flex;
+            align-items:center;
+            gap:14px;
+            flex-wrap:wrap;
+        }
+
+        .toolbar__pill{
+            display:inline-flex;
+            align-items:center;
+            padding:9px 14px;
+            border-radius:999px;
+            background:rgba(20,93,160,.12);
+            color:var(--primary-dark);
+            font-weight:800;
+        }
+
+        .toolbar__meta{
+            margin-top:4px;
+            color:var(--muted);
+            font-size:.94rem;
+        }
+
+        .toolbar__actions{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .btn{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            text-decoration:none;
+            border:none;
+            border-radius:14px;
+            padding:12px 18px;
+            font-size:.98rem;
+            font-weight:800;
+            cursor:pointer;
+        }
+
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-secondary{background:#e6edf5;color:var(--ink)}
+
+        .sheet{
+            background:var(--paper);
+            border:1px solid var(--line);
+            border-radius:32px;
+            box-shadow:var(--shadow);
+            overflow:hidden;
+        }
+
+        .hero{
+            padding:28px;
+            background:
+                radial-gradient(circle at top left, rgba(255,255,255,.18), transparent 22%),
+                linear-gradient(135deg,#0d3765 0%, #145da0 58%, #41b4d8 100%);
+            color:#fff;
+        }
+
+        .hero__content{
+            display:grid;
+            grid-template-columns:minmax(0,1.5fr) minmax(260px,.7fr);
+            gap:20px;
+            align-items:stretch;
+        }
+
+        .brand{
+            display:flex;
+            gap:16px;
+            align-items:flex-start;
+        }
+
+        .brand__logo{
+            width:72px;
+            height:72px;
+            border-radius:20px;
+            overflow:hidden;
+            background:rgba(255,255,255,.16);
+            flex:0 0 72px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            border:1px solid rgba(255,255,255,.18);
+        }
+
+        .brand__logo img{
+            width:100%;
+            height:100%;
+            object-fit:contain;
+            padding:10px;
+        }
+
+        .brand__eyebrow{
+            display:block;
+            font-size:.84rem;
+            letter-spacing:.08em;
+            opacity:.85;
+            margin-bottom:6px;
+        }
+
+        .brand__title{
+            margin:0;
+            font-size:clamp(1.5rem,2vw,2.2rem);
+            font-weight:900;
+        }
+
+        .brand__subtitle{
+            margin:10px 0 0;
+            max-width:780px;
+            line-height:1.9;
+            color:rgba(255,255,255,.9);
+        }
+
+        .hero__aside{
+            display:grid;
+            gap:12px;
+        }
+
+        .meta-card{
+            border:1px solid rgba(255,255,255,.16);
+            background:rgba(255,255,255,.11);
+            border-radius:22px;
+            padding:16px;
+            backdrop-filter:blur(12px);
+        }
+
+        .meta-card__label{
+            font-size:.9rem;
+            color:rgba(255,255,255,.82);
+            margin-bottom:6px;
+        }
+
+        .meta-card__value{
+            font-size:1.08rem;
+            font-weight:900;
+        }
+
+        .stats{
+            padding:22px 28px 0;
+            display:grid;
+            grid-template-columns:repeat(4,minmax(0,1fr));
+            gap:14px;
+        }
+
+        .stat{
+            background:#f7fbff;
+            border:1px solid var(--line);
+            border-radius:22px;
+            padding:16px;
+            display:grid;
+            gap:6px;
+        }
+
+        .stat--gold{
+            background:linear-gradient(180deg,#fff9ea 0%, #fffdf7 100%);
+            border-color:#ecd9a5;
+        }
+
+        .stat__label{
+            color:var(--muted);
+            font-size:.88rem;
+            font-weight:700;
+        }
+
+        .stat__value{
+            font-size:1.85rem;
+            font-weight:900;
+            color:var(--ink);
+        }
+
+        .stat__hint{
+            color:var(--muted);
+            font-size:.86rem;
+            line-height:1.7;
+        }
+
+        .info-strip{
+            margin:22px 28px 0;
+            border:1px solid var(--line);
+            background:#fbfdff;
+            border-radius:24px;
+            padding:18px;
+            display:flex;
+            justify-content:space-between;
+            gap:16px;
+            align-items:flex-start;
+            flex-wrap:wrap;
+        }
+
+        .info-strip__text{
+            flex:1 1 500px;
+            color:var(--muted);
+            line-height:1.9;
+        }
+
+        .legend{
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px 14px;
+            align-items:center;
+        }
+
+        .legend__item{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            font-weight:700;
+            color:var(--ink);
+        }
+
+        .legend__dot{
+            width:12px;
+            height:12px;
+            border-radius:50%;
+            display:inline-block;
+        }
+
+        .legend__dot--blue{background:var(--primary)}
+        .legend__dot--gold{background:var(--accent)}
+        .legend__dot--green{background:var(--success)}
+
+        .section-head{
+            padding:24px 28px 0;
+        }
+
+        .section-head h2{
+            margin:0 0 6px;
+            font-size:1.3rem;
+            font-weight:900;
+        }
+
+        .section-head p{
+            margin:0;
+            color:var(--muted);
+            line-height:1.8;
+        }
+
+        .schedule-list{
+            padding:18px 28px 10px;
+            display:grid;
+            gap:18px;
+        }
+
+        .schedule-card{
+            border:1px solid var(--line);
+            border-radius:var(--radius);
+            overflow:hidden;
+            background:#fff;
+            box-shadow:0 10px 24px rgba(17,36,58,.05);
+        }
+
+        .schedule-card__head{
+            padding:18px 20px;
+            background:linear-gradient(180deg,#f8fbfe 0%, #eef5fb 100%);
+            border-bottom:1px solid var(--line);
+            display:flex;
+            justify-content:space-between;
+            gap:16px;
+            align-items:flex-start;
+            flex-wrap:wrap;
+        }
+
+        .course-name{
+            display:block;
+            font-size:1.18rem;
+            font-weight:900;
+        }
+
+        .course-subtitle{
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            margin-top:10px;
+        }
+
+        .pill,
+        .badge-chip{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:34px;
+            padding:6px 12px;
+            border-radius:999px;
+            font-size:.82rem;
+            font-weight:800;
+        }
+
+        .pill.type{background:#e8f0ff;color:#1e4ca1}
+        .pill.year{background:#eef8f1;color:#0d6a4a}
+        .pill.status{background:#fff3db;color:#8a5a00}
+        .pill.status.live{background:#def5ec;color:#0d6d4f}
+        .pill.status.finished{background:#f1f3f7;color:#56657a}
+
+        .schedule-card__code{
+            display:grid;
+            gap:6px;
+            text-align:left;
+            min-width:180px;
+        }
+
+        .schedule-card__code strong{
+            font-size:1.08rem;
+        }
+
+        .schedule-card__code span{
+            color:var(--muted);
+            font-size:.92rem;
+        }
+
+        .schedule-card__body{
+            padding:20px;
+            display:grid;
+            gap:16px;
+        }
+
+        .schedule-grid{
+            display:grid;
+            grid-template-columns:repeat(3,minmax(0,1fr));
+            gap:14px;
+        }
+
+        .info-box{
+            border:1px solid var(--line);
+            border-radius:20px;
+            padding:16px;
+            background:#fcfdff;
+            display:grid;
+            gap:6px;
+        }
+
+        .info-box__label{
+            color:var(--muted);
+            font-size:.84rem;
+            font-weight:700;
+        }
+
+        .info-box__value{
+            font-size:1.04rem;
+            font-weight:900;
+        }
+
+        .info-box__sub{
+            color:var(--muted);
+            font-size:.9rem;
+            line-height:1.7;
+        }
+
+        .badge-row{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .badge-chip.room{background:#ebf4ff;color:#134a87}
+        .badge-chip.days{background:#fff5dd;color:#8a5a00}
+        .badge-chip.capacity{background:#eaf7f1;color:#106847}
+
+        .print-table-wrap{
+            padding:14px 28px 28px;
+        }
+
+        .print-table{
+            width:100%;
+            border-collapse:collapse;
+            overflow:hidden;
+            border-radius:22px;
+            border:1px solid var(--line);
+        }
+
+        .print-table thead th{
+            background:#eff5fb;
+            color:var(--ink);
+            padding:14px 12px;
+            text-align:right;
+            font-size:.9rem;
+            border-bottom:1px solid var(--line);
+        }
+
+        .print-table td{
+            padding:14px 12px;
+            border-bottom:1px solid #e9eff6;
+            vertical-align:top;
+            line-height:1.8;
+        }
+
+        .print-table tbody tr:nth-child(even){
+            background:#fcfdff;
+        }
+
+        .empty{
+            padding:48px 28px;
+            text-align:center;
+        }
+
+        .empty h3{
+            margin:0 0 8px;
+            font-size:1.25rem;
+        }
+
+        .empty p{
+            margin:0;
+            color:var(--muted);
+        }
+
+        .footer{
+            display:flex;
+            justify-content:space-between;
+            gap:12px;
+            flex-wrap:wrap;
+            padding:0 28px 28px;
+            color:var(--muted);
+            font-size:.92rem;
+        }
+
+        @media (max-width: 1100px){
+            .hero__content,
+            .stats,
+            .schedule-grid{
+                grid-template-columns:1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px){
+            .report{padding:12px}
+            .hero,
+            .stats,
+            .section-head,
+            .schedule-list,
+            .print-table-wrap{padding-left:16px;padding-right:16px}
+            .info-strip{margin-left:16px;margin-right:16px}
+            .hero__content,
+            .stats,
+            .schedule-grid{
+                grid-template-columns:1fr;
+            }
+            .schedule-card__code{
+                text-align:right;
+                min-width:0;
+            }
+            .print-table{
+                display:block;
+                overflow-x:auto;
+                white-space:nowrap;
+            }
+        }
+
+        @media print{
+            body{
+                background:#fff;
+            }
+            .report{
+                max-width:none;
+                padding:0;
+            }
+            .toolbar{
+                display:none;
+            }
+            .sheet{
+                border:none;
+                box-shadow:none;
+                border-radius:0;
+            }
+            .schedule-card,
+            .info-strip,
+            .stat,
+            .info-box{
+                box-shadow:none;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="report">
@@ -33,7 +542,7 @@
                         <div>
                             <span class="brand__eyebrow">AL YAMAN INSTITUTE</span>
                             <h1 class="brand__title">برنامج الصفوف السريعة</h1>
-                            <p class="brand__subtitle">تصميم محسّن للطباعة العامودية على ورق A4، مع عرض أقوى للبرنامج على شكل بطاقات واضحة بدل جدول ضعيف ومزدحم.</p>
+                            <p class="brand__subtitle">عرض منظم للطباعة يوضح الصفوف السريعة مع أهم معلومات التاريخ والوقت والقاعة والسعة، بشكل واضح على الهاتف والكمبيوتر والطباعة الورقية.</p>
                         </div>
                     </div>
 
@@ -59,30 +568,30 @@
                 <div class="stat">
                     <span class="stat__label">عدد الصفوف</span>
                     <strong class="stat__value">{{ total_sessions }}</strong>
-                    <span class="stat__hint">الصفوف المولدة والقابلة للطباعة</span>
+                    <span class="stat__hint">الصفوف المتاحة ضمن البرنامج</span>
                 </div>
                 <div class="stat stat--gold">
                     <span class="stat__label">الطلاب الموزعون</span>
                     <strong class="stat__value">{{ total_students }}</strong>
-                    <span class="stat__hint">العدد الفعلي ضمن البرنامج المعروض</span>
+                    <span class="stat__hint">عدد الطلاب المرتبطين بهذه الصفوف</span>
                 </div>
                 <div class="stat stat--gold">
                     <span class="stat__label">الدورات المحددة</span>
                     <strong class="stat__value">{{ selected_course_ids|length|default:total_courses }}</strong>
-                    <span class="stat__hint">بحسب الفلترة الحالية للتقرير</span>
+                    <span class="stat__hint">بحسب الفلاتر الحالية للتقرير</span>
                 </div>
             </section>
 
             <section class="info-strip">
                 <div class="info-strip__text">
                     {% if selected_course_ids %}
-                    التقرير الحالي مخصص للدورات المحددة فقط، وتم ترتيبه بصرياً ليخرج بشكل أنيق وقوي على الصفحة العامودية.
+                    التقرير الحالي مخصص للدورات المحددة فقط، وتم ترتيبه بصيغة مناسبة للطباعة والمراجعة السريعة.
                     {% else %}
-                    التقرير الحالي يعرض جميع الدورات المطابقة لنوع الدورة المختار، مع إبراز أقوى للتاريخ، الوقت، السعة، والقاعة في كل كلاس.
+                    التقرير الحالي يعرض جميع الدورات المطابقة لنوع الدورة المختار، مع إبراز التاريخ والوقت والسعة والقاعة لكل صف.
                     {% endif %}
                 </div>
                 <div class="legend">
-                    <span class="legend__item"><span class="legend__dot legend__dot--blue"></span>الأيام</span>
+                    <span class="legend__item"><span class="legend__dot legend__dot--blue"></span>الأيام والمواعيد</span>
                     <span class="legend__item"><span class="legend__dot legend__dot--gold"></span>السعة</span>
                     <span class="legend__item"><span class="legend__dot legend__dot--green"></span>الحالة</span>
                 </div>
@@ -91,7 +600,7 @@
             {% if sessions %}
             <section class="section-head">
                 <h2>بطاقات البرنامج</h2>
-                <p>كل كلاس يظهر كبطاقة مستقلة تحتوي أهم المعلومات التشغيلية والإدارية، وهذا أنسب بكثير لـ A4 العامودي.</p>
+                <p>كل صف يظهر كبطاقة مستقلة تسهّل القراءة والطباعة، مع جدول مختصر أسفل الصفحة للاعتماد السريع.</p>
             </section>
 
             <section class="schedule-list">
@@ -145,13 +654,13 @@
                             </div>
 
                             <div class="info-box">
-                                <span class="info-box__label">معلومة إضافية</span>
+                                <span class="info-box__label">القاعة أو الملاحظة</span>
                                 <span class="info-box__value">{{ session.room_name|default:"بدون قاعة" }}</span>
                                 <span class="info-box__sub">
                                     {% if session.course.name_ar %}
                                     {{ session.course.name_ar }}
                                     {% else %}
-                                    معلومات القاعة/الاسم الإضافي
+                                    معلومات إضافية عن الصف
                                     {% endif %}
                                 </span>
                             </div>
@@ -160,9 +669,7 @@
                         <div class="badge-row">
                             <span class="badge-chip room">القاعة: {{ session.room_name|default:"-" }}</span>
                             <span class="badge-chip days">عدد الأيام: {{ session.total_days }}</span>
-                            <span class="badge-chip capacity">
-                                السعة: {{ session.enrolled_count }}{% if session.capacity %} / {{ session.capacity }}{% else %} / مفتوح{% endif %}
-                            </span>
+                            <span class="badge-chip capacity">السعة: {{ session.enrolled_count }}{% if session.capacity %} / {{ session.capacity }}{% else %} / مفتوح{% endif %}</span>
                             <span class="badge-chip capacity">الحد الأدنى: {{ session.min_capacity }}</span>
                         </div>
                     </div>
@@ -174,12 +681,12 @@
                 <table class="print-table">
                     <thead>
                         <tr>
-                            <th style="width: 26%;">الدورة</th>
-                            <th style="width: 16%;">الكلاس</th>
-                            <th style="width: 20%;">التاريخ</th>
-                            <th style="width: 15%;">الوقت</th>
-                            <th style="width: 11%;">القاعة</th>
-                            <th style="width: 12%;">السعة</th>
+                            <th style="width:26%;">الدورة</th>
+                            <th style="width:16%;">الصف</th>
+                            <th style="width:20%;">التاريخ</th>
+                            <th style="width:15%;">الوقت</th>
+                            <th style="width:11%;">القاعة</th>
+                            <th style="width:12%;">السعة</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -221,8 +728,8 @@
             </section>
             {% else %}
             <section class="empty">
-                <h3>لا يوجد برنامج مطابق للطباعة حالياً</h3>
-                <p>أضف أوقاتاً أو ولّد البرنامج أولاً ليظهر التقرير النهائي هنا بشكل كامل.</p>
+                <h3>لا يوجد برنامج مطابق للطباعة حاليًا</h3>
+                <p>أضف أوقاتًا أو أنشئ الصفوف أولًا ليظهر التقرير هنا بشكل كامل.</p>
             </section>
             {% endif %}
 
