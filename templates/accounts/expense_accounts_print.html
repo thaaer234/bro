@@ -35,6 +35,11 @@
             print-color-adjust: exact;
         }
 
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
         .page {
             width: 100%;
             max-width: 1180px;
@@ -246,6 +251,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
         }
 
         th, td {
@@ -334,24 +340,229 @@
         }
 
         @media print {
+            html,
             body {
-                background: #fff;
+                background: #fff !important;
+                font-size: 10pt;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            body {
+                margin: 0;
+                color: var(--ink);
             }
 
             .page {
-                max-width: none;
-                padding: 14mm 10mm 10mm;
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+                page-break-after: always;
+                break-after: page;
+                page-break-inside: auto;
+                break-inside: auto;
+            }
+
+            .page:last-child {
+                page-break-after: auto;
+                break-after: auto;
             }
 
             .hero,
             .card,
-            .table-shell,
             .empty {
-                box-shadow: none;
+                box-shadow: none !important;
             }
 
             tbody tr:hover {
                 background: transparent;
+            }
+
+            .hero {
+                margin-bottom: 10px;
+                padding: 14px 16px;
+                border-radius: 18px;
+                border: 0;
+                color: #fff !important;
+                background:
+                    radial-gradient(circle at top left, rgba(255,255,255,.2), transparent 26%),
+                    linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%) !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .hero-logo-wrap {
+                width: 60px;
+                height: 60px;
+                border-radius: 16px;
+                background: rgba(255,255,255,.14) !important;
+                border: 1px solid rgba(255,255,255,.2) !important;
+                box-shadow: none;
+            }
+
+            .hero-logo {
+                width: 42px;
+                height: 42px;
+                filter: none;
+            }
+
+            .hero-title {
+                margin-bottom: 6px;
+                font-size: 17pt;
+                color: #fff !important;
+            }
+
+            .hero-meta {
+                gap: 6px;
+                font-size: 8.5pt;
+                color: rgba(255,255,255,.9) !important;
+            }
+
+            .hero-pill {
+                padding: 4px 8px;
+                color: rgba(255,255,255,.95) !important;
+                background: rgba(255,255,255,.1) !important;
+                border-color: rgba(255,255,255,.18) !important;
+            }
+
+            .summary-grid {
+                display: grid;
+                grid-template-columns: 1.3fr .8fr;
+                gap: 10px;
+                margin-bottom: 10px;
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .account-card {
+                padding: 12px;
+                margin-bottom: 0;
+                border-radius: 16px;
+                border: 1px solid #d7e2ee;
+                background:
+                    linear-gradient(180deg, rgba(238,244,249,.9), rgba(255,255,255,.96)) !important;
+            }
+
+            .account-kicker {
+                margin-bottom: 4px;
+                font-size: 8.5pt;
+            }
+
+            .account-name {
+                margin-bottom: 8px;
+                font-size: 13pt;
+            }
+
+            .account-meta {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 6px;
+            }
+
+            .meta-item {
+                padding: 6px 7px;
+                border-radius: 10px;
+                background: rgba(255,255,255,.92) !important;
+            }
+
+            .meta-label {
+                margin-bottom: 3px;
+                font-size: 7.5pt;
+            }
+
+            .meta-value {
+                font-size: 9pt;
+            }
+
+            .balance-card {
+                padding: 10px;
+                border-radius: 16px;
+                border: 1px solid #d7e2ee;
+                color: #fff !important;
+                background:
+                    radial-gradient(circle at top right, rgba(255,255,255,.15), transparent 32%),
+                    linear-gradient(135deg, #103157 0%, #0f5f93 100%) !important;
+            }
+
+            .balance-label {
+                font-size: 7.5pt;
+                color: rgba(255,255,255,.82) !important;
+            }
+
+            .balance-value {
+                margin-top: 6px;
+                font-size: 14pt;
+                color: #fff !important;
+            }
+
+            .table-shell {
+                overflow: visible;
+                border-radius: 16px;
+                border: 1px solid #d7e2ee;
+                page-break-inside: auto;
+                break-inside: auto;
+                background: #fff !important;
+            }
+
+            .table-head {
+                padding: 8px 10px;
+                gap: 6px;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                background: linear-gradient(180deg, #f9fbfd 0%, #f1f6fa 100%) !important;
+            }
+
+            .table-title {
+                font-size: 10pt;
+            }
+
+            .table-note {
+                font-size: 7.5pt;
+            }
+
+            table {
+                table-layout: auto;
+                width: 100%;
+            }
+
+            th,
+            td {
+                padding: 5px 6px;
+                font-size: 7.5pt;
+                word-break: normal;
+                overflow-wrap: anywhere;
+            }
+
+            th {
+                font-size: 7pt;
+                background: #edf3f8 !important;
+                color: #27435f !important;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tfoot {
+                display: table-footer-group;
+            }
+
+            tr,
+            td,
+            th {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .tag {
+                padding: 2px 6px;
+                font-size: 6.8pt;
+            }
+
+            .empty {
+                padding: 14px 10px;
+                border-radius: 16px;
+                font-size: 8pt;
+                box-shadow: none !important;
             }
         }
     </style>
