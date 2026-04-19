@@ -1647,8 +1647,14 @@ class ExpenseAccountsPrintView(LoginRequiredMixin, TemplateView):
         accounts_data = []
 
         for account in accounts_qs:
-            transactions = list(
+            has_children = account.children.exists()
+            account_transactions = (
                 account.transactions
+                if has_children
+                else account.transactions_with_descendants()
+            )
+            transactions = list(
+                account_transactions
                 .select_related('journal_entry', 'cost_center')
                 .order_by('journal_entry__date', 'id')
                 .distinct()
@@ -1673,7 +1679,7 @@ class ExpenseAccountsPrintView(LoginRequiredMixin, TemplateView):
             if movement_rows:
                 accounts_data.append({
                     'account': account,
-                    'balance': account.get_net_balance(),
+                    'balance': account.rollup_balance if has_children else account.get_net_balance(),
                     'movement_rows': movement_rows,
                     'movement_count': len(movement_rows),
                     'total_debit': total_debit,
@@ -1682,7 +1688,7 @@ class ExpenseAccountsPrintView(LoginRequiredMixin, TemplateView):
             else:
                 accounts_data.append({
                     'account': account,
-                    'balance': account.get_net_balance(),
+                    'balance': account.rollup_balance if has_children else account.get_net_balance(),
                     'movement_rows': [],
                     'movement_count': 0,
                     'total_debit': total_debit,

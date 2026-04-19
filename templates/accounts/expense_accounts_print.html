@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -67,6 +68,41 @@
             height: 180px;
             background: rgba(255,255,255,.08);
             border-radius: 50%;
+        }
+
+        .hero-row {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .hero-copy {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .hero-logo-wrap {
+            flex: 0 0 auto;
+            width: 88px;
+            height: 88px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 24px;
+            background: rgba(255,255,255,.14);
+            border: 1px solid rgba(255,255,255,.2);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+            backdrop-filter: blur(6px);
+        }
+
+        .hero-logo {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            filter: drop-shadow(0 8px 18px rgba(0,0,0,.15));
         }
 
         .hero-title {
@@ -282,6 +318,21 @@
             box-shadow: var(--shadow);
         }
 
+        @media (max-width: 900px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-row {
+                flex-direction: column-reverse;
+                align-items: flex-start;
+            }
+
+            .account-meta {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @media print {
             body {
                 background: #fff;
@@ -309,12 +360,19 @@
     {% for item in accounts_data %}
     <section class="page">
         <div class="hero">
-            <h1 class="hero-title">كشف الحركات حسب الحسابات</h1>
-            <div class="hero-meta">
-                <span class="hero-pill">تاريخ الطباعة: {{ generated_at|date:"Y-m-d H:i" }}</span>
-                <span class="hero-pill">الحساب: {{ item.account.code }}</span>
-                <span class="hero-pill">{{ item.account.get_account_type_display }}</span>
-                <span class="hero-pill">إجمالي المصاريف: {{ total_expenses_amount|floatformat:2 }}</span>
+            <div class="hero-row">
+                <div class="hero-copy">
+                    <h1 class="hero-title">كشف الحركات حسب الحسابات</h1>
+                    <div class="hero-meta">
+                        <span class="hero-pill">تاريخ الطباعة: {{ generated_at|date:"Y-m-d H:i" }}</span>
+                        <span class="hero-pill">الحساب: {{ item.account.code }}</span>
+                        <span class="hero-pill">{{ item.account.get_account_type_display }}</span>
+                        <span class="hero-pill">إجمالي المصاريف: {{ total_expenses_amount|floatformat:2 }}</span>
+                    </div>
+                </div>
+                <div class="hero-logo-wrap">
+                    <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" class="hero-logo">
+                </div>
             </div>
         </div>
 
