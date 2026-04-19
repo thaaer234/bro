@@ -56,6 +56,7 @@ from openpyxl.utils import get_column_letter
 from accounts.models import Transaction, JournalEntry, Account, get_user_cash_account
 from .models import (
     QuickCourse,
+    QuickCourseWithdrawal,
     QuickCourseTimeOption,
     QuickCourseSession,
     QuickCourseSessionAttendance,
@@ -3803,6 +3804,16 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
         raise ValueError('هذه الدورة مسحوبة مسبقاً')
 
     with transaction.atomic():
+        QuickCourseWithdrawal.objects.update_or_create(
+            student=student,
+            course=enrollment.course,
+            defaults={
+                'withdrawal_reason': withdrawal_reason or '',
+                'withdrawn_by': user if getattr(user, 'is_authenticated', False) else None,
+                'withdrawn_at': timezone.now(),
+            },
+        )
+
         assignment = getattr(enrollment, 'session_assignment', None)
         assignment_session_title = ''
         if assignment and getattr(assignment, 'session', None):
@@ -3818,25 +3829,25 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
             quick_enrollment=enrollment,
             course=enrollment.course
         ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+        actual_refund = paid_total
 
-        refund_amount = paid_total
-        refund_result = _adjust_quick_receipts_for_refund(student, enrollment, refund_amount)
-        actual_refund = refund_result['refunded_amount']
+        discount_entry = JournalEntry.objects.filter(
+            description__icontains=f'[QUICK_DISCOUNT #{enrollment.id}]'
+        ).first()
+        if discount_entry:
+            discount_entry.delete()
 
-        description = f"سحب طالب سريع {student.full_name} من {enrollment.course.name}"
-        if withdrawal_reason:
-            description = f"{description} - {withdrawal_reason}"
-
-        created_entries = _build_quick_withdrawal_entry(
-            enrollment=enrollment,
-            user=user,
-            refunded_amount=actual_refund,
-            description=description,
+        receipts = list(
+            QuickStudentReceipt.objects.filter(
+                quick_student=student,
+                quick_enrollment=enrollment,
+                course=enrollment.course,
+            )
         )
+        for receipt in receipts:
+            receipt.delete()
 
-        enrollment.is_completed = True
-        enrollment.completion_date = timezone.now().date()
-        enrollment.save(update_fields=['is_completed', 'completion_date'])
+        enrollment.delete()
 
     return {
         'actual_refund': actual_refund,
@@ -3844,7 +3855,7 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
         'course_name': enrollment.course.name,
         'assignment_cleared': bool(assignment_session_title),
         'cleared_session_title': assignment_session_title,
-        'created_entry_ids': [entry.id for entry in created_entries],
+        'created_entry_ids': [],
     }
 
 
@@ -8340,6 +8351,11 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
                 .select_related('course', 'session_assignment__session')
                 .order_by('-enrollment_date', '-id')
             )
+            withdrawals_queryset = (
+                QuickCourseWithdrawal.objects.filter(student=student)
+                .select_related('course', 'withdrawn_by')
+                .order_by('-withdrawn_at', '-id')
+            )
 
             enrollment_data = []
             for enrollment in enrollments_queryset:
@@ -8356,9 +8372,42 @@ class QuickStudentProfileView(LoginRequiredMixin, DetailView):
                     'net_amount': net_amount,
                     'is_active': not enrollment.is_completed,
                     'assigned_session': assigned_session,
+                    'withdrawal': None,
+                    'is_withdrawn_record': False,
+                    'sort_date': timezone.make_aware(
+                        timezone.datetime.combine(
+                            enrollment.enrollment_date,
+                            timezone.datetime.min.time(),
+                        ),
+                        timezone.get_current_timezone(),
+                    ),
                 })
 
-            active_enrollment_data = [item for item in enrollment_data if item['is_active']]
+            for withdrawal in withdrawals_queryset:
+                enrollment_data.append({
+                    'enrollment': None,
+                    'withdrawal': withdrawal,
+                    'total_paid': Decimal('0.00'),
+                    'balance_due': Decimal('0.00'),
+                    'net_amount': Decimal('0.00'),
+                    'is_active': False,
+                    'assigned_session': None,
+                    'is_withdrawn_record': True,
+                    'sort_date': withdrawal.withdrawn_at,
+                })
+
+            enrollment_data.sort(
+                key=lambda item: (
+                    item.get('sort_date') or timezone.now(),
+                    getattr(item.get('enrollment'), 'id', 0) or getattr(item.get('withdrawal'), 'id', 0),
+                ),
+                reverse=True,
+            )
+
+            active_enrollment_data = [
+                item for item in enrollment_data
+                if item['is_active'] and item.get('enrollment') is not None
+            ]
 
             total_paid = sum(item['total_paid'] for item in active_enrollment_data)
             total_due = sum(item['net_amount'] for item in active_enrollment_data)
@@ -9423,6 +9472,8 @@ def register_quick_course(request, student_id):
             if existing:
                 warnings.append(f'التسجيل للدورة "{course.name}" موجود مسبقاً، تم تجاهلها.')
                 continue
+
+            QuickCourseWithdrawal.objects.filter(student=student, course=course).delete()
 
             selected_session_id = (request.POST.get(f'session_id_{course.id}') or '').strip()
             selected_session = None

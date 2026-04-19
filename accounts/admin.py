@@ -215,13 +215,13 @@ class AccountAdmin(ImportExportModelAdmin, FinancialMetricsMixin, admin.ModelAdm
                 amount_str
             )
         else:
-            return format_html('<span style="color: #6c757d;">⚪ 0.00</span>')
+            return format_html('<span style="color: #6c757d;">{}</span>', '⚪ 0.00')
     balance_display.short_description = '💳 الرصيد'
 
     def is_active_badge(self, obj):
         if obj.is_active:
-            return format_html('<span class="badge badge-success">✅ نشط</span>')
-        return format_html('<span class="badge badge-danger">❌ غير نشط</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '✅ نشط')
+        return format_html('<span class="badge badge-danger">{}</span>', '❌ غير نشط')
     is_active_badge.short_description = 'الحالة'
 
     def opening_balance_display(self, obj):
@@ -335,11 +335,13 @@ class JournalEntryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     def posting_status(self, obj):
         if obj.is_posted:
             return format_html(
-                '<span class="badge badge-success">✅ مرحل</span>'
+                '<span class="badge badge-success">{}</span>',
+                '✅ مرحل'
             )
         else:
             return format_html(
-                '<span class="badge badge-warning">⏳ غير مرحل</span>'
+                '<span class="badge badge-warning">{}</span>',
+                '⏳ غير مرحل'
             )
     posting_status.short_description = '🔄 حالة الترحيل'
 
@@ -368,9 +370,9 @@ class JournalEntryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
         credit_total = obj.transactions.filter(is_debit=False).aggregate(Sum('amount'))['amount__sum'] or 0
         
         if debit_total == credit_total:
-            return format_html('<span class="badge badge-success">⚖️ متوازن</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '⚖️ متوازن')
         else:
-            return format_html('<span class="badge badge-danger">⚖️ غير متوازن</span>')
+            return format_html('<span class="badge badge-danger">{}</span>', '⚖️ غير متوازن')
     balance_status.short_description = '⚖️ التوازن'
 
     def post_selected_entries(self, request, queryset):
@@ -442,9 +444,9 @@ class TransactionAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 
     def debit_credit_badge(self, obj):
         if obj.is_debit:
-            return format_html('<span class="badge badge-success">🔺 مدين</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '🔺 مدين')
         else:
-            return format_html('<span class="badge badge-danger">🔻 دائن</span>')
+            return format_html('<span class="badge badge-danger">{}</span>', '🔻 دائن')
     debit_credit_badge.short_description = 'النوع'
 
     def transaction_date(self, obj):
@@ -519,8 +521,8 @@ class CostCenterAdmin(admin.ModelAdmin):
 
     def is_active_badge(self, obj):
         if obj.is_active:
-            return format_html('<span class="badge badge-success">✅ نشط</span>')
-        return format_html('<span class="badge badge-danger">❌ غير نشط</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '✅ نشط')
+        return format_html('<span class="badge badge-danger">{}</span>', '❌ غير نشط')
     is_active_badge.short_description = 'الحالة'
 
     def opening_balance_display(self, obj):
@@ -538,8 +540,8 @@ class StudentAdmin(admin.ModelAdmin):
 
     def is_active_badge(self, obj):
         if obj.is_active:
-            return format_html('<span class="badge badge-success">✅ نشط</span>')
-        return format_html('<span class="badge badge-danger">❌ غير نشط</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '✅ نشط')
+        return format_html('<span class="badge badge-danger">{}</span>', '❌ غير نشط')
     is_active_badge.short_description = 'الحالة'
 
 @admin.register(Course)
@@ -586,8 +588,8 @@ class CourseAdmin(admin.ModelAdmin):
 
     def is_active_badge(self, obj):
         if obj.is_active:
-            return format_html('<span class="badge badge-success">✅ نشط</span>')
-        return format_html('<span class="badge badge-danger">❌ غير نشط</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '✅ نشط')
+        return format_html('<span class="badge badge-danger">{}</span>', '❌ غير نشط')
     is_active_badge.short_description = 'الحالة'
 
 # ==============================
@@ -658,8 +660,8 @@ class StudentenrollmentAdmin(admin.ModelAdmin):
 
     def is_active_badge(self, obj):
         if hasattr(obj, 'is_active') and obj.is_active:
-            return format_html('<span class="badge badge-success">✅ نشط</span>')
-        return format_html('<span class="badge badge-danger">❌ غير نشط</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '✅ نشط')
+        return format_html('<span class="badge badge-danger">{}</span>', '❌ غير نشط')
     is_active_badge.short_description = 'الحالة'
 
 @admin.register(EmployeeAdvance)
@@ -704,8 +706,8 @@ class EmployeeAdvanceAdmin(admin.ModelAdmin):
 
     def settlement_status(self, obj):
         if hasattr(obj, 'is_settled') and obj.is_settled:
-            return format_html('<span class="badge badge-success">✅ مسدد</span>')
-        return format_html('<span class="badge badge-warning">⏳ غير مسدد</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '✅ مسدد')
+        return format_html('<span class="badge badge-warning">{}</span>', '⏳ غير مسدد')
     settlement_status.short_description = 'حالة التسديد'
 
 @admin.register(AccountingPeriod)
@@ -727,8 +729,8 @@ class AccountingPeriodAdmin(admin.ModelAdmin):
     
     def closed_status(self, obj):
         if hasattr(obj, 'is_closed') and obj.is_closed:
-            return format_html('<span class="badge badge-secondary">🔒 مغلق</span>')
-        return format_html('<span class="badge badge-success">🔓 مفتوح</span>')
+            return format_html('<span class="badge badge-secondary">{}</span>', '🔒 مغلق')
+        return format_html('<span class="badge badge-success">{}</span>', '🔓 مفتوح')
     closed_status.short_description = 'الحالة'
 
 @admin.register(Budget)
@@ -781,8 +783,8 @@ class BudgetAdmin(admin.ModelAdmin):
     
     def active_status(self, obj):
         if hasattr(obj, 'is_active') and obj.is_active:
-            return format_html('<span class="badge badge-success">✅ نشط</span>')
-        return format_html('<span class="badge badge-danger">❌ غير نشط</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '✅ نشط')
+        return format_html('<span class="badge badge-danger">{}</span>', '❌ غير نشط')
     active_status.short_description = 'الحالة'
 
 @admin.register(StudentAccountLink)
@@ -838,7 +840,7 @@ class StudentAccountLinkAdmin(admin.ModelAdmin):
     
     def active_status(self, obj):
         if hasattr(obj, 'is_active') and obj.is_active:
-            return format_html('<span class="badge badge-success">✅ نشط</span>')
-        return format_html('<span class="badge badge-danger">❌ غير نشط</span>')
+            return format_html('<span class="badge badge-success">{}</span>', '✅ نشط')
+        return format_html('<span class="badge badge-danger">{}</span>', '❌ غير نشط')
     active_status.short_description = 'الحالة'
 

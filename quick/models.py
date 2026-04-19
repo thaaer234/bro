@@ -694,6 +694,44 @@ class QuickEnrollment(models.Model):
         self.create_discount_adjustment_entry(user)
 
         return entry
+
+
+class QuickCourseWithdrawal(models.Model):
+    student = models.ForeignKey(
+        'QuickStudent',
+        on_delete=models.CASCADE,
+        related_name='course_withdrawals',
+        verbose_name='الطالب السريع',
+    )
+    course = models.ForeignKey(
+        'QuickCourse',
+        on_delete=models.CASCADE,
+        related_name='withdrawn_students',
+        verbose_name='الدورة السريعة',
+    )
+    withdrawal_reason = models.TextField(blank=True, verbose_name='سبب السحب')
+    withdrawn_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='quick_course_withdrawals',
+        verbose_name='تم السحب بواسطة',
+    )
+    withdrawn_at = models.DateTimeField(default=timezone.now, verbose_name='تاريخ السحب')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'مسحوب من الدورات السريعة'
+        verbose_name_plural = 'المسحوبون من الدورات السريعة'
+        unique_together = ['student', 'course']
+        ordering = ['-withdrawn_at', '-id']
+
+    def __str__(self):
+        return f"{self.student.full_name} - {self.course.name}"
+
+
 # Signals: ensure AR account exists on create
 from accounts.models import Account
 

@@ -273,24 +273,32 @@
         {% if all_enrollments %}
           <div class="courses-grid">
             {% for item in all_enrollments %}
-              <div class="course-card {% if item.enrollment.is_completed %}border border-danger{% endif %}">
+              <div class="course-card {% if item.is_withdrawn_record or item.enrollment.is_completed %}border border-danger{% endif %}">
                 <div class="course-header">
-                  <h4>{{ item.enrollment.course.name }}</h4>
-                  <span class="course-type {% if item.enrollment.is_completed %}text-danger fw-bold{% endif %}">
-                    {{ item.enrollment.course.get_course_type_display }}
-                    {% if item.enrollment.is_completed %}- مسحوب{% endif %}
+                  <h4>{% if item.enrollment %}{{ item.enrollment.course.name }}{% else %}{{ item.withdrawal.course.name }}{% endif %}</h4>
+                  <span class="course-type {% if item.is_withdrawn_record or item.enrollment.is_completed %}text-danger fw-bold{% endif %}">
+                    {% if item.enrollment %}{{ item.enrollment.course.get_course_type_display }}{% else %}{{ item.withdrawal.course.get_course_type_display }}{% endif %}
+                    {% if item.is_withdrawn_record or item.enrollment.is_completed %}- مسحوب{% endif %}
                   </span>
                 </div>
                 <div class="course-body">
                   <div class="course-info">
                     <div class="info-item">
                       <i class="fas fa-calendar-alt"></i>
-                      <span>تاريخ الالتحاق: {{ item.enrollment.enrollment_date|date:"Y-m-d" }}</span>
+                      <span>
+                        {% if item.enrollment %}
+                          تاريخ الالتحاق: {{ item.enrollment.enrollment_date|date:"Y-m-d" }}
+                        {% else %}
+                          تاريخ السحب: {{ item.withdrawal.withdrawn_at|date:"Y-m-d H:i" }}
+                        {% endif %}
+                      </span>
                     </div>
                     <div class="info-item">
                       <i class="fas fa-money-bill-wave"></i>
                       <span>الحالة المالية: 
-                        {% if item.balance_due <= 0 %}
+                        {% if item.is_withdrawn_record %}
+                          <span style="color: #b42318;">تم حذف التسجيل والإيصالات المرتبطة</span>
+                        {% elif item.balance_due <= 0 %}
                           <span style="color: green;">مكتمل الدفع</span>
                         {% else %}
                           <span style="color: orange;">متبقي: {{ item.balance_due|floatformat:2 }} ل.س</span>
@@ -301,7 +309,7 @@
                       <i class="fas fa-check-circle"></i>
                       <span>
                         الحالة:
-                        {% if item.enrollment.is_completed %}
+                        {% if item.is_withdrawn_record or item.enrollment.is_completed %}
                           <span class="text-danger fw-bold">مسحوب</span>
                         {% else %}
                           <span style="color: green;">نشط</span>
@@ -314,7 +322,7 @@
                         الكلاس:
                         {% if item.assigned_session %}
                           {{ item.assigned_session.title }}
-                        {% elif item.enrollment.is_completed %}
+                        {% elif item.is_withdrawn_record or item.enrollment.is_completed %}
                           <span class="text-danger fw-bold">تم حذف فرزه من الصف عند السحب</span>
                         {% else %}
                           <span style="color: #8a5a00;">غير منزل على كلاس</span>
@@ -323,7 +331,13 @@
                     </div>
                     <div class="info-item">
                       <i class="fas fa-percentage"></i>
-                      <span>الخصم: {{ item.enrollment.discount_percent }}% / {{ item.enrollment.discount_amount|floatformat:2 }} ل.س</span>
+                      <span>
+                        {% if item.enrollment %}
+                          الخصم: {{ item.enrollment.discount_percent }}% / {{ item.enrollment.discount_amount|floatformat:2 }} ل.س
+                        {% else %}
+                          سبب السحب: {{ item.withdrawal.withdrawal_reason|default:"-" }}
+                        {% endif %}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -401,16 +415,20 @@
                 </thead>
                 <tbody>
                   {% for item in all_enrollments %}
-                    <tr {% if item.enrollment.is_completed %}class="table-danger"{% endif %}>
-                      <td>{{ item.enrollment.course.name }}</td>
+                    <tr {% if item.is_withdrawn_record or item.enrollment.is_completed %}class="table-danger"{% endif %}>
+                      <td>{% if item.enrollment %}{{ item.enrollment.course.name }}{% else %}{{ item.withdrawal.course.name }}{% endif %}</td>
                       <td>{{ item.net_amount|default_if_none:0|floatformat:2 }} ل.س</td>
                       <td>{{ item.total_paid|default_if_none:0|floatformat:2 }} ل.س</td>
                       <td>{{ item.balance_due|default_if_none:0|floatformat:2 }} ل.س</td>
                       <td>
-                        {{ item.enrollment.discount_percent }}% / {{ item.enrollment.discount_amount|floatformat:2 }} ل.س
+                        {% if item.enrollment %}
+                          {{ item.enrollment.discount_percent }}% / {{ item.enrollment.discount_amount|floatformat:2 }} ل.س
+                        {% else %}
+                          {{ item.withdrawal.withdrawal_reason|default:"-" }}
+                        {% endif %}
                       </td>
                       <td>
-                        {% if item.enrollment.is_completed %}
+                        {% if item.is_withdrawn_record or item.enrollment.is_completed %}
                           <span class="payment-status pending" style="background:#fde8e8;color:#b42318;border-color:#f5c2c7;">
                             <i class="fas fa-user-minus"></i>
                             مسحوب
@@ -428,7 +446,7 @@
                         {% endif %}
                       </td>
                       <td>
-                        {% if not item.enrollment.is_completed %}
+                        {% if item.enrollment and not item.enrollment.is_completed %}
                           <button class="btn btn-sm btn-outline-danger withdraw-course-btn" 
                                   data-enrollment-id="{{ item.enrollment.id|unlocalize }}"
                                   data-course-name="{{ item.enrollment.course.name }}"

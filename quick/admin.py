@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     AcademicYear,
     QuickCourse,
+    QuickCourseWithdrawal,
     QuickCourseTimeOption,
     QuickCourseSession,
     QuickCourseSessionAttendance,
@@ -50,6 +51,15 @@ class QuickEnrollmentAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at', 'calculated_net_amount']
     raw_id_fields = ['student', 'course']
     list_editable = ['is_completed']
+
+
+@admin.register(QuickCourseWithdrawal)
+class QuickCourseWithdrawalAdmin(admin.ModelAdmin):
+    list_display = ['student', 'course', 'withdrawn_at', 'withdrawn_by', 'created_at']
+    list_filter = ['course', 'withdrawn_at', 'created_at']
+    search_fields = ['student__full_name', 'course__name', 'withdrawal_reason']
+    readonly_fields = ['created_at', 'updated_at', 'withdrawn_at']
+    raw_id_fields = ['student', 'course', 'withdrawn_by']
 
 
 @admin.register(QuickStudentReceipt)
