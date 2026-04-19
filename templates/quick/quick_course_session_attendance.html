@@ -176,12 +176,12 @@
                     <div class="qa-stat-value">اليوم {{ selected_day_number }}</div>
                 </div>
                 <div class="qa-stat">
-                    <div class="qa-stat-label">الأساسي</div>
-                    <div class="qa-stat-value" id="baseCount">{{ assigned_count }}</div>
+                    <div class="qa-stat-label">الحاضر</div>
+                    <div class="qa-stat-value" id="presentCount">{{ present_count }}</div>
                 </div>
                 <div class="qa-stat">
-                    <div class="qa-stat-label">إضافات اليوم</div>
-                    <div class="qa-stat-value" id="extraCount">{{ extra_count }}</div>
+                    <div class="qa-stat-label">الغائب</div>
+                    <div class="qa-stat-value" id="absentCount">{{ absent_count }}</div>
                 </div>
                 <div class="qa-stat">
                     <div class="qa-stat-label">إجمالي الكشف</div>
@@ -201,6 +201,8 @@
                     <div class="qa-day-badge">
                         {% if item.is_future %}
                         غير متاح بعد
+                        {% elif item.saved_count %}
+                        محفوظ {{ item.saved_count }}
                         {% elif item.is_selected %}
                         اليوم الحالي
                         {% else %}
@@ -232,6 +234,8 @@
                         <h3 class="qa-box-title">ملخص اليوم</h3>
                         <p class="qa-box-text">إذا كان الأساسي عندك 25 وأضفت اسمين يدويًا، سيصبح كشف هذا اليوم 27. كل شيء هنا مرتبط بهذا اليوم فقط، وليس فرزًا دائمًا على الجلسة.</p>
                         <div class="qa-live-summary">
+                            <span class="qa-summary-pill">حاضر: <strong id="summaryPresent">{{ present_count }}</strong></span>
+                            <span class="qa-summary-pill">غائب: <strong id="summaryAbsent">{{ absent_count }}</strong></span>
                             <span class="qa-summary-pill">الأساسي: <strong id="summaryBase">{{ assigned_count }}</strong></span>
                             <span class="qa-summary-pill">إضافات: <strong id="summaryExtra">{{ extra_count }}</strong></span>
                             <span class="qa-summary-pill">الإجمالي: <strong id="summaryTotal">{{ attendance_rows|length }}</strong></span>
@@ -395,8 +399,11 @@
 
     function summaryNodes(){
         return {
-            extra: document.getElementById('extraCount'),
+            present: document.getElementById('presentCount'),
+            absent: document.getElementById('absentCount'),
             total: document.getElementById('totalCount'),
+            sPresent: document.getElementById('summaryPresent'),
+            sAbsent: document.getElementById('summaryAbsent'),
             sExtra: document.getElementById('summaryExtra'),
             sTotal: document.getElementById('summaryTotal'),
         };
@@ -413,8 +420,13 @@
     function refreshSummary(){
         const allRows = rows();
         const extraRows = allRows.filter(row => row.dataset.isExtra === 'true').length;
+        const presentRows = allRows.filter(row => row.classList.contains('is-present')).length;
+        const absentRows = allRows.length - presentRows;
         const nodes = summaryNodes();
-        if (nodes.extra) nodes.extra.textContent = extraRows;
+        if (nodes.present) nodes.present.textContent = presentRows;
+        if (nodes.absent) nodes.absent.textContent = absentRows;
+        if (nodes.sPresent) nodes.sPresent.textContent = presentRows;
+        if (nodes.sAbsent) nodes.sAbsent.textContent = absentRows;
         if (nodes.sExtra) nodes.sExtra.textContent = extraRows;
         if (nodes.total) nodes.total.textContent = allRows.length;
         if (nodes.sTotal) nodes.sTotal.textContent = allRows.length;

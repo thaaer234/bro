@@ -3,6 +3,53 @@
 
 {% block title %}{% if object %}تعديل قيد يومية{% else %}قيد يومية جديد{% endif %}{% endblock %}
 
+{% block extra_css %}
+<style>
+.page-journal_entry_create .transaction-row,
+.page-journal_entry_update .transaction-row {
+    border: 1px solid #dbe6f0;
+    border-radius: 20px;
+    padding: 1rem;
+    background: linear-gradient(180deg, #fbfdff 0%, #f6f9fc 100%);
+    margin-bottom: 1rem;
+    box-shadow: 0 12px 24px rgba(19, 38, 63, .05);
+}
+.page-journal_entry_create .transaction-row.delete-row,
+.page-journal_entry_update .transaction-row.delete-row {
+    opacity: .55;
+    background: #fff5f5;
+    border-color: #f1c9c9;
+}
+.page-journal_entry_create #transaction-formset .form-control,
+.page-journal_entry_create #transaction-formset .form-select,
+.page-journal_entry_update #transaction-formset .form-control,
+.page-journal_entry_update #transaction-formset .form-select {
+    min-height: 46px;
+    border-radius: 14px;
+}
+.page-journal_entry_create .accounts-summary-grid,
+.page-journal_entry_update .accounts-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.page-journal_entry_create .accounts-summary-card,
+.page-journal_entry_update .accounts-summary-card {
+    border: 1px solid #dbe6f0;
+    border-radius: 18px;
+    padding: 1rem;
+    background: #fff;
+}
+@media (max-width: 767.98px) {
+    .page-journal_entry_create .accounts-summary-grid,
+    .page-journal_entry_update .accounts-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <section class="accounts-section">
     <div class="accounts-header">
@@ -161,6 +208,24 @@
 document.addEventListener('DOMContentLoaded', function() {
     let formIndex = {{ transaction_formset.total_form_count }};
 
+    function normalizeAmount(value) {
+        return String(value || '')
+            .replace(/,/g, '')
+            .replace(/،/g, '')
+            .replace(/\s+/g, '')
+            .replace(/[^\d.]/g, '');
+    }
+
+    function formatAmount(value) {
+        const normalized = normalizeAmount(value);
+        if (!normalized) return '';
+        const parts = normalized.split('.');
+        const integerPart = parts[0] || '0';
+        const decimalPart = parts.length > 1 ? parts.slice(1).join('').slice(0, 2) : '';
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+    }
+
     document.getElementById('add-transaction').addEventListener('click', function() {
         const emptyForm = document.getElementById('empty-form').innerHTML;
         const newForm = emptyForm.replace(/__prefix__/g, formIndex);
@@ -182,6 +247,19 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('input[name*="amount"], input[name*="is_debit"]').forEach(function(input) {
             input.addEventListener('input', updateTotals);
             input.addEventListener('change', updateTotals);
+        });
+
+        document.querySelectorAll('input[name*="amount"]').forEach(function(input) {
+            if (input.dataset.amountBound === 'true') { return; }
+            input.dataset.amountBound = 'true';
+            input.addEventListener('input', function() {
+                this.value = formatAmount(this.value);
+                updateTotals();
+            });
+            input.addEventListener('blur', function() {
+                this.value = formatAmount(this.value);
+            });
+            input.value = formatAmount(input.value);
         });
 
         document.querySelectorAll('input[name*="is_debit"]').forEach(function(checkbox) {
@@ -220,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const amountInput = row.querySelector('input[name*="amount"]');
             const isDebitInput = row.querySelector('input[name*="is_debit"]');
             if (amountInput && amountInput.value && isDebitInput) {
-                const amount = parseFloat(amountInput.value) || 0;
+                const amount = parseFloat(normalizeAmount(amountInput.value)) || 0;
                 if (isDebitInput.checked) { totalDebits += amount; } else { totalCredits += amount; }
             }
         });
@@ -241,6 +319,12 @@ document.addEventListener('DOMContentLoaded', function() {
             saveButton.disabled = totalDebits > 0 || totalCredits > 0;
         }
     }
+
+    document.getElementById('journal-entry-form').addEventListener('submit', function() {
+        this.querySelectorAll('input[name*="amount"]').forEach(function(input) {
+            input.value = normalizeAmount(input.value);
+        });
+    });
 
     setupFormEvents();
     updateTotals();

@@ -11,6 +11,12 @@
             <h2>إيصالات الطلاب والمصروفات</h2>
             <p>شاشة تشغيل مركزة للنقدية الحالية، ملخص اليوم، وإدخال المصروفات السريع.</p>
         </div>
+        <div class="filter-actions">
+            <a href="{% url 'accounts:expense_accounts_print' %}" class="btn btn-outline-primary" target="_blank">
+                <i class="fas fa-print"></i>
+                طباعة كشف المصروفات حسب الحسابات
+            </a>
+        </div>
     </div>
 
     <nav class="accounts-breadcrumb" aria-label="breadcrumb">
@@ -25,6 +31,11 @@
             <div class="accounts-header__copy">
                 <h3 class="text-white m-0">رصيد الصندوق الحالي</h3>
                 <p class="text-white-50 m-0">آخر تحديث: الآن</p>
+                <p class="text-white-50 m-0">
+                    الحساب المعروض:
+                    {{ cash_account.name_ar|default:cash_account.name|default:"النقدية" }}
+                    {% if cash_account.code %}({{ cash_account.code }}){% endif %}
+                </p>
             </div>
             <div class="accounts-balance-banner__value">{{ cash_balance|floatformat:2 }}</div>
         </div>
@@ -49,6 +60,15 @@
                 <span class="accounts-kpi-card__icon"><i class="fas fa-arrow-up-wide-short"></i></span>
             </div>
         </article>
+        <article class="accounts-kpi-card is-positive">
+            <div class="accounts-kpi-card__top">
+                <div>
+                    <p class="accounts-kpi-card__label">إيراد طلاب المتابعة اليوم</p>
+                    <h3 class="accounts-kpi-card__value">{{ today_followup_revenue_total|floatformat:2 }}</h3>
+                </div>
+                <span class="accounts-kpi-card__icon"><i class="fas fa-sack-dollar"></i></span>
+            </div>
+        </article>
         <article class="accounts-kpi-card {% if net_today >= 0 %}is-positive{% else %}is-warning{% endif %}">
             <div class="accounts-kpi-card__top">
                 <div>
@@ -66,6 +86,7 @@
             <p class="accounts-form-card__subtitle">أدخل المصروف مباشرة دون مغادرة لوحة النقدية.</p>
             <form method="post" action="{% url 'accounts:expense_create' %}">
                 {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'accounts:receipts_expenses' %}">
                 {{ expense_form.as_p }}
                 <div class="filter-actions">
                     <button type="submit" class="btn btn-danger">
@@ -76,14 +97,21 @@
             </form>
         </div>
 
-        <aside class="accounts-side-card">
-            <h3 class="accounts-side-card__title">ملاحظات تشغيلية</h3>
-            <ul class="accounts-info-list">
-                <li><i class="fas fa-wallet"></i><span>رصيد الصندوق يُحدّث مع كل حركة مالية جديدة.</span></li>
-                <li><i class="fas fa-user-graduate"></i><span>إيصالات الطلاب الفعلية أصبحت مرتبطة أكثر بملفات الطلاب.</span></li>
-                <li><i class="fas fa-receipt"></i><span>استخدم هذه الشاشة للمتابعة السريعة للمصروفات والتدفق النقدي.</span></li>
-            </ul>
-        </aside>
+        <div class="accounts-form-card">
+            <h3 class="accounts-form-card__title">إيراد طلاب المتابعة</h3>
+            <p class="accounts-form-card__subtitle">يسجل كإيراد خارجي بين الصندوق وحساب إيراد طلاب المتابعة تلقائياً.</p>
+            <form method="post" action="{% url 'accounts:followup_revenue_create' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'accounts:receipts_expenses' %}">
+                {{ followup_revenue_form.as_p }}
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus-circle"></i>
+                        تسجيل إيراد المتابعة
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div class="row g-4">
@@ -124,14 +152,88 @@
 
         <div class="col-lg-6">
             <div class="accounts-side-card h-100">
-                <h3 class="accounts-side-card__title">حالة الإيصالات</h3>
+                <h3 class="accounts-side-card__title">آخر إيرادات طلاب المتابعة</h3>
+                {% if recent_followup_revenues %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>الرقم</th>
+                                <th>الوصف</th>
+                                <th class="text-end">المبلغ</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for revenue in recent_followup_revenues %}
+                            <tr>
+                                <td><a href="{{ revenue.get_absolute_url }}">{{ revenue.reference }}</a></td>
+                                <td>{{ revenue.description|truncatechars:40 }}</td>
+                                <td class="text-end">{{ revenue.amount|floatformat:2 }}</td>
+                                <td>{{ revenue.date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
                 <div class="accounts-empty">
                     <i class="fas fa-circle-info"></i>
-                    <h3>إيصالات الطلاب تُدار من صفحات الطلاب</h3>
-                    <p class="text-muted">تم الإبقاء على هذه الشاشة كلوحة تدفق نقدي ومصروفات، مع الحفاظ على منطق النظام الحالي.</p>
+                    <h3>لا توجد إيرادات متابعة بعد</h3>
+                    <p class="text-muted">عند تسجيل أول إيراد سيظهر هنا مباشرة مع قيده المحاسبي.</p>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </section>
+<script>
+(function () {
+    function normalizeAmount(value) {
+        return String(value || '')
+            .replace(/,/g, '')
+            .replace(/،/g, '')
+            .replace(/\s+/g, '')
+            .replace(/[^\d.]/g, '');
+    }
+
+    function formatAmount(value) {
+        const normalized = normalizeAmount(value);
+        if (!normalized) return '';
+
+        const parts = normalized.split('.');
+        const integerPart = parts[0] || '0';
+        const decimalPart = parts.length > 1 ? parts.slice(1).join('').slice(0, 2) : '';
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+    }
+
+    function bindAmountInput(input) {
+        if (!input) return;
+
+        input.addEventListener('input', function () {
+            const formatted = formatAmount(this.value);
+            this.value = formatted;
+        });
+
+        input.addEventListener('blur', function () {
+            this.value = formatAmount(this.value);
+        });
+
+        const form = input.closest('form');
+        if (form && !form.dataset.amountFormatterBound) {
+            form.dataset.amountFormatterBound = 'true';
+            form.addEventListener('submit', function () {
+                this.querySelectorAll('input[name="amount"]').forEach(function (amountInput) {
+                    amountInput.value = normalizeAmount(amountInput.value);
+                });
+            });
+        }
+
+        input.value = formatAmount(input.value);
+    }
+
+    document.querySelectorAll('input[name="amount"]').forEach(bindAmountInput);
+})();
+</script>
 {% endblock %}

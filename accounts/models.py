@@ -309,6 +309,42 @@ class Account(models.Model):
         )
         return account
 
+    @classmethod
+    def get_or_create_followup_revenue_account(cls):
+        """Get or create the external revenue account for follow-up students."""
+        revenue_parent, _ = cls.objects.get_or_create(
+            code='4',
+            defaults={
+                'name': 'Revenue',
+                'name_ar': 'الإيرادات',
+                'account_type': 'REVENUE',
+                'is_active': True,
+            }
+        )
+        account, _ = cls.objects.get_or_create(
+            code='4199-FOLLOWUP',
+            defaults={
+                'name': 'Follow-up Students Revenue',
+                'name_ar': 'إيراد طلاب المتابعة',
+                'account_type': 'REVENUE',
+                'parent': revenue_parent,
+                'is_active': True,
+            }
+        )
+        update_fields = []
+        if account.parent_id != revenue_parent.id:
+            account.parent = revenue_parent
+            update_fields.append('parent')
+        if account.account_type != 'REVENUE':
+            account.account_type = 'REVENUE'
+            update_fields.append('account_type')
+        if not account.is_active:
+            account.is_active = True
+            update_fields.append('is_active')
+        if update_fields:
+            account.save(update_fields=update_fields)
+        return account
+
 
 
 ## ====================
@@ -1949,6 +1985,11 @@ class Category(models.Model):
 
 
 class ExpenseEntry(models.Model):
+    ENTRY_KIND_CHOICES = [
+        ('EXPENSE', 'مصروف'),
+        ('FOLLOWUP_REVENUE', 'إيراد طلاب المتابعة'),
+    ]
+
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
         
     cost_center = models.ForeignKey(
@@ -1966,6 +2007,7 @@ class ExpenseEntry(models.Model):
         ('TRANSFER', 'تحويل / Transfer'),
     ]
     # category = models.ForeignKey('Category', on_delete=models.CASCADE, null=True, blank=True)
+    entry_kind = models.CharField(max_length=30, choices=ENTRY_KIND_CHOICES, default='EXPENSE', verbose_name='نوع الحركة / Entry Kind')
     reference = models.CharField(max_length=50, unique=True, verbose_name='المرجع / Reference')
     date = models.DateField(verbose_name='التاريخ / Date')
     description = models.CharField(max_length=500, verbose_name='الوصف / Description')
@@ -1991,62 +2033,88 @@ class ExpenseEntry(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.reference:
-            self.reference = f"EX-{NumberSequence.next_value('expense'):06d}"
+            sequence_key = 'expense' if self.entry_kind == 'EXPENSE' else 'followup_revenue'
+            prefix = 'EX' if self.entry_kind == 'EXPENSE' else 'FR'
+            self.reference = f"{prefix}-{NumberSequence.next_value(sequence_key):06d}"
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse('accounts:expense_detail', kwargs={'pk': self.pk})
 
+    @property
+    def expense_number(self):
+        return self.reference
+
+    @property
+    def entry_kind_label(self):
+        return self.get_entry_kind_display()
+
+    @property
+    def is_followup_revenue(self):
+        return self.entry_kind == 'FOLLOWUP_REVENUE'
+
     def create_journal_entry(self, user):
-        """Create journal entry for expense: DR Expense Account, CR Cash/Bank"""
+        """Create journal entry for expense or follow-up revenue."""
         if self.journal_entry:
             return self.journal_entry
-        
-        # Get expense account from the selected account
-        expense_account = self.account
-        
-        # Get payment account
+
         payment_account = self.get_payment_account(user=user)
-        
-        # Create journal entry
         entry = JournalEntry.objects.create(
             date=self.date,
-            description=f"Expense - {self.description}",
-            entry_type='EXPENSE',
+            description=(
+                f"إيراد طلاب المتابعة - {self.description}"
+                if self.is_followup_revenue
+                else f"Expense - {self.description}"
+            ),
+            entry_type='ADJUSTMENT' if self.is_followup_revenue else 'EXPENSE',
             total_amount=self.amount,
             created_by=user
         )
-        
-        # DR: Expense Account
-        Transaction.objects.create(
-            journal_entry=entry,
-            account=expense_account,
-            amount=self.amount,
-            is_debit=True,
-            description=self.description,
-            cost_center=self.cost_center  # ← إضافة مركز التكلفة
-        )
-        
-        # CR: Payment Account
-        Transaction.objects.create(
-            journal_entry=entry,
-            account=payment_account,
-            amount=self.amount,
-            is_debit=False,
-            description=f"Payment - {self.get_payment_method_display()}",
-            cost_center=self.cost_center  # ← إضافة مركز التكلفة
 
-        )
-        
-        # Post the entry
+        if self.is_followup_revenue:
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=payment_account,
+                amount=self.amount,
+                is_debit=True,
+                description=f"قبض إيراد متابعة - {self.get_payment_method_display()}",
+                cost_center=self.cost_center
+            )
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=self.account,
+                amount=self.amount,
+                is_debit=False,
+                description=self.description or 'إيراد طلاب المتابعة',
+                cost_center=self.cost_center
+            )
+        else:
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=self.account,
+                amount=self.amount,
+                is_debit=True,
+                description=self.description,
+                cost_center=self.cost_center
+            )
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=payment_account,
+                amount=self.amount,
+                is_debit=False,
+                description=f"Payment - {self.get_payment_method_display()}",
+                cost_center=self.cost_center
+            )
+
         entry.post_entry(user)
-        
-        # Link to expense
         self.journal_entry = entry
         self.save(update_fields=['journal_entry'])
+        return entry
     @property
     def category_name(self):
         """Get category name from account"""
+        if self.is_followup_revenue:
+            return 'إيراد طلاب المتابعة'
         if self.account and self.account.code:
             try:
                 account_code = int(self.account.code)
@@ -2054,12 +2122,11 @@ class ExpenseEntry(models.Model):
                     return self.account.display_name
             except (ValueError, TypeError):
                 pass
-        return "مصاريف أخرى / Other Expenses"
+        return self.account.display_name if self.account_id else "مصاريف أخرى / Other Expenses"
 
     def get_category_display(self):
         """Display category name"""
         return self.category_name
-        return entry
 
     def get_payment_account(self, user=None):
         """Return the account used to pay this expense."""
@@ -2085,25 +2152,6 @@ class ExpenseEntry(models.Model):
         )
 
         return account
-
-    @property
-    def category_name(self):
-        """Infer category name from account code (503-599) when FK is empty."""
-        if self.category:
-            return str(self.category)
-        if self.account and self.account.code:
-            try:
-                account_code = int(self.account.code)
-                if 503 <= account_code <= 599:
-                    return self.account.name
-            except (ValueError, TypeError):
-                pass
-        return "Other"
-
-    def get_category_display(self):
-        """Display category name"""
-        return self.category_name
-
 
 class EmployeeAdvance(models.Model):
     employee = models.ForeignKey('employ.Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='advances', verbose_name='الموظف / Employee')

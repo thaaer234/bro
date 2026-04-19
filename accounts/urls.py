@@ -59,7 +59,9 @@ urlpatterns = [
 
     # Expenses
     path('expenses/create/', require_employee_perm('accounting_expenses_create')(views.ExpenseCreateView.as_view()), name='expense_create'),
+    path('followup-revenue/create/', require_employee_perm('accounting_expenses_create')(views.FollowUpRevenueCreateView.as_view()), name='followup_revenue_create'),
     path('expenses/<int:pk>/', require_employee_perm('accounting_expenses')(views.ExpenseDetailView.as_view()), name='expense_detail'),
+    path('expenses/print/accounts/', require_employee_perm('accounting_reports')(views.ExpenseAccountsPrintView.as_view()), name='expense_accounts_print'),
     
     # Courses
     path('courses/', require_employee_perm('courses_view')(views.CourseListView.as_view()), name='course_list'),

@@ -1,174 +1,1170 @@
 {% extends 'accounts/base.html' %}
 
 {% load emp_perms %}
-{% block title %}ميزان المراجعة / Trial Balance{% endblock %}
+{% block title %}ميزان المراجعة{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --trial-ink: #122033;
+        --trial-muted: #66758a;
+        --trial-line: rgba(18, 32, 51, 0.12);
+        --trial-surface: #ffffff;
+        --trial-surface-soft: #f6f8fb;
+        --trial-accent: #0f766e;
+        --trial-accent-2: #1d4ed8;
+        --trial-warm: #b45309;
+        --trial-danger: #b91c1c;
+        --trial-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    }
+
+    .trial-page {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .trial-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        padding: 2rem;
+        color: #fff;
+        background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.18), transparent 24rem),
+            linear-gradient(135deg, #0f172a 0%, #133b5c 45%, #0f766e 100%);
+        box-shadow: var(--trial-shadow);
+    }
+
+    .trial-hero::after {
+        content: "";
+        position: absolute;
+        inset-inline-end: -4rem;
+        top: -4rem;
+        width: 14rem;
+        height: 14rem;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .trial-hero__top,
+    .trial-hero__bottom {
+        position: relative;
+        z-index: 1;
+    }
+
+    .trial-hero__top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .trial-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.5rem 0.9rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 0.9rem;
+    }
+
+    .trial-title {
+        margin: 0.8rem 0 0.45rem;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    .trial-subtitle {
+        margin: 0;
+        max-width: 46rem;
+        color: rgba(255, 255, 255, 0.82);
+        line-height: 1.8;
+    }
+
+    .trial-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: flex-end;
+    }
+
+    .trial-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        border: 0;
+        border-radius: 16px;
+        padding: 0.85rem 1.1rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .trial-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .trial-btn--light {
+        background: #fff;
+        color: var(--trial-ink);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+    }
+
+    .trial-btn--ghost {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .trial-btn--soft {
+        background: rgba(255, 255, 255, 0.14);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .trial-hero__bottom {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .trial-settings-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .trial-settings-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.72rem 1rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.95);
+        font-size: 0.92rem;
+        font-weight: 700;
+    }
+
+    .trial-hero-stat {
+        border-radius: 22px;
+        padding: 1rem 1.15rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(6px);
+    }
+
+    .trial-hero-stat__label {
+        display: block;
+        margin-bottom: 0.55rem;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.9rem;
+    }
+
+    .trial-hero-stat__value {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 800;
+    }
+
+    .trial-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.75fr);
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    .trial-panel {
+        background: var(--trial-surface);
+        border: 1px solid var(--trial-line);
+        border-radius: 28px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    .trial-panel__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.35rem 1.5rem 0;
+    }
+
+    .trial-panel__title {
+        margin: 0;
+        color: var(--trial-ink);
+        font-size: 1.2rem;
+        font-weight: 800;
+    }
+
+    .trial-panel__hint {
+        margin: 0.35rem 0 0;
+        color: var(--trial-muted);
+        font-size: 0.94rem;
+    }
+
+    .trial-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.86rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .trial-badge--balanced {
+        background: rgba(15, 118, 110, 0.12);
+        color: var(--trial-accent);
+    }
+
+    .trial-badge--warn {
+        background: rgba(185, 28, 28, 0.12);
+        color: var(--trial-danger);
+    }
+
+    .trial-table-wrap {
+        padding: 1.25rem 1.5rem 1.5rem;
+    }
+
+    .trial-table-shell {
+        overflow: hidden;
+        border: 1px solid rgba(18, 32, 51, 0.08);
+        border-radius: 22px;
+        background: linear-gradient(180deg, #fbfcfe 0%, #f6f8fb 100%);
+    }
+
+    .trial-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .trial-table thead th {
+        padding: 1rem 0.9rem;
+        border-bottom: 1px solid rgba(18, 32, 51, 0.08);
+        background: #eff4fb;
+        color: var(--trial-ink);
+        font-size: 0.9rem;
+        font-weight: 800;
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .trial-table thead tr:first-child th:first-child {
+        border-top-right-radius: 20px;
+    }
+
+    .trial-table thead tr:first-child th:last-child {
+        border-top-left-radius: 20px;
+    }
+
+    .trial-table tbody td,
+    .trial-table tfoot th,
+    .trial-table tfoot td {
+        padding: 0.95rem 0.9rem;
+        border-bottom: 1px solid rgba(18, 32, 51, 0.07);
+        background: #fff;
+        vertical-align: middle;
+    }
+
+    .trial-table tbody tr:nth-child(even) td {
+        background: #fcfdff;
+    }
+
+    .trial-table tbody tr:hover td {
+        background: #f7fbff;
+    }
+
+    body.page-trial_balance .trial-table__code a,
+    body.page-trial_balance .trial-table__name a,
+    body.page-trial_balance .trial-table table a {
+        color: var(--trial-ink) !important;
+        text-decoration: none;
+        font-weight: 800;
+        opacity: 1 !important;
+        transition: color 0.2s ease;
+    }
+
+    .trial-table__code {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    body.page-trial_balance .trial-table__name a {
+        display: inline-block;
+        font-size: 1.02rem;
+        letter-spacing: -0.01em;
+        color: #0b1f33 !important;
+    }
+
+    body.page-trial_balance .trial-table__name a:hover,
+    body.page-trial_balance .trial-table__code a:hover {
+        color: var(--trial-accent-2) !important;
+    }
+
+    .trial-table__meta {
+        margin-top: 0.45rem;
+    }
+
+    .trial-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .trial-chip--asset { background: rgba(22, 163, 74, 0.12); color: #15803d !important; }
+    .trial-chip--liability { background: rgba(180, 83, 9, 0.12); color: var(--trial-warm) !important; }
+    .trial-chip--equity { background: rgba(8, 145, 178, 0.14); color: #0f766e !important; }
+    .trial-chip--revenue { background: rgba(29, 78, 216, 0.12); color: var(--trial-accent-2) !important; }
+    .trial-chip--expense { background: rgba(220, 38, 38, 0.12); color: #b91c1c !important; }
+
+    .trial-table__num {
+        min-width: 150px;
+        text-align: left;
+        direction: ltr;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+        color: var(--trial-ink);
+    }
+
+    .trial-table__num--debit {
+        color: #15803d !important;
+    }
+
+    .trial-table__num--credit {
+        color: #b91c1c !important;
+    }
+
+    .trial-table__num.is-empty {
+        color: #a1acb8;
+        font-weight: 600;
+    }
+
+    .trial-table tfoot th,
+    .trial-table tfoot td {
+        background: linear-gradient(180deg, #10243a 0%, #0f172a 100%);
+        color: #fff;
+        border-bottom: 0;
+        font-weight: 800;
+    }
+
+    .trial-side {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .trial-status-card,
+    .trial-metric-card,
+    .trial-note-card {
+        padding: 1.35rem;
+    }
+
+    .trial-status-card {
+        border-radius: 28px;
+        background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+        border: 1px solid var(--trial-line);
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    .trial-status-card__icon {
+        width: 3rem;
+        height: 3rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 18px;
+        margin-bottom: 1rem;
+        font-size: 1.15rem;
+    }
+
+    .trial-status-card.is-balanced .trial-status-card__icon {
+        color: var(--trial-accent);
+        background: rgba(15, 118, 110, 0.12);
+    }
+
+    .trial-status-card.is-unbalanced .trial-status-card__icon {
+        color: var(--trial-danger);
+        background: rgba(185, 28, 28, 0.12);
+    }
+
+    .trial-status-card__title {
+        margin: 0 0 0.5rem;
+        color: var(--trial-ink);
+        font-size: 1.2rem;
+        font-weight: 800;
+    }
+
+    .trial-status-card__text {
+        margin: 0;
+        color: var(--trial-muted);
+        line-height: 1.8;
+    }
+
+    .trial-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .trial-metric-card {
+        border-radius: 24px;
+        background: var(--trial-surface);
+        border: 1px solid var(--trial-line);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+    }
+
+    .trial-metric-card__label {
+        margin: 0 0 0.55rem;
+        color: var(--trial-muted);
+        font-size: 0.92rem;
+    }
+
+    .trial-metric-card__value {
+        margin: 0;
+        color: var(--trial-ink);
+        font-size: 1.45rem;
+        font-weight: 800;
+    }
+
+    .trial-metric-card__value--debit {
+        color: #15803d;
+    }
+
+    .trial-metric-card__value--credit {
+        color: #b91c1c;
+    }
+
+    .trial-note-card {
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 12rem),
+            #fffdf6;
+        border: 1px solid rgba(180, 83, 9, 0.15);
+        color: #6b4f16;
+    }
+
+    .trial-note-card h4 {
+        margin: 0 0 0.55rem;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .trial-note-card p {
+        margin: 0;
+        line-height: 1.8;
+    }
+
+    .trial-empty {
+        padding: 3rem 1.5rem;
+        text-align: center;
+    }
+
+    .trial-empty__icon {
+        width: 5rem;
+        height: 5rem;
+        margin: 0 auto 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 24px;
+        background: linear-gradient(135deg, #eff6ff 0%, #ecfeff 100%);
+        color: var(--trial-accent-2);
+        font-size: 1.8rem;
+    }
+
+    .trial-empty h3 {
+        margin-bottom: 0.65rem;
+        color: var(--trial-ink);
+        font-weight: 800;
+    }
+
+    .trial-empty p {
+        margin: 0 auto 1.25rem;
+        max-width: 36rem;
+        color: var(--trial-muted);
+        line-height: 1.8;
+    }
+
+    .trial-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1050;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem;
+        background: rgba(15, 23, 42, 0.46);
+        backdrop-filter: blur(8px);
+    }
+
+    .trial-modal.is-open {
+        display: flex;
+    }
+
+    .trial-modal__dialog {
+        width: min(100%, 620px);
+        border-radius: 28px;
+        background: #fff;
+        border: 1px solid rgba(18, 32, 51, 0.08);
+        box-shadow: 0 30px 80px rgba(15, 23, 42, 0.2);
+        overflow: hidden;
+    }
+
+    .trial-modal__head,
+    .trial-modal__body,
+    .trial-modal__foot {
+        padding: 1.25rem 1.35rem;
+    }
+
+    .trial-modal__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        border-bottom: 1px solid rgba(18, 32, 51, 0.08);
+        background: linear-gradient(180deg, #f8fbff 0%, #f3f7fc 100%);
+    }
+
+    .trial-modal__title {
+        margin: 0;
+        color: var(--trial-ink);
+        font-size: 1.2rem;
+        font-weight: 800;
+    }
+
+    .trial-modal__text {
+        margin: 0.4rem 0 0;
+        color: var(--trial-muted);
+        line-height: 1.8;
+    }
+
+    .trial-modal__close {
+        width: 2.75rem;
+        height: 2.75rem;
+        border: 0;
+        border-radius: 16px;
+        background: #eaf1f8;
+        color: var(--trial-ink);
+    }
+
+    .trial-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .trial-field {
+        display: grid;
+        gap: 0.5rem;
+    }
+
+    .trial-field--full {
+        grid-column: 1 / -1;
+    }
+
+    .trial-field label {
+        color: var(--trial-ink);
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .trial-field input[type="date"] {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 16px;
+        border: 1px solid rgba(18, 32, 51, 0.14);
+        padding: 0.8rem 1rem;
+        color: var(--trial-ink);
+        background: #fff;
+    }
+
+    .trial-field .form-select {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 16px;
+        border: 1px solid rgba(18, 32, 51, 0.14);
+        padding: 0.8rem 1rem;
+        color: var(--trial-ink);
+        background-color: #fff;
+        box-shadow: none;
+    }
+
+    .trial-check {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        padding: 1rem;
+        border-radius: 18px;
+        border: 1px solid rgba(18, 32, 51, 0.1);
+        background: #f9fbfd;
+    }
+
+    .trial-check input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--trial-accent);
+    }
+
+    .trial-check__copy strong {
+        display: block;
+        color: var(--trial-ink);
+    }
+
+    .trial-check__copy span {
+        display: block;
+        color: var(--trial-muted);
+        font-size: 0.92rem;
+        margin-top: 0.2rem;
+    }
+
+    .trial-modal__foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border-top: 1px solid rgba(18, 32, 51, 0.08);
+        background: #fcfdff;
+    }
+
+    .trial-modal__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    @media (max-width: 1199.98px) {
+        .trial-layout,
+        .trial-hero__bottom {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .trial-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .trial-hero__top,
+        .trial-panel__head {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .trial-actions {
+            justify-content: stretch;
+        }
+
+        .trial-actions > * {
+            flex: 1 1 100%;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .trial-hero,
+        .trial-table-wrap,
+        .trial-panel__head,
+        .trial-status-card,
+        .trial-metric-card,
+        .trial-note-card,
+        .trial-modal__head,
+        .trial-modal__body,
+        .trial-modal__foot {
+            padding: 1.1rem;
+        }
+
+        .trial-hero__bottom,
+        .trial-grid,
+        .trial-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .trial-table__num {
+            min-width: 120px;
+        }
+    }
+
+    @media print {
+        .sidebar,
+        .mobile-menu-toggle,
+        .trial-actions,
+        .breadcrumb {
+            display: none !important;
+        }
+
+        body {
+            background: #fff !important;
+        }
+
+        .main-content,
+        .content-wrapper,
+        .trial-page {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .trial-hero,
+        .trial-panel,
+        .trial-status-card,
+        .trial-metric-card,
+        .trial-note-card {
+            box-shadow: none !important;
+            break-inside: avoid;
+        }
+
+        .trial-hero {
+            color: #122033 !important;
+            background: #f5f7fb !important;
+            border: 1px solid #dbe3ee !important;
+        }
+
+        .trial-kicker,
+        .trial-hero-stat {
+            background: #fff !important;
+            border: 1px solid #dbe3ee !important;
+            color: #122033 !important;
+        }
+
+        .trial-hero-stat__label,
+        .trial-subtitle {
+            color: #4b5b70 !important;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>ميزان المراجعة / Trial Balance</h2>
-    <div>
-        <form method="get" action="{% url 'accounts:trial_balance_export_excel' %}" style="display: inline;">
-            <button type="submit" class="btn btn-success">
-                <i class="fas fa-file-excel"></i> تصدير Excel / Export Excel
-            </button>
-        </form>
-        <button onclick="window.print()" class="btn btn-outline-secondary">
-            <i class="fas fa-print"></i> طباعة / Print
-        </button>
-    </div>
-</div>
+<div class="trial-page">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'accounts:reports' %}">التقارير</a></li>
+            <li class="breadcrumb-item active">ميزان المراجعة</li>
+        </ol>
+    </nav>
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}">لوحة التحكم / Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'accounts:reports' %}">التقارير / Reports</a></li>
-        <li class="breadcrumb-item active">ميزان المراجعة / Trial Balance</li>
-    </ol>
-</nav>
+    <section class="trial-hero">
+        <div class="trial-hero__top">
+            <div>
+                <span class="trial-kicker">
+                    <i class="fas fa-scale-balanced"></i>
+                    تقرير محاسبي مباشر
+                </span>
+                <h1 class="trial-title">ميزان المراجعة</h1>
+                <p class="trial-subtitle">
+                    عرض متوازن وواضح لأرصدة الحسابات المدينة والدائنة حتى تاريخ
+                    {{ report_generated_at|date:"Y-m-d H:i" }}،
+                    مع مؤشرات سريعة تساعد على قراءة حالة التوازن فوراً.
+                </p>
+            </div>
 
-<div class="table-container">
-    <div class="text-center mb-4">
-        <h3>ميزان المراجعة</h3>
-        <h4>Trial Balance</h4>
-        <p class="text-muted">كما في تاريخ: {{ "now"|date:"Y-m-d" }} / As of: {{ "now"|date:"Y-m-d" }}</p>
-    </div>
-    
-    {% if trial_balance_data %}
-        <div class="table-responsive">
-            <table class="table table-bordered">
-                <thead class="table-dark">
-                    <tr>
-                        <th rowspan="2" class="align-middle">رمز الحساب<br>Account Code</th>
-                        <th rowspan="2" class="align-middle">اسم الحساب<br>Account Name</th>
-                        <th colspan="2" class="text-center">الأرصدة / Balances</th>
-                    </tr>
-                    <tr>
-                        <th class="text-center">مدين<br>Debit</th>
-                        <th class="text-center">دائن<br>Credit</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in trial_balance_data %}
-                    <tr>
-                        <td>
-                            <a href="{{ item.account.get_absolute_url }}" class="text-decoration-none">
-                                {{ item.account.code }}
-                            </a>
-                        </td>
-                        <td>
-                            <a href="{{ item.account.get_absolute_url }}" class="text-decoration-none">
-                                {{ item.account.display_name }}
-                            </a>
-                            <br>
-                            <small class="text-muted">
-                                <span class="badge 
-                                    {% if item.account.account_type == 'ASSET' %}bg-success
-                                    {% elif item.account.account_type == 'LIABILITY' %}bg-warning
-                                    {% elif item.account.account_type == 'EQUITY' %}bg-info
-                                    {% elif item.account.account_type == 'REVENUE' %}bg-primary
-                                    {% else %}bg-danger
-                                    {% endif %}">
-                                    {{ item.account.get_account_type_display }}
-                                </span>
-                            </small>
-                        </td>
-                        <td class="text-end">
-                            {% if item.debit_amount > 0 %}
-                                <strong>{{ item.debit_amount|floatformat:2 }}</strong>
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td class="text-end">
-                            {% if item.credit_amount > 0 %}
-                                <strong>{{ item.credit_amount|floatformat:2 }}</strong>
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot class="table-dark">
-                    <tr>
-                        <th colspan="2" class="text-center">
-                            الإجمالي / Total
-                        </th>
-                        <th class="text-end">
-                            <strong>{{ total_debits|floatformat:2 }}</strong>
-                        </th>
-                        <th class="text-end">
-                            <strong>{{ total_credits|floatformat:2 }}</strong>
-                        </th>
-                    </tr>
-                </tfoot>
-            </table>
+            <div class="trial-actions">
+                <form method="get" action="{% url 'accounts:trial_balance_export_excel' %}">
+                    {% if start_date_raw %}
+                    <input type="hidden" name="start_date" value="{{ start_date_raw }}">
+                    {% endif %}
+                    {% if end_date_raw %}
+                    <input type="hidden" name="end_date" value="{{ end_date_raw }}">
+                    {% endif %}
+                    {% if account_type %}
+                    <input type="hidden" name="account_type" value="{{ account_type }}">
+                    {% endif %}
+                    {% if hierarchy_mode and hierarchy_mode != 'all' %}
+                    <input type="hidden" name="hierarchy_mode" value="{{ hierarchy_mode }}">
+                    {% endif %}
+                    {% if sort_by and sort_by != 'code' %}
+                    <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                    {% endif %}
+                    {% if show_zero_balances %}
+                    <input type="hidden" name="show_zero" value="1">
+                    {% endif %}
+                    {% if full_report %}
+                    <input type="hidden" name="full_report" value="1">
+                    {% endif %}
+                    <button type="submit" class="trial-btn trial-btn--light">
+                        <i class="fas fa-file-excel"></i>
+                        تصدير Excel
+                    </button>
+                </form>
+                <button class="trial-btn trial-btn--soft" type="button" data-trial-open>
+                    <i class="fas fa-sliders"></i>
+                    إعداد الميزان
+                </button>
+                <a href="{% url 'accounts:trial_balance' %}?full_report=1" class="trial-btn trial-btn--ghost">
+                    <i class="fas fa-layer-group"></i>
+                    ميزان كامل
+                </a>
+                <button onclick="window.print()" class="trial-btn trial-btn--ghost" type="button">
+                    <i class="fas fa-print"></i>
+                    طباعة التقرير
+                </button>
+            </div>
         </div>
-        
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">حالة التوازن / Balance Status</h5>
-                        
-                        {% if is_balanced %}
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle"></i>
-                                <strong>ميزان المراجعة متوازن / Trial Balance is Balanced</strong>
-                                <br>
-                                إجمالي المدين ({{ total_debits|floatformat:2 }}) = إجمالي الدائن ({{ total_credits|floatformat:2 }})
-                                <br>
-                                Total Debits ({{ total_debits|floatformat:2 }}) = Total Credits ({{ total_credits|floatformat:2 }})
-                            </div>
-                        {% else %}
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <strong>ميزان المراجعة غير متوازن / Trial Balance is Not Balanced</strong>
-                                <br>
-                                الفرق: {{ total_debits|floatformat:2|add:"-"|add:total_credits|floatformat:2 }}
-                                <br>
-                                Difference: {{ total_debits|floatformat:2|add:"-"|add:total_credits|floatformat:2 }}
-                                <br>
-                                <small>يرجى مراجعة القيود والحسابات / Please review journal entries and accounts</small>
-                            </div>
-                        {% endif %}
-                        
-                        <div class="row text-center mt-3">
-                            <div class="col-md-4">
-                                <div class="border rounded p-3">
-                                    <h6 class="text-muted">إجمالي المدين / Total Debits</h6>
-                                    <div class="fs-4 fw-bold text-success">{{ total_debits|floatformat:2 }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="border rounded p-3">
-                                    <h6 class="text-muted">إجمالي الدائن / Total Credits</h6>
-                                    <div class="fs-4 fw-bold text-danger">{{ total_credits|floatformat:2 }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="border rounded p-3">
-                                    <h6 class="text-muted">عدد الحسابات / Number of Accounts</h6>
-                                    <div class="fs-4 fw-bold text-info">{{ trial_balance_data|length }}</div>
-                                </div>
-                            </div>
-                        </div>
+
+        <div class="trial-settings-summary">
+            <span class="trial-settings-pill">
+                <i class="fas fa-calendar-day"></i>
+                من تاريخ:
+                {% if start_date_raw %}{{ start_date_raw }}{% else %}بداية السجلات{% endif %}
+            </span>
+            <span class="trial-settings-pill">
+                <i class="fas fa-calendar-check"></i>
+                حتى تاريخ:
+                {% if end_date_raw %}{{ end_date_raw }}{% else %}اليوم الحالي{% endif %}
+            </span>
+            <span class="trial-settings-pill">
+                <i class="fas fa-filter-circle-dollar"></i>
+                الأرصدة المصفرة:
+                {% if show_zero_balances %}ظاهرة{% else %}مخفية{% endif %}
+            </span>
+            <span class="trial-settings-pill">
+                <i class="fas fa-shapes"></i>
+                النوع:
+                {% for value, label in trial_account_type_options %}{% if value == account_type %}{{ label }}{% endif %}{% endfor %}
+                {% if not account_type %}كل الأنواع{% endif %}
+            </span>
+            <span class="trial-settings-pill">
+                <i class="fas fa-sitemap"></i>
+                البنية:
+                {% if hierarchy_mode == 'main_only' %}رئيسية فقط{% elif hierarchy_mode == 'leaf_only' %}فرعية فقط{% else %}كل الحسابات{% endif %}
+            </span>
+            <span class="trial-settings-pill">
+                <i class="fas fa-arrow-down-a-z"></i>
+                الترتيب:
+                {% if sort_by == 'name' %}حسب الاسم{% else %}حسب الرمز{% endif %}
+            </span>
+            <span class="trial-settings-pill">
+                <i class="fas fa-table-cells-large"></i>
+                الوضع:
+                {% if full_report %}ميزان كامل{% else %}ميزان مفلتر{% endif %}
+            </span>
+        </div>
+
+        <div class="trial-hero__bottom">
+            <article class="trial-hero-stat">
+                <span class="trial-hero-stat__label">إجمالي المدين</span>
+                <p class="trial-hero-stat__value">{{ total_debits|floatformat:2 }}</p>
+            </article>
+            <article class="trial-hero-stat">
+                <span class="trial-hero-stat__label">إجمالي الدائن</span>
+                <p class="trial-hero-stat__value">{{ total_credits|floatformat:2 }}</p>
+            </article>
+            <article class="trial-hero-stat">
+                <span class="trial-hero-stat__label">عدد الحسابات الظاهرة</span>
+                <p class="trial-hero-stat__value">{{ account_count }}</p>
+            </article>
+            <article class="trial-hero-stat">
+                <span class="trial-hero-stat__label">حالة الميزان</span>
+                <p class="trial-hero-stat__value">
+                    {% if is_balanced %}
+                        متوازن
+                    {% else %}
+                        غير متوازن
+                    {% endif %}
+                </p>
+            </article>
+        </div>
+    </section>
+
+    {% if trial_balance_data %}
+    <section class="trial-layout">
+        <div class="trial-panel">
+            <div class="trial-panel__head">
+                <div>
+                    <h2 class="trial-panel__title">تفصيل أرصدة الحسابات</h2>
+                    <p class="trial-panel__hint">كل سطر يمثل الرصيد النهائي الظاهر في ميزان المراجعة للحساب.</p>
+                </div>
+                {% if is_balanced %}
+                <span class="trial-badge trial-badge--balanced">
+                    <i class="fas fa-circle-check"></i>
+                    الميزان متوازن
+                </span>
+                {% else %}
+                <span class="trial-badge trial-badge--warn">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    يوجد فرق يحتاج مراجعة
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="trial-table-wrap">
+                <div class="trial-table-shell">
+                    <div class="table-responsive">
+                        <table class="trial-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">رمز الحساب</th>
+                                    <th rowspan="2">اسم الحساب</th>
+                                    <th colspan="2">الرصيد النهائي</th>
+                                </tr>
+                                <tr>
+                                    <th>مدين</th>
+                                    <th>دائن</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in trial_balance_data %}
+                                <tr>
+                                    <td class="trial-table__code">
+                                        <a href="{{ item.account.get_absolute_url }}">{{ item.account.code }}</a>
+                                    </td>
+                                    <td class="trial-table__name">
+                                        <a href="{{ item.account.get_absolute_url }}">{{ item.account.display_name }}</a>
+                                        <div class="trial-table__meta">
+                                            <span class="trial-chip
+                                                {% if item.account.account_type == 'ASSET' %}trial-chip--asset
+                                                {% elif item.account.account_type == 'LIABILITY' %}trial-chip--liability
+                                                {% elif item.account.account_type == 'EQUITY' %}trial-chip--equity
+                                                {% elif item.account.account_type == 'REVENUE' %}trial-chip--revenue
+                                                {% else %}trial-chip--expense
+                                                {% endif %}">
+                                                {{ item.account.get_account_type_display }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="trial-table__num trial-table__num--debit {% if item.debit_amount <= 0 %}is-empty{% endif %}">
+                                        {% if item.debit_amount > 0 %}
+                                            {{ item.debit_amount|floatformat:2 }}
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
+                                    <td class="trial-table__num trial-table__num--credit {% if item.credit_amount <= 0 %}is-empty{% endif %}">
+                                        {% if item.credit_amount > 0 %}
+                                            {{ item.credit_amount|floatformat:2 }}
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="2">الإجمالي</th>
+                                    <td class="trial-table__num trial-table__num--debit">{{ total_debits|floatformat:2 }}</td>
+                                    <td class="trial-table__num trial-table__num--credit">{{ total_credits|floatformat:2 }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
-        
+
+        <aside class="trial-side">
+            <section class="trial-status-card {% if is_balanced %}is-balanced{% else %}is-unbalanced{% endif %}">
+                <div class="trial-status-card__icon">
+                    {% if is_balanced %}
+                    <i class="fas fa-check"></i>
+                    {% else %}
+                    <i class="fas fa-exclamation"></i>
+                    {% endif %}
+                </div>
+                <h3 class="trial-status-card__title">
+                    {% if is_balanced %}
+                        حالة التقرير ممتازة
+                    {% else %}
+                        توجد فجوة تحتاج مراجعة
+                    {% endif %}
+                </h3>
+                <p class="trial-status-card__text">
+                    {% if is_balanced %}
+                        إجمالي الطرف المدين يساوي إجمالي الطرف الدائن، وهذا يعني أن ميزان المراجعة متوازن وفق الأرصدة الحالية.
+                    {% else %}
+                        هناك فرق بين إجمالي المدين والدائن مقداره
+                        <strong>{{ difference|floatformat:2 }}</strong>
+                        ويُنصح بمراجعة القيود أو الحسابات التي أدت لهذا الفرق.
+                    {% endif %}
+                </p>
+            </section>
+
+            <div class="trial-grid">
+                <section class="trial-metric-card">
+                    <p class="trial-metric-card__label">إجمالي الطرف المدين</p>
+                    <p class="trial-metric-card__value trial-metric-card__value--debit">{{ total_debits|floatformat:2 }}</p>
+                </section>
+                <section class="trial-metric-card">
+                    <p class="trial-metric-card__label">إجمالي الطرف الدائن</p>
+                    <p class="trial-metric-card__value trial-metric-card__value--credit">{{ total_credits|floatformat:2 }}</p>
+                </section>
+                <section class="trial-metric-card">
+                    <p class="trial-metric-card__label">عدد الحسابات</p>
+                    <p class="trial-metric-card__value">{{ account_count }}</p>
+                </section>
+                <section class="trial-metric-card">
+                    <p class="trial-metric-card__label">فرق التوازن</p>
+                    <p class="trial-metric-card__value {% if difference >= 0 %}trial-metric-card__value--debit{% else %}trial-metric-card__value--credit{% endif %}">{{ difference|floatformat:2 }}</p>
+                </section>
+            </div>
+
+            <section class="trial-note-card">
+                <h4>ملاحظة قراءة التقرير</h4>
+                <p>
+                    الحسابات ذات الطبيعة المدينة تظهر في عمود المدين، والحسابات ذات الطبيعة الدائنة تظهر في عمود الدائن بحسب الرصيد النهائي لكل حساب.
+                </p>
+            </section>
+        </aside>
+    </section>
     {% else %}
-        <div class="text-center text-muted py-5">
-            <i class="fas fa-balance-scale fa-3x mb-3"></i>
-            <h4>لا توجد بيانات / No Data Available</h4>
-            <p>لا توجد حسابات بأرصدة لعرضها في ميزان المراجعة</p>
-            <p>No accounts with balances to display in trial balance</p>
-            <a href="{% url 'accounts:journal_entry_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> إنشاء قيد جديد / Create New Entry
+    <section class="trial-panel">
+        <div class="trial-empty">
+            <div class="trial-empty__icon">
+                <i class="fas fa-scale-balanced"></i>
+            </div>
+            <h3>لا توجد أرصدة لعرضها حالياً</h3>
+            <p>
+                لم يتم العثور على حسابات ذات أرصدة ضمن ميزان المراجعة الحالي. يمكنك إنشاء قيد يومية جديد ثم العودة إلى التقرير.
+            </p>
+            <a href="{% url 'accounts:journal_entry_create' %}" class="trial-btn trial-btn--light">
+                <i class="fas fa-plus-circle"></i>
+                إنشاء قيد جديد
             </a>
         </div>
+    </section>
     {% endif %}
 </div>
 
+<div class="trial-modal" id="trial-settings-modal" aria-hidden="true">
+    <div class="trial-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="trial-settings-title">
+        <div class="trial-modal__head">
+            <div>
+                <h3 class="trial-modal__title" id="trial-settings-title">إعداد الميزان</h3>
+                <p class="trial-modal__text">هذه الإعدادات تؤثر على العرض الحالي، والطباعة، وتصدير Excel بنفس الشكل.</p>
+            </div>
+            <button type="button" class="trial-modal__close" data-trial-close aria-label="إغلاق">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="get" action="{% url 'accounts:trial_balance' %}">
+            <div class="trial-modal__body">
+                <div class="trial-form-grid">
+                    <div class="trial-field">
+                        <label for="trial-start-date">تاريخ بداية الميزان</label>
+                        <input id="trial-start-date" type="date" name="start_date" value="{{ start_date_raw }}">
+                    </div>
+
+                    <div class="trial-field">
+                        <label for="trial-end-date">حتى تاريخ</label>
+                        <input id="trial-end-date" type="date" name="end_date" value="{{ end_date_raw }}">
+                    </div>
+
+                    <div class="trial-field">
+                        <label>وضع العرض</label>
+                        <div class="trial-check">
+                            <input id="trial-full-report-hidden" type="checkbox" disabled {% if full_report %}checked{% endif %}>
+                            <div class="trial-check__copy">
+                                <strong>{% if full_report %}ميزان كامل مفعل حالياً{% else %}ميزان مفلتر حالياً{% endif %}</strong>
+                                <span>استخدم زر "ميزان كامل" لعرض كل الحسابات مع تجاهل تاريخ البداية.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="trial-field">
+                        <label for="trial-account-type">نوع الحساب</label>
+                        <select id="trial-account-type" name="account_type" class="form-select">
+                            {% for value, label in trial_account_type_options %}
+                            <option value="{{ value }}" {% if account_type == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="trial-field">
+                        <label for="trial-hierarchy-mode">بنية الحسابات</label>
+                        <select id="trial-hierarchy-mode" name="hierarchy_mode" class="form-select">
+                            <option value="all" {% if hierarchy_mode == 'all' %}selected{% endif %}>كل الحسابات</option>
+                            <option value="main_only" {% if hierarchy_mode == 'main_only' %}selected{% endif %}>الحسابات الرئيسية فقط</option>
+                            <option value="leaf_only" {% if hierarchy_mode == 'leaf_only' %}selected{% endif %}>الحسابات الفرعية فقط</option>
+                        </select>
+                    </div>
+
+                    <div class="trial-field">
+                        <label for="trial-sort-by">ترتيب التقرير</label>
+                        <select id="trial-sort-by" name="sort_by" class="form-select">
+                            <option value="code" {% if sort_by == 'code' %}selected{% endif %}>حسب الرمز</option>
+                            <option value="name" {% if sort_by == 'name' %}selected{% endif %}>حسب الاسم</option>
+                        </select>
+                    </div>
+
+                    <div class="trial-field trial-field--full">
+                        <label class="trial-check" for="trial-show-zero">
+                            <input id="trial-show-zero" type="checkbox" name="show_zero" value="1" {% if show_zero_balances %}checked{% endif %}>
+                            <div class="trial-check__copy">
+                                <strong>إظهار الأرصدة المصفرة</strong>
+                                <span>عند التفعيل ستظهر الحسابات التي رصيدها النهائي صفر ضمن التقرير.</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="trial-modal__foot">
+                <a href="{% url 'accounts:trial_balance' %}?full_report=1" class="trial-btn trial-btn--light">
+                    <i class="fas fa-layer-group"></i>
+                    ميزان كامل
+                </a>
+                <div class="trial-modal__actions">
+                    <a href="{% url 'accounts:trial_balance' %}" class="trial-btn trial-btn--ghost" style="color:#122033;border-color:rgba(18,32,51,.15);background:#eef4fa;">
+                        <i class="fas fa-rotate-left"></i>
+                        إعادة الضبط
+                    </a>
+                    <button type="submit" class="trial-btn trial-btn--light">
+                        <i class="fas fa-check"></i>
+                        تطبيق الإعدادات
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const modal = document.getElementById('trial-settings-modal');
+        const openButton = document.querySelector('[data-trial-open]');
+        const closeButtons = document.querySelectorAll('[data-trial-close]');
+
+        if (!modal || !openButton) return;
+
+        const closeModal = () => {
+            modal.classList.remove('is-open');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        };
+
+        const openModal = () => {
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        };
+
+        openButton.addEventListener('click', openModal);
+        closeButtons.forEach((button) => button.addEventListener('click', closeModal));
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) closeModal();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+                closeModal();
+            }
+        });
+    })();
+</script>
 {% endblock %}

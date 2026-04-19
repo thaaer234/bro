@@ -1,5 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
+from django.utils import timezone
+from decimal import Decimal
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column, Field
 from employ.models import Employee, Teacher
@@ -330,11 +332,12 @@ class JournalEntryForm(forms.ModelForm):
         )
 
 class TransactionForm(forms.ModelForm):
+    amount = forms.CharField(widget=forms.TextInput(attrs={'placeholder': '0.00', 'inputmode': 'decimal', 'autocomplete': 'off'}))
+
     class Meta:
         model = Transaction
         fields = ['account', 'amount', 'is_debit', 'cost_center', 'description']
         widgets = {
-            'amount': forms.NumberInput(attrs={'step': '0.01', 'min': '0.01'}),
             'description': forms.TextInput(attrs={'placeholder': 'Transaction description'}),
         }
 
@@ -342,6 +345,12 @@ class TransactionForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['account'].queryset = Account.objects.filter(is_active=True).order_by('code')
         self.fields['account'].empty_label = "اختر الحساب / Select Account"
+
+    def clean_amount(self):
+        raw_value = str(self.cleaned_data.get('amount', '') or '').replace(',', '').replace('،', '').strip()
+        if not raw_value:
+            return self.cleaned_data.get('amount')
+        return Decimal(raw_value)
 
 # Create formset for transactions
 TransactionFormSet = inlineformset_factory(
@@ -369,6 +378,7 @@ class StudentReceiptForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from students.models import Student as StudentProfile
+        self.fields['date'].initial = self.initial.get('date') or timezone.localdate()
         self.fields['student_profile'].queryset = StudentProfile.objects.filter(is_active=True).order_by('full_name')
         # Remove the old student field reference since we're using student_profile
         self.fields['course'].queryset = Course.objects.filter(is_active=True).order_by('name')
@@ -398,6 +408,8 @@ class StudentReceiptForm(forms.ModelForm):
         )
 
 class ExpenseEntryForm(forms.ModelForm):
+    amount = forms.CharField(widget=forms.TextInput(attrs={'placeholder': '0.00', 'inputmode': 'decimal', 'autocomplete': 'off'}))
+
     class Meta:
         model = ExpenseEntry
         fields = [
@@ -412,12 +424,12 @@ class ExpenseEntryForm(forms.ModelForm):
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
             'description': forms.TextInput(attrs={'placeholder': 'وصف المصروف / Expense Description'}),
-            'amount': forms.NumberInput(attrs={'step': '0.01', 'min': '0.01', 'placeholder': '0.00'}),
             'notes': forms.Textarea(attrs={'rows': 3, 'placeholder': 'ملاحظات إضافية / Additional notes'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['date'].initial = self.initial.get('date') or timezone.localdate()
 
         expense_accounts = Account.objects.filter(
             code__gte='503',
@@ -455,3 +467,58 @@ class ExpenseEntryForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         return cleaned_data
+
+    def clean_amount(self):
+        raw_value = str(self.cleaned_data.get('amount', '') or '').replace(',', '').replace('،', '').strip()
+        if not raw_value:
+            return self.cleaned_data.get('amount')
+        return Decimal(raw_value)
+
+
+class FollowUpRevenueEntryForm(forms.ModelForm):
+    amount = forms.CharField(widget=forms.TextInput(attrs={'placeholder': '0.00', 'inputmode': 'decimal', 'autocomplete': 'off'}))
+
+    class Meta:
+        model = ExpenseEntry
+        fields = [
+            'date',
+            'cost_center',
+            'description',
+            'amount',
+            'payment_method',
+            'notes',
+        ]
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.TextInput(attrs={'placeholder': 'وصف الإيراد / Revenue Description'}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'placeholder': 'ملاحظات إضافية / Additional notes'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['date'].initial = self.initial.get('date') or timezone.localdate()
+        self.fields['cost_center'].queryset = CostCenter.objects.filter(is_active=True)
+        self.fields['cost_center'].empty_label = "اختر مركز التكلفة / Select Cost Center"
+
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Row(
+                Column('date', css_class='form-group col-md-6 mb-0'),
+                Column('payment_method', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Row(
+                Column('cost_center', css_class='form-group col-md-6 mb-0'),
+                Column('amount', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            'description',
+            'notes',
+            Submit('submit', 'تسجيل إيراد طلاب المتابعة', css_class='btn btn-success')
+        )
+
+    def clean_amount(self):
+        raw_value = str(self.cleaned_data.get('amount', '') or '').replace(',', '').replace('،', '').strip()
+        if not raw_value:
+            return self.cleaned_data.get('amount')
+        return Decimal(raw_value)

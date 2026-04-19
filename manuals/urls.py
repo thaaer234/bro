@@ -13,5 +13,7 @@ urlpatterns = [
     path("user/", require_superuser(views.ManualsUserGuideSelectView.as_view()), name="user_select"),
     path("user/handbook/", require_superuser(views.ManualsUserHandbookView.as_view()), name="user_handbook"),
     path("user/handbook/print/", require_superuser(views.ManualsUserHandbookPrintView.as_view()), name="user_handbook_print"),
+    path("user/handbook/print/export/", views.ManualsUserHandbookPrintExportView.as_view(), name="user_handbook_print_export"),
+    path("user/handbook/powerpoint/", require_superuser(views.ManualsUserHandbookPowerPointDownloadView.as_view()), name="user_handbook_powerpoint"),
     path("markdown/", require_superuser(views.ManualsMarkdownDownloadView.as_view()), name="markdown"),
 ]

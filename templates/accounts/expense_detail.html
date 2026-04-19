@@ -2,11 +2,11 @@
 
 
 {% load emp_perms %}
-{% block title %}تفاصيل المصروف / Expense Details - {{ expense.expense_number }}{% endblock %}
+{% block title %}تفاصيل الحركة - {{ expense.expense_number }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>تفاصيل المصروف / Expense Details - {{ expense.expense_number }}</h2>
+    <h2>تفاصيل الحركة - {{ expense.expense_number }}</h2>
     <div>
         <a href="{% url 'accounts:receipts_expenses' %}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left"></i> العودة / Back
@@ -26,7 +26,7 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">تفاصيل المصروف / Expense Details</h5>
+                <h5 class="card-title">تفاصيل الحركة</h5>
                 
                 <div class="row">
                     <div class="col-md-6">
@@ -42,6 +42,10 @@
                             <tr>
                                 <th>الوصف / Description:</th>
                                 <td><strong>{{ expense.description }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>نوع الحركة:</th>
+                                <td><strong>{{ expense.entry_kind_label }}</strong></td>
                             </tr>
                             {% comment %} <tr>
                                 <th>الفئة / Category:</th>

@@ -44,6 +44,40 @@
                 margin: 0 !important;
             }
         }
+
+        {% if manual_export_page_index %}
+        html,
+        body {
+            width: 210mm;
+            min-width: 210mm;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+            overflow: hidden !important;
+        }
+
+        .print-page-shell {
+            padding: 0 !important;
+            display: block !important;
+            width: 210mm !important;
+            min-width: 210mm !important;
+            margin: 0 !important;
+        }
+
+        .manual-book > .manual-page {
+            display: none !important;
+            margin: 0 !important;
+        }
+
+        .manual-book > .manual-page:nth-child({{ manual_export_page_index }}) {
+            display: flex !important;
+        }
+
+        .manual-book > .manual-page:nth-child({{ manual_export_page_index }}).manual-page--cover,
+        .manual-book > .manual-page:nth-child({{ manual_export_page_index }}).manual-page--back {
+            display: block !important;
+        }
+        {% endif %}
     </style>
 </head>
 <body>

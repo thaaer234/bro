@@ -6812,6 +6812,14 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
             attendance_date = today
         if attendance_date > session.end_date:
             attendance_date = session.end_date
+        if raw_value:
+            return attendance_date
+
+        latest_saved_record = (
+            session.attendance_records.order_by('-attendance_date', '-id').first()
+        )
+        if latest_saved_record:
+            return latest_saved_record.attendance_date
         return attendance_date
 
     def _get_assignments(self, session):
@@ -6835,6 +6843,15 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
         assignments = self._get_assignments(session)
         available_enrollments = self._get_available_enrollments(session)
         assigned_ids = {assignment.enrollment_id for assignment in assignments}
+        day_counts = {
+            row['day_number']: row['count']
+            for row in session.attendance_records.values('day_number').annotate(count=Count('id'))
+        }
+        try:
+            for row in session.guest_attendance_records.values('day_number').annotate(count=Count('id')):
+                day_counts[row['day_number']] = day_counts.get(row['day_number'], 0) + row['count']
+        except OperationalError:
+            pass
 
         records = {
             record.enrollment_id: record
@@ -6895,6 +6912,9 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
                 'is_extra': True,
             })
 
+        present_count = sum(1 for row in attendance_rows if row['normalized_status'] == 'present')
+        absent_count = len(attendance_rows) - present_count
+
         candidate_enrollments = [enrollment for enrollment in available_enrollments if enrollment.id not in {item.id for item in displayed_enrollments}]
         selected_day_number = session.get_day_number_for_date(attendance_date) or 1
         today = timezone.localdate()
@@ -6902,13 +6922,12 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
         for day_number in range(1, (session.total_days or 0) + 1):
             day_date = session.start_date + timedelta(days=day_number - 1)
             is_future = day_date > today
-            saved_count = sum(1 for record in records.values() if record.day_number == day_number)
             day_options.append({
                 'number': day_number,
                 'date': day_date,
                 'is_selected': day_number == selected_day_number,
                 'is_future': is_future,
-                'saved_count': saved_count if day_number == selected_day_number else None,
+                'saved_count': day_counts.get(day_number, 0),
                 'url': f"{reverse('quick:course_session_attendance', kwargs={'session_id': session.id})}?day={day_number}",
             })
 
@@ -6926,6 +6945,8 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
             'assigned_count': len(assignments),
             'extra_count': len(extra_enrollments) + len(guest_records),
             'saved_records_count': len(records) + len(guest_records),
+            'present_count': present_count,
+            'absent_count': absent_count,
             'candidate_enrollments': candidate_enrollments,
             'guest_attendance_ready': guest_attendance_ready,
             'status_choices': (

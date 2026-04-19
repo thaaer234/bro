@@ -24,7 +24,7 @@ from .models import (
 )
 from .forms import (
     AccountForm, JournalEntryForm, TransactionFormSet, StudentReceiptForm, ExpenseEntryForm,
-    AccountingPeriodForm, BudgetForm, CourseForm, StudentForm, StudentenrollmentForm, 
+    FollowUpRevenueEntryForm, AccountingPeriodForm, BudgetForm, CourseForm, StudentForm, StudentenrollmentForm, 
     EmployeeAdvanceForm, DiscountRuleForm
 )
 
@@ -1048,51 +1048,182 @@ class ReportsView(LoginRequiredMixin, TemplateView):
 
 class TrialBalanceView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/trial_balance.html'
+
+
+def _parse_trial_balance_settings(params):
+    start_date_raw = (params.get('start_date') or '').strip()
+    start_date = parse_date(start_date_raw) if start_date_raw else None
+    end_date_raw = (params.get('end_date') or '').strip()
+    end_date = parse_date(end_date_raw) if end_date_raw else None
+    account_type = (params.get('account_type') or '').strip().upper()
+    hierarchy_mode = (params.get('hierarchy_mode') or 'all').strip().lower()
+    sort_by = (params.get('sort_by') or 'code').strip().lower()
+
+    def _truthy(value):
+        return str(value).strip().lower() in {'1', 'true', 'yes', 'on'}
+
+    show_zero_balances = _truthy(params.get('show_zero'))
+    full_report = _truthy(params.get('full_report'))
+
+    valid_account_types = {'', 'ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'}
+    if account_type not in valid_account_types:
+        account_type = ''
+
+    if hierarchy_mode not in {'all', 'main_only', 'leaf_only'}:
+        hierarchy_mode = 'all'
+
+    if sort_by not in {'code', 'name'}:
+        sort_by = 'code'
+
+    if full_report:
+        start_date = None
+        start_date_raw = ''
+        end_date = None
+        end_date_raw = ''
+        show_zero_balances = True
+
+    return {
+        'start_date': start_date,
+        'start_date_raw': start_date_raw,
+        'end_date': end_date,
+        'end_date_raw': end_date_raw,
+        'account_type': account_type,
+        'hierarchy_mode': hierarchy_mode,
+        'sort_by': sort_by,
+        'show_zero_balances': show_zero_balances,
+        'full_report': full_report,
+    }
+
+
+def _calculate_trial_balance_amounts(account, start_date=None, end_date=None):
+    transactions = account.transactions.all()
+    if start_date:
+        transactions = transactions.filter(journal_entry__date__gte=start_date)
+    if end_date:
+        transactions = transactions.filter(journal_entry__date__lte=end_date)
+
+    debit_total = transactions.filter(is_debit=True).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    credit_total = transactions.filter(is_debit=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    if account.account_type in ['ASSET', 'EXPENSE']:
+        net_balance = debit_total - credit_total
+    else:
+        net_balance = credit_total - debit_total
+
+    debit_amount = Decimal('0.00')
+    credit_amount = Decimal('0.00')
+
+    if net_balance > 0:
+        if account.account_type in ['ASSET', 'EXPENSE']:
+            debit_amount = net_balance
+        else:
+            credit_amount = net_balance
+    elif net_balance < 0:
+        if account.account_type in ['ASSET', 'EXPENSE']:
+            credit_amount = abs(net_balance)
+        else:
+            debit_amount = abs(net_balance)
+
+    return {
+        'debit_total': debit_total,
+        'credit_total': credit_total,
+        'net_balance': net_balance,
+        'debit_amount': debit_amount,
+        'credit_amount': credit_amount,
+    }
+
+
+def _build_trial_balance_dataset(
+    start_date=None,
+    end_date=None,
+    show_zero_balances=False,
+    full_report=False,
+    account_type='',
+    hierarchy_mode='all',
+    sort_by='code',
+):
+    trial_balance_data = []
+    total_debits = Decimal('0.00')
+    total_credits = Decimal('0.00')
+
+    accounts = Account.objects.filter(is_active=True)
+    if account_type:
+        accounts = accounts.filter(account_type=account_type)
+
+    if hierarchy_mode == 'main_only':
+        accounts = accounts.filter(parent__isnull=True)
+    elif hierarchy_mode == 'leaf_only':
+        accounts = accounts.filter(children__isnull=True)
+
+    order_field = 'code' if sort_by == 'code' else 'name_ar'
+    accounts = accounts.order_by(order_field, 'code').distinct()
+
+    for account in accounts:
+        amounts = _calculate_trial_balance_amounts(account, start_date=start_date, end_date=end_date)
+        debit_amount = amounts['debit_amount']
+        credit_amount = amounts['credit_amount']
+
+        include_account = full_report or show_zero_balances or debit_amount > 0 or credit_amount > 0
+        if not include_account:
+            continue
+
+        trial_balance_data.append({
+            'account': account,
+            'debit_amount': debit_amount,
+            'credit_amount': credit_amount,
+            'net_balance': amounts['net_balance'],
+            'debit_total': amounts['debit_total'],
+            'credit_total': amounts['credit_total'],
+        })
+        total_debits += debit_amount
+        total_credits += credit_amount
+
+    return {
+        'trial_balance_data': trial_balance_data,
+        'total_debits': total_debits,
+        'total_credits': total_credits,
+        'account_count': len(trial_balance_data),
+        'difference': total_debits - total_credits,
+        'is_balanced': total_debits == total_credits,
+    }
+
+
+class TrialBalanceView(LoginRequiredMixin, TemplateView):
+    template_name = 'accounts/trial_balance.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Get all accounts with transactions
-        accounts = Account.objects.filter(is_active=True).order_by('code')
-        trial_balance_data = []
-        total_debits = Decimal('0.00')
-        total_credits = Decimal('0.00')
-        
-        for account in accounts:
-            debit_balance = account.get_debit_balance()
-            credit_balance = account.get_credit_balance()
-            net_balance = account.get_net_balance()
-            
-            if debit_balance > 0 or credit_balance > 0:
-                if net_balance > 0:
-                    if account.account_type in ['ASSET', 'EXPENSE']:
-                        debit_amount = net_balance
-                        credit_amount = Decimal('0.00')
-                    else:
-                        debit_amount = Decimal('0.00')
-                        credit_amount = net_balance
-                else:
-                    if account.account_type in ['ASSET', 'EXPENSE']:
-                        debit_amount = Decimal('0.00')
-                        credit_amount = abs(net_balance)
-                    else:
-                        debit_amount = abs(net_balance)
-                        credit_amount = Decimal('0.00')
-                
-                trial_balance_data.append({
-                    'account': account,
-                    'debit_amount': debit_amount,
-                    'credit_amount': credit_amount,
-                })
-                
-                total_debits += debit_amount
-                total_credits += credit_amount
-        
+        settings = _parse_trial_balance_settings(self.request.GET)
+        summary = _build_trial_balance_dataset(
+            start_date=settings['start_date'],
+            end_date=settings['end_date'],
+            show_zero_balances=settings['show_zero_balances'],
+            full_report=settings['full_report'],
+            account_type=settings['account_type'],
+            hierarchy_mode=settings['hierarchy_mode'],
+            sort_by=settings['sort_by'],
+        )
+
+        context.update(summary)
         context.update({
-            'trial_balance_data': trial_balance_data,
-            'total_debits': total_debits,
-            'total_credits': total_credits,
-            'is_balanced': total_debits == total_credits,
+            'report_generated_at': timezone.now(),
+            'start_date': settings['start_date'],
+            'start_date_raw': settings['start_date_raw'],
+            'end_date': settings['end_date'],
+            'end_date_raw': settings['end_date_raw'],
+            'account_type': settings['account_type'],
+            'hierarchy_mode': settings['hierarchy_mode'],
+            'sort_by': settings['sort_by'],
+            'show_zero_balances': settings['show_zero_balances'],
+            'full_report': settings['full_report'],
+            'trial_account_type_options': [
+                ('', 'كل الأنواع'),
+                ('ASSET', 'الأصول'),
+                ('LIABILITY', 'الالتزامات'),
+                ('EQUITY', 'حقوق الملكية'),
+                ('REVENUE', 'الإيرادات'),
+                ('EXPENSE', 'المصاريف'),
+            ],
         })
         
         return context
@@ -1353,6 +1484,7 @@ class ExpenseCreateView(LoginRequiredMixin, CreateView):
     template_name = 'accounts/expense_form.html'
     
     def form_valid(self, form):
+        form.instance.entry_kind = 'EXPENSE'
         form.instance.created_by = self.request.user
         response = super().form_valid(form)
         
@@ -1369,7 +1501,55 @@ class ExpenseCreateView(LoginRequiredMixin, CreateView):
         return response
     
     def get_success_url(self):
+        next_url = self.request.POST.get('next')
+        if next_url:
+            return next_url
         return reverse_lazy('accounts:expense_detail', kwargs={'pk': self.object.pk})
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'تعذر تسجيل المصروف. يرجى مراجعة الحقول المطلوبة.')
+        return render(
+            self.request,
+            'accounts/expense_form.html',
+            {'form': form, 'form_title': 'إدخال مصروف جديد'}
+        )
+
+
+class FollowUpRevenueCreateView(LoginRequiredMixin, CreateView):
+    model = ExpenseEntry
+    form_class = FollowUpRevenueEntryForm
+    template_name = 'accounts/expense_form.html'
+
+    def form_valid(self, form):
+        form.instance.entry_kind = 'FOLLOWUP_REVENUE'
+        form.instance.account = Account.get_or_create_followup_revenue_account()
+        form.instance.created_by = self.request.user
+        response = super().form_valid(form)
+
+        try:
+            self.object.create_journal_entry(self.request.user)
+            messages.success(
+                self.request,
+                'تم تسجيل إيراد طلاب المتابعة وإنشاء القيد المحاسبي بنجاح'
+            )
+        except Exception as e:
+            messages.error(self.request, f'خطأ في إنشاء قيد إيراد المتابعة: {str(e)}')
+
+        return response
+
+    def get_success_url(self):
+        next_url = self.request.POST.get('next')
+        if next_url:
+            return next_url
+        return reverse_lazy('accounts:expense_detail', kwargs={'pk': self.object.pk})
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'تعذر تسجيل إيراد طلاب المتابعة. يرجى مراجعة الحقول المطلوبة.')
+        return render(
+            self.request,
+            'accounts/expense_form.html',
+            {'form': form, 'form_title': 'إيراد طلاب المتابعة'}
+        )
 
 
 class ExpenseDetailView(LoginRequiredMixin, DetailView):
@@ -1384,32 +1564,136 @@ class ReceiptsExpensesView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Get current cash balance
-        cash_account = get_user_cash_account(self.request.user, fallback_code='121-1')
+        # Show the employee-linked cash account if it already exists.
+        # If the employee does not have one yet, fall back to the main cash account
+        # without auto-creating a personal cash account from this dashboard.
+        cash_account = None
+        employee = getattr(self.request.user, 'employee_profile', None)
+        if employee:
+            cash_account = employee.get_cash_account()
+        if cash_account is None:
+            cash_account, _ = Account.objects.get_or_create(
+                code='121',
+                defaults={
+                    'name': 'Cash',
+                    'name_ar': 'النقدية',
+                    'account_type': 'ASSET',
+                    'is_active': True,
+                }
+            )
         cash_balance = cash_account.get_net_balance() if cash_account else Decimal('0.00')
         
         # Get recent receipts and expenses
         recent_receipts = StudentReceipt.objects.select_related('created_by')[:10]
-        recent_expenses = ExpenseEntry.objects.select_related('created_by')[:10]
+        recent_expenses = ExpenseEntry.objects.select_related('created_by').filter(entry_kind='EXPENSE')[:10]
+        recent_followup_revenues = ExpenseEntry.objects.select_related('created_by').filter(entry_kind='FOLLOWUP_REVENUE')[:10]
         
         # Get today's totals
         today = timezone.now().date()
         today_receipts_total = StudentReceipt.objects.filter(date=today).aggregate(
             total=Sum('amount'))['total'] or Decimal('0.00')
-        today_expenses_total = ExpenseEntry.objects.filter(date=today).aggregate(
+        today_expenses_total = ExpenseEntry.objects.filter(date=today, entry_kind='EXPENSE').aggregate(
+            total=Sum('amount'))['total'] or Decimal('0.00')
+        today_followup_revenue_total = ExpenseEntry.objects.filter(date=today, entry_kind='FOLLOWUP_REVENUE').aggregate(
             total=Sum('amount'))['total'] or Decimal('0.00')
         
         context.update({
+            'cash_account': cash_account,
             'cash_balance': cash_balance,
             'recent_receipts': recent_receipts,
             'recent_expenses': recent_expenses,
+            'recent_followup_revenues': recent_followup_revenues,
             'today_receipts_total': today_receipts_total,
             'today_expenses_total': today_expenses_total,
-            'net_today': today_receipts_total - today_expenses_total,
+            'today_followup_revenue_total': today_followup_revenue_total,
+            'net_today': today_receipts_total + today_followup_revenue_total - today_expenses_total,
             'receipt_form': StudentReceiptForm(),
             'expense_form': ExpenseEntryForm(),
+            'followup_revenue_form': FollowUpRevenueEntryForm(),
         })
         
+        return context
+
+
+class ExpenseAccountsPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'accounts/expense_accounts_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        total_expenses_amount = (
+            ExpenseEntry.objects
+            .filter(entry_kind='EXPENSE')
+            .aggregate(total=Sum('amount'))['total']
+            or Decimal('0.00')
+        )
+        accounts_qs = (
+            Account.objects
+            .filter(
+                is_active=True,
+                code__startswith='5',
+            )
+            .exclude(code='121')
+            .exclude(code__startswith='121-')
+            .exclude(code='4199-FOLLOWUP')
+            .exclude(name_ar__icontains='الصندوق')
+            .exclude(name__icontains='cash')
+            .distinct()
+            .order_by('code')
+        )
+        accounts_qs = [
+            account for account in accounts_qs
+            if '-' not in account.code or account.code == '501-06'
+        ]
+        accounts_data = []
+
+        for account in accounts_qs:
+            transactions = list(
+                account.transactions
+                .select_related('journal_entry', 'cost_center')
+                .order_by('journal_entry__date', 'id')
+                .distinct()
+            )
+            movement_rows = []
+            total_debit = Decimal('0.00')
+            total_credit = Decimal('0.00')
+            for tx in transactions:
+                source_entry = tx.journal_entry.expenses.first()
+                debit = tx.amount if tx.is_debit else Decimal('0.00')
+                credit = tx.amount if not tx.is_debit else Decimal('0.00')
+                total_debit += debit
+                total_credit += credit
+                movement_rows.append({
+                    'transaction': tx,
+                    'source_entry': source_entry,
+                    'debit': debit,
+                    'credit': credit,
+                    'movement_type': getattr(source_entry, 'entry_kind_label', tx.journal_entry.get_entry_type_display()),
+                })
+
+            if movement_rows:
+                accounts_data.append({
+                    'account': account,
+                    'balance': account.get_net_balance(),
+                    'movement_rows': movement_rows,
+                    'movement_count': len(movement_rows),
+                    'total_debit': total_debit,
+                    'total_credit': total_credit,
+                })
+            else:
+                accounts_data.append({
+                    'account': account,
+                    'balance': account.get_net_balance(),
+                    'movement_rows': [],
+                    'movement_count': 0,
+                    'total_debit': total_debit,
+                    'total_credit': total_credit,
+                })
+
+        context.update({
+            'generated_at': timezone.localtime(),
+            'total_expenses_amount': total_expenses_amount,
+            'accounts_data': accounts_data,
+        })
         return context
 
 
@@ -3568,6 +3852,17 @@ from .models import Account
 
 class TrialBalanceExportExcelView(LoginRequiredMixin, View):
     def get(self, request):
+        settings = _parse_trial_balance_settings(request.GET)
+        summary = _build_trial_balance_dataset(
+            start_date=settings['start_date'],
+            end_date=settings['end_date'],
+            show_zero_balances=settings['show_zero_balances'],
+            full_report=settings['full_report'],
+            account_type=settings['account_type'],
+            hierarchy_mode=settings['hierarchy_mode'],
+            sort_by=settings['sort_by'],
+        )
+
         # إنشاء workbook جديد
         wb = Workbook()
         ws = wb.active
@@ -3644,6 +3939,29 @@ class TrialBalanceExportExcelView(LoginRequiredMixin, View):
         ws['A3'].fill = company_fill
         ws['A3'].alignment = Alignment(horizontal='center', vertical='center')
         ws['A3'].border = Border(bottom=Side(style='thin'))
+
+        ws.merge_cells('A4:H4')
+        settings_parts = []
+        if settings['start_date']:
+            settings_parts.append(f"من تاريخ: {settings['start_date'].strftime('%Y-%m-%d')}")
+        else:
+            settings_parts.append("من تاريخ: بداية السجلات")
+        if settings['end_date']:
+            settings_parts.append(f"حتى تاريخ: {settings['end_date'].strftime('%Y-%m-%d')}")
+        settings_parts.append("الأرصدة المصفرة: ظاهرة" if settings['show_zero_balances'] else "الأرصدة المصفرة: مخفية")
+        settings_parts.append(f"نوع الحساب: {settings['account_type'] or 'الكل'}")
+        settings_parts.append(
+            "البنية: رئيسية فقط" if settings['hierarchy_mode'] == 'main_only'
+            else "البنية: فرعية فقط" if settings['hierarchy_mode'] == 'leaf_only'
+            else "البنية: كل الحسابات"
+        )
+        settings_parts.append("الترتيب: حسب الاسم" if settings['sort_by'] == 'name' else "الترتيب: حسب الرمز")
+        settings_parts.append("الوضع: ميزان كامل" if settings['full_report'] else "الوضع: ميزان مفلتر")
+        ws['A4'].value = " | ".join(settings_parts)
+        ws['A4'].font = info_font
+        ws['A4'].fill = info_fill
+        ws['A4'].alignment = Alignment(horizontal='center', vertical='center')
+        ws['A4'].border = Border(bottom=Side(style='thin'))
         
         # رؤوس الأعمدة الرئيسية
         headers_row1 = ['معلومات الحساب', '', '', '', 'الأرصدة المالية', '', '', '']
@@ -3670,129 +3988,104 @@ class TrialBalanceExportExcelView(LoginRequiredMixin, View):
         
         # بيانات ميزان المراجعة
         row = 7
-        total_debits = Decimal('0')
-        total_credits = Decimal('0')
-        account_count = 0
-        
-        accounts = Account.objects.filter(is_active=True).order_by('code')
-        
-        for account in accounts:
-            debit_balance = account.get_debit_balance()
-            credit_balance = account.get_credit_balance()
-            net_balance = account.get_net_balance()
+        total_debits = summary['total_debits']
+        total_credits = summary['total_credits']
+        account_count = summary['account_count']
+
+        for item in summary['trial_balance_data']:
+            account = item['account']
+            debit_amount = item['debit_amount']
+            credit_amount = item['credit_amount']
+            balance_value = item['net_balance']
+
+            # تحديد التعبئة بناءً على نوع الحساب
+            if account.account_type == 'ASSET':
+                row_fill = asset_fill
+                notes = "أصول"
+            elif account.account_type == 'LIABILITY':
+                row_fill = liability_fill
+                notes = "التزامات"
+            elif account.account_type == 'EQUITY':
+                row_fill = equity_fill
+                notes = "حقوق ملكية"
+            elif account.account_type == 'REVENUE':
+                row_fill = revenue_fill
+                notes = "إيرادات"
+            elif account.account_type == 'EXPENSE':
+                row_fill = expense_fill
+                notes = "مصاريف"
+            else:
+                row_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+                notes = ""
             
-            if debit_balance > 0 or credit_balance > 0:
-                # حساب المبالغ بناءً على نوع الحساب
-                if net_balance > 0:
-                    if account.account_type in ['ASSET', 'EXPENSE']:
-                        debit_amount = net_balance
-                        credit_amount = Decimal('0.00')
-                        balance_value = debit_amount
-                    else:
-                        debit_amount = Decimal('0.00')
-                        credit_amount = net_balance
-                        balance_value = -credit_amount
-                else:
-                    if account.account_type in ['ASSET', 'EXPENSE']:
-                        debit_amount = Decimal('0.00')
-                        credit_amount = abs(net_balance)
-                        balance_value = -credit_amount
-                    else:
-                        debit_amount = abs(net_balance)
-                        credit_amount = Decimal('0.00')
-                        balance_value = debit_amount
-                
-                # تحديد التعبئة بناءً على نوع الحساب
-                if account.account_type == 'ASSET':
-                    row_fill = asset_fill
-                    notes = "أصول"
-                elif account.account_type == 'LIABILITY':
-                    row_fill = liability_fill
-                    notes = "التزامات"
-                elif account.account_type == 'EQUITY':
-                    row_fill = equity_fill
-                    notes = "حقوق ملكية"
-                elif account.account_type == 'REVENUE':
-                    row_fill = revenue_fill
-                    notes = "إيرادات"
-                elif account.account_type == 'EXPENSE':
-                    row_fill = expense_fill
-                    notes = "مصاريف"
-                else:
-                    row_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
-                    notes = ""
-                
-                # إضافة البيانات للصف
-                # العمود 1: الرمز
-                cell = ws.cell(row=row, column=1, value=account.code)
-                cell.font = Font(name='Courier New', size=10, bold=True)
-                cell.alignment = Alignment(horizontal='right', vertical='center')
-                cell.border = thin_border
-                cell.fill = row_fill
-                
-                # العمود 2: اسم الحساب
-                cell = ws.cell(row=row, column=2, value=account.display_name)
-                cell.font = Font(name='Arial', size=10)
-                cell.alignment = Alignment(horizontal='right', vertical='center')
-                cell.border = thin_border
-                cell.fill = row_fill
-                
-                # العمود 3: نوع الحساب
-                cell = ws.cell(row=row, column=3, value=account.get_account_type_display())
-                cell.font = Font(name='Arial', size=9)
-                cell.alignment = Alignment(horizontal='right', vertical='center')
-                cell.border = thin_border
-                cell.fill = row_fill
-                
-                # العمود 4: حالة الحساب
-                status = "نشط" if account.is_active else "غير نشط"
-                cell = ws.cell(row=row, column=4, value=status)
-                cell.font = Font(name='Arial', size=9, bold=True)
-                cell.alignment = Alignment(horizontal='center', vertical='center')
-                cell.border = thin_border
-                cell.fill = row_fill
-                
-                # العمود 5: مدين
-                cell = ws.cell(row=row, column=5, value=float(debit_amount))
-                cell.font = Font(name='Arial', size=10)
-                cell.alignment = Alignment(horizontal='right', vertical='center')
-                cell.border = thin_border
-                cell.number_format = '#,##0.00'
-                cell.fill = row_fill
-                
-                # العمود 6: دائن
-                cell = ws.cell(row=row, column=6, value=float(credit_amount))
-                cell.font = Font(name='Arial', size=10)
-                cell.alignment = Alignment(horizontal='right', vertical='center')
-                cell.border = thin_border
-                cell.number_format = '#,##0.00'
-                cell.fill = row_fill
-                
-                # العمود 7: الرصيد
-                cell = ws.cell(row=row, column=7, value=float(balance_value))
-                cell.font = Font(name='Arial', size=10, bold=True)
-                cell.alignment = Alignment(horizontal='right', vertical='center')
-                cell.border = thin_border
-                cell.number_format = '#,##0.00'
-                cell.fill = row_fill
-                
-                # تلوين الرصيد بناءً على القيمة
-                if balance_value > 0:
-                    cell.font = Font(name='Arial', size=10, bold=True, color='2E75B5')
-                elif balance_value < 0:
-                    cell.font = Font(name='Arial', size=10, bold=True, color='C00000')
-                
-                # العمود 8: ملاحظات
-                cell = ws.cell(row=row, column=8, value=notes)
-                cell.font = Font(name='Arial', size=9, italic=True)
-                cell.alignment = Alignment(horizontal='right', vertical='center')
-                cell.border = thin_border
-                cell.fill = row_fill
-                
-                total_debits += debit_amount
-                total_credits += credit_amount
-                account_count += 1
-                row += 1
+            # إضافة البيانات للصف
+            # العمود 1: الرمز
+            cell = ws.cell(row=row, column=1, value=account.code)
+            cell.font = Font(name='Courier New', size=10, bold=True)
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.border = thin_border
+            cell.fill = row_fill
+            
+            # العمود 2: اسم الحساب
+            cell = ws.cell(row=row, column=2, value=account.display_name)
+            cell.font = Font(name='Arial', size=10)
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.border = thin_border
+            cell.fill = row_fill
+            
+            # العمود 3: نوع الحساب
+            cell = ws.cell(row=row, column=3, value=account.get_account_type_display())
+            cell.font = Font(name='Arial', size=9)
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.border = thin_border
+            cell.fill = row_fill
+            
+            # العمود 4: حالة الحساب
+            status = "نشط" if account.is_active else "غير نشط"
+            cell = ws.cell(row=row, column=4, value=status)
+            cell.font = Font(name='Arial', size=9, bold=True)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = thin_border
+            cell.fill = row_fill
+            
+            # العمود 5: مدين
+            cell = ws.cell(row=row, column=5, value=float(debit_amount))
+            cell.font = Font(name='Arial', size=10)
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.border = thin_border
+            cell.number_format = '#,##0.00'
+            cell.fill = row_fill
+            
+            # العمود 6: دائن
+            cell = ws.cell(row=row, column=6, value=float(credit_amount))
+            cell.font = Font(name='Arial', size=10)
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.border = thin_border
+            cell.number_format = '#,##0.00'
+            cell.fill = row_fill
+            
+            # العمود 7: الرصيد
+            cell = ws.cell(row=row, column=7, value=float(balance_value))
+            cell.font = Font(name='Arial', size=10, bold=True)
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.border = thin_border
+            cell.number_format = '#,##0.00'
+            cell.fill = row_fill
+            
+            # تلوين الرصيد بناءً على القيمة
+            if balance_value > 0:
+                cell.font = Font(name='Arial', size=10, bold=True, color='2E75B5')
+            elif balance_value < 0:
+                cell.font = Font(name='Arial', size=10, bold=True, color='C00000')
+            
+            # العمود 8: ملاحظات
+            cell = ws.cell(row=row, column=8, value=notes)
+            cell.font = Font(name='Arial', size=9, italic=True)
+            cell.alignment = Alignment(horizontal='right', vertical='center')
+            cell.border = thin_border
+            cell.fill = row_fill
+
+            row += 1
         
         # إضافة الفلاتر التلقائية
         if account_count > 0:

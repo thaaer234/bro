@@ -1,0 +1,28 @@
+{% extends 'accounts/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ form_title|default:'تسجيل حركة نقدية' }}{% endblock %}
+
+{% block content %}
+<section class="accounts-section">
+    <div class="accounts-header">
+        <div class="accounts-header__copy">
+            <h2>{{ form_title|default:'تسجيل حركة نقدية' }}</h2>
+            <p>يمكنك العودة بعد الحفظ مباشرة إلى شاشة الإيصالات والمصاريف.</p>
+        </div>
+    </div>
+
+    <div class="accounts-form-layout">
+        <div class="accounts-form-card">
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                    <a href="{% url 'accounts:receipts_expenses' %}" class="btn btn-outline-secondary">عودة</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

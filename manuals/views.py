@@ -1,16 +1,31 @@
 from io import BytesIO
 import base64
+from datetime import datetime
 from pathlib import Path
+import subprocess
+import tempfile
 
 import qrcode
+from PIL import UnidentifiedImageError
+from django.core import signing
+from django.urls import NoReverseMatch
+from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.templatetags.static import static
 from django.views.generic import TemplateView
+from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
+from pptx.enum.text import PP_ALIGN
+from pptx.util import Mm, Pt
 
 from .guide_data import USER_MANUAL_ERRORS, build_manuals_context, build_user_manual_context
+
+
+MANUAL_EXPORT_SIGNING_SALT = "manuals.user.handbook.export"
 
 
 def _qr_data_uri(value):
@@ -159,6 +174,21 @@ def _build_manual_error_pages():
             }
         )
     return pages
+
+
+def _get_manual_param(params, key, default=""):
+    value = params.get(key, default) if params is not None else default
+    if isinstance(value, (list, tuple)):
+        return value[0] if value else default
+    return value
+
+
+def _resolve_manual_target_user_from_params(request, params):
+    selected_id = (_get_manual_param(params, "user", "") or "").strip()
+    if selected_id:
+        return get_object_or_404(User, pk=selected_id)
+    selected_user, _users = _selected_manual_user(request)
+    return selected_user
 
 
 def _chunk_items(items, size):
@@ -476,6 +506,375 @@ def _build_user_handbook_toc_pages(content_pages):
         toc_pages = new_toc_pages
 
 
+def _build_user_handbook_page_context(request, params=None, *, print_mode=False):
+    active_params = params if params is not None else request.GET
+    target_user = _resolve_manual_target_user_from_params(request, active_params)
+    query = (_get_manual_param(active_params, "q", "") or "").strip().lower()
+    selected_group = (_get_manual_param(active_params, "group", "") or "").strip()
+
+    context = {
+        "manual_selected_user": target_user,
+    }
+    context.update(
+        build_user_manual_context(
+            target_user,
+            query=query,
+            selected_group=selected_group,
+        )
+    )
+    context.update(_build_user_manual_identity_context(request, target_user))
+    context["manual_error_pages"] = _build_manual_error_pages()
+    context["manual_content_pages"] = _build_user_handbook_content_pages(
+        context["manual_workflows"],
+        context["manual_screens"],
+        context["manual_error_pages"],
+    )
+    context["manual_toc_pages"] = _build_user_handbook_toc_pages(context["manual_content_pages"])
+    context["manual_print_mode"] = print_mode
+    context["manual_print_url"] = request.build_absolute_uri()
+    context["manual_now_date"] = datetime.now().strftime("%Y / %m / %d")
+    export_page = (_get_manual_param(active_params, "export_page", "") or "").strip()
+    context["manual_export_page_index"] = int(export_page) if export_page.isdigit() else None
+    context["manual_export_mode"] = (_get_manual_param(active_params, "export_mode", "") or "").strip()
+    context["manual_total_render_pages"] = _manual_total_render_pages(context)
+    context.update(_build_closing_page_context(request))
+    return context
+
+
+def _manual_total_render_pages(context):
+    return 8 + len(context["manual_toc_pages"]) + len(context["manual_content_pages"])
+
+
+def _find_edge_executable():
+    candidates = [
+        Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+        Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _reverse_manual_url(*names):
+    for name in names:
+        try:
+            return reverse(name)
+        except NoReverseMatch:
+            continue
+    raise NoReverseMatch(", ".join(names))
+
+
+def _pptx_set_text(paragraph, text, *, size=18, bold=False, color=(30, 41, 55), align=PP_ALIGN.RIGHT):
+    paragraph.text = str(text or "")
+    paragraph.alignment = align
+    if paragraph.runs:
+        run = paragraph.runs[0]
+        run.font.size = Pt(size)
+        run.font.bold = bold
+        run.font.name = "Arial"
+        run.font.color.rgb = RGBColor(*color)
+
+
+def _pptx_add_panel(slide, left, top, width, height, *, fill=(255, 255, 255), line=(217, 226, 236)):
+    shape = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, left, top, width, height)
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = RGBColor(*fill)
+    shape.line.color.rgb = RGBColor(*line)
+    return shape
+
+
+def _pptx_add_textbox(slide, left, top, width, height, text, *, size=18, bold=False, color=(30, 41, 55)):
+    box = slide.shapes.add_textbox(left, top, width, height)
+    frame = box.text_frame
+    frame.word_wrap = True
+    frame.clear()
+    _pptx_set_text(frame.paragraphs[0], text, size=size, bold=bold, color=color)
+    return box
+
+
+def _pptx_add_bullet_panel(slide, left, top, width, height, title, items, *, accent=(16, 36, 62)):
+    panel = _pptx_add_panel(slide, left, top, width, height)
+    frame = panel.text_frame
+    frame.clear()
+    frame.word_wrap = True
+    _pptx_set_text(frame.paragraphs[0], title, size=18, bold=True, color=accent)
+    for item in items:
+        p = frame.add_paragraph()
+        _pptx_set_text(p, f"• {item}", size=13, color=(71, 84, 103))
+    return panel
+
+
+def _pptx_static_path(static_url):
+    value = str(static_url or "")
+    if "/static/" in value:
+        relative = value.split("/static/", 1)[1].replace("/", "\\")
+        return Path("static") / Path(relative)
+    return None
+
+
+def _pptx_add_image(slide, static_url, left, top, width, height):
+    local_path = _pptx_static_path(static_url)
+    if not local_path or not local_path.exists():
+        return False
+    # python-pptx relies on Pillow for most image formats and can fail on SVG
+    # or on files that are not valid raster images. In that case we gracefully
+    # skip the image and let the caller render a textual fallback instead.
+    if local_path.suffix.lower() == ".svg":
+        return False
+    try:
+        slide.shapes.add_picture(str(local_path), left, top, width=width, height=height)
+        return True
+    except (UnidentifiedImageError, OSError, ValueError):
+        return False
+
+
+def _build_user_handbook_powerpoint(context):
+    prs = Presentation()
+    prs.slide_width = Mm(210)
+    prs.slide_height = Mm(297)
+    blank = prs.slide_layouts[6]
+
+    navy = (16, 36, 62)
+    blue = (31, 74, 114)
+    slate = (71, 84, 103)
+    light = (244, 247, 250)
+    white = (255, 255, 255)
+
+    def add_background(slide, color):
+        fill = slide.background.fill
+        fill.solid()
+        fill.fore_color.rgb = RGBColor(*color)
+
+    slide = prs.slides.add_slide(blank)
+    add_background(slide, navy)
+    _pptx_add_textbox(slide, Mm(14), Mm(16), Mm(120), Mm(16), context["closing_brand_name"], size=22, bold=True, color=white)
+    _pptx_add_textbox(slide, Mm(14), Mm(42), Mm(126), Mm(22), "دليل المستخدم الفردي", size=28, bold=True, color=white)
+    _pptx_add_textbox(slide, Mm(14), Mm(68), Mm(126), Mm(20), "تنزيل PowerPoint أصلي للدليل", size=16, color=(225, 232, 240))
+    _pptx_add_bullet_panel(
+        slide,
+        Mm(14),
+        Mm(98),
+        Mm(118),
+        Mm(72),
+        "بيانات الإصدار",
+        [
+            f"المستخدم: {context['manual_target_name']}",
+            f"اسم المستخدم: {context['manual_target_username']}",
+            f"الصفة: {context['manual_target_position']}",
+            f"تاريخ الإصدار: {context['manual_now_date']}",
+        ],
+        accent=white,
+    )
+    _pptx_add_bullet_panel(
+        slide,
+        Mm(138),
+        Mm(98),
+        Mm(58),
+        Mm(72),
+        "إحصاءات",
+        [
+            f"الشاشات: {context['manual_screen_total']}",
+            f"الصفحات: {len(context['manual_content_pages'])}",
+            f"العناصر: {context['manual_button_total']}",
+        ],
+        accent=white,
+    )
+    _pptx_add_textbox(slide, Mm(14), Mm(250), Mm(182), Mm(20), "ملف PowerPoint مولّد من نفس محتوى الدليل الحالي، ويمكن تعديله أو تصديره لاحقًا.", size=12, color=(230, 236, 241))
+
+    slide = prs.slides.add_slide(blank)
+    add_background(slide, light)
+    _pptx_add_textbox(slide, Mm(12), Mm(12), Mm(186), Mm(16), "مقدمة الدليل", size=24, bold=True, color=navy)
+    _pptx_add_bullet_panel(
+        slide,
+        Mm(12),
+        Mm(34),
+        Mm(90),
+        Mm(88),
+        "نطاق الاستخدام",
+        [
+            "نسخة فردية مخصصة للمستخدم الحالي.",
+            "مناسبة للعرض والتصدير والطباعة.",
+            "تشمل المراحل والشاشات والأخطاء والتنبيهات.",
+        ],
+        accent=navy,
+    )
+    _pptx_add_bullet_panel(
+        slide,
+        Mm(108),
+        Mm(34),
+        Mm(90),
+        Mm(88),
+        "مرجع سريع",
+        [
+            f"الأقسام: {' / '.join(context['manual_user_departments'])}",
+            f"رابط النظام: {context['manual_target_system_url']}",
+            f"رمز النظام: {context['manual_target_system_code']}",
+        ],
+        accent=blue,
+    )
+
+    for toc_page in context["manual_toc_pages"]:
+        slide = prs.slides.add_slide(blank)
+        add_background(slide, white)
+        _pptx_add_textbox(slide, Mm(12), Mm(12), Mm(186), Mm(16), "فهرس الدليل", size=24, bold=True, color=navy)
+        items = [f"{entry['page']:02d} — {entry['kind']} — {entry['title']}" for entry in toc_page["entries"]]
+        _pptx_add_bullet_panel(slide, Mm(12), Mm(34), Mm(186), Mm(220), f"صفحة الفهرس {toc_page['toc_page_number']}", items, accent=blue)
+
+    for page in context["manual_content_pages"]:
+        slide = prs.slides.add_slide(blank)
+        add_background(slide, white)
+        _pptx_add_textbox(slide, Mm(12), Mm(10), Mm(186), Mm(12), page.get("eyebrow", ""), size=12, bold=True, color=blue)
+        _pptx_add_textbox(slide, Mm(12), Mm(22), Mm(186), Mm(16), page["title"], size=22, bold=True, color=navy)
+        _pptx_add_textbox(slide, Mm(12), Mm(38), Mm(186), Mm(24), page.get("intro", ""), size=12, color=slate)
+
+        if page.get("layout") == "visual":
+            image_added = _pptx_add_image(slide, page.get("image_path"), Mm(12), Mm(68), Mm(186), Mm(165))
+            if not image_added:
+                _pptx_add_bullet_panel(slide, Mm(12), Mm(68), Mm(186), Mm(110), page.get("image_title", "لقطة الشاشة"), [page.get("image_caption", "لا توجد صورة متاحة لهذه الشريحة.")], accent=navy)
+            else:
+                _pptx_add_textbox(slide, Mm(12), Mm(238), Mm(186), Mm(24), page.get("image_caption", ""), size=11, color=slate)
+            continue
+
+        if page["type"] == "workflow":
+            main_items = [f"{item['index']}. {item['text']}" for item in page["items"]]
+        else:
+            main_items = [
+                f"{item['index']}. {item['label']} | المكان: {item['location']} | الوظيفة: {item['purpose']}"
+                for item in page["items"]
+            ]
+
+        side_items = []
+        if page.get("used_by"):
+            side_items.append(f"المستخدم: {page['used_by']}")
+        if page.get("path"):
+            side_items.append(f"المسار: {page['path']}")
+        if page.get("continued"):
+            side_items.append("هذه الشريحة تمثل استمرارًا منطقيًا لنفس القسم.")
+
+        _pptx_add_bullet_panel(slide, Mm(12), Mm(68), Mm(122), Mm(185), "المحتوى", main_items, accent=navy)
+        _pptx_add_bullet_panel(slide, Mm(138), Mm(68), Mm(60), Mm(88), "ملاحظات", side_items or ["لا توجد ملاحظات إضافية."], accent=blue)
+        if page.get("show_image"):
+            _pptx_add_image(slide, page.get("image_path"), Mm(138), Mm(162), Mm(60), Mm(68))
+
+    slide = prs.slides.add_slide(blank)
+    add_background(slide, light)
+    _pptx_add_textbox(slide, Mm(12), Mm(12), Mm(186), Mm(16), "تنبيهات وتشغيل آمن", size=24, bold=True, color=navy)
+    _pptx_add_bullet_panel(
+        slide,
+        Mm(12),
+        Mm(34),
+        Mm(186),
+        Mm(150),
+        "تعليمات مهمة",
+        [
+            "تحقق من الحساب والرابط قبل البدء.",
+            "راجع الحقول الإلزامية قبل الحفظ أو التصدير.",
+            "اختلاف الصلاحيات قد يغيّب بعض الشاشات أو الأزرار.",
+            "استخدم النسخة المخصصة للإخراج النهائي.",
+        ],
+        accent=blue,
+    )
+
+    slide = prs.slides.add_slide(blank)
+    add_background(slide, navy)
+    _pptx_add_textbox(slide, Mm(12), Mm(18), Mm(186), Mm(16), "خاتمة الدليل", size=24, bold=True, color=white)
+    _pptx_add_bullet_panel(
+        slide,
+        Mm(12),
+        Mm(46),
+        Mm(90),
+        Mm(90),
+        "جهة الدعم",
+        [
+            context["closing_developer_name"],
+            context["closing_role"],
+            context["closing_developer_phone"],
+            context["closing_developer_email"],
+        ],
+        accent=white,
+    )
+    _pptx_add_bullet_panel(
+        slide,
+        Mm(108),
+        Mm(46),
+        Mm(90),
+        Mm(90),
+        "مزايا الملف",
+        [
+            "PowerPoint أصلي قابل للتعديل.",
+            "مستقل عن نسخة الطباعة HTML.",
+            "مناسب للتقديم أو التصدير إلى PDF.",
+        ],
+        accent=white,
+    )
+
+    output = BytesIO()
+    prs.save(output)
+    output.seek(0)
+    return output
+
+
+def _build_user_handbook_powerpoint_from_rendered_pages(request, context):
+    edge_path = _find_edge_executable()
+    if not edge_path:
+        return _build_user_handbook_powerpoint(context)
+
+    prs = Presentation()
+    prs.slide_width = Mm(210)
+    prs.slide_height = Mm(297)
+    blank = prs.slide_layouts[6]
+
+    total_pages = _manual_total_render_pages(context)
+    base_query = request.GET.copy()
+    base_query.pop("export_page", None)
+    base_query["export_mode"] = "powerpoint"
+    signed_payload = signing.dumps(
+        {key: base_query.getlist(key) for key in base_query.keys()},
+        salt=MANUAL_EXPORT_SIGNING_SALT,
+        compress=True,
+    )
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="manual-pptx-") as temp_dir:
+            temp_path = Path(temp_dir)
+            export_print_url = _reverse_manual_url("manuals:user_handbook_print_export", "user_handbook_print_export")
+            for page_number in range(1, total_pages + 1):
+                screenshot_path = temp_path / f"page-{page_number:03d}.png"
+                url = request.build_absolute_uri(
+                    f"{export_print_url}?token={signed_payload}&export_page={page_number}"
+                )
+                subprocess.run(
+                    [
+                        str(edge_path),
+                        "--headless=new",
+                        "--disable-gpu",
+                        "--hide-scrollbars",
+                        "--default-background-color=ffffff",
+                        "--force-device-scale-factor=1",
+                        "--window-size=794,1123",
+                        "--virtual-time-budget=5000",
+                        f"--screenshot={screenshot_path}",
+                        url,
+                    ],
+                    check=True,
+                    timeout=45,
+                )
+
+                if not screenshot_path.exists():
+                    continue
+
+                slide = prs.slides.add_slide(blank)
+                slide.shapes.add_picture(str(screenshot_path), 0, 0, width=prs.slide_width, height=prs.slide_height)
+    except (subprocess.SubprocessError, OSError, ValueError):
+        return _build_user_handbook_powerpoint(context)
+
+    output = BytesIO()
+    prs.save(output)
+    output.seek(0)
+    return output
+
+
 class ManualsHomeView(LoginRequiredMixin, TemplateView):
     template_name = "manuals/home.html"
 
@@ -523,27 +922,7 @@ class ManualsUserHandbookView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        target_user, users = _selected_manual_user(self.request)
-        context["manual_target_users"] = users
-        context["manual_selected_user"] = target_user
-        context.update(
-            build_user_manual_context(
-                target_user,
-                query=(self.request.GET.get("q") or "").strip().lower(),
-                selected_group=(self.request.GET.get("group") or "").strip(),
-            )
-        )
-        context.update(_build_user_manual_identity_context(self.request, target_user))
-        context["manual_error_pages"] = _build_manual_error_pages()
-        context["manual_content_pages"] = _build_user_handbook_content_pages(
-            context["manual_workflows"],
-            context["manual_screens"],
-            context["manual_error_pages"],
-        )
-        context["manual_toc_pages"] = _build_user_handbook_toc_pages(context["manual_content_pages"])
-        context["manual_print_mode"] = False
-        context["manual_print_url"] = self.request.build_absolute_uri()
-        context.update(_build_closing_page_context(self.request))
+        context.update(_build_user_handbook_page_context(self.request, print_mode=False))
         return context
 
 
@@ -557,6 +936,26 @@ class ManualsUserHandbookPrintView(ManualsUserHandbookView):
         return context
 
 
+class ManualsUserHandbookPrintExportView(TemplateView):
+    template_name = "manuals/user_handbook_print.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        token = (self.request.GET.get("token") or "").strip()
+        payload = signing.loads(token, salt=MANUAL_EXPORT_SIGNING_SALT, max_age=900)
+        params = {}
+        for key, value in payload.items():
+            if isinstance(value, list):
+                params[key] = value[0] if value else ""
+            else:
+                params[key] = value
+        params["export_page"] = (self.request.GET.get("export_page") or "").strip()
+        params["export_mode"] = "powerpoint"
+        context.update(_build_user_handbook_page_context(self.request, params=params, print_mode=True))
+        context["manual_print_url"] = self.request.build_absolute_uri()
+        return context
+
+
 class ManualsMarkdownDownloadView(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         file_path = Path("docs/user-guide.md")
@@ -566,3 +965,16 @@ class ManualsMarkdownDownloadView(LoginRequiredMixin, TemplateView):
             filename="user-guide.md",
             content_type="text/markdown; charset=utf-8",
         )
+
+
+class ManualsUserHandbookPowerPointDownloadView(ManualsUserHandbookView):
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        presentation = _build_user_handbook_powerpoint_from_rendered_pages(request, context)
+        filename = f"user-handbook-{context['manual_target_username']}.pptx"
+        response = HttpResponse(
+            presentation.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response

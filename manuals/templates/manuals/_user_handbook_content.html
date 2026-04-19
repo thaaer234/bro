@@ -9,6 +9,7 @@
         </div>
         <div class="manual-toolbar__group">
             <a href="{% url 'manuals:user_handbook_print' %}?user={{ manual_selected_user.id }}{% if manual_target_password and manual_target_password != 'غير متاح في النظام' %}&password={{ manual_target_password|urlencode }}{% endif %}{% if manual_search_query %}&q={{ manual_search_query|urlencode }}{% endif %}{% if manual_selected_group %}&group={{ manual_selected_group|urlencode }}{% endif %}" class="manual-button manual-button--primary">معاينة الطباعة</a>
+            <a href="{% url 'manuals:user_handbook_powerpoint' %}?user={{ manual_selected_user.id }}{% if manual_target_password and manual_target_password != 'غير متاح في النظام' %}&password={{ manual_target_password|urlencode }}{% endif %}{% if manual_search_query %}&q={{ manual_search_query|urlencode }}{% endif %}{% if manual_selected_group %}&group={{ manual_selected_group|urlencode }}{% endif %}" class="manual-button">تنزيل PowerPoint</a>
         </div>
     </div>
 
