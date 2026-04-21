@@ -9,9 +9,12 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponse, HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
+from django.utils.decorators import method_decorator
 from django.db import transaction
 from django.db.models import Sum, Count, Q
 from django.core.exceptions import FieldDoesNotExist
+from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string 
 from django.contrib.staticfiles import finders
 from django.conf import settings
@@ -1548,6 +1551,80 @@ class BiometricImportView(LoginRequiredMixin, View):
         except Exception as exc:
             messages.error(request, f'فشل استيراد سجلات البصمة: {exc}')
         return redirect('employ:biometric_dashboard')
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class BiometricPushApiView(View):
+    http_method_names = ['post']
+
+    def _extract_token(self, request):
+        auth_header = (request.headers.get('Authorization') or '').strip()
+        if auth_header.lower().startswith('bearer '):
+            return auth_header[7:].strip()
+        return (
+            request.headers.get('X-Biometric-Token')
+            or request.GET.get('token')
+            or request.POST.get('token')
+            or ''
+        ).strip()
+
+    def _is_authorized(self, request):
+        configured_token = (getattr(settings, 'BIOMETRIC_PUSH_TOKEN', '') or '').strip()
+        provided_token = self._extract_token(request)
+        return bool(configured_token) and bool(provided_token) and constant_time_compare(provided_token, configured_token)
+
+    def post(self, request):
+        if not self._is_authorized(request):
+            return JsonResponse(
+                {'ok': False, 'error': 'unauthorized', 'detail': 'Invalid or missing biometric push token.'},
+                status=403,
+            )
+
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return JsonResponse(
+                {'ok': False, 'error': 'invalid_json', 'detail': 'Request body must be valid JSON.'},
+                status=400,
+            )
+
+        raw_logs = payload.get('logs')
+        if not isinstance(raw_logs, list) or not raw_logs:
+            return JsonResponse(
+                {'ok': False, 'error': 'missing_logs', 'detail': 'Payload must include a non-empty logs list.'},
+                status=400,
+            )
+
+        device = None
+        device_id = payload.get('device_id')
+        device_serial = str(payload.get('device_serial') or '').strip()
+        if device_id:
+            device = BiometricDevice.objects.filter(pk=device_id, active=True).first()
+        if device is None and device_serial:
+            device = BiometricDevice.objects.filter(serial=device_serial, active=True).first()
+        if device is None:
+            return JsonResponse(
+                {'ok': False, 'error': 'device_not_found', 'detail': 'No active biometric device matched the payload.'},
+                status=404,
+            )
+
+        try:
+            result = BiometricImportService.import_logs(device, raw_logs)
+        except Exception as exc:
+            return JsonResponse(
+                {'ok': False, 'error': 'import_failed', 'detail': str(exc)},
+                status=500,
+            )
+
+        return JsonResponse({
+            'ok': True,
+            'device': {
+                'id': device.pk,
+                'name': device.name,
+                'serial': device.serial,
+            },
+            **result,
+        })
 
 
 class EmployeeAttendanceListView(LoginRequiredMixin, ListView):

@@ -16,6 +16,7 @@ _scheduler_started = False
 
 def should_start_biometric_scheduler():
     blocked_commands = {
+        'check',
         'makemigrations',
         'migrate',
         'collectstatic',
@@ -24,6 +25,7 @@ def should_start_biometric_scheduler():
         'createsuperuser',
         'changepassword',
         'test',
+        'sync_biometric_devices',
     }
     if len(sys.argv) > 1 and sys.argv[1] in blocked_commands:
         return False

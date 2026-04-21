@@ -326,6 +326,7 @@ QUICK_RECEIPT_PRINTER_FEED_LINES = env_int("QUICK_RECEIPT_PRINTER_FEED_LINES", 3
 QUICK_RECEIPT_PRINTER_TITLE = os.getenv("QUICK_RECEIPT_PRINTER_TITLE", "معهد اليمان").strip()
 QUICK_LOCAL_AGENT_URL = os.getenv("QUICK_LOCAL_AGENT_URL", "http://127.0.0.1:8765/print").strip()
 QUICK_PRINT_AGENT_TOKEN = os.getenv("QUICK_PRINT_AGENT_TOKEN", "").strip()
+BIOMETRIC_PUSH_TOKEN = os.getenv("BIOMETRIC_PUSH_TOKEN", "").strip()
 
 # ==============================
 # Crispy Forms  

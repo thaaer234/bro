@@ -32,6 +32,7 @@ urlpatterns = [
     path('biometric/', require_employee_perm('hr_view')(views.BiometricDashboardView.as_view()), name='biometric_dashboard'),
     path('biometric/devices/create/', require_employee_perm('hr_edit')(views.BiometricDeviceCreateView.as_view()), name='biometric_device_create'),
     path('biometric/import/', require_employee_perm('hr_edit')(views.BiometricImportView.as_view()), name='biometric_import'),
+    path('biometric/push/', views.BiometricPushApiView.as_view(), name='biometric_push'),
     path('attendance/employees/', require_employee_perm('hr_view')(views.EmployeeAttendanceListView.as_view()), name='attendance_list'),
     path('attendance/employees/rebuild/', require_employee_perm('hr_edit')(views.EmployeeAttendanceRebuildView.as_view()), name='attendance_rebuild'),
     path('attendance/employees/<int:pk>/edit/', require_employee_perm('hr_edit')(views.EmployeeAttendanceUpdateView.as_view()), name='attendance_update'),
