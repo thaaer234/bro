@@ -276,10 +276,40 @@
                     <span>إدارة الرواتب</span>
                 </a>
                 {% endif %}
+                {% if user.is_superuser or 'hr_salary' in emp_perms %}
+                <a href="{% url 'employ:payroll_dashboard' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'payroll_dashboard' %}active{% endif %}">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>مسير الرواتب</span>
+                </a>
+                {% endif %}
+                {% if user.is_superuser or 'hr_view' in emp_perms %}
+                <a href="{% url 'employ:biometric_dashboard' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'biometric_dashboard' %}active{% endif %}">
+                    <i class="fas fa-fingerprint"></i>
+                    <span>البصمة</span>
+                </a>
+                <a href="{% url 'employ:attendance_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'attendance_list' %}active{% endif %}">
+                    <i class="fas fa-user-clock"></i>
+                    <span>دوام الموظفين</span>
+                </a>
+                <a href="{% url 'employ:attendance_summary' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'attendance_summary' %}active{% endif %}">
+                    <i class="fas fa-chart-column"></i>
+                    <span>ملخص الحضور</span>
+                </a>
+                <a href="{% url 'employ:employee_reports' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'employee_reports' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i>
+                    <span>التقارير</span>
+                </a>
+                {% endif %}
                 {% if user.is_superuser or 'hr_vacations' in emp_perms %}
                 <a href="{% url 'employ:vacation_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'vacation_list' %}active{% endif %}">
                     <i class="fas fa-umbrella-beach"></i>
                     <span>الإجازات</span>
+                </a>
+                {% endif %}
+                {% if user.is_superuser or 'hr_edit' in emp_perms %}
+                <a href="{% url 'employ:hr_settings' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'hr_settings' %}active{% endif %}">
+                    <i class="fas fa-sliders"></i>
+                    <span>طرق الحساب</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'hr_advances' in emp_perms %}

@@ -1,423 +1,201 @@
 {% extends 'base.html' %}
-
-{% load emp_perms %}
 {% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="module-header">
     <h2>ملف الموظف</h2>
     <div class="header-actions">
-        <a href="{% url 'employ:hr' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> العودة إلى إدارة الموارد البشرية
-        </a>
-        <a href="{% url 'employ:vacation_create' %}?employee={{ employee.pk }}" class="btn btn-outline-primary">
-            <i class="fas fa-plane-departure"></i> طلب إجازة جديد
-        </a>
-        <a href="{% url 'employ:employee_advance_create' %}?employee={{ employee.pk }}" class="btn btn-warning">
-            <i class="fas fa-hand-holding-usd"></i> إنشاء سلفة
-        </a>
-        <a href="{% url 'employ:employee_permissions' employee.pk %}" class="btn btn-info">
-            <i class="fas fa-key"></i> إدارة الصلاحيات
-        </a>
+        <a href="{% url 'employ:employee_update' employee.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> تعديل</a>
+        <a href="{% url 'employ:employee_advance_create' %}?employee={{ employee.pk }}" class="btn btn-warning"><i class="fas fa-hand-holding-usd"></i> سلفة</a>
+        <a href="{% url 'employ:hr' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> العودة</a>
     </div>
 </div>
 
 {% include 'partials/_alerts.html' %}
 
-{% if salary_status %}
-    <div class="alert alert-success">تم تسجيل راتب الفترة {{ salary_period_label }} لهذا الموظف.</div>
-{% elif salary_amount > 0 %}
-    <div class="alert alert-warning">راتب الفترة {{ salary_period_label }} لم يُسجل بعد.</div>
-{% endif %}
-
 <div class="row g-3">
-    <div class="col-lg-8">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">البيانات الأساسية</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="small text-muted">الاسم الكامل</div>
-                        <div class="fw-bold">{{ employee.full_name }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">المسمى الوظيفي</div>
-                        <div>{{ employee.get_position_display }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">رقم الجوال</div>
-                        <div>{{ employee.phone_number|default:"غير محدد" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">تاريخ التعيين</div>
-                        <div>{{ employee.hire_date|date:"Y-m-d" }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">الحساب الفرعي للرواتب</div>
-                        <div class="fw-bold">{{ salary_account_code }}</div>
-                        {% if salary_account %}
-                            <small class="text-muted">{{ salary_account.name }}</small>
-                        {% else %}
-                            <small class="text-muted">سيتم إنشاء الحساب تلقائياً عند تسجيل أول قيد راتب.</small>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6">
-                        <div class="small text-muted">آخر دفعة راتب</div>
-                        {% if last_salary_payment %}
-                            <div>{{ last_salary_payment.date|date:"Y-m-d" }} - {{ last_salary_payment.amount|floatformat:2 }} ر.س</div>
-                            <small class="text-muted">مرجع القيد: {{ last_salary_payment.journal_entry.reference }}</small>
-                        {% else %}
-                            <div class="text-muted">لا يوجد سجل للرواتب بعد</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card shadow-sm mb-3">
-            <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
-                <h5 class="mb-0">ملخص الراتب للفترة</h5>
-                <form method="get" class="row g-2 align-items-center">
-                    <div class="col-5">
-                        <select name="month" class="form-select form-select-sm">
-                            {% for month_number, month_label in months %}
-                                <option value="{{ month_number }}" {% if month_number == salary_month %}selected{% endif %}>{{ month_label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-4">
-                        <input type="number" name="year" class="form-control form-control-sm" value="{{ salary_year }}" min="1900" max="2100">
-                    </div>
-                    <div class="col-3">
-                        <button class="btn btn-sm btn-primary w-100">
-                            <i class="fas fa-sync"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <div class="card-body">
-                <div class="row row-cols-1 row-cols-md-2 g-3 text-center">
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-primary"><i class="fas fa-money-check-alt"></i></div>
-                            <div class="stat-card-value">{{ salary_amount|floatformat:2 }}</div>
-                            <div class="stat-card-label">الراتب الإجمالي</div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-warning"><i class="fas fa-hand-holding-usd"></i></div>
-                            <div class="stat-card-value">{{ salary_period_advance_outstanding|floatformat:2 }}</div>
-                            <div class="stat-card-label">السلف المستحقة ({{ salary_period_label }})</div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon bg-success"><i class="fas fa-wallet"></i></div>
-                            <div class="stat-card-value">{{ salary_period_remaining|floatformat:2 }}</div>
-                            <div class="stat-card-label">الصافي للدفع</div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="stat-card">
-                            <div class="stat-card-icon {% if salary_status %}bg-success{% else %}bg-danger{% endif %}"><i class="fas fa-receipt"></i></div>
-                            <div class="stat-card-value">{% if salary_status %}مدفوع{% else %}غير مدفوع{% endif %}</div>
-                            <div class="stat-card-label">حالة راتب {{ salary_period_label }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                {% if salary_period_advances %}
-                <div class="mt-3">
-                    <div class="alert alert-info">
-                        <strong><i class="fas fa-info-circle"></i> توزيع الراتب:</strong>
-                        <ul class="mb-0 mt-2">
-                            <li>الراتب الإجمالي: <strong>{{ salary_amount|floatformat:2 }} ل.س</strong></li>
-                            <li>السلف المستحقة: <strong>{{ salary_period_advance_outstanding|floatformat:2 }} ل.س</strong></li>
-                            <li>الصافي (النقدية): <strong>{{ salary_period_remaining|floatformat:2 }} ل.س</strong></li>
-                        </ul>
-                        <small class="text-muted d-block mt-2">سيتم خصم السلف المستحقة تلقائياً عند دفع الراتب</small>
-                    </div>
-                </div>
-                {% endif %}
-                {% if salary_amount > 0 %}
-                <div class="mt-3 text-center">
-                    <form method="post" action="{% url 'employ:pay_employee_salary' employee.pk %}" class="d-inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="year" value="{{ salary_year }}">
-                        <input type="hidden" name="month" value="{{ salary_month }}">
-                        <input type="hidden" name="manual_advance_amount" id="form-advance-amount" value="{{ salary_period_advance_outstanding|floatformat:2 }}">
-                        <input type="hidden" name="return_to_profile" value="1">
-                        <button type="submit" class="btn btn-primary" {% if salary_status %}disabled{% endif %}
-                                onclick="return confirmSalaryPayment()">
-                            <i class="fas fa-money-bill-wave"></i> دفع الراتب
-                        </button>
-                    </form>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card shadow-sm mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">سجل الدفعات الأخيرة</h5>
-                <a href="{% url 'accounts:employee_financial_profile' 'employee' employee.pk %}" class="btn btn-sm btn-outline-secondary">
-                    عرض المزيد
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <thead>
-                            <tr>
-                                <th>التاريخ</th>
-                                <th>المبلغ</th>
-                                <th>الحساب</th>
-                                <th>مرجع القيد</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in salary_entries %}
-                                {% with payment=row.entry %}
-                                <tr>
-                                    <td>{{ payment.date|date:"Y-m-d" }}</td>
-                                    <td>{{ payment.amount|floatformat:2 }}</td>
-                                    <td>
-                                        {% if row.debit_account %}
-                                            {{ row.debit_account.code }}
-                                            <small class="text-muted d-block">{{ row.debit_account.name }}</small>
-                                        {% elif payment.journal_entry %}
-                                            <span class="text-muted">{{ payment.journal_entry.reference }}</span>
-                                        {% else %}
-                                            <span class="text-muted">غير مرتبط</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{% if payment.journal_entry %}{{ payment.journal_entry.reference }}{% else %}-{% endif %}</td>
-                                </tr>
-                                {% endwith %}
-                            {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted">لا توجد دفعات مسجلة بعد.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="card shadow-sm mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">الإجازات</h5>
-                <a href="{% url 'employ:vacation_list' %}?employee_name={{ employee.full_name }}" class="btn btn-sm btn-outline-secondary">
-                    إدارة الإجازات
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <thead>
-                            <tr>
-                                <th>نوع الإجازة</th>
-                                <th>بداية</th>
-                                <th>نهاية</th>
-                                <th>الحالة</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for vacation in vacations %}
-                                <tr>
-                                    <td>{{ vacation.get_vacation_type_display }}</td>
-                                    <td>{{ vacation.start_date|date:"Y-m-d" }}</td>
-                                    <td>{{ vacation.end_date|date:"Y-m-d" }}</td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ vacation.get_status_display }}</span>
-                                    </td>
-                                    <td class="text-end">
-                                        <a href="{% url 'employ:vacation_update' vacation.pk %}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted">لا توجد طلبات إجازة مسجلة.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
+    <div class="col-lg-4">
         <div class="card shadow-sm">
-            <div class="card-header">
-                <h5 class="mb-0">السلف المالية</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <thead>
-                            <tr>
-                                <th>التاريخ</th>
-                                <th>المبلغ</th>
-                                <th>المتبقي</th>
-                                <th>الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for advance in advances %}
-                                <tr>
-                                    <td>{{ advance.date|date:"Y-m-d" }}</td>
-                                    <td>{{ advance.amount|floatformat:2 }}</td>
-                                    <td>{{ advance.outstanding_amount|floatformat:2 }}</td>
-                                    <td>
-                                        {% if advance.is_repaid %}
-                                            <span class="badge bg-success">مسدد</span>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">متبقي</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted">لا توجد سلف مسجلة لهذا الموظف.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <div class="card-body text-center">
+                {% if employee.profile_photo %}
+                <img src="{{ employee.profile_photo.url }}" alt="{{ employee.full_name }}" class="img-fluid rounded-circle mb-3" style="width:140px;height:140px;object-fit:cover;">
+                {% else %}
+                <div class="mb-3" style="font-size:5rem;color:#9aa7bd;"><i class="fas fa-user-circle"></i></div>
+                {% endif %}
+                <h4>{{ employee.full_name }}</h4>
+                <div class="text-muted">{{ employee.job_title|default:employee.get_position_display }}</div>
+                <div class="mt-3 text-start">
+                    <div><strong>الكود:</strong> {{ employee.employee_code|default:"-" }}</div>
+                    <div><strong>معرف البصمة:</strong> {{ employee.biometric_user_id|default:"-" }}</div>
+                    <div><strong>القسم:</strong> {{ employee.department|default:"-" }}</div>
+                    <div><strong>الشفت:</strong> {{ employee.default_shift|default:"-" }}</div>
+                    <div><strong>الحالة:</strong> {{ employee.get_employment_status_display }}</div>
+                    <div><strong>نوع العقد:</strong> {{ employee.get_contract_type_display }}</div>
+                    <div><strong>الهاتف:</strong> {{ employee.phone_number|default:"-" }}</div>
+                    <div><strong>الرقم الوطني:</strong> {{ employee.national_id|default:"-" }}</div>
                 </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+            <div class="card-header"><h5 class="mb-0">جهة الطوارئ</h5></div>
+            <div class="card-body">
+                <div><strong>الاسم:</strong> {{ employee.emergency_contact_name|default:"-" }}</div>
+                <div><strong>الهاتف:</strong> {{ employee.emergency_contact_phone|default:"-" }}</div>
+                <div class="mt-2"><strong>العنوان:</strong> {{ employee.address|default:"-" }}</div>
             </div>
         </div>
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-lg-8">
         <div class="card shadow-sm mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">إحصائيات الإجازات</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">المعاينة اللحظية للراتب</h5>
+                <form method="get" class="row g-2">
+                    <div class="col-5">
+                        <select name="month" class="form-select form-select-sm">
+                            {% for month_number, month_label in months %}
+                            <option value="{{ month_number }}" {% if month_number == salary_month %}selected{% endif %}>{{ month_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <input type="number" class="form-control form-control-sm" name="year" value="{{ salary_year }}">
+                    </div>
+                    <div class="col-3">
+                        <button class="btn btn-sm btn-primary w-100">عرض</button>
+                    </div>
+                </form>
             </div>
             <div class="card-body">
-                <div class="row row-cols-1 g-3 text-center">
-                    <div class="col">
+                <div class="row g-3 text-center">
+                    <div class="col-md-4">
                         <div class="stat-card">
-                            <div class="stat-card-icon bg-primary"><i class="fas fa-suitcase"></i></div>
-                            <div class="stat-card-value">{{ vacations_total }}</div>
-                            <div class="stat-card-label">إجمالي الإجازات</div>
+                            <div class="stat-card-value">{{ live_preview.gross_salary|floatformat:2 }}</div>
+                            <div class="stat-card-label">الراتب الأساسي</div>
                         </div>
                     </div>
-                    <div class="col">
+                    <div class="col-md-4">
                         <div class="stat-card">
-                            <div class="stat-card-icon bg-warning"><i class="fas fa-hourglass-half"></i></div>
-                            <div class="stat-card-value">{{ vacation_pending_count }}</div>
-                            <div class="stat-card-label">قيد المتابعة</div>
+                            <div class="stat-card-value">{{ live_preview.overtime_total|floatformat:2 }}</div>
+                            <div class="stat-card-label">الإضافي</div>
                         </div>
                     </div>
-                    <div class="col">
+                    <div class="col-md-4">
                         <div class="stat-card">
-                            <div class="stat-card-icon bg-success"><i class="fas fa-calendar-check"></i></div>
-                            <div class="stat-card-value">{{ vacations_current_year }}</div>
-                            <div class="stat-card-label">هذا العام</div>
+                            <div class="stat-card-value">{{ live_preview.net_salary|floatformat:2 }}</div>
+                            <div class="stat-card-label">الصافي اللحظي</div>
                         </div>
                     </div>
                 </div>
-                <hr>
-                <ul class="list-group list-group-flush">
-                    {% for item in vacation_status_breakdown %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>{{ item.label }}</span>
-                            <span class="badge bg-secondary">{{ item.count }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
-                {% if upcoming_vacations %}
-                    <hr>
-                    <h6 class="fw-bold">أقرب الإجازات</h6>
-                    <ul class="list-unstyled mb-0">
-                        {% for vacation in upcoming_vacations %}
-                            <li class="mb-2">
-                                <i class="fas fa-calendar-day text-primary"></i>
-                                {{ vacation.start_date|date:"Y-m-d" }} - {{ vacation.end_date|date:"Y-m-d" }}
-                                <span class="badge bg-light text-dark">{{ vacation.get_vacation_type_display }}</span>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>البند</th>
+                                <th>القيمة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for title, amount in live_preview.lines %}
+                            <tr>
+                                <td>{{ title }}</td>
+                                <td>{{ amount|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr>
+                                <td>ساعات العمل الفعلية</td>
+                                <td>{{ live_preview.worked_seconds }}</td>
+                            </tr>
+                            <tr>
+                                <td>ثواني التأخير</td>
+                                <td>{{ live_preview.late_seconds }}</td>
+                            </tr>
+                            <tr>
+                                <td>ثواني الغياب</td>
+                                <td>{{ live_preview.absence_seconds }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <div class="card shadow-sm mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">السلف القائمة</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>إجمالي السلف</span>
-                    <span class="fw-bold">{{ advances_total }}</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>الرصيد المتبقي</span>
-                    <span class="fw-bold">{{ advance_outstanding_total|floatformat:2 }} ر.س</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>عدد السلف غير المسددة</span>
-                    <span class="fw-bold">{{ outstanding_advances_count }}</span>
+            <div class="card-header"><h5 class="mb-0">آخر سجلات الدوام</h5></div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الدخول</th>
+                                <th>الخروج</th>
+                                <th>العمل</th>
+                                <th>التأخير</th>
+                                <th>الإضافي</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in recent_attendance %}
+                            <tr>
+                                <td>{{ row.date }}</td>
+                                <td>{{ row.check_in|date:"Y-m-d H:i"|default:"-" }}</td>
+                                <td>{{ row.check_out|date:"Y-m-d H:i"|default:"-" }}</td>
+                                <td>{{ row.worked_seconds }}</td>
+                                <td>{{ row.late_seconds }}</td>
+                                <td>{{ row.overtime_seconds }}</td>
+                                <td>{{ row.get_status_display }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center text-muted">لا توجد سجلات دوام بعد.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <h5 class="mb-0">روابط سريعة</h5>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header"><h5 class="mb-0">السلف</h5></div>
+                    <div class="card-body">
+                        <div class="mb-2"><strong>إجمالي السلف:</strong> {{ advances_total }}</div>
+                        <div class="mb-3"><strong>المتبقي:</strong> {{ advance_outstanding_total|floatformat:2 }}</div>
+                        <ul class="list-unstyled mb-0">
+                            {% for advance in advances|slice:":5" %}
+                            <li class="mb-2">{{ advance.date }} - {{ advance.amount|floatformat:2 }} / متبقٍ {{ advance.outstanding_amount|floatformat:2 }}</li>
+                            {% empty %}
+                            <li class="text-muted">لا توجد سلف.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'employ:salary_management' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-money-bill-wave"></i> لوحة إدارة الرواتب
-                    </a>
-                    <a href="{% url 'accounts:employee_financial_overview' %}" class="btn btn-outline-success">
-                        <i class="fas fa-users-cog"></i> نظرة عامة على الرواتب
-                    </a>
-                    <a href="{% url 'accounts:advance_list' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-hand-holding-usd"></i> السلف المالية
-                    </a>
+
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header"><h5 class="mb-0">الإجازات</h5></div>
+                    <div class="card-body">
+                        <div class="mb-2"><strong>الإجمالي:</strong> {{ vacations_total }}</div>
+                        <div class="mb-3"><strong>قيد الموافقة:</strong> {{ vacation_pending_count }}</div>
+                        <ul class="list-unstyled mb-0">
+                            {% for vacation in vacations|slice:":5" %}
+                            <li class="mb-2">{{ vacation.start_date }} - {{ vacation.end_date }} / {{ vacation.get_status_display }}</li>
+                            {% empty %}
+                            <li class="text-muted">لا توجد إجازات.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const manualAdvanceInput = document.getElementById('manual-advance-amount');
-    const netSalaryDisplay = document.getElementById('net-salary-display');
-    const manualAdvanceHidden = document.getElementById('manual-advance-input');
-    const grossSalary = {{ salary_amount|floatformat:2 }};
-    
-    function updateNetSalary() {
-        const advanceAmount = parseFloat(manualAdvanceInput.value) || 0;
-        const netSalary = Math.max(0, grossSalary - advanceAmount);
-        netSalaryDisplay.textContent = netSalary.toFixed(2);
-        manualAdvanceHidden.value = advanceAmount.toFixed(2);
-    }
-    
-    manualAdvanceInput.addEventListener('input', updateNetSalary);
-    
-    window.confirmSalaryPayment = function() {
-        const advanceAmount = parseFloat(manualAdvanceInput.value) || 0;
-        const netSalary = Math.max(0, grossSalary - advanceAmount);
-        
-        return confirm(
-            `تأكيد دفع راتب {{ display_name|default:employee.full_name }} عن شهر {{ salary_period_label }}؟\n` +
-            `الراتب الإجمالي: ${grossSalary.toFixed(2)} ل.س\n` +
-            `السلف المخصومة: ${advanceAmount.toFixed(2)} ل.س\n` +
-            `الصافي للدفع: ${netSalary.toFixed(2)} ل.س`
-        );
-    };
-});
-</script>
 {% endblock %}
-
-

@@ -1,6 +1,7 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from django.contrib.auth.models import User
 from django.db.models import Sum
@@ -22,6 +23,10 @@ class Employee(models.Model):
     # حقول اختيارية للإدارة
     phone_number = models.CharField(max_length=20, blank=True, null=True, verbose_name='رقم الهاتف')
     hire_date = models.DateField(blank=True, null=True, verbose_name='تاريخ التعيين')
+    employee_code = models.CharField(max_length=30, unique=True, blank=True, null=True, verbose_name='الرقم الوظيفي')
+    biometric_user_id = models.CharField(max_length=30, unique=True, blank=True, null=True, verbose_name='معرف البصمة')
+    national_id = models.CharField(max_length=30, blank=True, null=True, verbose_name='الرقم الوطني')
+    address = models.TextField(blank=True, null=True, verbose_name='العنوان')
 
     # الراتب الشهري الثابت (تستخدمه الفيوز الخاصة بملف الموظف ودفع الراتب)
     salary = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='راتب شهري')
@@ -34,6 +39,73 @@ class Employee(models.Model):
         ('staff', 'موظف'),
     ]
     position = models.CharField(max_length=50, choices=POSITION_CHOICES, default='staff', verbose_name='الوظيفة')
+    contract_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('permanent', 'دائم'),
+            ('temporary', 'مؤقت'),
+            ('probation', 'تجربة'),
+            ('freelance', 'تعاقد حر'),
+        ],
+        default='permanent',
+        verbose_name='نوع العقد'
+    )
+    contract_start = models.DateField(blank=True, null=True, verbose_name='بداية العقد')
+    contract_end = models.DateField(blank=True, null=True, verbose_name='نهاية العقد')
+    employment_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('active', 'على رأس العمل'),
+            ('suspended', 'موقوف'),
+            ('vacation', 'في إجازة'),
+            ('terminated', 'منتهي الخدمة'),
+        ],
+        default='active',
+        verbose_name='حالة الموظف'
+    )
+    department = models.ForeignKey(
+        'Department',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='employees',
+        verbose_name='القسم'
+    )
+    job_title = models.ForeignKey(
+        'JobTitle',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='employees',
+        verbose_name='المسمى الوظيفي'
+    )
+    default_shift = models.ForeignKey(
+        'Shift',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='employees',
+        verbose_name='الشفت الافتراضي'
+    )
+    attendance_policy = models.ForeignKey(
+        'AttendancePolicy',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='employees',
+        verbose_name='سياسة الدوام'
+    )
+    salary_rule = models.ForeignKey(
+        'EmployeeSalaryRule',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='employees',
+        verbose_name='قاعدة الراتب'
+    )
+    emergency_contact_name = models.CharField(max_length=150, blank=True, null=True, verbose_name='اسم جهة الطوارئ')
+    emergency_contact_phone = models.CharField(max_length=30, blank=True, null=True, verbose_name='هاتف جهة الطوارئ')
+    profile_photo = models.ImageField(upload_to='employees/profiles/', blank=True, null=True, verbose_name='الصورة الشخصية')
 
     def __str__(self):
         return self.full_name or (self.user.get_username() if self.user_id else 'Employee')
@@ -98,6 +170,351 @@ class Employee(models.Model):
     @property
     def has_cash_account(self):
         return self.get_cash_account() is not None
+
+    @property
+    def effective_shift(self):
+        return self.default_shift
+
+    @property
+    def effective_attendance_policy(self):
+        return self.attendance_policy
+
+    @property
+    def effective_salary_rule(self):
+        return self.salary_rule
+
+
+class Department(models.Model):
+    name = models.CharField(max_length=150, unique=True, verbose_name='اسم القسم')
+    code = models.CharField(max_length=30, unique=True, blank=True, null=True, verbose_name='رمز القسم')
+    description = models.TextField(blank=True, verbose_name='الوصف')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'قسم'
+        verbose_name_plural = 'الأقسام'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class JobTitle(models.Model):
+    name = models.CharField(max_length=150, verbose_name='المسمى الوظيفي')
+    code = models.CharField(max_length=30, blank=True, null=True, verbose_name='الرمز')
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='job_titles',
+        verbose_name='القسم'
+    )
+    description = models.TextField(blank=True, verbose_name='الوصف')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+
+    class Meta:
+        verbose_name = 'مسمى وظيفي'
+        verbose_name_plural = 'المسميات الوظيفية'
+        ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['department', 'name'], name='unique_job_title_per_department'),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class Shift(models.Model):
+    name = models.CharField(max_length=120, unique=True, verbose_name='اسم الشفت')
+    code = models.CharField(max_length=30, unique=True, blank=True, null=True, verbose_name='رمز الشفت')
+    start_time = models.TimeField(verbose_name='وقت الدخول')
+    end_time = models.TimeField(verbose_name='وقت الخروج')
+    grace_period_minutes = models.PositiveIntegerField(default=0, verbose_name='وقت السماح بالدقائق')
+    required_work_seconds = models.PositiveIntegerField(default=28800, verbose_name='ساعات العمل المطلوبة بالثواني')
+    is_night_shift = models.BooleanField(default=False, verbose_name='دوام ليلي')
+    break_seconds = models.PositiveIntegerField(default=0, verbose_name='مدة الاستراحة بالثواني')
+    break_start = models.TimeField(blank=True, null=True, verbose_name='بداية الاستراحة')
+    break_end = models.TimeField(blank=True, null=True, verbose_name='نهاية الاستراحة')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+
+    class Meta:
+        verbose_name = 'شفت'
+        verbose_name_plural = 'الشفتات'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def get_bounds_for_date(self, target_date):
+        start_dt = timezone.make_aware(datetime.combine(target_date, self.start_time))
+        end_dt = timezone.make_aware(datetime.combine(target_date, self.end_time))
+        if self.is_night_shift or end_dt <= start_dt:
+            end_dt += timedelta(days=1)
+        return start_dt, end_dt
+
+
+class AttendancePolicy(models.Model):
+    ROUNDING_CHOICES = [
+        ('none', 'بدون تقريب'),
+        ('minute', 'تقريب للدقيقة'),
+        ('5_minutes', 'تقريب لـ 5 دقائق'),
+        ('15_minutes', 'تقريب لـ 15 دقيقة'),
+    ]
+    HOLIDAY_CHOICES = [
+        ('ignore', 'تجاهل'),
+        ('treat_as_overtime', 'إضافي'),
+        ('treat_as_regular', 'دوام عادي'),
+    ]
+
+    name = models.CharField(max_length=150, unique=True, verbose_name='اسم السياسة')
+    late_deduction_rate = models.DecimalField(max_digits=10, decimal_places=4, default=Decimal('0.0000'), verbose_name='خصم التأخير لكل ساعة')
+    early_leave_deduction_rate = models.DecimalField(max_digits=10, decimal_places=4, default=Decimal('0.0000'), verbose_name='خصم الخروج المبكر لكل ساعة')
+    absence_deduction_rate = models.DecimalField(max_digits=10, decimal_places=4, default=Decimal('1.0000'), verbose_name='معامل خصم الغياب')
+    overtime_enabled = models.BooleanField(default=True, verbose_name='حساب الإضافي')
+    overtime_multiplier = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('1.00'), verbose_name='نسبة الإضافي')
+    rounding_method = models.CharField(max_length=20, choices=ROUNDING_CHOICES, default='minute', verbose_name='طريقة التقريب')
+    holiday_handling = models.CharField(max_length=20, choices=HOLIDAY_CHOICES, default='ignore', verbose_name='التعامل مع العطل')
+    weekend_days = models.CharField(max_length=20, default='4,5', verbose_name='أيام العطل الأسبوعية')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+
+    class Meta:
+        verbose_name = 'سياسة دوام'
+        verbose_name_plural = 'سياسات الدوام'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class EmployeeSalaryRule(models.Model):
+    SALARY_TYPE_CHOICES = [
+        ('monthly', 'شهري'),
+        ('daily', 'يومي'),
+        ('hourly', 'بالساعة'),
+    ]
+    ROUNDING_CHOICES = AttendancePolicy.ROUNDING_CHOICES
+
+    name = models.CharField(max_length=150, unique=True, verbose_name='اسم القاعدة')
+    salary_type = models.CharField(max_length=20, choices=SALARY_TYPE_CHOICES, default='monthly', verbose_name='نوع الراتب')
+    overtime_enabled = models.BooleanField(default=True, verbose_name='احتساب الإضافي')
+    overtime_multiplier = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('1.00'), verbose_name='نسبة الإضافي')
+    late_deduction_enabled = models.BooleanField(default=True, verbose_name='خصم التأخير')
+    absence_deduction_enabled = models.BooleanField(default=True, verbose_name='خصم الغياب')
+    tax_percent = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0.00'), verbose_name='الضريبة %')
+    insurance_percent = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('0.00'), verbose_name='التأمين %')
+    max_overtime_seconds = models.PositiveIntegerField(default=0, verbose_name='الحد الأعلى للإضافي بالثواني')
+    max_deduction_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='الحد الأعلى للخصومات')
+    rounding_method = models.CharField(max_length=20, choices=ROUNDING_CHOICES, default='minute', verbose_name='التقريب')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+
+    class Meta:
+        verbose_name = 'قاعدة راتب موظف'
+        verbose_name_plural = 'قواعد رواتب الموظفين'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class BiometricDevice(models.Model):
+    name = models.CharField(max_length=150, verbose_name='اسم الجهاز')
+    ip = models.GenericIPAddressField(verbose_name='عنوان IP')
+    port = models.PositiveIntegerField(default=4370, verbose_name='المنفذ')
+    serial = models.CharField(max_length=100, unique=True, verbose_name='الرقم التسلسلي')
+    location = models.CharField(max_length=150, blank=True, verbose_name='الموقع')
+    active = models.BooleanField(default=True, verbose_name='نشط')
+    last_synced_at = models.DateTimeField(blank=True, null=True, verbose_name='آخر مزامنة')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'جهاز بصمة'
+        verbose_name_plural = 'أجهزة البصمة'
+        ordering = ['name']
+
+    def __str__(self):
+        return f'{self.name} ({self.serial})'
+
+
+class BiometricLog(models.Model):
+    PUNCH_TYPE_CHOICES = [
+        ('check_in', 'دخول'),
+        ('check_out', 'خروج'),
+        ('break_out', 'خروج استراحة'),
+        ('break_in', 'عودة استراحة'),
+        ('unknown', 'غير معروف'),
+    ]
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='biometric_logs',
+        verbose_name='الموظف'
+    )
+    device = models.ForeignKey(
+        BiometricDevice,
+        on_delete=models.CASCADE,
+        related_name='logs',
+        verbose_name='الجهاز'
+    )
+    device_user_id = models.CharField(max_length=30, verbose_name='معرف المستخدم على الجهاز')
+    punch_time = models.DateTimeField(verbose_name='وقت البصمة')
+    punch_type = models.CharField(max_length=20, choices=PUNCH_TYPE_CHOICES, default='unknown', verbose_name='نوع الحركة')
+    raw_data = models.JSONField(default=dict, blank=True, verbose_name='البيانات الخام')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'سجل بصمة'
+        verbose_name_plural = 'سجلات البصمة'
+        ordering = ['-punch_time']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['device', 'device_user_id', 'punch_time', 'punch_type'],
+                name='unique_biometric_log_event'
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.device_user_id} @ {self.punch_time:%Y-%m-%d %H:%M:%S}'
+
+    def clean(self):
+        if not self.employee_id and self.device_user_id:
+            self.employee = Employee.objects.filter(biometric_user_id=self.device_user_id).first()
+
+
+class EmployeeAttendance(models.Model):
+    REVIEW_STATUS_CHOICES = [
+        ('not_required', 'لا تحتاج مراجعة'),
+        ('pending', 'بانتظار المراجعة'),
+        ('justified', 'مبرر'),
+        ('unjustified', 'غير مبرر'),
+    ]
+    STATUS_CHOICES = [
+        ('present', 'حاضر'),
+        ('partial', 'دوام جزئي'),
+        ('late', 'متأخر'),
+        ('absent', 'غائب'),
+        ('vacation', 'إجازة'),
+        ('weekend', 'عطلة'),
+    ]
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendance_records', verbose_name='الموظف')
+    date = models.DateField(verbose_name='التاريخ')
+    check_in = models.DateTimeField(blank=True, null=True, verbose_name='دخول')
+    check_out = models.DateTimeField(blank=True, null=True, verbose_name='خروج')
+    worked_seconds = models.PositiveIntegerField(default=0, verbose_name='العمل الفعلي بالثواني')
+    late_seconds = models.PositiveIntegerField(default=0, verbose_name='التأخير بالثواني')
+    early_leave_seconds = models.PositiveIntegerField(default=0, verbose_name='الخروج المبكر بالثواني')
+    overtime_seconds = models.PositiveIntegerField(default=0, verbose_name='الإضافي بالثواني')
+    absence_seconds = models.PositiveIntegerField(default=0, verbose_name='الغياب بالثواني')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='absent', verbose_name='الحالة')
+    source = models.CharField(max_length=20, default='biometric', verbose_name='المصدر')
+    notes = models.TextField(blank=True, verbose_name='ملاحظات')
+    review_status = models.CharField(max_length=20, choices=REVIEW_STATUS_CHOICES, default='not_required', verbose_name='قرار المراجعة')
+    review_notes = models.TextField(blank=True, verbose_name='ملاحظات المراجعة')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_employee_attendance', verbose_name='راجع السجل')
+    reviewed_at = models.DateTimeField(blank=True, null=True, verbose_name='تاريخ المراجعة')
+    is_manually_adjusted = models.BooleanField(default=False, verbose_name='معدل يدويًا')
+    manual_adjustment_reason = models.TextField(blank=True, verbose_name='سبب التعديل اليدوي')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'دوام موظف'
+        verbose_name_plural = 'دوام الموظفين'
+        ordering = ['-date', 'employee__user__first_name']
+        constraints = [
+            models.UniqueConstraint(fields=['employee', 'date'], name='unique_employee_attendance_day'),
+        ]
+
+    def __str__(self):
+        return f'{self.employee} - {self.date}'
+
+
+class PayrollPeriod(models.Model):
+    STATUS_CHOICES = [
+        ('draft', 'مسودة'),
+        ('processing', 'قيد المعالجة'),
+        ('closed', 'مغلق'),
+    ]
+
+    name = models.CharField(max_length=150, verbose_name='اسم الفترة')
+    start_date = models.DateField(verbose_name='من')
+    end_date = models.DateField(verbose_name='إلى')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name='الحالة')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'فترة رواتب'
+        verbose_name_plural = 'فترات الرواتب'
+        ordering = ['-start_date']
+        constraints = [
+            models.UniqueConstraint(fields=['start_date', 'end_date'], name='unique_payroll_period_dates'),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        if self.end_date < self.start_date:
+            raise ValidationError('نهاية الفترة يجب أن تكون بعد البداية.')
+
+
+class EmployeePayroll(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='payrolls', verbose_name='الموظف')
+    period = models.ForeignKey(PayrollPeriod, on_delete=models.CASCADE, related_name='employee_payrolls', verbose_name='الفترة')
+    gross_salary = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='إجمالي الراتب')
+    deductions_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='إجمالي الخصومات')
+    overtime_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='إجمالي الإضافي')
+    advances_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='السلف')
+    tax_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='الضريبة')
+    insurance_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='التأمين')
+    compensation_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='التعويضات')
+    net_salary = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='صافي الراتب')
+    generated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'مسير موظف'
+        verbose_name_plural = 'مسيرات الموظفين'
+        ordering = ['-generated_at']
+        constraints = [
+            models.UniqueConstraint(fields=['employee', 'period'], name='unique_employee_payroll_per_period'),
+        ]
+
+    def __str__(self):
+        return f'{self.employee} - {self.period}'
+
+
+class EmployeePayrollLine(models.Model):
+    LINE_TYPE_CHOICES = [
+        ('base_salary', 'راتب أساسي'),
+        ('attendance', 'دوام'),
+        ('overtime', 'إضافي'),
+        ('late_deduction', 'خصم تأخير'),
+        ('absence_deduction', 'خصم غياب'),
+        ('advance_deduction', 'خصم سلفة'),
+        ('tax', 'ضريبة'),
+        ('insurance', 'تأمين'),
+        ('compensation', 'تعويض'),
+        ('adjustment', 'تسوية'),
+    ]
+
+    payroll = models.ForeignKey(EmployeePayroll, on_delete=models.CASCADE, related_name='lines', verbose_name='المسير')
+    line_type = models.CharField(max_length=30, choices=LINE_TYPE_CHOICES, verbose_name='النوع')
+    title = models.CharField(max_length=150, verbose_name='العنوان')
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='القيمة')
+    notes = models.TextField(blank=True, verbose_name='ملاحظات')
+    source_reference = models.CharField(max_length=100, blank=True, verbose_name='مرجع المصدر')
+
+    class Meta:
+        verbose_name = 'سطر مسير'
+        verbose_name_plural = 'سطور المسير'
+        ordering = ['id']
+
+    def __str__(self):
+        return f'{self.title} - {self.amount}'
 
 
 class EmployeePermission(models.Model):

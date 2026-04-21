@@ -7006,7 +7006,16 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
                 continue
             displayed_enrollments.append(available_lookup[enrollment_id])
 
-        form = QuickSessionAttendanceBulkForm(request.POST, session=session, enrollments=displayed_enrollments)
+        post_data = request.POST.copy()
+        for enrollment in displayed_enrollments:
+            status_key = f"student_{enrollment.id}_status"
+            if not post_data.get(status_key):
+                fallback_key = f"{status_key}_fallback"
+                fallback_status = post_data.get(fallback_key)
+                if fallback_status:
+                    post_data[status_key] = fallback_status
+
+        form = QuickSessionAttendanceBulkForm(post_data, session=session, enrollments=displayed_enrollments)
         if not form.is_valid():
             error_messages = []
             for field_name, errors in form.errors.items():
@@ -7058,7 +7067,11 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
                 full_name = (request.POST.get(f'guest_name_{row_key}') or '').strip()
                 if not full_name:
                     continue
-                status = request.POST.get(f'guest_status_{row_key}') or 'present'
+                status = (
+                    request.POST.get(f'guest_status_{row_key}')
+                    or request.POST.get(f'guest_status_{row_key}_fallback')
+                    or 'present'
+                )
                 status = 'present' if status == 'present' else 'absent'
                 notes = (request.POST.get(f'guest_notes_{row_key}') or '').strip()
 

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="module-header">
+    <h2>إعدادات HR</h2>
+    <a href="{% url 'employ:hr' %}" class="btn btn-secondary">العودة</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">الأقسام</h5></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'employ:department_create' %}">
+                    {% csrf_token %}
+                    {{ department_form.as_p }}
+                    <button class="btn btn-primary">حفظ القسم</button>
+                </form>
+                <hr>
+                <ul class="list-unstyled mb-0">
+                    {% for item in departments %}
+                    <li class="mb-2">{{ item.name }}{% if item.code %} - {{ item.code }}{% endif %}</li>
+                    {% empty %}
+                    <li class="text-muted">لا توجد أقسام.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">الشفتات</h5></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'employ:job_title_create' %}" class="mb-4">
+                    {% csrf_token %}
+                    <h6>المسميات الوظيفية</h6>
+                    {{ job_title_form.as_p }}
+                    <button class="btn btn-outline-primary">حفظ المسمى</button>
+                </form>
+                <hr>
+                <form method="post" action="{% url 'employ:shift_create' %}">
+                    {% csrf_token %}
+                    {{ shift_form.as_p }}
+                    <button class="btn btn-primary">حفظ الشفت</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">سياسات الدوام</h5></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'employ:attendance_policy_create' %}">
+                    {% csrf_token %}
+                    {{ policy_form.as_p }}
+                    <button class="btn btn-primary">حفظ السياسة</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">قواعد الرواتب</h5></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'employ:salary_rule_create' %}">
+                    {% csrf_token %}
+                    {{ salary_rule_form.as_p }}
+                    <button class="btn btn-primary">حفظ القاعدة</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

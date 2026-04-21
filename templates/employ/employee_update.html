@@ -1,19 +1,16 @@
 {% extends "base.html" %}
-
-{% load emp_perms %}
 {% load static %}
-
-
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
 {% endblock %}
+
 {% block content %}
 <div class="module-header">
-    <h2>تعديل بيانات الموظف: {{ object.user.get_full_name }}</h2>
+    <h2>تعديل ملف الموظف: {{ object.full_name }}</h2>
     <div class="header-actions">
-        <a href="{% url 'employ:employee_permissions' object.pk %}" class="btn btn-info">
-            <i class="fas fa-key"></i> إدارة الصلاحيات
+        <a href="{% url 'employ:employee_profile' object.pk %}" class="btn btn-info">
+            <i class="fas fa-id-card"></i> الملف
         </a>
         <a href="{% url 'employ:hr' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> العودة
@@ -23,102 +20,56 @@
 
 {% include "partials/_alerts.html" %}
 
-<div class="form-container">
-    <!-- قسم تعديل البيانات الأساسية -->
-    <form method="post">
-        {% csrf_token %}
-        
-        <div class="form-section">
-            <h3>البيانات الشخصية</h3>
-            <div class="form-row">
-                <div class="form-col">
-                    <label for="{{ form.username.id_for_label }}">اسم المستخدم</label>
-                    {{ form.username }}
-                </div>
-                <div class="form-col">
-                    <label for="{{ form.first_name.id_for_label }}">الاسم الأول</label>
-                    {{ form.first_name }}
-                </div>
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">البيانات الأساسية وبيانات HR</h5>
             </div>
-            
-            <div class="form-row">
-                <div class="form-col">
-                    <label for="{{ form.last_name.id_for_label }}">الاسم الأخير</label>
-                    {{ form.last_name }}
-                </div>
-                <div class="form-col">
-                    <label for="{{ form.email.id_for_label }}">البريد الإلكتروني</label>
-                    {{ form.email }}
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-col">
-                    <label for="{{ form.position.id_for_label }}">الوظيفة</label>
-                    {{ form.position }}
-                </div>
-                <div class="form-col">
-                    <label for="{{ form.phone_number.id_for_label }}">رقم الهاتف</label>
-                    {{ form.phone_number }}
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-col">
-                    <label for="{{ form.salary.id_for_label }}">الراتب</label>
-                    {{ form.salary }}
-                    {% if form.salary.errors %}
-                    <div class="text-danger small mt-1">
-                        {% for error in form.salary.errors %}
-                            {{ error }}
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        {% for field in form %}
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
                         {% endfor %}
                     </div>
-                    {% endif %}
-                </div>
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                        <a href="{% url 'employ:employee_profile' object.pk %}" class="btn btn-outline-secondary">إلغاء</a>
+                    </div>
+                </form>
             </div>
         </div>
+    </div>
 
-        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
-        <a href="{% url 'employ:hr' %}" class="btn btn-secondary">إلغاء</a>
-    </form>
-
-    <!-- قسم تغيير كلمة المرور -->
-    <div class="form-section password-section">
-        <h3>تغيير كلمة المرور (للسوبر أدمن فقط)</h3>
-        <form method="post">
-            {% csrf_token %}
-            <div class="form-row">
-                <div class="form-col">
-                    <label for="{{ password_form.password1.id_for_label }}">كلمة المرور الجديدة</label>
-                    {{ password_form.password1 }}
-                </div>
-                <div class="form-col">
-                    <label for="{{ password_form.password2.id_for_label }}">تأكيد كلمة المرور</label>
-                    {{ password_form.password2 }}
-                </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">تغيير كلمة المرور</h5>
             </div>
-            <button type="submit" name="change_password" class="btn btn-warning">
-                تغيير كلمة المرور
-            </button>
-        </form>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in password_form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" name="change_password" class="btn btn-warning w-100">تحديث كلمة المرور</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // إضافة تأثيرات للعناصر عند التركيز
-    const inputs = document.querySelectorAll('input, select');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            this.style.borderColor = '#3498db';
-            this.style.boxShadow = '0 0 5px rgba(52, 152, 219, 0.5)';
-        });
-        
-        input.addEventListener('blur', function() {
-            this.style.borderColor = '#ddd';
-            this.style.boxShadow = 'none';
-        });
-    });
-});
-</script>
 {% endblock %}

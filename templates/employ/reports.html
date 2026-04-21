@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="module-header">
+    <h2>تقارير HR</h2>
+    <a href="{% url 'employ:payroll_dashboard' %}" class="btn btn-secondary">الرواتب</a>
+</div>
+
+<div class="dashboard-cards mb-4">
+    <div class="dashboard-card">
+        <div class="dashboard-card-title">تقرير التأخير</div>
+        <div class="dashboard-card-value">{{ late_count }}</div>
+    </div>
+    <div class="dashboard-card">
+        <div class="dashboard-card-title">تقرير الغياب</div>
+        <div class="dashboard-card-value">{{ absent_count }}</div>
+    </div>
+    <div class="dashboard-card">
+        <div class="dashboard-card-title">الإضافي بالثواني</div>
+        <div class="dashboard-card-value">{{ overtime_total }}</div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">التقرير الشهري</h5></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>الموظف</th><th>الدوام</th><th>التأخير</th><th>الغياب</th><th>الإضافي</th></tr></thead>
+                    <tbody>
+                        {% for row in month_rows %}
+                        <tr>
+                            <td>{{ row.employee.full_name }}</td>
+                            <td>{{ row.attendance_days }}</td>
+                            <td>{{ row.late_seconds }}</td>
+                            <td>{{ row.absence_seconds }}</td>
+                            <td>{{ row.overtime_seconds }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header"><h5 class="mb-0">تقرير الرواتب</h5></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>الموظف</th><th>الفترة</th><th>الصافي</th></tr></thead>
+                    <tbody>
+                        {% for payroll in recent_payrolls %}
+                        <tr>
+                            <td>{{ payroll.employee.full_name }}</td>
+                            <td>{{ payroll.period.name }}</td>
+                            <td>{{ payroll.net_salary|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">لا توجد مسيرات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">تقرير السلف</h5></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>الموظف</th><th>التاريخ</th><th>المبلغ</th><th>المتبقي</th></tr></thead>
+                    <tbody>
+                        {% for advance in recent_advances %}
+                        <tr>
+                            <td>{{ advance.employee.full_name|default:advance.employee_name }}</td>
+                            <td>{{ advance.date }}</td>
+                            <td>{{ advance.amount|floatformat:2 }}</td>
+                            <td>{{ advance.outstanding_amount|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد سلف.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

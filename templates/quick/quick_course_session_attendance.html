@@ -304,7 +304,7 @@
                         <div class="qa-controls">
                             <div class="qa-toggle">
                                 {% if row.row_type == 'enrollment' %}
-                                <input type="hidden" name="student_{{ row.enrollment.id }}_status" value="{{ row.normalized_status }}" class="status-hidden-input">
+                                <input type="hidden" name="student_{{ row.enrollment.id }}_status_fallback" value="{{ row.normalized_status }}" class="status-hidden-input">
                                 {% for status_value, status_label in status_choices %}
                                 <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}">
                                     <input type="radio" name="student_{{ row.enrollment.id }}_status" value="{{ status_value }}" {% if row.normalized_status == status_value %}checked{% endif %}>
@@ -312,7 +312,7 @@
                                 </label>
                                 {% endfor %}
                                 {% else %}
-                                <input type="hidden" name="guest_status_{{ row.row_key }}" value="{{ row.normalized_status }}" class="status-hidden-input">
+                                <input type="hidden" name="guest_status_{{ row.row_key }}_fallback" value="{{ row.normalized_status }}" class="status-hidden-input">
                                 {% for status_value, status_label in status_choices %}
                                 <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}">
                                     <input type="radio" name="guest_status_{{ row.row_key }}" value="{{ status_value }}" {% if row.normalized_status == status_value %}checked{% endif %}>
@@ -520,14 +520,14 @@
 
         const hiddenStatusInput = row.querySelector('.status-hidden-input');
         if (hiddenStatusInput) {
-            hiddenStatusInput.name = `guest_status_${rowKey}`;
+            hiddenStatusInput.name = `guest_status_${rowKey}_fallback`;
             hiddenStatusInput.value = 'present';
         }
 
-        row.querySelectorAll('.qa-choice input').forEach(radio => {
-            radio.name = `guest_status_${rowKey}`;
-            radio.checked = radio.value === 'present';
-        });
+            row.querySelectorAll('.qa-choice input').forEach(radio => {
+                radio.name = `guest_status_${rowKey}`;
+                radio.checked = radio.value === 'present';
+            });
 
         const emptyNode = list.querySelector('.qa-empty');
         if (emptyNode) emptyNode.remove();

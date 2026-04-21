@@ -1,161 +1,110 @@
 {% extends "base.html" %}
-
-{% load emp_perms %}
 {% load static %}
-
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
 {% endblock %}
+
 {% block content %}
-    <div class="module-header premium-hero">
-        <h2>إدارة الموظفين</h2>
+<div class="module-header premium-hero">
+    <h2>إدارة الموظفين وHR</h2>
+    <div class="header-actions">
         <a href="{% url 'employ:employee_register' %}" class="btn btn-primary">
-            <i class="fas fa-user-plus"></i> تسجيل موظف جديد
+            <i class="fas fa-user-plus"></i> تسجيل موظف
+        </a>
+        <a href="{% url 'employ:biometric_dashboard' %}" class="btn btn-outline-primary">
+            <i class="fas fa-fingerprint"></i> البصمة
+        </a>
+        <a href="{% url 'employ:payroll_dashboard' %}" class="btn btn-outline-success">
+            <i class="fas fa-wallet"></i> الرواتب
         </a>
     </div>
-        {% include "partials/_alerts.html" %}
+</div>
 
-    <div class="tabs">
-        <div class="tab active" data-tab="employees">الموظفون النشطون</div>
+{% include "partials/_alerts.html" %}
+
+<div class="dashboard-cards mb-4">
+    <div class="dashboard-card">
+        <div class="dashboard-card-title">إجمالي الموظفين</div>
+        <div class="dashboard-card-value">{{ employee_count }}</div>
     </div>
-
-    <div class="filters surface-panel">
-        <form method="GET" action="{% url 'employ:hr' %}">
-            <div class="form-row">
-                <div class="form-col">
-                    <select name="position" id="positionFilter" class="form-control">
-                        <option value="">جميع الوظائف</option>
-                        <option value="admin" {% if request.GET.position == 'admin' %}selected{% endif %}>إداري</option>
-                        <option value="accountant" {% if request.GET.position == 'accountant' %}selected{% endif %}>محاسب</option>
-                        <option value="mentor" {% if request.GET.position == 'mentor' %}selected{% endif %}>موجه</option>
-                        <option value="manager" {% if request.GET.position == 'manager' %}selected{% endif %}>مدير</option>
-                        <option value="marketing" {% if request.GET.position == 'marketing' %}selected{% endif %}>تسويق</option>
-                        <option value="reception" {% if request.GET.position == 'reception' %}selected{% endif %}>استقبال</option>
-                    </select>
-                </div>
-                <div class="form-col">
-                    <input type="text" name="search" id="searchInput" class="form-control" 
-                           placeholder="بحث بالاسم..." value="{{ request.GET.search }}">
-                </div>
-                <div class="form-col">
-                    <button type="submit" class="btn btn-primary">بحث</button>
-                    <a href="{% url 'employ:hr' %}" class="btn btn-secondary">إعادة تعيين</a>
-                </div>
-            </div>
-        </form>
+    <div class="dashboard-card">
+        <div class="dashboard-card-title">على رأس العمل</div>
+        <div class="dashboard-card-value">{{ active_employee_count }}</div>
     </div>
+    <div class="dashboard-card">
+        <div class="dashboard-card-title">جاهزون للبصمة</div>
+        <div class="dashboard-card-value">{{ biometric_ready_count }}</div>
+    </div>
+</div>
 
-    <div class="tab-content active" id="employees-tab">
-        <div class="table-container surface-panel">
-            <table id="employeesTable" class="table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>الاسم الكامل</th>
-                        <th>الوظيفة</th>
-                        <th>تاريخ التعيين</th>
-                        <th>الراتب</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for employee in employees %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ employee.user.get_full_name }}</td>
-                        <td>{{ employee.get_position_display }}</td>
-                        <td>{{ employee.hire_date|date:"Y-m-d" }}</td>
-                        <td>{{ employee.salary }}</td>
-                        <td>
-                            <a href="{% url 'employ:employee_profile' employee.id %}" class="btn btn-sm btn-secondary">
-                                <i class="fas fa-id-card"></i>
-                            </a>
-                            <a href="{% url 'employ:employee_update' employee.id %}" class="btn btn-sm btn-info">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="{% url 'employ:employee_permissions' employee.id %}" class="btn btn-sm btn-warning">
-                                <i class="fas fa-key"></i>
-                            </a>
-                            <button class="btn btn-sm btn-danger delete-btn" data-id="{{ employee.id }}" data-name="{{ employee.user.get_full_name }}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center">لا يوجد موظفين مسجلين</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="filters surface-panel mb-3">
+    <form method="get" class="row g-2">
+        <div class="col-md-3">
+            <input type="text" name="search" class="form-control" placeholder="بحث بالاسم أو الكود أو معرف البصمة" value="{{ request.GET.search }}">
         </div>
-    </div>
-
-    <!-- نموذج تأكيد الحذف -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>تأكيد الحذف</h3>
-            <p id="delete-confirm-text">هل أنت متأكد من أنك تريد حذف هذا الموظف؟</p>
-            <form id="deleteForm" method="post" action="">
-                {% csrf_token %}
-                <input type="hidden" name="employee_id" id="deleteEmployeeId">
-                <div class="form-buttons">
-                    <button type="submit" class="btn btn-danger">نعم، احذف</button>
-                    <button type="button" class="btn btn-secondary close-delete-modal">إلغاء</button>
-                </div>
-            </form>
+        <div class="col-md-3">
+            <select name="department" class="form-control">
+                <option value="">كل الأقسام</option>
+                {% for department in departments %}
+                <option value="{{ department.id }}" {% if request.GET.department == department.id|stringformat:"s" %}selected{% endif %}>{{ department.name }}</option>
+                {% endfor %}
+            </select>
         </div>
-    </div>
+        <div class="col-md-3">
+            <select name="position" class="form-control">
+                <option value="">كل الوظائف</option>
+                {% for value,label in employees.model.POSITION_CHOICES %}
+                <option value="{{ value }}" {% if request.GET.position == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100">تصفية</button>
+            <a href="{% url 'employ:hr' %}" class="btn btn-secondary w-100">إعادة</a>
+        </div>
+    </form>
+</div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // النافذة المنبثقة للحذف
-        const deleteModal = document.getElementById('deleteModal');
-        const deleteBtns = document.querySelectorAll('.delete-btn');
-        const closeBtn = document.querySelector('.close');
-        const closeDeleteModalBtn = document.querySelector('.close-delete-modal');
-        const deleteForm = document.getElementById('deleteForm');
-        const deleteConfirmText = document.getElementById('delete-confirm-text');
-        const deleteEmployeeId = document.getElementById('deleteEmployeeId');
-        
-        // فتح نافذة تأكيد الحذف
-        deleteBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const employeeId = this.dataset.id;
-                const employeeName = this.dataset.name;
-                
-                deleteConfirmText.textContent = `هل أنت متأكد من أنك تريد حذف الموظف "${employeeName}"؟`;
-                deleteEmployeeId.value = employeeId;
-                deleteForm.action = "{% url 'employ:employee_delete' 0 %}".replace('0', employeeId);
-                
-                deleteModal.style.display = 'block';
-            });
-        });
-        
-        // إغلاق النافذة المنبثقة
-        function closeDeleteModal() {
-            deleteModal.style.display = 'none';
-        }
-        
-        if (closeBtn) closeBtn.addEventListener('click', closeDeleteModal);
-        if (closeDeleteModalBtn) closeDeleteModalBtn.addEventListener('click', closeDeleteModal);
-        
-        // إغلاق النافذة عند النقر خارجها
-        window.addEventListener('click', function(event) {
-            if (event.target === deleteModal) {
-                closeDeleteModal();
-            }
-        });
-        
-        // إرسال نموذج الحذف
-        if (deleteForm) {
-            deleteForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                this.submit();
-            });
-        }
-    });
-    </script>
-    {% endblock %}
+<div class="table-container surface-panel">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>الكود</th>
+                <th>القسم</th>
+                <th>الشفت</th>
+                <th>معرف البصمة</th>
+                <th>الحالة</th>
+                <th>الراتب</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td>
+                    <strong>{{ employee.full_name }}</strong>
+                    <small class="d-block text-muted">{{ employee.job_title|default:employee.get_position_display }}</small>
+                </td>
+                <td>{{ employee.employee_code|default:"-" }}</td>
+                <td>{{ employee.department|default:"-" }}</td>
+                <td>{{ employee.default_shift|default:"-" }}</td>
+                <td>{{ employee.biometric_user_id|default:"غير مربوط" }}</td>
+                <td>{{ employee.get_employment_status_display }}</td>
+                <td>{{ employee.salary|floatformat:2 }}</td>
+                <td class="d-flex gap-1">
+                    <a href="{% url 'employ:employee_profile' employee.id %}" class="btn btn-sm btn-secondary"><i class="fas fa-id-card"></i></a>
+                    <a href="{% url 'employ:employee_update' employee.id %}" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
+                    <a href="{% url 'employ:employee_permissions' employee.id %}" class="btn btn-sm btn-warning"><i class="fas fa-key"></i></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-muted">لا يوجد موظفون.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

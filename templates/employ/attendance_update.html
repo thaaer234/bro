@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="mb-1">مراجعة سجل الدوام</h3>
+            <div class="text-muted">{{ object.employee.full_name }} - {{ object.date }}</div>
+        </div>
+        <a href="{% url 'employ:attendance_list' %}" class="btn btn-outline-secondary">عودة</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" class="row g-3">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="col-md-6">
+                    <label class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="text-danger small">{{ field.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <div class="col-12">
+                    <div class="alert alert-info mb-0">
+                        استخدم هذه الشاشة لتأكيد إن كان الخروج المبكر أو التأخير مبررًا أو غير مبرر، ولتعديل البصمات يدويًا عند الحاجة.
+                    </div>
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary">حفظ التعديل</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

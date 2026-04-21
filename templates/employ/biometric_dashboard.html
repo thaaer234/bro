@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="module-header">
+    <h2>شاشة البصمة</h2>
+    <div class="header-actions">
+        <a href="{% url 'employ:attendance_list' %}" class="btn btn-outline-primary">الدوام</a>
+        <a href="{% url 'employ:hr' %}" class="btn btn-secondary">العودة</a>
+    </div>
+</div>
+
+{% include "partials/_alerts.html" %}
+
+{% if pending_reviews_count %}
+<div class="alert alert-warning">
+    يوجد {{ pending_reviews_count }} سجل دوام بانتظار المراجعة الإدارية، منها {{ pending_early_leave_count }} حالة خروج مبكر.
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header"><h5 class="mb-0">إضافة جهاز</h5></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'employ:biometric_device_create' %}">
+                    {% csrf_token %}
+                    {{ device_form.as_p }}
+                    <button class="btn btn-primary">حفظ الجهاز</button>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">استيراد السجلات</h5></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'employ:biometric_import' %}">
+                    {% csrf_token %}
+                    {{ import_form.as_p }}
+                    <button class="btn btn-success">استيراد وتحويل إلى دوام</button>
+                </form>
+                <div class="alert alert-warning mt-3 mb-2">السجلات غير المربوطة بموظف: {{ unlinked_logs_count }}</div>
+                <div class="alert alert-info mb-0">
+                    الربط التلقائي مع جهاز البصمة يحتاج موصل بحسب نوع الجهاز. النظام الآن جاهز لمعالجة السجلات واتخاذ قرار الحسم بعد المراجعة.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header"><h5 class="mb-0">أجهزة البصمة</h5></div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead><tr><th>الاسم</th><th>IP</th><th>المنفذ</th><th>آخر مزامنة</th></tr></thead>
+                    <tbody>
+                        {% for device in devices %}
+                        <tr>
+                            <td>{{ device.name }}</td>
+                            <td>{{ device.ip }}</td>
+                            <td>{{ device.port }}</td>
+                            <td>{{ device.last_synced_at|date:"Y-m-d H:i"|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد أجهزة.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">آخر السجلات</h5></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>الوقت</th><th>المعرف</th><th>الموظف</th><th>النوع</th><th>الجهاز</th></tr></thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.punch_time|date:"Y-m-d H:i:s" }}</td>
+                            <td>{{ log.device_user_id }}</td>
+                            <td>{{ log.employee|default:"غير مربوط" }}</td>
+                            <td>{{ log.get_punch_type_display }}</td>
+                            <td>{{ log.device.name }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted">لا توجد سجلات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

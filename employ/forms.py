@@ -5,7 +5,19 @@ from django.contrib.auth.models import User
 from django.apps import apps
 
 from decimal import Decimal
-from .models import Teacher, Employee, Vacation
+from .models import (
+    AttendancePolicy,
+    BiometricDevice,
+    Department,
+    Employee,
+    EmployeeAttendance,
+    EmployeeSalaryRule,
+    JobTitle,
+    PayrollPeriod,
+    Shift,
+    Vacation,
+    Teacher,
+)
 
 
 class TeacherForm(forms.ModelForm):
@@ -144,6 +156,22 @@ class EmployeeRegistrationForm(UserCreationForm):
         max_digits=10,
         decimal_places=2
     )
+    employee_code = forms.CharField(label='الرقم الوظيفي', required=False)
+    biometric_user_id = forms.CharField(label='معرف البصمة', required=False)
+    national_id = forms.CharField(label='الرقم الوطني', required=False)
+    address = forms.CharField(label='العنوان', required=False, widget=forms.Textarea(attrs={'rows': 2}))
+    contract_type = forms.ChoiceField(choices=Employee._meta.get_field('contract_type').choices, label='نوع العقد')
+    contract_start = forms.DateField(label='بداية العقد', required=False, widget=DateInput(attrs={'type': 'date', 'class': 'form-control'}))
+    contract_end = forms.DateField(label='نهاية العقد', required=False, widget=DateInput(attrs={'type': 'date', 'class': 'form-control'}))
+    employment_status = forms.ChoiceField(choices=Employee._meta.get_field('employment_status').choices, label='الحالة الوظيفية')
+    department = forms.ModelChoiceField(queryset=Department.objects.filter(is_active=True), required=False, label='القسم')
+    job_title = forms.ModelChoiceField(queryset=JobTitle.objects.filter(is_active=True), required=False, label='المسمى الوظيفي')
+    default_shift = forms.ModelChoiceField(queryset=Shift.objects.filter(is_active=True), required=False, label='الشفت الافتراضي')
+    attendance_policy = forms.ModelChoiceField(queryset=AttendancePolicy.objects.filter(is_active=True), required=False, label='سياسة الدوام')
+    salary_rule = forms.ModelChoiceField(queryset=EmployeeSalaryRule.objects.filter(is_active=True), required=False, label='قاعدة الراتب')
+    emergency_contact_name = forms.CharField(label='اسم جهة الطوارئ', required=False)
+    emergency_contact_phone = forms.CharField(label='هاتف جهة الطوارئ', required=False)
+    profile_photo = forms.ImageField(label='الصورة الشخصية', required=False)
 
     class Meta(UserCreationForm.Meta):
         model = User
@@ -169,6 +197,22 @@ class EmployeeRegistrationForm(UserCreationForm):
             position=self.cleaned_data['position'],
             phone_number=self.cleaned_data['phone_number'],
             salary=self.cleaned_data['salary'],
+            employee_code=self.cleaned_data.get('employee_code') or None,
+            biometric_user_id=self.cleaned_data.get('biometric_user_id') or None,
+            national_id=self.cleaned_data.get('national_id') or None,
+            address=self.cleaned_data.get('address') or None,
+            contract_type=self.cleaned_data['contract_type'],
+            contract_start=self.cleaned_data.get('contract_start'),
+            contract_end=self.cleaned_data.get('contract_end'),
+            employment_status=self.cleaned_data['employment_status'],
+            department=self.cleaned_data.get('department'),
+            job_title=self.cleaned_data.get('job_title'),
+            default_shift=self.cleaned_data.get('default_shift'),
+            attendance_policy=self.cleaned_data.get('attendance_policy'),
+            salary_rule=self.cleaned_data.get('salary_rule'),
+            emergency_contact_name=self.cleaned_data.get('emergency_contact_name') or None,
+            emergency_contact_phone=self.cleaned_data.get('emergency_contact_phone') or None,
+            profile_photo=self.cleaned_data.get('profile_photo'),
         )
 
         # ملاحظة: لا نوزّع صلاحيات حسب الوظيفة إطلاقًا (كما طلبت)
@@ -259,3 +303,181 @@ class AdminVacationForm(forms.ModelForm):
         # مثال:
         # self.fields['salary'].queryset = salary_qs
         # self.fields['salary'].queryset = salary_qs
+
+
+class EmployeeProfileForm(forms.ModelForm):
+    username = forms.CharField(label='اسم المستخدم')
+    first_name = forms.CharField(label='الاسم الأول', required=False)
+    last_name = forms.CharField(label='الاسم الأخير', required=False)
+    email = forms.EmailField(label='البريد الإلكتروني', required=False)
+
+    class Meta:
+        model = Employee
+        fields = [
+            'position',
+            'phone_number',
+            'salary',
+            'employee_code',
+            'biometric_user_id',
+            'national_id',
+            'address',
+            'contract_type',
+            'contract_start',
+            'contract_end',
+            'employment_status',
+            'department',
+            'job_title',
+            'default_shift',
+            'attendance_policy',
+            'salary_rule',
+            'emergency_contact_name',
+            'emergency_contact_phone',
+            'profile_photo',
+        ]
+        widgets = {
+            'address': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'contract_start': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'contract_end': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        user = getattr(self.instance, 'user', None)
+        if user:
+            self.fields['username'].initial = user.username
+            self.fields['first_name'].initial = user.first_name
+            self.fields['last_name'].initial = user.last_name
+            self.fields['email'].initial = user.email
+
+    def save(self, commit=True):
+        employee = super().save(commit=False)
+        user = employee.user
+        user.username = self.cleaned_data['username']
+        user.first_name = self.cleaned_data.get('first_name', '')
+        user.last_name = self.cleaned_data.get('last_name', '')
+        user.email = self.cleaned_data.get('email', '')
+        if commit:
+            user.save()
+            employee.save()
+            self.save_m2m()
+        return employee
+
+
+class DepartmentForm(forms.ModelForm):
+    class Meta:
+        model = Department
+        fields = ['name', 'code', 'description', 'is_active']
+
+
+class JobTitleForm(forms.ModelForm):
+    class Meta:
+        model = JobTitle
+        fields = ['name', 'code', 'department', 'description', 'is_active']
+
+
+class ShiftForm(forms.ModelForm):
+    class Meta:
+        model = Shift
+        fields = [
+            'name', 'code', 'start_time', 'end_time', 'grace_period_minutes',
+            'required_work_seconds', 'is_night_shift', 'break_seconds',
+            'break_start', 'break_end', 'is_active'
+        ]
+        widgets = {
+            'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'break_start': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'break_end': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+        }
+
+
+class AttendancePolicyForm(forms.ModelForm):
+    class Meta:
+        model = AttendancePolicy
+        fields = [
+            'name', 'late_deduction_rate', 'early_leave_deduction_rate',
+            'absence_deduction_rate', 'overtime_enabled', 'overtime_multiplier',
+            'rounding_method', 'holiday_handling', 'weekend_days', 'is_active'
+        ]
+
+
+class EmployeeSalaryRuleForm(forms.ModelForm):
+    class Meta:
+        model = EmployeeSalaryRule
+        fields = [
+            'name', 'salary_type', 'overtime_enabled', 'overtime_multiplier',
+            'late_deduction_enabled', 'absence_deduction_enabled', 'tax_percent',
+            'insurance_percent', 'max_overtime_seconds', 'max_deduction_amount',
+            'rounding_method', 'is_active'
+        ]
+
+
+class BiometricDeviceForm(forms.ModelForm):
+    class Meta:
+        model = BiometricDevice
+        fields = ['name', 'ip', 'port', 'serial', 'location', 'active']
+
+
+class BiometricImportForm(forms.Form):
+    device = forms.ModelChoiceField(queryset=BiometricDevice.objects.filter(active=True), label='جهاز البصمة')
+    raw_logs = forms.CharField(
+        label='سجلات البصمة',
+        help_text='أدخل JSON Array يحتوي على device_user_id و punch_time و punch_type.',
+        widget=forms.Textarea(attrs={'rows': 8, 'class': 'form-control'})
+    )
+
+
+class PayrollPeriodForm(forms.ModelForm):
+    class Meta:
+        model = PayrollPeriod
+        fields = ['name', 'start_date', 'end_date', 'status']
+        widgets = {
+            'start_date': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'end_date': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
+
+
+class EmployeeAttendanceUpdateForm(forms.ModelForm):
+    class Meta:
+        model = EmployeeAttendance
+        fields = [
+            'check_in',
+            'check_out',
+            'status',
+            'review_status',
+            'review_notes',
+            'notes',
+            'manual_adjustment_reason',
+        ]
+        widgets = {
+            'check_in': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'check_out': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+            'review_status': forms.Select(attrs={'class': 'form-control'}),
+            'review_notes': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'manual_adjustment_reason': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        check_in = cleaned_data.get('check_in')
+        check_out = cleaned_data.get('check_out')
+        if check_in and check_out and check_out < check_in:
+            self.add_error('check_out', 'وقت الخروج يجب أن يكون بعد وقت الدخول.')
+        review_status = cleaned_data.get('review_status')
+        review_notes = (cleaned_data.get('review_notes') or '').strip()
+        if review_status in {'justified', 'unjustified'} and not review_notes:
+            self.add_error('review_notes', 'يرجى كتابة سبب القرار الإداري.')
+        return cleaned_data
+
+
+class AttendanceFilterForm(forms.Form):
+    employee = forms.ModelChoiceField(queryset=Employee.objects.select_related('user'), required=False, label='الموظف')
+    start_date = forms.DateField(required=False, widget=DateInput(attrs={'type': 'date', 'class': 'form-control'}), label='من')
+    end_date = forms.DateField(required=False, widget=DateInput(attrs={'type': 'date', 'class': 'form-control'}), label='إلى')
+    status = forms.ChoiceField(
+        required=False,
+        choices=[('', 'كل الحالات')] + list(EmployeeAttendance.STATUS_CHOICES),
+        label='الحالة'
+    )

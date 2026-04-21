@@ -1,5 +1,6 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
+import json
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import View, TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -9,7 +10,7 @@ from django.http import JsonResponse, HttpResponseRedirect, HttpResponse, HttpRe
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from django.core.exceptions import FieldDoesNotExist
 from django.template.loader import render_to_string 
 from django.contrib.staticfiles import finders
@@ -19,8 +20,46 @@ from accounts.models import ExpenseEntry, EmployeeAdvance, Account, TeacherAdvan
 from accounts.forms import EmployeeAdvanceForm
 from attendance.models import TeacherAttendance
 
-from .models import Teacher, Employee, Vacation, EmployeePermission, ManualTeacherSalary
-from .forms import TeacherForm, EmployeeRegistrationForm, AdminVacationForm
+from .models import (
+    AttendancePolicy,
+    BiometricDevice,
+    BiometricLog,
+    Department,
+    Employee,
+    EmployeeAttendance,
+    EmployeePayroll,
+    EmployeePermission,
+    EmployeeSalaryRule,
+    JobTitle,
+    ManualTeacherSalary,
+    PayrollPeriod,
+    Shift,
+    Teacher,
+    Vacation,
+)
+from .forms import (
+    AdminVacationForm,
+    AttendanceFilterForm,
+    AttendancePolicyForm,
+    EmployeeAttendanceUpdateForm,
+    BiometricDeviceForm,
+    BiometricImportForm,
+    DepartmentForm,
+    JobTitleForm,
+    EmployeeProfileForm,
+    EmployeeRegistrationForm,
+    EmployeeSalaryRuleForm,
+    PayrollPeriodForm,
+    ShiftForm,
+    TeacherForm,
+)
+from .services import (
+    AttendanceGenerationService,
+    AttendanceReportService,
+    BiometricImportService,
+    LivePayrollService,
+    PayrollGenerationService,
+)
 from xhtml2pdf import pisa
 try:
     from weasyprint import HTML
@@ -54,6 +93,24 @@ def _employee_full_name(employee):
         full_name = user.get_full_name()
         return full_name if full_name else user.get_username()
     return str(employee)
+
+
+def _safe_period_int(value, default, min_value=None, max_value=None):
+    """Parse year/month query values safely, including thousands separators like 2.026."""
+    if value in (None, ''):
+        parsed_value = default
+    else:
+        try:
+            parsed_value = int(value)
+        except (TypeError, ValueError):
+            normalized = str(value).strip().translate(str.maketrans('', '', '., \u066c'))
+            parsed_value = int(normalized) if normalized.isdigit() else default
+
+    if min_value is not None and parsed_value < min_value:
+        return default
+    if max_value is not None and parsed_value > max_value:
+        return default
+    return parsed_value
 
 
 # خريطة المجموعات بحسب بادئة كود الصلاحية
@@ -554,19 +611,36 @@ class hr(ListView):
     context_object_name = 'employees'
 
     def get_queryset(self):
-        queryset = Employee.objects.select_related('user').all()
+        queryset = Employee.objects.select_related(
+            'user', 'department', 'job_title', 'default_shift', 'salary_rule'
+        ).all()
         position = self.request.GET.get('position')
         search = self.request.GET.get('search')
+        department = self.request.GET.get('department')
 
         if position:
             queryset = queryset.filter(position=position)
 
+        if department:
+            queryset = queryset.filter(department_id=department)
+
         if search:
-            queryset = queryset.filter(user__first_name__icontains=search) | queryset.filter(
-                user__last_name__icontains=search
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search) |
+                Q(employee_code__icontains=search) |
+                Q(biometric_user_id__icontains=search)
             )
 
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['departments'] = Department.objects.filter(is_active=True).order_by('name')
+        context['employee_count'] = context['employees'].count()
+        context['active_employee_count'] = context['employees'].filter(employment_status='active').count()
+        context['biometric_ready_count'] = context['employees'].exclude(biometric_user_id__isnull=True).exclude(biometric_user_id='').count()
+        return context
 
 
 class EmployeeCreateView(CreateView):
@@ -582,7 +656,7 @@ class EmployeeCreateView(CreateView):
 
 class EmployeeUpdateView(UpdateView):
     model = Employee
-    fields = ['position', 'phone_number', 'salary']
+    form_class = EmployeeProfileForm
     template_name = 'employ/employee_update.html'
     success_url = reverse_lazy('employ:hr')
 
@@ -603,14 +677,6 @@ class EmployeeUpdateView(UpdateView):
             else:
                 messages.error(self.request, 'خطأ في تغيير كلمة المرور.')
             return redirect(self.success_url)
-
-        # تحديث بيانات المستخدم
-        user = self.object.user
-        user.username = self.request.POST.get('username', user.username)
-        user.first_name = self.request.POST.get('first_name', user.first_name)
-        user.last_name = self.request.POST.get('last_name', user.last_name)
-        user.email = self.request.POST.get('email', user.email)
-        user.save()
 
         response = super().form_valid(form)
         messages.success(self.request, 'تم تحديث بيانات الموظف بنجاح.')
@@ -743,6 +809,10 @@ class EmployeeProfileView(LoginRequiredMixin, DetailView):
         advances_list = list(advances_qs)
         advance_outstanding_total = sum((adv.outstanding_amount for adv in advances_list), Decimal('0'))
         outstanding_advances = [adv for adv in advances_list if not adv.is_repaid]
+        live_preview = LivePayrollService.preview_for_period(employee, salary_year, salary_month)
+        recent_attendance = list(
+            EmployeeAttendance.objects.filter(employee=employee).order_by('-date')[:10]
+        )
 
         months = [
             (1, 'كانون الثاني'), (2, 'شباط'), (3, 'آذار'), (4, 'نيسان'),
@@ -777,6 +847,8 @@ class EmployeeProfileView(LoginRequiredMixin, DetailView):
             'advances_total': len(advances_list),
             'advance_outstanding_total': advance_outstanding_total,
             'outstanding_advances_count': len(outstanding_advances),
+            'recent_attendance': recent_attendance,
+            'live_preview': live_preview,
             'months': months,
             'today': today,
         })
@@ -856,8 +928,8 @@ class SalaryManagementView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        selected_year = int(self.request.GET.get('year', timezone.now().year))
-        selected_month = int(self.request.GET.get('month', timezone.now().month))
+        selected_year = _safe_period_int(self.request.GET.get('year'), timezone.now().year)
+        selected_month = _safe_period_int(self.request.GET.get('month'), timezone.now().month, min_value=1, max_value=12)
 
         months = [
             (1, 'كانون الثاني'), (2, 'شباط'), (3, 'آذار'), (4, 'نيسان'),
@@ -1332,6 +1404,265 @@ class TeacherAdvanceListView(LoginRequiredMixin, ListView):
         return context
 
 
+class HRSettingsView(LoginRequiredMixin, TemplateView):
+    template_name = 'employ/hr_settings.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'departments': Department.objects.order_by('name'),
+            'job_titles': JobTitle.objects.select_related('department').order_by('name'),
+            'shifts': Shift.objects.order_by('name'),
+            'attendance_policies': AttendancePolicy.objects.order_by('name'),
+            'salary_rules': EmployeeSalaryRule.objects.order_by('name'),
+            'department_form': DepartmentForm(),
+            'job_title_form': JobTitleForm(),
+            'shift_form': ShiftForm(),
+            'policy_form': AttendancePolicyForm(),
+            'salary_rule_form': EmployeeSalaryRuleForm(),
+        })
+        return context
+
+
+class DepartmentCreateView(LoginRequiredMixin, CreateView):
+    model = Department
+    form_class = DepartmentForm
+    success_url = reverse_lazy('employ:hr_settings')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم حفظ القسم بنجاح.')
+        return super().form_valid(form)
+
+
+class ShiftCreateView(LoginRequiredMixin, CreateView):
+    model = Shift
+    form_class = ShiftForm
+    success_url = reverse_lazy('employ:hr_settings')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم حفظ الشفت بنجاح.')
+        return super().form_valid(form)
+
+
+class JobTitleCreateView(LoginRequiredMixin, CreateView):
+    model = JobTitle
+    form_class = JobTitleForm
+    success_url = reverse_lazy('employ:hr_settings')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم حفظ المسمى الوظيفي بنجاح.')
+        return super().form_valid(form)
+
+
+class AttendancePolicyCreateView(LoginRequiredMixin, CreateView):
+    model = AttendancePolicy
+    form_class = AttendancePolicyForm
+    success_url = reverse_lazy('employ:hr_settings')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم حفظ سياسة الدوام بنجاح.')
+        return super().form_valid(form)
+
+
+class SalaryRuleCreateView(LoginRequiredMixin, CreateView):
+    model = EmployeeSalaryRule
+    form_class = EmployeeSalaryRuleForm
+    success_url = reverse_lazy('employ:hr_settings')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم حفظ قاعدة الراتب بنجاح.')
+        return super().form_valid(form)
+
+
+class BiometricDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'employ/biometric_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pending_reviews = EmployeeAttendance.objects.filter(review_status='pending')
+        context.update({
+            'devices': BiometricDevice.objects.order_by('name'),
+            'logs': BiometricLog.objects.select_related('employee__user', 'device').order_by('-punch_time')[:100],
+            'device_form': BiometricDeviceForm(),
+            'import_form': BiometricImportForm(),
+            'unlinked_logs_count': BiometricLog.objects.filter(employee__isnull=True).count(),
+            'pending_reviews_count': pending_reviews.count(),
+            'pending_early_leave_count': pending_reviews.filter(early_leave_seconds__gt=0).count(),
+        })
+        return context
+
+
+class BiometricDeviceCreateView(LoginRequiredMixin, CreateView):
+    model = BiometricDevice
+    form_class = BiometricDeviceForm
+    success_url = reverse_lazy('employ:biometric_dashboard')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم حفظ جهاز البصمة بنجاح.')
+        return super().form_valid(form)
+
+
+class BiometricImportView(LoginRequiredMixin, View):
+    def post(self, request):
+        form = BiometricImportForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, 'تعذر استيراد السجلات. تحقق من البيانات المدخلة.')
+            return redirect('employ:biometric_dashboard')
+
+        try:
+            raw_logs = json.loads(form.cleaned_data['raw_logs'])
+            result = BiometricImportService.import_logs(form.cleaned_data['device'], raw_logs)
+            messages.success(
+                request,
+                f"تمت مزامنة {result['created']} سجل، وتجاهل {result['duplicates']} مكرر، و{result['unresolved']} غير مربوط بموظف."
+            )
+        except Exception as exc:
+            messages.error(request, f'فشل استيراد سجلات البصمة: {exc}')
+        return redirect('employ:biometric_dashboard')
+
+
+class EmployeeAttendanceListView(LoginRequiredMixin, ListView):
+    model = EmployeeAttendance
+    template_name = 'employ/attendance_list.html'
+    context_object_name = 'records'
+
+    def get_queryset(self):
+        queryset = EmployeeAttendance.objects.select_related('employee__user').order_by('-date', 'employee__user__first_name')
+        self.filter_form = AttendanceFilterForm(self.request.GET or None)
+        if self.filter_form.is_valid():
+            employee = self.filter_form.cleaned_data.get('employee')
+            start_date = self.filter_form.cleaned_data.get('start_date')
+            end_date = self.filter_form.cleaned_data.get('end_date')
+            status = self.filter_form.cleaned_data.get('status')
+            if employee:
+                queryset = queryset.filter(employee=employee)
+            if start_date:
+                queryset = queryset.filter(date__gte=start_date)
+            if end_date:
+                queryset = queryset.filter(date__lte=end_date)
+            if status:
+                queryset = queryset.filter(status=status)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pending_reviews = EmployeeAttendance.objects.filter(review_status='pending')
+        context['filter_form'] = getattr(self, 'filter_form', AttendanceFilterForm())
+        context['today'] = timezone.now().date()
+        context['pending_reviews_count'] = pending_reviews.count()
+        context['pending_early_leave_count'] = pending_reviews.filter(early_leave_seconds__gt=0).count()
+        return context
+
+
+class EmployeeAttendanceRebuildView(LoginRequiredMixin, View):
+    def post(self, request):
+        employee_id = request.POST.get('employee')
+        target_date = request.POST.get('date')
+        employee = get_object_or_404(Employee, pk=employee_id)
+        target_date = datetime.fromisoformat(target_date).date() if target_date else timezone.now().date()
+        AttendanceGenerationService.build_attendance(employee, target_date)
+        messages.success(request, 'تمت إعادة احتساب الدوام من سجلات البصمة.')
+        return redirect('employ:attendance_list')
+
+
+class EmployeeAttendanceUpdateView(LoginRequiredMixin, UpdateView):
+    model = EmployeeAttendance
+    form_class = EmployeeAttendanceUpdateForm
+    template_name = 'employ/attendance_update.html'
+    success_url = reverse_lazy('employ:attendance_list')
+
+    def form_valid(self, form):
+        attendance = self.get_object()
+        AttendanceGenerationService.apply_manual_adjustment(
+            attendance,
+            check_in=form.cleaned_data.get('check_in'),
+            check_out=form.cleaned_data.get('check_out'),
+            review_status=form.cleaned_data.get('review_status'),
+            review_notes=form.cleaned_data.get('review_notes'),
+            notes=form.cleaned_data.get('notes'),
+            manual_adjustment_reason=form.cleaned_data.get('manual_adjustment_reason'),
+            reviewer=self.request.user,
+        )
+        messages.success(self.request, 'تم تحديث سجل الدوام وربط القرار الإداري به.')
+        return redirect(self.get_success_url())
+
+
+class AttendanceSummaryView(LoginRequiredMixin, TemplateView):
+    template_name = 'employ/attendance_summary.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        selected_year = _safe_period_int(self.request.GET.get('year'), timezone.now().year)
+        selected_month = _safe_period_int(self.request.GET.get('month'), timezone.now().month, min_value=1, max_value=12)
+        context.update({
+            'selected_year': selected_year,
+            'selected_month': selected_month,
+            'summary_rows': AttendanceReportService.summary_for_month(selected_year, selected_month),
+        })
+        return context
+
+
+class PayrollDashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'employ/payroll_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        selected_year = _safe_period_int(self.request.GET.get('year'), timezone.now().year)
+        selected_month = _safe_period_int(self.request.GET.get('month'), timezone.now().month, min_value=1, max_value=12)
+        employees = Employee.objects.select_related('user', 'salary_rule', 'default_shift').filter(employment_status='active')
+        previews = [LivePayrollService.preview_for_period(employee, selected_year, selected_month) for employee in employees]
+        payroll_periods = PayrollPeriod.objects.order_by('-start_date')
+        context.update({
+            'selected_year': selected_year,
+            'selected_month': selected_month,
+            'previews': previews,
+            'periods': payroll_periods[:12],
+            'period_form': PayrollPeriodForm(),
+            'employee_payrolls': EmployeePayroll.objects.select_related('employee__user', 'period').order_by('-generated_at')[:50],
+        })
+        return context
+
+
+class PayrollPeriodCreateView(LoginRequiredMixin, CreateView):
+    model = PayrollPeriod
+    form_class = PayrollPeriodForm
+    success_url = reverse_lazy('employ:payroll_dashboard')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم إنشاء فترة الرواتب بنجاح.')
+        return super().form_valid(form)
+
+
+class PayrollGenerateView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        period = get_object_or_404(PayrollPeriod, pk=pk)
+        payrolls = PayrollGenerationService.generate_period(period)
+        messages.success(request, f'تم إنشاء مسير الرواتب للفترة بعدد {len(payrolls)} موظف.')
+        return redirect('employ:payroll_dashboard')
+
+
+class EmployeeReportsView(LoginRequiredMixin, TemplateView):
+    template_name = 'employ/reports.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.now().date()
+        month_rows = AttendanceReportService.summary_for_month(today.year, today.month)
+        absent_count = EmployeeAttendance.objects.filter(date__year=today.year, date__month=today.month, status='absent').count()
+        late_count = EmployeeAttendance.objects.filter(date__year=today.year, date__month=today.month, status='late').count()
+        overtime_total = EmployeeAttendance.objects.filter(date__year=today.year, date__month=today.month).aggregate(total=Sum('overtime_seconds'))['total'] or 0
+        context.update({
+            'today': today,
+            'month_rows': month_rows,
+            'absent_count': absent_count,
+            'late_count': late_count,
+            'overtime_total': overtime_total,
+            'recent_payrolls': EmployeePayroll.objects.select_related('employee__user', 'period').order_by('-generated_at')[:20],
+            'recent_advances': EmployeeAdvance.objects.select_related('employee__user').order_by('-date')[:20],
+        })
+        return context
+
+
 def no_permission(request):
     return render(request, "503.html", status=503)
 
@@ -1411,16 +1742,8 @@ class AddManualSalaryView(LoginRequiredMixin, View):
         years_range = range(current_year - 5, current_year + 2)
         selected_year = request.GET.get('year')
         selected_month = request.GET.get('month')
-        try:
-            selected_year = int(selected_year) if selected_year else date.today().year
-        except (TypeError, ValueError):
-            selected_year = date.today().year
-        try:
-            selected_month = int(selected_month) if selected_month else date.today().month
-        except (TypeError, ValueError):
-            selected_month = date.today().month
-        if selected_month < 1 or selected_month > 12:
-            selected_month = date.today().month
+        selected_year = _safe_period_int(selected_year, date.today().year)
+        selected_month = _safe_period_int(selected_month, date.today().month, min_value=1, max_value=12)
         total_advances = teacher.get_total_advances(selected_year, selected_month)
         auto_gross_salary = teacher.calculate_monthly_salary(selected_year, selected_month)
         max_advance_deduction = min(auto_gross_salary, total_advances)

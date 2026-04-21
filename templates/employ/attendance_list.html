@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="module-header">
+    <h2>شاشة الدوام</h2>
+    <div class="header-actions">
+        <a href="{% url 'employ:attendance_summary' %}" class="btn btn-outline-primary">ملخص الحضور</a>
+        <a href="{% url 'employ:biometric_dashboard' %}" class="btn btn-secondary">البصمة</a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        {% if pending_reviews_count %}
+        <div class="alert alert-warning">
+            يوجد {{ pending_reviews_count }} سجل بحاجة مراجعة إدارية، منها {{ pending_early_leave_count }} حالة خروج مبكر.
+        </div>
+        {% endif %}
+        <form method="get" class="row g-2">
+            {% for field in filter_form %}
+            <div class="col-md-3">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary w-100">تصفية</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>الموظف</th>
+                    <th>التاريخ</th>
+                    <th>الدخول</th>
+                    <th>الخروج</th>
+                    <th>العمل</th>
+                    <th>التأخير</th>
+                    <th>الخروج المبكر</th>
+                    <th>الإضافي</th>
+                    <th>الحالة</th>
+                    <th>قرار الإدارة</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record.employee.full_name }}</td>
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.check_in|date:"H:i"|default:"-" }}</td>
+                    <td>{{ record.check_out|date:"H:i"|default:"-" }}</td>
+                    <td>{{ record.worked_seconds }}</td>
+                    <td>{{ record.late_seconds }}</td>
+                    <td>{{ record.early_leave_seconds }}</td>
+                    <td>{{ record.overtime_seconds }}</td>
+                    <td>{{ record.get_status_display }}</td>
+                    <td>{{ record.get_review_status_display }}</td>
+                    <td><a href="{% url 'employ:attendance_update' record.pk %}" class="btn btn-sm btn-outline-primary">مراجعة</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="11" class="text-center text-muted">لا توجد سجلات دوام.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

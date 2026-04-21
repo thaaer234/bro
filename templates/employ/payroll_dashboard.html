@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="module-header">
+    <h2>شاشة الرواتب</h2>
+    <div class="header-actions">
+        <a href="{% url 'employ:employee_reports' %}" class="btn btn-outline-primary">التقارير</a>
+        <a href="{% url 'employ:hr_settings' %}" class="btn btn-secondary">طرق الحساب</a>
+    </div>
+</div>
+
+{% include "partials/_alerts.html" %}
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">إنشاء فترة رواتب</h5></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'employ:payroll_period_create' %}">
+                    {% csrf_token %}
+                    {{ period_form.as_p }}
+                    <button class="btn btn-primary">حفظ الفترة</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">معاينة الرواتب الحية</h5></div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>الراتب الأساسي</th>
+                            <th>الإضافي</th>
+                            <th>الخصومات</th>
+                            <th>السلف</th>
+                            <th>الصافي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for preview in previews %}
+                        <tr>
+                            <td>{{ preview.employee.full_name }}</td>
+                            <td>{{ preview.gross_salary|floatformat:2 }}</td>
+                            <td>{{ preview.overtime_total|floatformat:2 }}</td>
+                            <td>{{ preview.deductions_total|floatformat:2 }}</td>
+                            <td>{{ preview.advances_total|floatformat:2 }}</td>
+                            <td><strong>{{ preview.net_salary|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">فترات الرواتب</h5></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>الفترة</th><th>الحالة</th><th></th></tr></thead>
+                    <tbody>
+                        {% for period in periods %}
+                        <tr>
+                            <td>{{ period.name }}<small class="d-block text-muted">{{ period.start_date }} - {{ period.end_date }}</small></td>
+                            <td>{{ period.get_status_display }}</td>
+                            <td>
+                                <form method="post" action="{% url 'employ:payroll_generate' period.pk %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-success">إنشاء المسير</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">لا توجد فترات.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header"><h5 class="mb-0">آخر المسيرات</h5></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>الموظف</th><th>الفترة</th><th>الإجمالي</th><th>الصافي</th></tr></thead>
+                    <tbody>
+                        {% for payroll in employee_payrolls %}
+                        <tr>
+                            <td>{{ payroll.employee.full_name }}</td>
+                            <td>{{ payroll.period.name }}</td>
+                            <td>{{ payroll.gross_salary|floatformat:2 }}</td>
+                            <td>{{ payroll.net_salary|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted">لا توجد مسيرات بعد.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
