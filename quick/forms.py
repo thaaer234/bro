@@ -356,7 +356,7 @@ class QuickSessionAttendanceBulkForm(forms.Form):
             self.fields[f"{field_prefix}_status"] = forms.ChoiceField(
                 choices=QuickCourseSessionAttendance.STATUS_CHOICES,
                 initial="present",
-                required=True,
+                required=False,
                 label=enrollment.student.full_name,
             )
             self.fields[f"{field_prefix}_notes"] = forms.CharField(

@@ -7037,7 +7037,12 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
         desired_enrollment_ids = []
         for enrollment in displayed_enrollments:
             prefix = f"student_{enrollment.id}"
-            status = form.cleaned_data[f"{prefix}_status"]
+            status = (
+                post_data.get(f"{prefix}_status")
+                or post_data.get(f"{prefix}_status_fallback")
+                or form.cleaned_data.get(f"{prefix}_status")
+                or 'present'
+            )
             status = 'present' if status == 'present' else 'absent'
             notes = form.cleaned_data.get(f"{prefix}_notes", '')
             QuickCourseSessionAttendance.objects.update_or_create(
