@@ -60,6 +60,7 @@ from .services import (
     LivePayrollService,
     PayrollGenerationService,
 )
+from .biometric_sync import BiometricAutoSyncService
 from xhtml2pdf import pisa
 try:
     from weasyprint import HTML
@@ -648,6 +649,15 @@ class EmployeeCreateView(CreateView):
     template_name = 'employ/employee_form.html'
     success_url = reverse_lazy('employ:hr')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['job_titles_json'] = list(
+            JobTitle.objects.filter(is_active=True).select_related('department').order_by('name').values(
+                'id', 'name', 'department_id'
+            )
+        )
+        return context
+
     def form_valid(self, form):
         response = super().form_valid(form)  # self.object = created User
         messages.success(self.request, f'تم تسجيل الموظف {self.object.get_full_name() or self.object.username} بنجاح.')
@@ -664,6 +674,11 @@ class EmployeeUpdateView(UpdateView):
         from django.contrib.auth.forms import SetPasswordForm
         context = super().get_context_data(**kwargs)
         context['password_form'] = SetPasswordForm(self.object.user)
+        context['job_titles_json'] = list(
+            JobTitle.objects.filter(is_active=True).select_related('department').order_by('name').values(
+                'id', 'name', 'department_id'
+            )
+        )
         return context
 
     def form_valid(self, form):
@@ -849,6 +864,7 @@ class EmployeeProfileView(LoginRequiredMixin, DetailView):
             'outstanding_advances_count': len(outstanding_advances),
             'recent_attendance': recent_attendance,
             'live_preview': live_preview,
+            'weekend_days_display': employee.weekend_days_display,
             'months': months,
             'today': today,
         })
@@ -1420,6 +1436,13 @@ class HRSettingsView(LoginRequiredMixin, TemplateView):
             'shift_form': ShiftForm(),
             'policy_form': AttendancePolicyForm(),
             'salary_rule_form': EmployeeSalaryRuleForm(),
+            'settings_stats': {
+                'departments': Department.objects.count(),
+                'job_titles': JobTitle.objects.count(),
+                'shifts': Shift.objects.filter(is_active=True).count(),
+                'attendance_policies': AttendancePolicy.objects.filter(is_active=True).count(),
+                'salary_rules': EmployeeSalaryRule.objects.filter(is_active=True).count(),
+            },
         })
         return context
 
@@ -1488,6 +1511,8 @@ class BiometricDashboardView(LoginRequiredMixin, TemplateView):
             'unlinked_logs_count': BiometricLog.objects.filter(employee__isnull=True).count(),
             'pending_reviews_count': pending_reviews.count(),
             'pending_early_leave_count': pending_reviews.filter(early_leave_seconds__gt=0).count(),
+            'biometric_driver_available': BiometricAutoSyncService.is_available(),
+            'biometric_driver_name': BiometricAutoSyncService.DRIVER_NAME,
         })
         return context
 
@@ -1510,7 +1535,11 @@ class BiometricImportView(LoginRequiredMixin, View):
             return redirect('employ:biometric_dashboard')
 
         try:
-            raw_logs = json.loads(form.cleaned_data['raw_logs'])
+            raw_logs_text = (form.cleaned_data['raw_logs'] or '').strip()
+            if not raw_logs_text:
+                messages.error(request, 'حقل سجلات البصمة فارغ. الاستيراد اليدوي يحتاج JSON صالح، أما الربط التلقائي فيحتاج تثبيت موصل الجهاز.')
+                return redirect('employ:biometric_dashboard')
+            raw_logs = json.loads(raw_logs_text)
             result = BiometricImportService.import_logs(form.cleaned_data['device'], raw_logs)
             messages.success(
                 request,
@@ -1560,7 +1589,7 @@ class EmployeeAttendanceRebuildView(LoginRequiredMixin, View):
         target_date = request.POST.get('date')
         employee = get_object_or_404(Employee, pk=employee_id)
         target_date = datetime.fromisoformat(target_date).date() if target_date else timezone.now().date()
-        AttendanceGenerationService.build_attendance(employee, target_date)
+        AttendanceGenerationService.build_attendance_record(employee, target_date)
         messages.success(request, 'تمت إعادة احتساب الدوام من سجلات البصمة.')
         return redirect('employ:attendance_list')
 
@@ -1611,14 +1640,38 @@ class PayrollDashboardView(LoginRequiredMixin, TemplateView):
         selected_month = _safe_period_int(self.request.GET.get('month'), timezone.now().month, min_value=1, max_value=12)
         employees = Employee.objects.select_related('user', 'salary_rule', 'default_shift').filter(employment_status='active')
         previews = [LivePayrollService.preview_for_period(employee, selected_year, selected_month) for employee in employees]
+        previews.sort(key=lambda item: ((item.get('department_name') or ''), item['employee'].full_name))
         payroll_periods = PayrollPeriod.objects.order_by('-start_date')
         context.update({
             'selected_year': selected_year,
             'selected_month': selected_month,
+            'months': [
+                (1, 'كانون الثاني'),
+                (2, 'شباط'),
+                (3, 'آذار'),
+                (4, 'نيسان'),
+                (5, 'أيار'),
+                (6, 'حزيران'),
+                (7, 'تموز'),
+                (8, 'آب'),
+                (9, 'أيلول'),
+                (10, 'تشرين الأول'),
+                (11, 'تشرين الثاني'),
+                (12, 'كانون الأول'),
+            ],
             'previews': previews,
             'periods': payroll_periods[:12],
             'period_form': PayrollPeriodForm(),
             'employee_payrolls': EmployeePayroll.objects.select_related('employee__user', 'period').order_by('-generated_at')[:50],
+            'payroll_totals': {
+                'gross_salary': sum((item['gross_salary'] for item in previews), Decimal('0.00')),
+                'overtime_total': sum((item['overtime_total'] for item in previews), Decimal('0.00')),
+                'deductions_total': sum((item['deductions_total'] for item in previews), Decimal('0.00')),
+                'advances_total': sum((item['advances_total'] for item in previews), Decimal('0.00')),
+                'tax_total': sum((item['tax_total'] for item in previews), Decimal('0.00')),
+                'insurance_total': sum((item['insurance_total'] for item in previews), Decimal('0.00')),
+                'net_salary': sum((item['net_salary'] for item in previews), Decimal('0.00')),
+            },
         })
         return context
 

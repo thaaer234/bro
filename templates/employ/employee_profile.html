@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load employ_filters %}
+{% load employ_filters %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
@@ -32,7 +34,9 @@
                     <div><strong>الكود:</strong> {{ employee.employee_code|default:"-" }}</div>
                     <div><strong>معرف البصمة:</strong> {{ employee.biometric_user_id|default:"-" }}</div>
                     <div><strong>القسم:</strong> {{ employee.department|default:"-" }}</div>
+                    <div><strong>المسمى الوظيفي:</strong> {{ employee.job_title|default:employee.get_position_display }}</div>
                     <div><strong>الشفت:</strong> {{ employee.default_shift|default:"-" }}</div>
+                    <div><strong>أيام العطلة:</strong> {{ weekend_days_display }}</div>
                     <div><strong>الحالة:</strong> {{ employee.get_employment_status_display }}</div>
                     <div><strong>نوع العقد:</strong> {{ employee.get_contract_type_display }}</div>
                     <div><strong>الهاتف:</strong> {{ employee.phone_number|default:"-" }}</div>
@@ -108,16 +112,25 @@
                             </tr>
                             {% endfor %}
                             <tr>
+                                <td>أجر الساعة</td>
+                                <td>
+                                    {{ live_preview.hourly_basis|floatformat:2 }}
+                                    {% if live_preview.hourly_basis_source != 'manual' %}
+                                    <span class="text-muted">(محسوب من الراتب الشهري وساعات الدوام)</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
                                 <td>ساعات العمل الفعلية</td>
-                                <td>{{ live_preview.worked_seconds }}</td>
+                                <td>{{ live_preview.worked_seconds|seconds_to_hhmm }}</td>
                             </tr>
                             <tr>
                                 <td>ثواني التأخير</td>
-                                <td>{{ live_preview.late_seconds }}</td>
+                                <td>{{ live_preview.late_seconds|seconds_to_hhmm }}</td>
                             </tr>
                             <tr>
                                 <td>ثواني الغياب</td>
-                                <td>{{ live_preview.absence_seconds }}</td>
+                                <td>{{ live_preview.absence_seconds|seconds_to_hhmm }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -147,9 +160,9 @@
                                 <td>{{ row.date }}</td>
                                 <td>{{ row.check_in|date:"Y-m-d H:i"|default:"-" }}</td>
                                 <td>{{ row.check_out|date:"Y-m-d H:i"|default:"-" }}</td>
-                                <td>{{ row.worked_seconds }}</td>
-                                <td>{{ row.late_seconds }}</td>
-                                <td>{{ row.overtime_seconds }}</td>
+                                <td>{{ row.worked_seconds|seconds_to_hhmm }}</td>
+                                <td>{{ row.late_seconds|seconds_to_hhmm }}</td>
+                                <td>{{ row.overtime_seconds|seconds_to_hhmm }}</td>
                                 <td>{{ row.get_status_display }}</td>
                             </tr>
                             {% empty %}

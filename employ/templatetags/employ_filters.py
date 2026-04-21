@@ -21,3 +21,15 @@ def multiply(value, arg):
         return float(value) * float(arg)
     except (ValueError, TypeError):
         return 0
+
+
+@register.filter
+def seconds_to_hhmm(value):
+    """Format seconds as HH:MM."""
+    try:
+        total_seconds = int(value or 0)
+    except (TypeError, ValueError):
+        return "00:00"
+    hours, remainder = divmod(max(total_seconds, 0), 3600)
+    minutes = remainder // 60
+    return f"{hours:02d}:{minutes:02d}"

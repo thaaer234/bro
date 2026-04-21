@@ -17,6 +17,12 @@ from django.dispatch import receiver
 class Employee(models.Model):
     """الموظف: مرتبط بمستخدم النظام، ويُمنح صلاحيات ميزات مباشرةً عبر EmployeePermission."""
 
+    PAYROLL_METHOD_CHOICES = [
+        ('monthly', 'شهري'),
+        ('hourly', 'ساعي'),
+        ('mixed', 'مختلط'),
+    ]
+
     # حقل الربط مع مستخدم Django
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee_profile')
 
@@ -28,8 +34,15 @@ class Employee(models.Model):
     national_id = models.CharField(max_length=30, blank=True, null=True, verbose_name='الرقم الوطني')
     address = models.TextField(blank=True, null=True, verbose_name='العنوان')
 
-    # الراتب الشهري الثابت (تستخدمه الفيوز الخاصة بملف الموظف ودفع الراتب)
-    salary = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='راتب شهري')
+    # الراتب الإجمالي حسب العقد
+    salary = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='الراتب الإجمالي حسب العقد')
+    payroll_method = models.CharField(max_length=20, choices=PAYROLL_METHOD_CHOICES, default='monthly', verbose_name='طريقة حساب الراتب')
+    hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='أجر الساعة')
+    overtime_hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='أجر ساعة الإضافي')
+    required_monthly_hours = models.PositiveIntegerField(default=0, verbose_name='الساعات المطلوبة شهريًا')
+    weekend_days = models.CharField(max_length=20, blank=True, default='4,5', verbose_name='أيام العطلة الأسبوعية')
+    annual_leave_days = models.PositiveIntegerField(default=14, verbose_name='الإجازات النظامية السنوية')
+    sick_leave_days = models.PositiveIntegerField(default=7, verbose_name='الإجازات المرضية السنوية')
 
     # مسمى وظيفي (اختياري، لا يوزّع صلاحيات تلقائيًا)
     POSITION_CHOICES = [
@@ -38,6 +51,15 @@ class Employee(models.Model):
         ('hr', 'موارد بشرية'),
         ('staff', 'موظف'),
     ]
+    WEEKDAY_LABELS = {
+        0: 'الاثنين',
+        1: 'الثلاثاء',
+        2: 'الأربعاء',
+        3: 'الخميس',
+        4: 'الجمعة',
+        5: 'السبت',
+        6: 'الأحد',
+    }
     position = models.CharField(max_length=50, choices=POSITION_CHOICES, default='staff', verbose_name='الوظيفة')
     contract_type = models.CharField(
         max_length=20,
@@ -182,6 +204,31 @@ class Employee(models.Model):
     @property
     def effective_salary_rule(self):
         return self.salary_rule
+
+    @property
+    def payroll_method_display(self):
+        return dict(self.PAYROLL_METHOD_CHOICES).get(self.payroll_method, self.payroll_method)
+
+    def get_weekend_day_numbers(self):
+        raw_value = str(self.weekend_days or '').strip()
+        if not raw_value and self.attendance_policy_id:
+            raw_value = str(self.attendance_policy.weekend_days or '').strip()
+        if not raw_value:
+            return set()
+        values = set()
+        for part in raw_value.split(','):
+            part = part.strip()
+            if part.isdigit():
+                values.add(int(part))
+        return {value for value in values if 0 <= value <= 6}
+
+    def get_weekend_day_labels(self):
+        return [self.WEEKDAY_LABELS[value] for value in sorted(self.get_weekend_day_numbers()) if value in self.WEEKDAY_LABELS]
+
+    @property
+    def weekend_days_display(self):
+        labels = self.get_weekend_day_labels()
+        return '، '.join(labels) if labels else '-'
 
 
 class Department(models.Model):
@@ -1053,6 +1100,8 @@ class Vacation(models.Model):
 def ensure_employee_salary_account(sender, instance, **kwargs):
     from accounts.models import get_or_create_employee_salary_account
     get_or_create_employee_salary_account(instance)
+    from .services import BiometricImportService
+    BiometricImportService.relink_employee_logs(instance)
 
 
 @receiver(post_save, sender=Teacher)

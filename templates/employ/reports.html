@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load employ_filters %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
@@ -22,7 +23,7 @@
     </div>
     <div class="dashboard-card">
         <div class="dashboard-card-title">الإضافي بالثواني</div>
-        <div class="dashboard-card-value">{{ overtime_total }}</div>
+        <div class="dashboard-card-value">{{ overtime_total|seconds_to_hhmm }}</div>
     </div>
 </div>
 
@@ -38,9 +39,9 @@
                         <tr>
                             <td>{{ row.employee.full_name }}</td>
                             <td>{{ row.attendance_days }}</td>
-                            <td>{{ row.late_seconds }}</td>
-                            <td>{{ row.absence_seconds }}</td>
-                            <td>{{ row.overtime_seconds }}</td>
+                            <td>{{ row.late_seconds|seconds_to_hhmm }}</td>
+                            <td>{{ row.absence_seconds|seconds_to_hhmm }}</td>
+                            <td>{{ row.overtime_seconds|seconds_to_hhmm }}</td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="5" class="text-center text-muted">لا توجد بيانات.</td></tr>

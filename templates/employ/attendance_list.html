@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load employ_filters %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
@@ -60,10 +61,10 @@
                     <td>{{ record.date }}</td>
                     <td>{{ record.check_in|date:"H:i"|default:"-" }}</td>
                     <td>{{ record.check_out|date:"H:i"|default:"-" }}</td>
-                    <td>{{ record.worked_seconds }}</td>
-                    <td>{{ record.late_seconds }}</td>
-                    <td>{{ record.early_leave_seconds }}</td>
-                    <td>{{ record.overtime_seconds }}</td>
+                    <td>{{ record.worked_seconds|seconds_to_hhmm }}</td>
+                    <td>{{ record.late_seconds|seconds_to_hhmm }}</td>
+                    <td>{{ record.early_leave_seconds|seconds_to_hhmm }}</td>
+                    <td>{{ record.overtime_seconds|seconds_to_hhmm }}</td>
                     <td>{{ record.get_status_display }}</td>
                     <td>{{ record.get_review_status_display }}</td>
                     <td><a href="{% url 'employ:attendance_update' record.pk %}" class="btn btn-sm btn-outline-primary">مراجعة</a></td>

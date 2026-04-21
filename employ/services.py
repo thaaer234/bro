@@ -83,6 +83,23 @@ def _apply_rounding(seconds, method):
     return int(round(seconds / step) * step)
 
 
+def _employee_required_monthly_seconds(employee, shift, start_date, end_date):
+    required_monthly_hours = int(getattr(employee, 'required_monthly_hours', 0) or 0)
+    if required_monthly_hours > 0:
+        return required_monthly_hours * 3600
+
+    required_daily_seconds = shift.required_work_seconds if shift else 28800
+    period_days = max((end_date - start_date).days + 1, 1)
+    weekend_days = employee.get_weekend_day_numbers() if hasattr(employee, 'get_weekend_day_numbers') else set()
+    work_days = 0
+    current = start_date
+    while current <= end_date:
+        if current.weekday() not in weekend_days:
+            work_days += 1
+        current += timedelta(days=1)
+    return required_daily_seconds * max(work_days, 1)
+
+
 class BiometricImportService:
     @classmethod
     @transaction.atomic
@@ -109,15 +126,22 @@ class BiometricImportService:
             if not employee:
                 unresolved_count += 1
 
+            raw_payload = item.get('raw_data') or {
+                'device_user_id': device_user_id,
+                'punch_time': punch_time.isoformat(),
+                'punch_type': item.get('punch_type') or 'unknown',
+            }
+
             try:
-                log = BiometricLog.objects.create(
-                    employee=employee,
-                    device=device,
-                    device_user_id=device_user_id,
-                    punch_time=punch_time,
-                    punch_type=item.get('punch_type') or 'unknown',
-                    raw_data=item,
-                )
+                with transaction.atomic():
+                    log = BiometricLog.objects.create(
+                        employee=employee,
+                        device=device,
+                        device_user_id=device_user_id,
+                        punch_time=punch_time,
+                        punch_type=item.get('punch_type') or 'unknown',
+                        raw_data=raw_payload,
+                    )
                 created_logs.append(log)
             except IntegrityError:
                 duplicate_count += 1
@@ -132,6 +156,37 @@ class BiometricImportService:
             'created': len(created_logs),
             'duplicates': duplicate_count,
             'unresolved': unresolved_count,
+        }
+
+    @classmethod
+    @transaction.atomic
+    def relink_employee_logs(cls, employee):
+        biometric_user_id = str(getattr(employee, 'biometric_user_id', '') or '').strip()
+        if not biometric_user_id:
+            return {'linked_logs': 0, 'rebuilt_days': 0}
+
+        logs_qs = BiometricLog.objects.filter(
+            employee__isnull=True,
+            device_user_id=biometric_user_id,
+        ).order_by('punch_time')
+        linked_logs = logs_qs.count()
+        if not linked_logs:
+            return {'linked_logs': 0, 'rebuilt_days': 0}
+
+        logs_qs.update(employee=employee)
+        affected_days = sorted({
+            timezone.localtime(log.punch_time).date()
+            for log in BiometricLog.objects.filter(
+                employee=employee,
+                device_user_id=biometric_user_id,
+            ).order_by('punch_time')
+        })
+        for target_date in affected_days:
+            AttendanceGenerationService.build_attendance_record(employee, target_date)
+
+        return {
+            'linked_logs': linked_logs,
+            'rebuilt_days': len(affected_days),
         }
 
 
@@ -193,21 +248,174 @@ class AttendanceGenerationService:
         employee = log.employee or Employee.objects.filter(biometric_user_id=log.device_user_id).first()
         if not employee:
             return None
-        return cls.build_attendance(employee, target_date)
+        return cls.build_attendance_record(employee, target_date)
 
     @classmethod
     def sync_range(cls, employee, start_date, end_date):
         current = start_date
         records = []
         while current <= end_date:
-            records.append(cls.build_attendance(employee, current))
+            records.append(cls.build_attendance_record(employee, current))
             current += timedelta(days=1)
         return records
 
     @classmethod
-    def build_attendance(cls, employee, target_date):
+    def build_attendance_record(cls, employee, target_date):
+        attendance, _ = EmployeeAttendance.objects.get_or_create(employee=employee, date=target_date)
+        if attendance.is_manually_adjusted:
+            return attendance
+
         shift = employee.effective_shift
         policy = employee.effective_attendance_policy
+        day_start = timezone.make_aware(datetime.combine(target_date, time.min))
+        next_day_start = day_start + timedelta(days=1)
+        same_day_logs = list(
+            employee.biometric_logs.filter(
+                punch_time__gte=day_start,
+                punch_time__lt=next_day_start,
+            ).order_by('punch_time')
+        )
+
+        approved_vacation = Vacation.objects.filter(
+            employee=employee,
+            status='ظ…ظˆط§ظپظ‚',
+            start_date__lte=target_date,
+            end_date__gte=target_date,
+        ).exists()
+        if approved_vacation:
+            attendance.check_in = None
+            attendance.check_out = None
+            attendance.worked_seconds = 0
+            attendance.late_seconds = 0
+            attendance.early_leave_seconds = 0
+            attendance.overtime_seconds = 0
+            attendance.absence_seconds = 0
+            attendance.status = 'vacation'
+            attendance.review_status = 'not_required'
+            attendance.source = 'biometric'
+            attendance.notes = 'تم تغطية اليوم بإجازة معتمدة.'
+            attendance.save()
+            return attendance
+
+        is_weekend = target_date.weekday() in employee.get_weekend_day_numbers()
+        if is_weekend and not same_day_logs:
+            attendance.check_in = None
+            attendance.check_out = None
+            attendance.worked_seconds = 0
+            attendance.late_seconds = 0
+            attendance.early_leave_seconds = 0
+            attendance.overtime_seconds = 0
+            attendance.absence_seconds = 0
+            attendance.status = 'weekend'
+            attendance.review_status = 'not_required'
+            attendance.source = 'biometric'
+            attendance.notes = 'يوم عطلة أسبوعية حسب إعدادات ملف الموظف.'
+            attendance.save()
+            return attendance
+
+        if not shift:
+            if not same_day_logs:
+                attendance.check_in = None
+                attendance.check_out = None
+                attendance.worked_seconds = 0
+                attendance.late_seconds = 0
+                attendance.early_leave_seconds = 0
+                attendance.overtime_seconds = 0
+                attendance.absence_seconds = 0
+                attendance.status = 'absent'
+                attendance.review_status = 'not_required'
+                attendance.source = 'biometric'
+                attendance.notes = 'لا يوجد شفت افتراضي ولا سجلات بصمة لهذا الموظف.'
+                attendance.save()
+                return attendance
+
+            check_in = same_day_logs[0].punch_time
+            check_out = same_day_logs[-1].punch_time if len(same_day_logs) > 1 else None
+            attendance.check_in = check_in
+            attendance.check_out = check_out
+            attendance.worked_seconds = _seconds_between(check_in, check_out) if check_out else 0
+            attendance.late_seconds = 0
+            attendance.early_leave_seconds = 0
+            attendance.overtime_seconds = 0
+            attendance.absence_seconds = 0
+            attendance.status = 'partial' if not check_out else 'present'
+            attendance.review_status = 'not_required'
+            attendance.source = 'biometric'
+            attendance.notes = f'تم احتساب الدوام من {len(same_day_logs)} سجلات بصمة بدون شفت افتراضي.'
+            attendance.save()
+            return attendance
+
+        shift_start, shift_end = shift.get_bounds_for_date(target_date)
+        window_start = shift_start - timedelta(hours=4)
+        window_end = shift_end + timedelta(hours=4)
+        relevant_logs = list(
+            employee.biometric_logs.filter(
+                punch_time__gte=window_start,
+                punch_time__lte=window_end,
+            ).order_by('punch_time')
+        )
+        if not relevant_logs:
+            attendance.check_in = None
+            attendance.check_out = None
+            attendance.worked_seconds = 0
+            attendance.late_seconds = 0
+            attendance.early_leave_seconds = 0
+            attendance.overtime_seconds = 0
+            attendance.absence_seconds = shift.required_work_seconds
+            attendance.status = 'absent'
+            attendance.review_status = 'not_required'
+            attendance.source = 'biometric'
+            attendance.notes = 'لا توجد سجلات بصمة ضمن نافذة الشفت لهذا اليوم.'
+            attendance.save()
+            return attendance
+
+        check_in = relevant_logs[0].punch_time
+        check_out = relevant_logs[-1].punch_time if len(relevant_logs) > 1 else None
+        attendance = cls._populate_attendance_metrics(
+            attendance=attendance,
+            shift=shift,
+            policy=policy,
+            check_in=check_in,
+            check_out=check_out,
+            notes=f'تمت مزامنة الدوام من {len(relevant_logs)} سجلات بصمة.',
+            source='biometric',
+        )
+        attendance.save()
+        return attendance
+
+    @classmethod
+    def build_attendance(cls, employee, target_date):
+        return cls.build_attendance_record(employee, target_date)
+        shift = employee.effective_shift
+        policy = employee.effective_attendance_policy
+        same_day_logs = list(
+            employee.biometric_logs.filter(
+                punch_time__date=target_date
+            ).order_by('punch_time')
+        )
+        logs = list(
+            employee.biometric_logs.filter(
+                punch_time__date__gte=target_date,
+                punch_time__date__lte=target_date + timedelta(days=1)
+            ).order_by('punch_time')
+        )
+        if not shift and same_day_logs:
+            attendance, _ = EmployeeAttendance.objects.get_or_create(employee=employee, date=target_date)
+            check_in = same_day_logs[0].punch_time
+            check_out = same_day_logs[-1].punch_time if len(same_day_logs) > 1 else None
+            attendance.check_in = check_in
+            attendance.check_out = check_out
+            attendance.worked_seconds = _seconds_between(check_in, check_out) if check_out else 0
+            attendance.late_seconds = 0
+            attendance.early_leave_seconds = 0
+            attendance.overtime_seconds = 0
+            attendance.absence_seconds = 0
+            attendance.status = 'partial' if not check_out else 'present'
+            attendance.review_status = 'not_required'
+            attendance.source = 'biometric'
+            attendance.notes = f'تم احتساب الدوام من {len(same_day_logs)} سجلات بصمة بدون شفت افتراضي.'
+            attendance.save()
+            return attendance
         if not shift:
             attendance, _ = EmployeeAttendance.objects.get_or_create(employee=employee, date=target_date)
             attendance.status = 'absent'
@@ -379,6 +587,11 @@ class LivePayrollService:
         total_worked_seconds = sum(item.worked_seconds for item in attendances)
         total_late_seconds = sum(item.late_seconds for item in attendances)
         total_early_leave_seconds = sum(item.early_leave_seconds for item in attendances)
+        present_count = sum(1 for item in attendances if item.status == 'present')
+        late_count = sum(1 for item in attendances if item.status == 'late')
+        partial_count = sum(1 for item in attendances if item.status == 'partial')
+        absent_count = sum(1 for item in attendances if item.status == 'absent')
+        vacation_attendance_count = sum(1 for item in attendances if item.status == 'vacation')
         deductible_attendances = [
             item for item in attendances
             if item.review_status in {'not_required', 'unjustified'}
@@ -406,30 +619,38 @@ class LivePayrollService:
             )
         )
 
-        salary_type = getattr(rule, 'salary_type', 'monthly') if rule else 'monthly'
+        salary_type = getattr(employee, 'payroll_method', '') or (getattr(rule, 'salary_type', 'monthly') if rule else 'monthly')
+        salary_type_display = dict(getattr(rule, 'SALARY_TYPE_CHOICES', [])).get(salary_type, salary_type) if rule else 'شهري'
         required_daily_seconds = shift.required_work_seconds if shift else 28800
         period_days = max((end_date - start_date).days + 1, 1)
-        required_period_seconds = required_daily_seconds * period_days
+        required_period_seconds = _employee_required_monthly_seconds(employee, shift, start_date, end_date)
+        payable_days = present_count + late_count + partial_count
+        hourly_rate = _decimal(getattr(employee, 'hourly_rate', 0))
+        overtime_hourly_rate = _decimal(getattr(employee, 'overtime_hourly_rate', 0))
 
         if salary_type == 'hourly':
-            hourly_rate = base_salary
             gross_salary = hourly_rate * (Decimal(total_worked_seconds) / Decimal('3600'))
-        elif salary_type == 'daily':
-            daily_rate = base_salary
-            gross_salary = daily_rate * Decimal(sum(1 for item in attendances if item.status not in ['absent']))
+        elif salary_type == 'mixed':
+            gross_salary = base_salary + (hourly_rate * (Decimal(total_worked_seconds) / Decimal('3600')))
         else:
             gross_salary = base_salary
 
-        hourly_basis = base_salary / Decimal('30') / Decimal('8') if base_salary else Decimal('0')
-        if salary_type == 'hourly':
-            hourly_basis = base_salary
-        elif salary_type == 'daily':
-            hourly_basis = base_salary / Decimal('8') if base_salary else Decimal('0')
+        hourly_basis = hourly_rate
+        hourly_basis_source = 'manual' if hourly_basis else 'derived'
+        if not hourly_basis:
+            if required_period_seconds:
+                hourly_basis = base_salary / (Decimal(required_period_seconds) / Decimal('3600')) if base_salary else Decimal('0')
+            elif base_salary:
+                hourly_basis = base_salary / Decimal('30') / Decimal('8')
+                hourly_basis_source = 'estimated'
+            else:
+                hourly_basis_source = 'missing'
 
         overtime_multiplier = getattr(rule, 'overtime_multiplier', Decimal('1.00')) if rule else Decimal('1.00')
         if rule and rule.max_overtime_seconds:
             total_overtime_seconds = min(total_overtime_seconds, rule.max_overtime_seconds)
-        overtime_amount = hourly_basis * overtime_multiplier * (Decimal(total_overtime_seconds) / Decimal('3600'))
+        overtime_basis = overtime_hourly_rate or (hourly_basis * overtime_multiplier)
+        overtime_amount = overtime_basis * (Decimal(total_overtime_seconds) / Decimal('3600'))
 
         late_deduction = Decimal('0')
         if not rule or rule.late_deduction_enabled:
@@ -437,7 +658,7 @@ class LivePayrollService:
 
         absence_deduction = Decimal('0')
         if not rule or rule.absence_deduction_enabled:
-            if salary_type == 'monthly' and required_period_seconds:
+            if salary_type in {'monthly', 'mixed'} and required_period_seconds:
                 absence_deduction = gross_salary * (Decimal(total_absence_seconds) / Decimal(required_period_seconds))
             else:
                 absence_deduction = hourly_basis * (Decimal(total_absence_seconds) / Decimal('3600'))
@@ -445,6 +666,11 @@ class LivePayrollService:
         deductions_total = late_deduction + absence_deduction
         if rule and rule.max_deduction_amount:
             deductions_total = min(deductions_total, rule.max_deduction_amount)
+            original_total = late_deduction + absence_deduction
+            if original_total > 0:
+                scale = deductions_total / original_total
+                late_deduction *= scale
+                absence_deduction *= scale
 
         advance_amount = sum((adv.outstanding_amount for adv in advances), Decimal('0.00'))
         tax_total = (gross_salary * _decimal(getattr(rule, 'tax_percent', 0)) / Decimal('100')) if rule else Decimal('0.00')
@@ -453,10 +679,15 @@ class LivePayrollService:
 
         gross_salary = _quantize_money(gross_salary)
         overtime_amount = _quantize_money(overtime_amount)
+        late_deduction = _quantize_money(late_deduction)
+        absence_deduction = _quantize_money(absence_deduction)
         deductions_total = _quantize_money(deductions_total)
         advance_amount = _quantize_money(advance_amount)
         tax_total = _quantize_money(tax_total)
         insurance_total = _quantize_money(insurance_total)
+        compensation_total = _quantize_money(compensation_total)
+        gross_before_deductions = _quantize_money(gross_salary + overtime_amount + compensation_total)
+        withheld_total = _quantize_money(deductions_total + advance_amount + tax_total + insurance_total)
         net_salary = _quantize_money(gross_salary + overtime_amount + compensation_total - deductions_total - advance_amount - tax_total - insurance_total)
 
         return {
@@ -465,15 +696,25 @@ class LivePayrollService:
             'end_date': end_date,
             'base_salary': _quantize_money(base_salary),
             'gross_salary': gross_salary,
+            'gross_before_deductions': gross_before_deductions,
             'overtime_total': overtime_amount,
             'deductions_total': deductions_total,
+            'late_deduction_total': late_deduction,
+            'absence_deduction_total': absence_deduction,
             'advances_total': advance_amount,
             'tax_total': tax_total,
             'insurance_total': insurance_total,
             'compensation_total': compensation_total,
+            'withheld_total': withheld_total,
             'net_salary': net_salary,
             'attendance_count': len(attendances),
             'vacation_count': len(approved_vacations),
+            'present_count': present_count,
+            'late_count': late_count,
+            'partial_count': partial_count,
+            'absent_count': absent_count,
+            'payable_days': payable_days,
+            'period_days': period_days,
             'worked_seconds': total_worked_seconds,
             'late_seconds': total_late_seconds,
             'early_leave_seconds': total_early_leave_seconds,
@@ -483,9 +724,18 @@ class LivePayrollService:
             'overtime_seconds': total_overtime_seconds,
             'absence_seconds': total_absence_seconds,
             'required_period_seconds': required_period_seconds,
+            'salary_type': salary_type,
+            'salary_type_display': salary_type_display,
+            'hourly_basis': _quantize_money(hourly_basis),
+            'hourly_basis_source': hourly_basis_source,
             'salary_rule': rule,
             'attendance_policy': policy,
             'shift': shift,
+            'shift_name': shift.name if shift else '',
+            'rule_name': rule.name if rule else '',
+            'policy_name': policy.name if policy else '',
+            'department_name': employee.department.name if employee.department else '',
+            'biometric_user_id': employee.biometric_user_id or '',
             'advances': advances,
             'vacations': approved_vacations,
             'attendances': attendances,

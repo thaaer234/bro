@@ -34,6 +34,9 @@
                         <div class="col-md-6">
                             <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
+                            {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
                             {% for error in field.errors %}
                             <div class="text-danger small">{{ error }}</div>
                             {% endfor %}
@@ -72,4 +75,59 @@
         </div>
     </div>
 </div>
+
+{{ job_titles_json|json_script:"job-titles-data" }}
+<script>
+(function(){
+    const departmentField = document.getElementById('id_department');
+    const jobTitleField = document.getElementById('id_job_title');
+    const jobTitlesNode = document.getElementById('job-titles-data');
+    if (!departmentField || !jobTitleField || !jobTitlesNode) return;
+
+    const jobTitles = JSON.parse(jobTitlesNode.textContent || '[]');
+    const allOptions = Array.from(jobTitleField.options).map(option => ({
+        value: option.value,
+        label: option.textContent,
+    }));
+
+    function renderJobTitles() {
+        const selectedDepartment = departmentField.value || '';
+        const previousValue = jobTitleField.value;
+        const allowedIds = new Set(
+            jobTitles
+                .filter(item => !selectedDepartment || String(item.department_id || '') === String(selectedDepartment))
+                .map(item => String(item.id))
+        );
+
+        jobTitleField.innerHTML = '';
+        allOptions.forEach(option => {
+            if (!option.value || allowedIds.has(String(option.value))) {
+                const node = document.createElement('option');
+                node.value = option.value;
+                node.textContent = option.label;
+                if (String(option.value) === String(previousValue)) {
+                    node.selected = true;
+                }
+                jobTitleField.appendChild(node);
+            }
+        });
+
+        if (!Array.from(jobTitleField.options).some(option => option.value === previousValue)) {
+            jobTitleField.value = '';
+        }
+    }
+
+    departmentField.addEventListener('change', renderJobTitles);
+    jobTitleField.addEventListener('change', function(){
+        const selected = jobTitles.find(item => String(item.id) === String(jobTitleField.value));
+        if (selected && selected.department_id) {
+            departmentField.value = String(selected.department_id);
+            renderJobTitles();
+            jobTitleField.value = String(selected.id);
+        }
+    });
+
+    renderJobTitles();
+})();
+</script>
 {% endblock %}

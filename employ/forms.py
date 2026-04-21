@@ -143,7 +143,8 @@ class TeacherForm(forms.ModelForm):
 
 
 class EmployeeRegistrationForm(UserCreationForm):
-    # لا نعتمد على ثابت POSITION_CHOICES؛ نقرأ من تعريف الحقل
+    WEEKEND_DAY_CHOICES = [(str(number), label) for number, label in Employee.WEEKDAY_LABELS.items()]
+
     position = forms.ChoiceField(
         choices=lambda: Employee._meta.get_field('position').choices,
         label='الوظيفة'
@@ -164,8 +165,18 @@ class EmployeeRegistrationForm(UserCreationForm):
     contract_start = forms.DateField(label='بداية العقد', required=False, widget=DateInput(attrs={'type': 'date', 'class': 'form-control'}))
     contract_end = forms.DateField(label='نهاية العقد', required=False, widget=DateInput(attrs={'type': 'date', 'class': 'form-control'}))
     employment_status = forms.ChoiceField(choices=Employee._meta.get_field('employment_status').choices, label='الحالة الوظيفية')
-    department = forms.ModelChoiceField(queryset=Department.objects.filter(is_active=True), required=False, label='القسم')
-    job_title = forms.ModelChoiceField(queryset=JobTitle.objects.filter(is_active=True), required=False, label='المسمى الوظيفي')
+    payroll_method = forms.ChoiceField(choices=Employee.PAYROLL_METHOD_CHOICES, required=False, label='طريقة حساب الراتب')
+    hourly_rate = forms.DecimalField(label='أجر الساعة', required=False, min_value=0, max_digits=10, decimal_places=2)
+    overtime_hourly_rate = forms.DecimalField(label='أجر ساعة الإضافي', required=False, min_value=0, max_digits=10, decimal_places=2)
+    required_monthly_hours = forms.IntegerField(label='الساعات المطلوبة شهريًا', required=False, min_value=0)
+    weekend_days = forms.MultipleChoiceField(
+        choices=WEEKEND_DAY_CHOICES,
+        required=False,
+        label='أيام العطلة الأسبوعية',
+        widget=forms.CheckboxSelectMultiple,
+    )
+    department = forms.ModelChoiceField(queryset=Department.objects.filter(is_active=True).order_by('name'), required=False, label='القسم')
+    job_title = forms.ModelChoiceField(queryset=JobTitle.objects.filter(is_active=True).select_related('department').order_by('name'), required=False, label='المسمى الوظيفي')
     default_shift = forms.ModelChoiceField(queryset=Shift.objects.filter(is_active=True), required=False, label='الشفت الافتراضي')
     attendance_policy = forms.ModelChoiceField(queryset=AttendancePolicy.objects.filter(is_active=True), required=False, label='سياسة الدوام')
     salary_rule = forms.ModelChoiceField(queryset=EmployeeSalaryRule.objects.filter(is_active=True), required=False, label='قاعدة الراتب')
@@ -185,18 +196,42 @@ class EmployeeRegistrationForm(UserCreationForm):
             'password2': 'تأكيد كلمة السر',
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            css_class = field.widget.attrs.get('class', '')
+            if isinstance(field.widget, forms.CheckboxSelectMultiple):
+                field.widget.attrs['class'] = (css_class + ' form-check-input').strip()
+            elif isinstance(field.widget, (forms.Select, forms.SelectMultiple)):
+                field.widget.attrs['class'] = (css_class + ' form-select').strip()
+            elif isinstance(field.widget, forms.ClearableFileInput):
+                field.widget.attrs['class'] = (css_class + ' form-control').strip()
+            else:
+                field.widget.attrs['class'] = (css_class + ' form-control').strip()
+        self.fields['weekend_days'].help_text = 'اختر الأيام بدل كتابة الأرقام. الجمعة = 4.'
+        self.fields['job_title'].help_text = 'تظهر المسميات المناسبة حسب القسم المختار.'
+
+    def clean_weekend_days(self):
+        values = self.cleaned_data.get('weekend_days') or []
+        return ','.join(str(value) for value in values)
+
     def save(self, commit=True):
-        # أنشئ المستخدم أولًا
         user = super().save(commit=False)
         if commit:
             user.save()
 
-        # ثم أنشئ الموظف المرتبط به
-        Employee.objects.create(
+        employee = Employee.objects.create(
             user=user,
             position=self.cleaned_data['position'],
             phone_number=self.cleaned_data['phone_number'],
             salary=self.cleaned_data['salary'],
+            payroll_method=self.cleaned_data.get('payroll_method') or 'monthly',
+            hourly_rate=self.cleaned_data.get('hourly_rate') or Decimal('0.00'),
+            overtime_hourly_rate=self.cleaned_data.get('overtime_hourly_rate') or Decimal('0.00'),
+            required_monthly_hours=self.cleaned_data.get('required_monthly_hours') or 0,
+            weekend_days=self.cleaned_data.get('weekend_days') or '4,5',
+            annual_leave_days=self.cleaned_data.get('annual_leave_days') or 14,
+            sick_leave_days=self.cleaned_data.get('sick_leave_days') or 7,
             employee_code=self.cleaned_data.get('employee_code') or None,
             biometric_user_id=self.cleaned_data.get('biometric_user_id') or None,
             national_id=self.cleaned_data.get('national_id') or None,
@@ -215,7 +250,8 @@ class EmployeeRegistrationForm(UserCreationForm):
             profile_photo=self.cleaned_data.get('profile_photo'),
         )
 
-        # ملاحظة: لا نوزّع صلاحيات حسب الوظيفة إطلاقًا (كما طلبت)
+        from .services import BiometricImportService
+        BiometricImportService.relink_employee_logs(employee)
         return user
 
 
@@ -306,10 +342,18 @@ class AdminVacationForm(forms.ModelForm):
 
 
 class EmployeeProfileForm(forms.ModelForm):
+    WEEKEND_DAY_CHOICES = EmployeeRegistrationForm.WEEKEND_DAY_CHOICES
+
     username = forms.CharField(label='اسم المستخدم')
     first_name = forms.CharField(label='الاسم الأول', required=False)
     last_name = forms.CharField(label='الاسم الأخير', required=False)
     email = forms.EmailField(label='البريد الإلكتروني', required=False)
+    weekend_days = forms.MultipleChoiceField(
+        choices=WEEKEND_DAY_CHOICES,
+        required=False,
+        label='أيام العطلة الأسبوعية',
+        widget=forms.CheckboxSelectMultiple,
+    )
 
     class Meta:
         model = Employee
@@ -317,6 +361,13 @@ class EmployeeProfileForm(forms.ModelForm):
             'position',
             'phone_number',
             'salary',
+            'payroll_method',
+            'hourly_rate',
+            'overtime_hourly_rate',
+            'required_monthly_hours',
+            'weekend_days',
+            'annual_leave_days',
+            'sick_leave_days',
             'employee_code',
             'biometric_user_id',
             'national_id',
@@ -348,6 +399,28 @@ class EmployeeProfileForm(forms.ModelForm):
             self.fields['first_name'].initial = user.first_name
             self.fields['last_name'].initial = user.last_name
             self.fields['email'].initial = user.email
+        self.fields['weekend_days'].initial = [str(value) for value in sorted(self.instance.get_weekend_day_numbers())]
+        self.fields['weekend_days'].help_text = 'اختر الأيام بدل كتابة الأرقام. الجمعة = 4.'
+        self.fields['department'].queryset = Department.objects.filter(is_active=True).order_by('name')
+        self.fields['job_title'].queryset = JobTitle.objects.filter(is_active=True).select_related('department').order_by('name')
+        self.fields['job_title'].help_text = 'تظهر المسميات المناسبة حسب القسم المختار.'
+
+        for name, field in self.fields.items():
+            css_class = field.widget.attrs.get('class', '')
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs['class'] = (css_class + ' form-check-input').strip()
+            elif isinstance(field.widget, forms.CheckboxSelectMultiple):
+                field.widget.attrs['class'] = (css_class + ' form-check-input').strip()
+            elif isinstance(field.widget, (forms.Select, forms.SelectMultiple)):
+                field.widget.attrs['class'] = (css_class + ' form-select').strip()
+            elif isinstance(field.widget, forms.ClearableFileInput):
+                field.widget.attrs['class'] = (css_class + ' form-control').strip()
+            else:
+                field.widget.attrs['class'] = (css_class + ' form-control').strip()
+
+    def clean_weekend_days(self):
+        values = self.cleaned_data.get('weekend_days') or []
+        return ','.join(str(value) for value in values)
 
     def save(self, commit=True):
         employee = super().save(commit=False)
@@ -360,6 +433,8 @@ class EmployeeProfileForm(forms.ModelForm):
             user.save()
             employee.save()
             self.save_m2m()
+            from .services import BiometricImportService
+            BiometricImportService.relink_employee_logs(employee)
         return employee
 
 

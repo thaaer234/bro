@@ -3,75 +3,220 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+<style>
+.hr-settings-page .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem}
+.hr-settings-page .stat-card,.hr-settings-page .panel-card{background:#fff;border:1px solid #d8e0ea;border-radius:18px;box-shadow:0 14px 34px rgba(15,23,42,.06)}
+.hr-settings-page .stat-card{padding:1rem 1.1rem}
+.hr-settings-page .stat-label{color:#667085;font-size:.88rem;margin-bottom:.4rem}
+.hr-settings-page .stat-value{font-size:1.45rem;font-weight:700;color:#0f172a}
+.hr-settings-page .panel-card .card-body{padding:1.1rem}
+.hr-settings-page .form-note{font-size:.88rem;color:#667085;margin-top:.35rem}
+.hr-settings-page .rule-table th,.hr-settings-page .rule-table td{font-size:.9rem;vertical-align:middle}
+.hr-settings-page .pill{display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;background:#eef4ff;color:#1d4ed8;font-size:.75rem;font-weight:600}
+@media (max-width: 992px){
+    .hr-settings-page .row.g-3>[class*="col-lg-"]{width:100%}
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="module-header">
-    <h2>إعدادات HR</h2>
-    <a href="{% url 'employ:hr' %}" class="btn btn-secondary">العودة</a>
-</div>
+<div class="hr-settings-page">
+    <div class="module-header">
+        <div>
+            <h2>إعدادات الموارد البشرية</h2>
+            <div class="text-muted">هنا تضبط الأقسام والشفتات وسياسات الدوام وطرق حساب الراتب بالطريقة الأقرب لأسلوب الأمين.</div>
+        </div>
+        <a href="{% url 'employ:hr' %}" class="btn btn-secondary">العودة</a>
+    </div>
 
-<div class="row g-3">
-    <div class="col-lg-6">
-        <div class="card shadow-sm">
-            <div class="card-header"><h5 class="mb-0">الأقسام</h5></div>
-            <div class="card-body">
-                <form method="post" action="{% url 'employ:department_create' %}">
-                    {% csrf_token %}
-                    {{ department_form.as_p }}
-                    <button class="btn btn-primary">حفظ القسم</button>
-                </form>
-                <hr>
-                <ul class="list-unstyled mb-0">
-                    {% for item in departments %}
-                    <li class="mb-2">{{ item.name }}{% if item.code %} - {{ item.code }}{% endif %}</li>
-                    {% empty %}
-                    <li class="text-muted">لا توجد أقسام.</li>
-                    {% endfor %}
-                </ul>
-            </div>
+    <div class="stats-grid mb-3">
+        <div class="stat-card">
+            <div class="stat-label">الأقسام</div>
+            <div class="stat-value">{{ settings_stats.departments }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">المسميات</div>
+            <div class="stat-value">{{ settings_stats.job_titles }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">الشفتات النشطة</div>
+            <div class="stat-value">{{ settings_stats.shifts }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">سياسات الدوام</div>
+            <div class="stat-value">{{ settings_stats.attendance_policies }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">طرق حساب الراتب</div>
+            <div class="stat-value">{{ settings_stats.salary_rules }}</div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <div class="card shadow-sm">
-            <div class="card-header"><h5 class="mb-0">الشفتات</h5></div>
-            <div class="card-body">
-                <form method="post" action="{% url 'employ:job_title_create' %}" class="mb-4">
-                    {% csrf_token %}
-                    <h6>المسميات الوظيفية</h6>
-                    {{ job_title_form.as_p }}
-                    <button class="btn btn-outline-primary">حفظ المسمى</button>
-                </form>
-                <hr>
-                <form method="post" action="{% url 'employ:shift_create' %}">
-                    {% csrf_token %}
-                    {{ shift_form.as_p }}
-                    <button class="btn btn-primary">حفظ الشفت</button>
-                </form>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="card-body">
+                    <h5 class="mb-3">الأقسام والمسميات</h5>
+                    <form method="post" action="{% url 'employ:department_create' %}" class="mb-4">
+                        {% csrf_token %}
+                        {{ department_form.as_p }}
+                        <button class="btn btn-primary">حفظ القسم</button>
+                    </form>
+                    <form method="post" action="{% url 'employ:job_title_create' %}">
+                        {% csrf_token %}
+                        {{ job_title_form.as_p }}
+                        <button class="btn btn-outline-primary">حفظ المسمى الوظيفي</button>
+                    </form>
+                    <hr>
+                    <div class="table-responsive">
+                        <table class="table table-sm rule-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>القسم</th>
+                                    <th>الرمز</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in departments %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.code|default:"-" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="2" class="text-muted text-center">لا توجد أقسام.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card shadow-sm">
-            <div class="card-header"><h5 class="mb-0">سياسات الدوام</h5></div>
-            <div class="card-body">
-                <form method="post" action="{% url 'employ:attendance_policy_create' %}">
-                    {% csrf_token %}
-                    {{ policy_form.as_p }}
-                    <button class="btn btn-primary">حفظ السياسة</button>
-                </form>
+
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="card-body">
+                    <h5 class="mb-3">الشفتات</h5>
+                    <form method="post" action="{% url 'employ:shift_create' %}">
+                        {% csrf_token %}
+                        {{ shift_form.as_p }}
+                        <button class="btn btn-primary">حفظ الشفت</button>
+                    </form>
+                    <div class="form-note">وقت الدخول والخروج ومدة العمل المطلوبة هنا هي المرجع الأساسي لحساب التأخير والخروج المبكر.</div>
+                    <hr>
+                    <div class="table-responsive">
+                        <table class="table table-sm rule-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>الشفت</th>
+                                    <th>الدوام</th>
+                                    <th>المطلوب</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for shift in shifts %}
+                                <tr>
+                                    <td>
+                                        <div>{{ shift.name }}</div>
+                                        <div class="text-muted small">{{ shift.code|default:"-" }}</div>
+                                    </td>
+                                    <td>{{ shift.start_time|time:"H:i" }} - {{ shift.end_time|time:"H:i" }}</td>
+                                    <td>{{ shift.required_work_seconds|default:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-muted text-center">لا توجد شفتات.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card shadow-sm">
-            <div class="card-header"><h5 class="mb-0">قواعد الرواتب</h5></div>
-            <div class="card-body">
-                <form method="post" action="{% url 'employ:salary_rule_create' %}">
-                    {% csrf_token %}
-                    {{ salary_rule_form.as_p }}
-                    <button class="btn btn-primary">حفظ القاعدة</button>
-                </form>
+
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="card-body">
+                    <h5 class="mb-3">سياسات الدوام</h5>
+                    <form method="post" action="{% url 'employ:attendance_policy_create' %}">
+                        {% csrf_token %}
+                        {{ policy_form.as_p }}
+                        <button class="btn btn-primary">حفظ سياسة الدوام</button>
+                    </form>
+                    <div class="form-note">هذه السياسة تضبط التعامل مع التأخير والخروج المبكر والغياب والإضافي.</div>
+                    <hr>
+                    <div class="table-responsive">
+                        <table class="table table-sm rule-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>السياسة</th>
+                                    <th>خصم التأخير/ساعة</th>
+                                    <th>خصم الخروج المبكر/ساعة</th>
+                                    <th>الإضافي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in attendance_policies %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.late_deduction_rate }}</td>
+                                    <td>{{ item.early_leave_deduction_rate }}</td>
+                                    <td>
+                                        {% if item.overtime_enabled %}
+                                        <span class="pill">x{{ item.overtime_multiplier }}</span>
+                                        {% else %}
+                                        <span class="text-muted">معطل</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-muted text-center">لا توجد سياسات دوام.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="card-body">
+                    <h5 class="mb-3">طرق حساب الراتب</h5>
+                    <form method="post" action="{% url 'employ:salary_rule_create' %}">
+                        {% csrf_token %}
+                        {{ salary_rule_form.as_p }}
+                        <button class="btn btn-primary">حفظ طريقة الحساب</button>
+                    </form>
+                    <div class="form-note">تمثل هذه الشاشة بديل "طريقة حساب الراتب" في الأمين: نوع الراتب، الإضافي، الحسميات، الضريبة، والتأمين.</div>
+                    <hr>
+                    <div class="table-responsive">
+                        <table class="table table-sm rule-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>الطريقة</th>
+                                    <th>نوع الراتب</th>
+                                    <th>الإضافي</th>
+                                    <th>خصم التأخير</th>
+                                    <th>الضريبة</th>
+                                    <th>التأمين</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in salary_rules %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.get_salary_type_display }}</td>
+                                    <td>{% if item.overtime_enabled %}x{{ item.overtime_multiplier }}{% else %}معطل{% endif %}</td>
+                                    <td>{% if item.late_deduction_enabled %}مفعل{% else %}معطل{% endif %}</td>
+                                    <td>{{ item.tax_percent }}%</td>
+                                    <td>{{ item.insurance_percent }}%</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="6" class="text-muted text-center">لا توجد طرق حساب راتب.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
