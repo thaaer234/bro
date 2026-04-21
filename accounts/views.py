@@ -29,6 +29,7 @@ from .forms import (
 )
 
 from students.models import Student as SProfile
+from academic_years.services.session import get_current_academic_year
 
 
 def _arabic_score(text):
@@ -37,6 +38,19 @@ def _arabic_score(text):
 
 def _mojibake_score(text):
     return sum(text.count(char) for char in ("ط", "ظ", "Ø", "Ù"))
+
+
+def _current_academic_year(request):
+    return getattr(request, "current_academic_year", None) or get_current_academic_year(request)
+
+
+def _scope_queryset_to_current_year(queryset, request, field_name="academic_year", include_null=False):
+    academic_year = _current_academic_year(request)
+    if not academic_year:
+        return queryset
+    if include_null:
+        return queryset.filter(Q(**{field_name: academic_year}) | Q(**{f"{field_name}__isnull": True}))
+    return queryset.filter(**{field_name: academic_year})
 
 
 def _repair_token(text):
@@ -343,6 +357,7 @@ class ChartOfAccountsView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = Account.objects.select_related('parent', 'cost_center').filter(is_active=True).order_by('code')
+        queryset = _scope_queryset_to_current_year(queryset, self.request, include_null=True)
         
         # تطبيق الفلاتر
         search = self.request.GET.get('search', '')
@@ -824,6 +839,10 @@ class AccountDetailView(LoginRequiredMixin, DetailView):
     model = Account
     template_name = 'accounts/account_detail.html'
     context_object_name = 'account'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request, include_null=True)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -841,6 +860,10 @@ class AccountUpdateView(LoginRequiredMixin, UpdateView):
     model = Account
     form_class = AccountForm
     template_name = 'accounts/account_form.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request, include_null=True)
     
     def form_valid(self, form):
         messages.success(self.request, 'تم تحديث الحساب بنجاح / Account updated successfully')
@@ -868,6 +891,7 @@ class JournalEntryListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = JournalEntry.objects.select_related('created_by').order_by('-date', '-created_at')
+        queryset = _scope_queryset_to_current_year(queryset, self.request, include_null=True)
         search_query = (self.request.GET.get('q') or '').strip()
         status_filter = (self.request.GET.get('status') or '').strip()
 
@@ -897,6 +921,11 @@ class JournalEntryCreateView(LoginRequiredMixin, CreateView):
     model = JournalEntry
     form_class = JournalEntryForm
     template_name = 'accounts/journal_entry_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -929,6 +958,7 @@ class JournalEntryCreateView(LoginRequiredMixin, CreateView):
             
             form.instance.created_by = self.request.user
             form.instance.total_amount = total_debits
+            form.instance.academic_year = _current_academic_year(self.request)
             self.object = form.save()
             
             transaction_formset.instance = self.object
@@ -944,6 +974,10 @@ class JournalEntryDetailView(LoginRequiredMixin, DetailView):
     model = JournalEntry
     template_name = 'accounts/journal_entry_detail.html'
     context_object_name = 'journal_entry'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request, include_null=True)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -955,6 +989,15 @@ class JournalEntryUpdateView(LoginRequiredMixin, UpdateView):
     model = JournalEntry
     form_class = JournalEntryForm
     template_name = 'accounts/journal_entry_form.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request, include_null=True)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1416,9 +1459,17 @@ class StudentReceiptCreateView(LoginRequiredMixin, CreateView):
     model = StudentReceipt
     form_class = StudentReceiptForm
     template_name = 'accounts/student_receipt_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def form_valid(self, form):
         form.instance.created_by = self.request.user
+        current_academic_year = _current_academic_year(self.request)
+        if current_academic_year and not form.instance.academic_year_id:
+            form.instance.academic_year = current_academic_year
         
         # CRITICAL: Ensure student has AR account before creating receipt
         if form.instance.student_profile:
@@ -1435,6 +1486,7 @@ class StudentReceiptCreateView(LoginRequiredMixin, CreateView):
                 student=form.instance.student_profile,
                 course=form.instance.course,
                 defaults={
+                    'academic_year': form.instance.course.academic_year or current_academic_year,
                     'enrollment_date': form.instance.date,
                     'total_amount': form.instance.course.price,
                     'discount_percent': form.instance.student_profile.discount_percent or Decimal('0'),
@@ -1483,9 +1535,16 @@ class ExpenseCreateView(LoginRequiredMixin, CreateView):
     form_class = ExpenseEntryForm
     template_name = 'accounts/expense_form.html'
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         form.instance.entry_kind = 'EXPENSE'
         form.instance.created_by = self.request.user
+        if not getattr(form.instance, 'academic_year_id', None):
+            form.instance.academic_year = _current_academic_year(self.request)
         response = super().form_valid(form)
         
         # Create automatic journal entry
@@ -1520,10 +1579,17 @@ class FollowUpRevenueCreateView(LoginRequiredMixin, CreateView):
     form_class = FollowUpRevenueEntryForm
     template_name = 'accounts/expense_form.html'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         form.instance.entry_kind = 'FOLLOWUP_REVENUE'
         form.instance.account = Account.get_or_create_followup_revenue_account()
         form.instance.created_by = self.request.user
+        if not getattr(form.instance, 'academic_year_id', None):
+            form.instance.academic_year = _current_academic_year(self.request)
         response = super().form_valid(form)
 
         try:
@@ -1556,6 +1622,10 @@ class ExpenseDetailView(LoginRequiredMixin, DetailView):
     model = ExpenseEntry
     template_name = 'accounts/expense_detail.html'
     context_object_name = 'expense'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request)
 
 
 class ReceiptsExpensesView(LoginRequiredMixin, TemplateView):
@@ -1709,7 +1779,8 @@ class CourseListView(LoginRequiredMixin, ListView):
     context_object_name = 'courses'
     
     def get_queryset(self):
-        return Course.objects.filter(is_active=True).order_by('name')
+        queryset = Course.objects.filter(is_active=True).order_by('name')
+        return _scope_queryset_to_current_year(queryset, self.request)
 
 
 class CourseCreateView(LoginRequiredMixin, CreateView):
@@ -1717,8 +1788,15 @@ class CourseCreateView(LoginRequiredMixin, CreateView):
     form_class = CourseForm
     template_name = 'accounts/course_form.html'
     success_url = reverse_lazy('accounts:course_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def form_valid(self, form):
+        if not form.instance.academic_year_id:
+            form.instance.academic_year = _current_academic_year(self.request)
         messages.success(self.request, 'تم إنشاء الدورة بنجاح / Course created successfully')
         return super().form_valid(form)
 
@@ -1728,11 +1806,24 @@ class CourseDetailView(LoginRequiredMixin, DetailView):
     template_name = 'accounts/course_detail.html'
     context_object_name = 'course'
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request)
+
 
 class CourseUpdateView(LoginRequiredMixin, UpdateView):
     model = Course
     form_class = CourseForm
     template_name = 'accounts/course_form.html'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def form_valid(self, form):
         messages.success(self.request, 'تم تحديث الدورة بنجاح / Course updated successfully')
@@ -1748,7 +1839,8 @@ class EmployeeAdvanceListView(LoginRequiredMixin, ListView):
     context_object_name = 'advances'
     
     def get_queryset(self):
-        return EmployeeAdvance.objects.select_related('created_by').order_by('-date')
+        queryset = EmployeeAdvance.objects.select_related('created_by').order_by('-date')
+        return _scope_queryset_to_current_year(queryset, self.request)
 
 
 class EmployeeAdvanceCreateView(LoginRequiredMixin, CreateView):
@@ -1757,8 +1849,15 @@ class EmployeeAdvanceCreateView(LoginRequiredMixin, CreateView):
     template_name = 'accounts/advance_form.html'
     success_url = reverse_lazy('accounts:advance_list')
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
     def form_valid(self, form):
         form.instance.created_by = self.request.user
+        if not getattr(form.instance, 'academic_year_id', None):
+            form.instance.academic_year = _current_academic_year(self.request)
         response = super().form_valid(form)
         
         # Create journal entry
@@ -1786,6 +1885,10 @@ class EmployeeAdvanceDetailView(LoginRequiredMixin, DetailView):
     model = EmployeeAdvance
     template_name = 'accounts/advance_detail.html'
     context_object_name = 'advance'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request)
 
 
 class OutstandingCoursesView(LoginRequiredMixin, TemplateView):
@@ -2603,7 +2706,8 @@ class BudgetListView(LoginRequiredMixin, ListView):
     context_object_name = 'budgets'
     
     def get_queryset(self):
-        return Budget.objects.select_related('account', 'period').all()
+        queryset = Budget.objects.select_related('account', 'period').all()
+        return _scope_queryset_to_current_year(queryset, self.request, field_name='period__academic_year')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2628,6 +2732,11 @@ class BudgetCreateView(LoginRequiredMixin, CreateView):
     form_class = BudgetForm
     template_name = 'accounts/budget_form.html'
     success_url = reverse_lazy('accounts:budget_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def form_valid(self, form):
         messages.success(self.request, 'تم إنشاء الميزانية بنجاح / Budget created successfully')
@@ -2639,6 +2748,15 @@ class BudgetUpdateView(LoginRequiredMixin, UpdateView):
     form_class = BudgetForm
     template_name = 'accounts/budget_form.html'
     success_url = reverse_lazy('accounts:budget_list')
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request, field_name='period__academic_year')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def form_valid(self, form):
         messages.success(self.request, 'تم تحديث الميزانية بنجاح / Budget updated successfully')
@@ -2649,6 +2767,10 @@ class BudgetDetailView(LoginRequiredMixin, DetailView):
     model = Budget
     template_name = 'accounts/budget_detail.html'
     context_object_name = 'budget'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request, field_name='period__academic_year')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2678,7 +2800,8 @@ class AccountingPeriodListView(LoginRequiredMixin, ListView):
     context_object_name = 'periods'
     
     def get_queryset(self):
-        return AccountingPeriod.objects.all().order_by('-start_date')
+        queryset = AccountingPeriod.objects.all().order_by('-start_date')
+        return _scope_queryset_to_current_year(queryset, self.request)
 
 
 class AccountingPeriodCreateView(LoginRequiredMixin, CreateView):
@@ -2686,8 +2809,15 @@ class AccountingPeriodCreateView(LoginRequiredMixin, CreateView):
     form_class = AccountingPeriodForm
     template_name = 'accounts/period_form.html'
     success_url = reverse_lazy('accounts:period_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def form_valid(self, form):
+        if not getattr(form.instance, 'academic_year_id', None):
+            form.instance.academic_year = _current_academic_year(self.request)
         messages.success(self.request, 'تم إنشاء الفترة المحاسبية بنجاح / Accounting period created successfully')
         return super().form_valid(form)
 
@@ -2697,6 +2827,15 @@ class AccountingPeriodUpdateView(LoginRequiredMixin, UpdateView):
     form_class = AccountingPeriodForm
     template_name = 'accounts/period_form.html'
     success_url = reverse_lazy('accounts:period_list')
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
     
     def form_valid(self, form):
         if self.object.is_closed:
@@ -2711,10 +2850,14 @@ class AccountingPeriodDetailView(LoginRequiredMixin, DetailView):
     template_name = 'accounts/period_detail.html'
     context_object_name = 'period'
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return _scope_queryset_to_current_year(queryset, self.request)
+
 
 class ClosePeriodView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        period = get_object_or_404(AccountingPeriod, pk=pk)
+        period = get_object_or_404(_scope_queryset_to_current_year(AccountingPeriod.objects.all(), request), pk=pk)
         
         if period.is_closed:
             messages.error(request, 'الفترة مقفلة بالفعل / Period is already closed')
@@ -4217,6 +4360,7 @@ class JournalEntryListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = JournalEntry.objects.select_related('created_by', 'posted_by').order_by('-date', '-created_at')
+        queryset = _scope_queryset_to_current_year(queryset, self.request, include_null=True)
         search_query = (self.request.GET.get('q') or '').strip()
         status_filter = (self.request.GET.get('status') or '').strip()
         entry_type = (self.request.GET.get('entry_type') or '').strip()

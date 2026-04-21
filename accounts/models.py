@@ -52,6 +52,14 @@ class Account(models.Model):
         related_name='accounts',
         verbose_name='مركز التكلفة / Cost Center'
     )
+    academic_year = models.ForeignKey(
+        'quick.AcademicYear',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='accounts_accounts',
+        verbose_name='الفصل الدراسي / Academic Year',
+    )
     
     # Special account flags
     is_course_account = models.BooleanField(default=False, verbose_name='حساب الدورة / Course Account')
@@ -178,6 +186,7 @@ class Account(models.Model):
                 'parent': ar_parent,
                 'is_course_account': True,
                 'course_name': course_name,
+                'academic_year': getattr(course, 'academic_year', None),
                 'is_active': True,
             }
         )
@@ -195,6 +204,7 @@ class Account(models.Model):
                 'is_student_account': True,
                 'student_name': student_name,
                 'course_name': course_name,
+                'academic_year': getattr(course, 'academic_year', None),
                 'is_active': True,
             }
         )
@@ -244,6 +254,7 @@ class Account(models.Model):
                 'parent': deferred_parent,
                 'is_course_account': True,
                 'course_name': course.name,
+                'academic_year': getattr(course, 'academic_year', None),
                 'is_active': True,
             }
         )
@@ -273,6 +284,7 @@ class Account(models.Model):
                 'parent': Revenue,
                 'is_course_account': True,
                 'course_name': course.name,
+                'academic_year': getattr(course, 'academic_year', None),
                 'is_active': True,
             }
         )
@@ -304,6 +316,7 @@ class Account(models.Model):
                 'name_ar': f'إيرادات انسحاب - {student_name} - {course_name}',
                 'account_type': 'REVENUE',
                 'parent': parent_account,
+                'academic_year': getattr(course, 'academic_year', None),
                 'is_active': True,
             }
         )
@@ -1260,6 +1273,7 @@ class AccountingPeriod(models.Model):
     name = models.CharField(max_length=100, verbose_name='اسم الفترة / Period Name')
     start_date = models.DateField(verbose_name='تاريخ البداية / Start Date')
     end_date = models.DateField(verbose_name='تاريخ النهاية / End Date')
+    academic_year = models.ForeignKey('quick.AcademicYear', on_delete=models.PROTECT, null=True, blank=True, related_name='accounts_periods', verbose_name='Academic Year')
     is_closed = models.BooleanField(default=False, verbose_name='مقفلة / Closed')
     closed_at = models.DateTimeField(null=True, blank=True, verbose_name='تاريخ الإقفال / Closed At')
     closed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='closed_periods', verbose_name='أُقفل بواسطة / Closed By')
@@ -1296,6 +1310,14 @@ class JournalEntry(models.Model):
     description = models.TextField(verbose_name='الوصف / Description')
     entry_type = models.CharField(max_length=20, choices=ENTRY_TYPE_CHOICES, default='MANUAL', verbose_name='نوع القيد / Entry Type')
     total_amount = models.DecimalField(max_digits=15, decimal_places=2, verbose_name='المبلغ الإجمالي / Total Amount')
+    academic_year = models.ForeignKey(
+        'quick.AcademicYear',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='accounts_journal_entries',
+        verbose_name='الفصل الدراسي / Academic Year',
+    )
     is_posted = models.BooleanField(default=False, verbose_name='مُرحل / Posted')
     posted_at = models.DateTimeField(null=True, blank=True, verbose_name='تاريخ الترحيل / Posted At')
     posted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='posted_entries', verbose_name='مُرحل بواسطة / Posted By')
@@ -1358,6 +1380,7 @@ class JournalEntry(models.Model):
             description=description or f"Reversal of {self.reference}",
             entry_type='ADJUSTMENT',
             total_amount=self.total_amount,
+            academic_year=self.academic_year,
             created_by=user
         )
         
@@ -1408,6 +1431,14 @@ class Course(models.Model):
     description = models.TextField(blank=True, verbose_name='الوصف / Description')
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='السعر / Price')
     duration_hours = models.PositiveIntegerField(null=True, blank=True, verbose_name='المدة بالساعات / Duration (Hours)')
+    academic_year = models.ForeignKey(
+        'quick.AcademicYear',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='accounts_courses',
+        verbose_name='الفصل الدراسي / Academic Year',
+    )
     
     # Cost center relationship
     cost_center = models.ForeignKey(CostCenter, on_delete=models.SET_NULL, null=True, blank=True, 
@@ -1597,6 +1628,9 @@ class Course(models.Model):
         # بعد إنشاء الدورة، إنشاء مركز كلفة تلقائي
         if is_new and not self.cost_center:
             self.create_auto_cost_center()
+        if is_new:
+            Account.get_or_create_course_deferred_account(self)
+            Account.get_or_create_course_account(self)
 
 class CourseTeacherAssignment(models.Model):
     """Model to track teacher assignments to courses with salary details"""
@@ -1720,6 +1754,14 @@ class Studentenrollment(models.Model):
 
     student = models.ForeignKey('students.Student', on_delete=models.PROTECT, related_name='enrollments', verbose_name='الطالب / Student')
     course = models.ForeignKey(Course, on_delete=models.PROTECT, related_name='enrollments', verbose_name='الدورة / Course')
+    academic_year = models.ForeignKey(
+        'quick.AcademicYear',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='accounts_enrollments',
+        verbose_name='الفصل الدراسي / Academic Year',
+    )
     enrollment_date = models.DateField(verbose_name='تاريخ التسجيل / enrollment Date')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='المبلغ الإجمالي / Total Amount')
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name='نسبة الخصم % / Discount Percent')
@@ -1745,6 +1787,16 @@ class Studentenrollment(models.Model):
     def __str__(self):
         student_display = getattr(self.student, 'full_name', None) or getattr(self.student, 'name', '') or str(self.student)
         return f"{student_display} - {self.course.name}"
+
+    def clean(self):
+        if self.course_id and self.academic_year_id and self.course.academic_year_id != self.academic_year_id:
+            raise ValidationError("Enrollment academic year must match course academic year.")
+
+    def save(self, *args, **kwargs):
+        if self.course_id and not self.academic_year_id:
+            self.academic_year = self.course.academic_year
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     @property
     def net_amount(self):
@@ -1782,6 +1834,7 @@ class Studentenrollment(models.Model):
             description=f"Student enrollment - {student_name} in {self.course.name}",
             entry_type='enrollment',
             total_amount=net_amount,
+            academic_year=self.academic_year or self.course.academic_year,
             created_by=user
         )
         
@@ -1831,6 +1884,14 @@ class StudentReceipt(models.Model):
     student = models.ForeignKey(Student, on_delete=models.PROTECT, null=True, blank=True, related_name='receipts', verbose_name='الطالب / Student')
     course = models.ForeignKey(Course, on_delete=models.PROTECT, null=True, blank=True, related_name='receipts', verbose_name='الدورة / Course')
     enrollment = models.ForeignKey(Studentenrollment, on_delete=models.PROTECT, null=True, blank=True, related_name='payments', verbose_name='التسجيل / enrollment')
+    academic_year = models.ForeignKey(
+        'quick.AcademicYear',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='accounts_receipts',
+        verbose_name='الفصل الدراسي / Academic Year',
+    )
     
     # Financial fields
     amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='المبلغ / Amount')
@@ -1859,6 +1920,12 @@ class StudentReceipt(models.Model):
     def save(self, *args, **kwargs):
         if not self.receipt_number:
             self.receipt_number = f"SR-{NumberSequence.next_value('student_receipt'):06d}"
+        if self.enrollment_id and not self.academic_year_id:
+            self.academic_year = self.enrollment.academic_year
+        elif self.course_id and not self.academic_year_id:
+            self.academic_year = self.course.academic_year
+        elif self.student_profile_id and not self.academic_year_id:
+            self.academic_year = self.student_profile.academic_year
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -1926,6 +1993,7 @@ class StudentReceipt(models.Model):
             description=f"Student payment - {self.get_student_name()} for {self.get_course_name()}",
             entry_type='PAYMENT',
             total_amount=paid_amount,
+            academic_year=self.academic_year or getattr(course_ctx, 'academic_year', None),
             created_by=user
         )
         
@@ -2018,6 +2086,7 @@ class ExpenseEntry(models.Model):
     
     # Foreign key relationships
     journal_entry = models.ForeignKey(JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name='expenses', verbose_name='قيد اليومية / Journal Entry')
+    academic_year = models.ForeignKey('quick.AcademicYear', on_delete=models.PROTECT, null=True, blank=True, related_name='accounts_expenses', verbose_name='Academic Year')
     
     created_by = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name='أُنشئ بواسطة / Created By')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -2068,6 +2137,7 @@ class ExpenseEntry(models.Model):
             ),
             entry_type='ADJUSTMENT' if self.is_followup_revenue else 'EXPENSE',
             total_amount=self.amount,
+            academic_year=self.academic_year,
             created_by=user
         )
 
@@ -2163,6 +2233,7 @@ class EmployeeAdvance(models.Model):
     is_repaid = models.BooleanField(default=False, verbose_name='مسدد / Repaid')
     repaid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='المبلغ المسدد / Repaid Amount')
     reference = models.CharField(max_length=50, unique=True, verbose_name='المرجع / Reference')
+    academic_year = models.ForeignKey('quick.AcademicYear', on_delete=models.PROTECT, null=True, blank=True, related_name='accounts_advances', verbose_name='Academic Year')
     
     # Journal entry reference
     journal_entry = models.ForeignKey(JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name='advances', verbose_name='قيد اليومية / Journal Entry')
@@ -2211,6 +2282,7 @@ class EmployeeAdvance(models.Model):
             description=f"Employee advance - {self.employee_name}",
             entry_type='ADVANCE',
             total_amount=self.amount,
+            academic_year=self.academic_year,
             created_by=user
         )
         

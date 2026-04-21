@@ -304,6 +304,7 @@
                         <div class="qa-controls">
                             <div class="qa-toggle">
                                 {% if row.row_type == 'enrollment' %}
+                                <input type="hidden" name="student_{{ row.enrollment.id }}_status" value="{{ row.normalized_status }}" class="status-hidden-input">
                                 {% for status_value, status_label in status_choices %}
                                 <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}">
                                     <input type="radio" name="student_{{ row.enrollment.id }}_status" value="{{ status_value }}" {% if row.normalized_status == status_value %}checked{% endif %}>
@@ -311,6 +312,7 @@
                                 </label>
                                 {% endfor %}
                                 {% else %}
+                                <input type="hidden" name="guest_status_{{ row.row_key }}" value="{{ row.normalized_status }}" class="status-hidden-input">
                                 {% for status_value, status_label in status_choices %}
                                 <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}">
                                     <input type="radio" name="guest_status_{{ row.row_key }}" value="{{ status_value }}" {% if row.normalized_status == status_value %}checked{% endif %}>
@@ -369,6 +371,7 @@
 
         <div class="qa-controls">
             <div class="qa-toggle">
+                <input type="hidden" value="present" class="status-hidden-input">
                 <label class="qa-choice active" data-status="present">
                     <input type="radio" value="present">
                     <span>حاضر</span>
@@ -435,6 +438,10 @@
     function setStatus(row, status){
         row.classList.remove('is-present', 'is-absent');
         row.classList.add(status === 'present' ? 'is-present' : 'is-absent');
+        const hiddenStatusInput = row.querySelector('.status-hidden-input');
+        if (hiddenStatusInput) {
+            hiddenStatusInput.value = status;
+        }
         row.querySelectorAll('.qa-choice').forEach(choice => {
             const active = choice.dataset.status === status;
             choice.classList.toggle('active', active);
@@ -510,6 +517,12 @@
 
         const note = row.querySelector('.qa-note');
         note.name = `guest_notes_${rowKey}`;
+
+        const hiddenStatusInput = row.querySelector('.status-hidden-input');
+        if (hiddenStatusInput) {
+            hiddenStatusInput.name = `guest_status_${rowKey}`;
+            hiddenStatusInput.value = 'present';
+        }
 
         row.querySelectorAll('.qa-choice input').forEach(radio => {
             radio.name = `guest_status_${rowKey}`;

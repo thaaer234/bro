@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة سياسات الفصل{% endblock %}
+
+{% block content %}
+<section class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <div>
+                <h1 class="h4 mb-1">إدارة سياسات الفصل</h1>
+                <p class="text-muted mb-0">{{ academic_year }}</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                {% if system_state and system_state.active_academic_year_id == academic_year.id %}
+                <span class="badge bg-success px-3 py-2">الفصل النشط للعمل اليومي</span>
+                {% endif %}
+                {% if academic_year.id in unlocked_ids %}
+                <span class="badge bg-info text-dark px-3 py-2">مفتوح في جلستك الحالية</span>
+                {% endif %}
+                <a href="{% url 'academic_years:transfer_list' %}" class="btn btn-outline-dark btn-sm">دفعات الترحيل</a>
+            </div>
+        </div>
+
+        <form method="post" class="row g-3 mb-3">
+            {% csrf_token %}
+            <div class="col-md-6">
+                <div class="form-check form-switch">
+                    {{ form.requires_password }}
+                    <label class="form-check-label" for="{{ form.requires_password.id_for_label }}">{{ form.requires_password.label }}</label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                {{ form.password }}
+                <div class="form-text">{{ form.password.help_text }}</div>
+                {% if form.password.errors %}
+                <div class="text-danger small mt-1">{{ form.password.errors|join:", " }}</div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                <div class="form-check form-switch">
+                    {{ form.is_read_only }}
+                    <label class="form-check-label" for="{{ form.is_read_only.id_for_label }}">{{ form.is_read_only.label }}</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check form-switch">
+                    {{ form.is_archived }}
+                    <label class="form-check-label" for="{{ form.is_archived.id_for_label }}">{{ form.is_archived.label }}</label>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-check form-switch">
+                    {{ form.allow_reporting }}
+                    <label class="form-check-label" for="{{ form.allow_reporting.id_for_label }}">{{ form.allow_reporting.label }}</label>
+                </div>
+            </div>
+            {% if form.non_field_errors %}
+            <div class="col-12">
+                <div class="alert alert-danger mb-0">{{ form.non_field_errors|join:", " }}</div>
+            </div>
+            {% endif %}
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary">حفظ السياسات</button>
+                <a href="{% url 'academic_years:select_current' %}" class="btn btn-outline-secondary">العودة</a>
+            </div>
+        </form>
+        <form method="post" action="{% url 'academic_years:activate' academic_year.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'academic_years:manage' academic_year.id %}">
+            <button type="submit" class="btn btn-outline-success">تفعيل كفصل العمل اليومي</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

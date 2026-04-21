@@ -1,9 +1,12 @@
 from django.contrib import admin
+
+from academic_years.admin_mixins import AcademicYearScopedAdminMixin
+
 from .models import Student, StudentWarning
 
 
 @admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
+class StudentAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
     list_display = ['full_name', 'student_number','academic_year', 'branch', 'gender', 'is_active']
     list_filter = ['branch', 'gender', 'is_active', 'registration_date']
     search_fields = ['full_name', 'student_number', 'father_phone']
@@ -35,8 +38,11 @@ class StudentAdmin(admin.ModelAdmin):
 
 
 @admin.register(StudentWarning)
-class StudentWarningAdmin(admin.ModelAdmin):
+class StudentWarningAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'student__academic_year'
+    academic_year_foreignkey_scopes = {
+        'student': 'academic_year',
+    }
     list_display = ['student', 'title', 'severity', 'is_active', 'created_at', 'created_by']
     list_filter = ['severity', 'is_active', 'created_at']
     search_fields = ['student__full_name', 'title', 'details']
-

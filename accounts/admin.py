@@ -13,6 +13,7 @@ import calendar
 from django.db.models.functions import TruncMonth, TruncYear
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.translation import gettext_lazy as _
+from academic_years.admin_mixins import AcademicYearScopedAdminMixin
 
 # ==============================
 # LIBRARIES & IMPORTS
@@ -140,7 +141,7 @@ class TransactionInline(admin.TabularInline):
 # MODEL ADMIN CLASSES
 # ==============================
 @admin.register(Account)
-class AccountAdmin(ImportExportModelAdmin, FinancialMetricsMixin, admin.ModelAdmin):
+class AccountAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, FinancialMetricsMixin, admin.ModelAdmin):
     resource_class = AccountResource
     list_display = [
         'code', 'name_display', 'account_type_badge',
@@ -282,7 +283,7 @@ class AccountAdmin(ImportExportModelAdmin, FinancialMetricsMixin, admin.ModelAdm
     deactivate_accounts.short_description = "إلغاء تفعيل الحسابات المحددة"
 
 @admin.register(JournalEntry)
-class JournalEntryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
+class JournalEntryAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, admin.ModelAdmin):
     resource_class = JournalEntryResource
     list_display = [
         'reference', 'date', 'description_short', 'total_amount_display',
@@ -412,7 +413,12 @@ class JournalEntryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     export_as_json.short_description = "📤 تصدير كـ JSON"
 
 @admin.register(Transaction)
-class TransactionAdmin(ImportExportModelAdmin, admin.ModelAdmin):
+class TransactionAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, admin.ModelAdmin):
+    academic_year_field = 'journal_entry__academic_year'
+    academic_year_foreignkey_scopes = {
+        'journal_entry': 'academic_year',
+        'account': 'academic_year',
+    }
     list_display = [
         'id', 'journal_entry_link', 'account_link', 'amount_display', 
         'debit_credit_badge', 'cost_center', 'transaction_date', 'description_short'
@@ -460,7 +466,13 @@ class TransactionAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     description_short.short_description = '📝 الوصف'
 
 @admin.register(StudentReceipt)
-class StudentReceiptAdmin(ImportExportModelAdmin, admin.ModelAdmin):
+class StudentReceiptAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, admin.ModelAdmin):
+    academic_year_foreignkey_scopes = {
+        'student_profile': 'academic_year',
+        'course': 'academic_year',
+        'enrollment': 'academic_year',
+        'journal_entry': 'academic_year',
+    }
     resource_class = StudentReceiptResource
     list_display = [
         'receipt_number', 'date', 'student_name', 'course_name', 
@@ -499,7 +511,11 @@ class StudentReceiptAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     payment_method_badge.short_description = '💳 طريقة الدفع'
 
 @admin.register(ExpenseEntry)
-class ExpenseEntryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
+class ExpenseEntryAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, admin.ModelAdmin):
+    academic_year_foreignkey_scopes = {
+        'account': 'academic_year',
+        'journal_entry': 'academic_year',
+    }
     list_display = ['reference', 'date', 'description', 'amount_display', 'cost_center', 'created_by']
     list_filter = [('date', DateRangeFilter), 'cost_center']
     search_fields = ['reference', 'description']
@@ -545,7 +561,7 @@ class StudentAdmin(admin.ModelAdmin):
     is_active_badge.short_description = 'الحالة'
 
 @admin.register(Course)
-class CourseAdmin(admin.ModelAdmin):
+class CourseAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'price_display', 'course_info', 'is_active_badge']
     list_filter = ['is_active']
     search_fields = ['name', 'description']
@@ -597,7 +613,13 @@ class CourseAdmin(admin.ModelAdmin):
 # ==============================
 
 @admin.register(Studentenrollment)
-class StudentenrollmentAdmin(admin.ModelAdmin):
+class StudentenrollmentAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_foreignkey_scopes = {
+        'student': 'academic_year',
+        'course': 'academic_year',
+        'enrollment_journal_entry': 'academic_year',
+        'completion_journal_entry': 'academic_year',
+    }
     list_display = ['get_student_name', 'get_course_name', 'enrollment_date', 'is_active_badge']
     list_filter = [('enrollment_date', DateRangeFilter)]
     
@@ -665,7 +687,10 @@ class StudentenrollmentAdmin(admin.ModelAdmin):
     is_active_badge.short_description = 'الحالة'
 
 @admin.register(EmployeeAdvance)
-class EmployeeAdvanceAdmin(admin.ModelAdmin):
+class EmployeeAdvanceAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_foreignkey_scopes = {
+        'journal_entry': 'academic_year',
+    }
     list_display = ['get_employee_name', 'amount_display', 'date', 'settlement_status']
     list_filter = [('date', DateRangeFilter)]
     
@@ -711,7 +736,7 @@ class EmployeeAdvanceAdmin(admin.ModelAdmin):
     settlement_status.short_description = 'حالة التسديد'
 
 @admin.register(AccountingPeriod)
-class AccountingPeriodAdmin(admin.ModelAdmin):
+class AccountingPeriodAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
     list_display = ['get_name', 'get_start_date', 'get_end_date', 'closed_status']
     search_fields = ['name']
     
@@ -734,7 +759,12 @@ class AccountingPeriodAdmin(admin.ModelAdmin):
     closed_status.short_description = 'الحالة'
 
 @admin.register(Budget)
-class BudgetAdmin(admin.ModelAdmin):
+class BudgetAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'period__academic_year'
+    academic_year_foreignkey_scopes = {
+        'account': 'academic_year',
+        'period': 'academic_year',
+    }
     list_display = ['get_name', 'amount_display', 'get_start_date', 'get_end_date', 'active_status']
     search_fields = ['name']
     
@@ -788,7 +818,12 @@ class BudgetAdmin(admin.ModelAdmin):
     active_status.short_description = 'الحالة'
 
 @admin.register(StudentAccountLink)
-class StudentAccountLinkAdmin(admin.ModelAdmin):
+class StudentAccountLinkAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'account__academic_year'
+    academic_year_foreignkey_scopes = {
+        'student': 'academic_year',
+        'account': 'academic_year',
+    }
     list_display = ['get_student_name', 'get_account_name', 'active_status']
     
     def get_search_fields(self, request):

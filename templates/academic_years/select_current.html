@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختيار الفصل الحالي</title>
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body style="background:linear-gradient(180deg,#f4f7fb 0%,#eef3f9 100%);min-height:100vh;">
+    <main class="container py-5">
+        <section class="card shadow-sm border-0 mx-auto" style="max-width: 1080px;">
+            <div class="card-body p-4 p-lg-5">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                    <div>
+                        <h1 class="h3 mb-2">اختيار الفصل الحالي</h1>
+                        <p class="text-muted mb-1">لن يتم فتح أي جزء من النظام قبل اختيار الفصل الدراسي.</p>
+                        <p class="text-muted mb-0">إذا كان الفصل مغلقًا، فلن يُفتح إلا بكلمة مرور الفصل.</p>
+                        {% if default_academic_year %}
+                        <p class="text-muted mb-0 mt-2">الفصل المقترح افتراضيًا: <strong>{{ default_academic_year }}</strong></p>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        {% if system_state %}
+                        <span class="badge bg-primary-subtle text-primary px-3 py-2">
+                            الفصل النشط إداريًا: {{ system_state.active_academic_year }}
+                        </span>
+                        {% endif %}
+                        {% if request.user.is_superuser %}
+                        <a href="{% url 'quick:academic_year_create' %}" class="btn btn-primary btn-sm">إنشاء فصل جديد</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} mb-2">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" class="row g-3 align-items-end mb-4">
+                    {% csrf_token %}
+                    <div class="col-md-8">
+                        <label class="form-label" for="{{ form.academic_year.id_for_label }}">{{ form.academic_year.label }}</label>
+                        {{ form.academic_year }}
+                        {% if form.academic_year.errors %}
+                        <div class="text-danger small mt-1">{{ form.academic_year.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">متابعة</button>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>الفصل</th>
+                                <th>المدة</th>
+                                <th>الحالة</th>
+                                <th>الوصول</th>
+                                <th class="text-center">إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for year in academic_years %}
+                            <tr{% if default_academic_year and default_academic_year.id == year.id %} class="table-primary"{% endif %}>
+                                <td>
+                                    <strong>{{ year.name }}</strong>
+                                    <div class="text-muted small">{{ year.year }}</div>
+                                </td>
+                                <td>{{ year.start_date }}{% if year.end_date %} - {{ year.end_date }}{% else %} - مفتوح{% endif %}</td>
+                                <td>
+                                    {% if system_state and system_state.active_academic_year_id == year.id %}
+                                    <span class="badge bg-success">نشط للعمل اليومي</span>
+                                    {% elif year.is_closed %}
+                                    <span class="badge bg-secondary">مغلق</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-dark">متاح</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if year.is_closed or year.access_policy.requires_password %}
+                                    <span class="badge bg-warning text-dark">يتطلب كلمة مرور</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-dark">دخول مباشر</span>
+                                    {% endif %}
+                                    {% if year.access_policy.is_read_only %}
+                                    <span class="badge bg-info text-dark">قراءة فقط</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="academic_year" value="{{ year.id }}">
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            {% if year.is_closed or year.access_policy.requires_password %}اختيار وفتح{% else %}اختيار{% endif %}
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">لا توجد فصول متاحة حاليًا.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

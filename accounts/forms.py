@@ -10,6 +10,19 @@ from .models import (
     Course, Student, Studentenrollment, EmployeeAdvance, AccountingPeriod, Budget,
     DiscountRule, CostCenter
 )
+from academic_years.services.session import get_current_academic_year
+
+
+class AcademicYearScopedFormMixin:
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+
+    @property
+    def current_academic_year(self):
+        if not self.request:
+            return None
+        return get_current_academic_year(self.request)
 
 class AccountForm(forms.ModelForm):
     class Meta:
@@ -51,7 +64,7 @@ class AccountForm(forms.ModelForm):
             Submit('submit', 'حفظ / Save', css_class='btn btn-primary')
         )
 
-class CourseForm(forms.ModelForm):
+class CourseForm(AcademicYearScopedFormMixin, forms.ModelForm):
     class Meta:
         model = Course
         fields = ['name', 'name_ar', 'description', 'price', 'duration_hours', 'is_active']
@@ -113,7 +126,7 @@ class StudentForm(forms.ModelForm):
             Submit('submit', 'حفظ / Save', css_class='btn btn-primary')
         )
 
-class StudentenrollmentForm(forms.ModelForm):
+class StudentenrollmentForm(AcademicYearScopedFormMixin, forms.ModelForm):
     class Meta:
         model = Studentenrollment
         fields = ['student', 'course', 'enrollment_date', 'total_amount', 'discount_percent', 'discount_amount', 'payment_method', 'notes']
@@ -130,7 +143,10 @@ class StudentenrollmentForm(forms.ModelForm):
         # Import the correct Student model
         from students.models import Student as SProfile
         self.fields['student'].queryset = SProfile.objects.filter(is_active=True).order_by('full_name')
-        self.fields['course'].queryset = Course.objects.filter(is_active=True).order_by('name')
+        courses = Course.objects.filter(is_active=True)
+        if self.current_academic_year:
+            courses = courses.filter(academic_year=self.current_academic_year)
+        self.fields['course'].queryset = courses.order_by('name')
         
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -154,7 +170,7 @@ class StudentenrollmentForm(forms.ModelForm):
             Submit('submit', 'تسجيل الطالب / Enroll Student', css_class='btn btn-primary')
         )
 
-class EmployeeAdvanceForm(forms.ModelForm):
+class EmployeeAdvanceForm(AcademicYearScopedFormMixin, forms.ModelForm):
     class Meta:
         model = EmployeeAdvance
         fields = ['employee', 'employee_name', 'date', 'amount', 'purpose', 'repayment_date']
@@ -214,7 +230,7 @@ class EmployeeAdvanceForm(forms.ModelForm):
                 cleaned_data['employee_name'] = str(employee)
         return cleaned_data
 
-class AccountingPeriodForm(forms.ModelForm):
+class AccountingPeriodForm(AcademicYearScopedFormMixin, forms.ModelForm):
     class Meta:
         model = AccountingPeriod
         fields = ['name', 'start_date', 'end_date']
@@ -248,7 +264,7 @@ class AccountingPeriodForm(forms.ModelForm):
         
         return cleaned_data
 
-class BudgetForm(forms.ModelForm):
+class BudgetForm(AcademicYearScopedFormMixin, forms.ModelForm):
     class Meta:
         model = Budget
         fields = ['account', 'period', 'budgeted_amount', 'notes']
@@ -259,7 +275,12 @@ class BudgetForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['account'].queryset = Account.objects.filter(is_active=True).order_by('code')
+        accounts = Account.objects.filter(is_active=True)
+        periods = AccountingPeriod.objects.all()
+        if self.current_academic_year:
+            accounts = accounts.filter(Q(academic_year=self.current_academic_year) | Q(academic_year__isnull=True))
+            periods = periods.filter(academic_year=self.current_academic_year)
+        self.fields['account'].queryset = accounts.order_by('code')
         self.fields['account'].empty_label = "اختر الحساب / Select Account"
         self.fields['cost_center'].queryset = CostCenter.objects.filter(is_active=True)
         self.fields['cost_center'].empty_label = "اختر مركز التكلفة / Select Cost Center"
@@ -308,7 +329,7 @@ class DiscountRuleForm(forms.ModelForm):
             Submit('submit', 'حفظ قاعدة الخصم / Save Discount Rule', css_class='btn btn-primary')
         )
 
-class JournalEntryForm(forms.ModelForm):
+class JournalEntryForm(AcademicYearScopedFormMixin, forms.ModelForm):
     class Meta:
         model = JournalEntry
         fields = ['date', 'reference', 'description']
@@ -321,6 +342,7 @@ class JournalEntryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['reference'].required = False
+        self.fields['date'].initial = self.initial.get('date') or timezone.localdate()
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Row(
@@ -363,7 +385,7 @@ TransactionFormSet = inlineformset_factory(
     can_delete=True
 )
 
-class StudentReceiptForm(forms.ModelForm):
+class StudentReceiptForm(AcademicYearScopedFormMixin, forms.ModelForm):
     class Meta:
         model = StudentReceipt
         fields = ['date', 'student_name', 'course_name', 'student_profile', 'student', 'course', 'amount', 'discount_percent', 'discount_amount', 'payment_method', 'notes']
@@ -379,9 +401,15 @@ class StudentReceiptForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         from students.models import Student as StudentProfile
         self.fields['date'].initial = self.initial.get('date') or timezone.localdate()
-        self.fields['student_profile'].queryset = StudentProfile.objects.filter(is_active=True).order_by('full_name')
+        students_qs = StudentProfile.objects.filter(is_active=True)
+        if self.current_academic_year:
+            students_qs = students_qs.filter(academic_year=self.current_academic_year)
+        self.fields['student_profile'].queryset = students_qs.order_by('full_name')
         # Remove the old student field reference since we're using student_profile
-        self.fields['course'].queryset = Course.objects.filter(is_active=True).order_by('name')
+        courses = Course.objects.filter(is_active=True)
+        if self.current_academic_year:
+            courses = courses.filter(academic_year=self.current_academic_year)
+        self.fields['course'].queryset = courses.order_by('name')
         self.fields['course'].empty_label = "اختر الدورة (اختياري) / Select Course (Optional)"
         self.fields['course'].required = False
         
@@ -407,7 +435,7 @@ class StudentReceiptForm(forms.ModelForm):
             Submit('submit', 'إنشاء إيصال / Create Receipt', css_class='btn btn-primary')
         )
 
-class ExpenseEntryForm(forms.ModelForm):
+class ExpenseEntryForm(AcademicYearScopedFormMixin, forms.ModelForm):
     amount = forms.CharField(widget=forms.TextInput(attrs={'placeholder': '0.00', 'inputmode': 'decimal', 'autocomplete': 'off'}))
 
     class Meta:
@@ -475,7 +503,7 @@ class ExpenseEntryForm(forms.ModelForm):
         return Decimal(raw_value)
 
 
-class FollowUpRevenueEntryForm(forms.ModelForm):
+class FollowUpRevenueEntryForm(AcademicYearScopedFormMixin, forms.ModelForm):
     amount = forms.CharField(widget=forms.TextInput(attrs={'placeholder': '0.00', 'inputmode': 'decimal', 'autocomplete': 'off'}))
 
     class Meta:

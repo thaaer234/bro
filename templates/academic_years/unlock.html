@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فتح فصل محمي</title>
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body style="background:linear-gradient(180deg,#f4f7fb 0%,#eef3f9 100%);min-height:100vh;">
+    <main class="container py-5">
+        <section class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4 p-lg-5">
+                        <h1 class="h4 mb-2">فتح فصل محمي</h1>
+                        <p class="text-muted mb-4">
+                            الفصل <strong>{{ academic_year }}</strong>
+                            {% if academic_year.is_closed %}مغلق{% else %}محمي{% endif %}
+                            ولا يمكن الدخول إليه إلا بكلمة المرور.
+                        </p>
+
+                        {% if policy.is_read_only %}
+                        <div class="alert alert-info">هذا الفصل مضبوط على وضع القراءة فقط بعد الدخول.</div>
+                        {% endif %}
+
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                                {{ form.password }}
+                                {% if form.password.errors %}
+                                <div class="text-danger small mt-1">{{ form.password.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">فتح الفصل</button>
+                                <a href="{% url 'academic_years:select_current' %}" class="btn btn-outline-secondary">عودة</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

@@ -3984,11 +3984,14 @@ class AcademicYearListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         return AcademicYear.objects.all().order_by('-start_date')
 
-class AcademicYearCreateView(LoginRequiredMixin, CreateView):
+class AcademicYearCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = AcademicYear
     form_class = AcademicYearForm
     template_name = 'quick/academic_year_form.html'
     success_url = reverse_lazy('quick:academic_year_list')
+
+    def test_func(self):
+        return self.request.user.is_superuser
     
     def form_valid(self, form):
         messages.success(self.request, 'تم إضافة الفصل الدراسي بنجاح')
@@ -7025,7 +7028,7 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
         desired_enrollment_ids = []
         for enrollment in displayed_enrollments:
             prefix = f"student_{enrollment.id}"
-            status = form.cleaned_data.get(f"{prefix}_status") or 'present'
+            status = form.cleaned_data[f"{prefix}_status"]
             status = 'present' if status == 'present' else 'absent'
             notes = form.cleaned_data.get(f"{prefix}_notes", '')
             QuickCourseSessionAttendance.objects.update_or_create(

@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     "announcements.apps.AnnouncementsConfig",
     "api.apps.ApiConfig",
     "accounts",
+    "academic_years.apps.AcademicYearsConfig",
     "mobile.apps.MobileConfig",
     "errors",
     'quick',
@@ -179,6 +180,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'academic_years.middleware.AcademicYearAccessMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
@@ -220,6 +222,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 'employ.context_processors.employee_permissions',
+                'academic_years.context_processors.academic_year_context',
                 'announcements.context_processors.web_announcements',
                 'django.template.context_processors.media',
             ],

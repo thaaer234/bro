@@ -41,6 +41,15 @@
                 مستخدم
                 {% endif %}
             </small>
+            {% if current_academic_year %}
+            <small>
+                الفصل الحالي:
+                <a href="{% url 'academic_years:select_current' %}">{{ current_academic_year.name }}</a>
+                {% if current_academic_year_policy and current_academic_year_policy.is_read_only %}
+                <span class="text-warning">(قراءة فقط)</span>
+                {% endif %}
+            </small>
+            {% endif %}
         </div>
 
     </div>
@@ -86,6 +95,40 @@
             <i class="fas fa-cubes"></i>
             <span>خريطة الموقع</span>
         </a>
+
+        <div class="menu-group">
+            <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="academic-years-submenu">
+                <i class="fas fa-calendar-alt"></i>
+                <span>الفصول الدراسية</span>
+                <i class="fas fa-chevron-down group-arrow"></i>
+            </button>
+            <div id="academic-years-submenu" class="sub-menu">
+                <a href="{% url 'academic_years:select_current' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'academic_years' and request.resolver_match.url_name == 'select_current' %}active{% endif %}">
+                    <i class="fas fa-check-circle"></i>
+                    <span>اختيار الفصل الحالي</span>
+                </a>
+                {% if user.is_superuser and current_academic_year %}
+                <a href="{% url 'academic_years:manage' current_academic_year.id %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'academic_years' and request.resolver_match.url_name == 'manage' %}active{% endif %}">
+                    <i class="fas fa-sliders"></i>
+                    <span>إدارة الفصل الحالي</span>
+                </a>
+                {% endif %}
+                {% if user.is_superuser %}
+                <a href="{% url 'quick:academic_year_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'academic_year_list' %}active{% endif %}">
+                    <i class="fas fa-list"></i>
+                    <span>قائمة الفصول</span>
+                </a>
+                <a href="{% url 'quick:academic_year_create' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'academic_year_create' %}active{% endif %}">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>إنشاء فصل جديد</span>
+                </a>
+                <a href="{% url 'academic_years:transfer_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'academic_years' and request.resolver_match.url_name == 'transfer_list' %}active{% endif %}">
+                    <i class="fas fa-right-left"></i>
+                    <span>نقل البيانات بين الفصول</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
 
         {% if user.is_superuser or 'students_view' in emp_perms or 'quick_students_view' in emp_perms or 'students_create' in emp_perms or 'quick_students_create' in emp_perms or 'course_accounting_view' in emp_perms %}
         <div class="menu-group">

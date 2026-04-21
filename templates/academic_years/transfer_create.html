@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}إنشاء دفعة ترحيل{% endblock %}
+
+{% block content %}
+<section class="card shadow-sm border-0">
+    <div class="card-body">
+        <h1 class="h4 mb-3">إنشاء دفعة ترحيل</h1>
+        <p class="text-muted">اختر الفصل المصدر والهدف والدورات التي تريد ترحيلها. سيتم إنشاء معاينة قبل التنفيذ الفعلي.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.source_academic_year.id_for_label }}">{{ form.source_academic_year.label }}</label>
+                    {{ form.source_academic_year }}
+                    {% if form.source_academic_year.errors %}<div class="text-danger small mt-1">{{ form.source_academic_year.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.target_academic_year.id_for_label }}">{{ form.target_academic_year.label }}</label>
+                    {{ form.target_academic_year }}
+                    {% if form.target_academic_year.errors %}<div class="text-danger small mt-1">{{ form.target_academic_year.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">{{ form.source_courses.label }}</label>
+                    <div class="border rounded p-3" style="max-height: 320px; overflow: auto;">
+                        {{ form.source_courses }}
+                    </div>
+                    {% if form.source_courses.errors %}<div class="text-danger small mt-1">{{ form.source_courses.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                    {{ form.notes }}
+                </div>
+                {% if form.non_field_errors %}
+                <div class="col-12">
+                    <div class="alert alert-danger mb-0">{{ form.non_field_errors|join:", " }}</div>
+                </div>
+                {% endif %}
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">إنشاء المعاينة</button>
+                    <a href="{% url 'academic_years:transfer_list' %}" class="btn btn-outline-secondary">إلغاء</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+

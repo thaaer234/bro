@@ -96,6 +96,7 @@ urlpatterns = [
     path('registration/', include('registration.urls')),
     path('announcements/', include('announcements.urls')),
     path('accounts/', include('accounts.urls')),
+    path('academic-years/', include('academic_years.urls')),
     path('errors/', include('errors.urls')),
     path('quick/', include('quick.urls')),
     # API endpoints (v1 and legacy)

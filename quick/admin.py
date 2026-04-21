@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from academic_years.admin_mixins import AcademicYearScopedAdminMixin
+
 from .models import (
     AcademicYear,
     QuickCourse,
@@ -24,7 +26,7 @@ class AcademicYearAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuickCourse)
-class QuickCourseAdmin(admin.ModelAdmin):
+class QuickCourseAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'course_type', 'academic_year', 'price', 'duration_weeks', 'is_active', 'created_at']
     list_filter = ['course_type', 'is_active', 'academic_year', 'created_at']
     search_fields = ['name', 'name_ar', 'description']
@@ -34,7 +36,7 @@ class QuickCourseAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuickStudent)
-class QuickStudentAdmin(admin.ModelAdmin):
+class QuickStudentAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
     list_display = ['full_name', 'phone', 'student_type', 'course_track', 'academic_year', 'is_active', 'created_at', 'balance']
     list_filter = ['student_type', 'course_track', 'is_active', 'academic_year', 'created_at']
     search_fields = ['full_name', 'phone', 'email', 'student__full_name']
@@ -44,7 +46,12 @@ class QuickStudentAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuickEnrollment)
-class QuickEnrollmentAdmin(admin.ModelAdmin):
+class QuickEnrollmentAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'course__academic_year'
+    academic_year_foreignkey_scopes = {
+        'student': 'academic_year',
+        'course': 'academic_year',
+    }
     list_display = ['__str__', 'student', 'course', 'enrollment_date', 'net_amount', 'is_completed', 'created_at']
     list_filter = ['is_completed', 'enrollment_date', 'payment_method', 'created_at']
     search_fields = ['student__full_name', 'course__name']
@@ -54,7 +61,12 @@ class QuickEnrollmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuickCourseWithdrawal)
-class QuickCourseWithdrawalAdmin(admin.ModelAdmin):
+class QuickCourseWithdrawalAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'course__academic_year'
+    academic_year_foreignkey_scopes = {
+        'student': 'academic_year',
+        'course': 'academic_year',
+    }
     list_display = ['student', 'course', 'withdrawn_at', 'withdrawn_by', 'created_at']
     list_filter = ['course', 'withdrawn_at', 'created_at']
     search_fields = ['student__full_name', 'course__name', 'withdrawal_reason']
@@ -63,7 +75,14 @@ class QuickCourseWithdrawalAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuickStudentReceipt)
-class QuickStudentReceiptAdmin(admin.ModelAdmin):
+class QuickStudentReceiptAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'quick_student__academic_year'
+    academic_year_foreignkey_scopes = {
+        'quick_student': 'academic_year',
+        'course': 'academic_year',
+        'quick_enrollment': 'course__academic_year',
+        'journal_entry': 'academic_year',
+    }
     list_display = ['receipt_number', 'student_name', 'course_name', 'paid_amount', 'date', 'is_printed', 'created_at']
     list_filter = ['is_printed', 'payment_method', 'date', 'created_at']
     search_fields = ['receipt_number', 'student_name', 'course_name']
@@ -79,7 +98,12 @@ class QuickStudentReceiptAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuickCourseSession)
-class QuickCourseSessionAdmin(admin.ModelAdmin):
+class QuickCourseSessionAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'course__academic_year'
+    academic_year_foreignkey_scopes = {
+        'course': 'academic_year',
+        'time_option': 'course__academic_year',
+    }
     list_display = ['title', 'course', 'start_date', 'end_date', 'start_time', 'capacity', 'is_active']
     list_filter = ['is_active', 'course__course_type', 'start_date']
     search_fields = ['title', 'code', 'course__name', 'room_name']
@@ -87,7 +111,11 @@ class QuickCourseSessionAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuickCourseTimeOption)
-class QuickCourseTimeOptionAdmin(admin.ModelAdmin):
+class QuickCourseTimeOptionAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'course__academic_year'
+    academic_year_foreignkey_scopes = {
+        'course': 'academic_year',
+    }
     list_display = ['title', 'course', 'start_date', 'end_date', 'start_time', 'max_capacity', 'priority', 'is_active']
     list_filter = ['is_active', 'course__course_type', 'start_date']
     search_fields = ['title', 'course__name', 'meeting_days']
@@ -95,7 +123,12 @@ class QuickCourseTimeOptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuickCourseSessionEnrollment)
-class QuickCourseSessionEnrollmentAdmin(admin.ModelAdmin):
+class QuickCourseSessionEnrollmentAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'session__course__academic_year'
+    academic_year_foreignkey_scopes = {
+        'session': 'course__academic_year',
+        'enrollment': 'course__academic_year',
+    }
     list_display = ['session', 'enrollment', 'assigned_by', 'assigned_at']
     list_filter = ['session__course', 'session__start_date']
     search_fields = ['session__title', 'enrollment__student__full_name', 'enrollment__course__name']
@@ -103,7 +136,12 @@ class QuickCourseSessionEnrollmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(QuickCourseSessionAttendance)
-class QuickCourseSessionAttendanceAdmin(admin.ModelAdmin):
+class QuickCourseSessionAttendanceAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
+    academic_year_field = 'session__course__academic_year'
+    academic_year_foreignkey_scopes = {
+        'session': 'course__academic_year',
+        'enrollment': 'course__academic_year',
+    }
     list_display = ['session', 'enrollment', 'attendance_date', 'day_number', 'status']
     list_filter = ['status', 'attendance_date', 'session__course']
     search_fields = ['session__title', 'enrollment__student__full_name', 'notes']

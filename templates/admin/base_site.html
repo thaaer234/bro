@@ -15,6 +15,14 @@
         نظام مراقبة الأخطاء المتقدم - معهد اليمان
     </a>
 </h1>
+{% if current_academic_year %}
+<div style="margin-top: 8px; font-size: 13px; color: #d7e4ff;">
+    الفصل الحالي داخل الإدارة: <strong>{{ current_academic_year.name }}</strong>
+    <a href="{% url 'academic_years:select_current' %}" style="margin-inline-start: 10px; color: #fff; text-decoration: underline;">
+        تبديل الفصل
+    </a>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block nav-global %}

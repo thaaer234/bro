@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل دفعة الترحيل{% endblock %}
+
+{% block content %}
+<section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+            <div>
+                <h1 class="h4 mb-1">دفعة ترحيل #{{ batch.id }}</h1>
+                <p class="text-muted mb-0">{{ batch.source_academic_year }} ←→ {{ batch.target_academic_year }}</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="badge bg-primary-subtle text-primary px-3 py-2">{{ batch.get_status_display }}</span>
+                {% if batch.status != 'completed' %}
+                <form method="post" action="{% url 'academic_years:transfer_execute' batch.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">تنفيذ الترحيل</button>
+                </form>
+                {% endif %}
+                <a href="{% url 'academic_years:transfer_list' %}" class="btn btn-outline-secondary">العودة</a>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-3"><div class="border rounded p-3"><strong>الدورات</strong><div>{{ batch.summary_json.courses|default:0 }}</div></div></div>
+            <div class="col-md-3"><div class="border rounded p-3"><strong>الطلاب</strong><div>{{ batch.summary_json.students|default:0 }}</div></div></div>
+            <div class="col-md-3"><div class="border rounded p-3"><strong>التسجيلات</strong><div>{{ batch.summary_json.enrollments|default:0 }}</div></div></div>
+            <div class="col-md-3"><div class="border rounded p-3"><strong>الإيصالات</strong><div>{{ batch.summary_json.receipts|default:0 }}</div></div></div>
+        </div>
+
+        {% if batch.failure_reason %}
+        <div class="alert alert-danger mt-3 mb-0">{{ batch.failure_reason }}</div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <h2 class="h5 mb-3">معاينة العناصر</h2>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>الدورة المصدر</th>
+                        <th>الدورة الهدف</th>
+                        <th>الطلاب</th>
+                        <th>التسجيلات</th>
+                        <th>الإيصالات</th>
+                        <th>القيود</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in course_items %}
+                    <tr>
+                        <td>{{ item.source_course }}</td>
+                        <td>{{ item.target_course|default:"سيتم إنشاؤها أو ربطها أثناء التنفيذ" }}</td>
+                        <td>{{ item.student_count }}</td>
+                        <td>{{ item.enrollment_count }}</td>
+                        <td>{{ item.receipt_count }}</td>
+                        <td>{{ item.journal_entry_count }}</td>
+                        <td>{{ item.get_status_display }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center py-4">لا توجد عناصر في هذه الدفعة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section class="card shadow-sm border-0">
+    <div class="card-body">
+        <h2 class="h5 mb-3">سجل التنفيذ</h2>
+        <div class="list-group">
+            {% for log in logs %}
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between gap-3">
+                    <strong>{{ log.get_level_display }}</strong>
+                    <small class="text-muted">{{ log.created_at }}</small>
+                </div>
+                <div>{{ log.message }}</div>
+                {% if log.payload %}
+                <pre class="mt-2 mb-0 small bg-light p-2 rounded">{{ log.payload }}</pre>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="list-group-item text-muted">لا توجد سجلات بعد.</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

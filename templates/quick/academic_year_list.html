@@ -4,9 +4,11 @@
 {% block content %}
 <div class="module-header">
     <h2><i class="fas fa-calendar-alt"></i> إدارة الفصول الدراسية</h2>
+    {% if request.user.is_superuser %}
     <a href="{% url 'quick:academic_year_create' %}" class="btn btn-primary">
         <i class="fas fa-plus"></i> إضافة فصل دراسي
     </a>
+    {% endif %}
 </div>
 
 <div class="card">
@@ -48,7 +50,7 @@
                                 <i class="fas fa-lock"></i> إغلاق
                             </a>
                             {% endif %}
-                            <a href="{% url 'quick:student_list' %}?academic_year={{ year.id }}" 
+                            <a href="{% url 'quick:student_list' %}?academic_year={{ year.id }}"
                                class="btn btn-sm btn-info">
                                 <i class="fas fa-users"></i> الطلاب
                             </a>
