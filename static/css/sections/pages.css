@@ -539,3 +539,431 @@ body.app-pages::-webkit-scrollbar-thumb {
         grid-template-columns: 1fr;
     }
 }
+
+.base-admin-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.dashboard-report-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.1rem;
+    padding: 1.15rem 1.25rem;
+    border: 1px solid rgba(15, 118, 110, 0.14);
+    border-radius: 18px;
+    background:
+        linear-gradient(135deg, rgba(15, 118, 110, 0.1), rgba(255, 255, 255, 0.92)),
+        #fff;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-report-entry__copy {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.dashboard-report-entry__eyebrow {
+    color: #0f766e;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.dashboard-report-entry h3,
+.dashboard-report-entry p {
+    margin: 0;
+}
+
+.dashboard-report-entry h3 {
+    color: #102a2f;
+    font-size: 1.1rem;
+    font-weight: 900;
+}
+
+.dashboard-report-entry p {
+    color: #5f6f76;
+    line-height: 1.7;
+}
+
+.dashboard-report-entry__action {
+    flex: 0 0 auto;
+}
+
+.app-users-report {
+    display: grid;
+    gap: 1rem;
+    width: 100%;
+}
+
+.app-users-hero,
+.app-users-panel,
+.app-users-stat {
+    border: 1px solid rgba(15, 118, 110, 0.13);
+    box-shadow: 0 20px 46px rgba(15, 23, 42, 0.1);
+}
+
+.app-users-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1.45rem;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #143b40 0%, #0f766e 62%, #17a39a 100%);
+    color: #fff;
+}
+
+.app-users-hero h1,
+.app-users-hero p {
+    margin: 0;
+}
+
+.app-users-hero h1 {
+    font-size: clamp(1.45rem, 2.4vw, 2.25rem);
+    font-weight: 900;
+}
+
+.app-users-hero p {
+    max-width: 760px;
+    color: rgba(255, 255, 255, 0.84);
+    line-height: 1.8;
+}
+
+.app-users-hero__copy,
+.app-users-hero__actions,
+.app-users-panel,
+.app-users-stat,
+.app-users-panel__head {
+    display: flex;
+}
+
+.app-users-hero__copy,
+.app-users-panel {
+    flex-direction: column;
+}
+
+.app-users-hero__copy {
+    gap: 0.55rem;
+}
+
+.app-users-hero__actions,
+.app-users-meta {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.app-users-meta {
+    display: flex;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.9rem;
+}
+
+.app-users-eyebrow,
+.app-users-chip,
+.app-users-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.app-users-eyebrow {
+    padding: 0.32rem 0.72rem;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+.app-users-summary,
+.app-users-insights,
+.app-users-layout,
+.app-users-metrics,
+.app-users-role-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.app-users-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-users-insights {
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+}
+
+.app-users-layout {
+    grid-template-columns: minmax(260px, 0.32fr) minmax(0, 0.68fr);
+    align-items: start;
+}
+
+.app-users-stat,
+.app-users-panel {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 18px;
+}
+
+.app-users-stat {
+    align-items: center;
+    gap: 0.85rem;
+    min-height: 116px;
+    padding: 1rem;
+}
+
+.app-users-stat--primary {
+    background: linear-gradient(135deg, rgba(15, 118, 110, 0.13), rgba(255, 255, 255, 0.96));
+}
+
+.app-users-stat__icon,
+.app-users-avatar,
+.app-users-person span {
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: rgba(15, 118, 110, 0.1);
+    color: #0f766e;
+}
+
+.app-users-stat__icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    font-size: 1.15rem;
+}
+
+.app-users-stat span,
+.app-users-metrics span,
+.app-users-role span,
+.app-users-top span,
+.app-users-panel__head p {
+    color: #64748b;
+}
+
+.app-users-stat strong {
+    display: block;
+    color: #102a2f;
+    font-size: 1.85rem;
+    line-height: 1.15;
+}
+
+.app-users-panel {
+    gap: 1rem;
+    padding: 1.15rem;
+}
+
+.app-users-panel--accent {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.14), rgba(255, 255, 255, 0.96));
+}
+
+.app-users-panel__head {
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+}
+
+.app-users-panel__head h2,
+.app-users-panel__head p {
+    margin: 0;
+}
+
+.app-users-panel__head h2 {
+    color: #102a2f;
+    font-size: 1.08rem;
+    font-weight: 900;
+}
+
+.app-users-panel__head > span {
+    color: #64748b;
+    font-size: 0.88rem;
+}
+
+.app-users-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.app-users-metrics > div,
+.app-users-role {
+    padding: 0.85rem;
+    border-radius: 14px;
+    background: rgba(248, 250, 252, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.app-users-metrics strong,
+.app-users-role strong {
+    display: block;
+    margin-top: 0.2rem;
+    color: #0f766e;
+    font-size: 1.35rem;
+}
+
+.app-users-top {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.app-users-avatar {
+    width: 56px;
+    height: 56px;
+    background: #0f766e;
+    color: #fff;
+    font-size: 1.35rem;
+    font-weight: 900;
+}
+
+.app-users-top strong,
+.app-users-top span {
+    display: block;
+}
+
+.app-users-top b {
+    min-width: 48px;
+    padding: 0.55rem 0.75rem;
+    border-radius: 14px;
+    background: #fff;
+    color: #0f766e;
+    text-align: center;
+    box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.12);
+}
+
+.app-users-role-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.app-users-table-panel {
+    min-width: 0;
+}
+
+.app-users-table-wrap {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.app-users-table {
+    margin: 0;
+}
+
+.app-users-table thead th {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.app-users-table td {
+    vertical-align: middle;
+}
+
+.app-users-person {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 190px;
+}
+
+.app-users-person span {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    font-weight: 900;
+}
+
+.app-users-chip {
+    padding: 0.25rem 0.65rem;
+    background: rgba(15, 118, 110, 0.1);
+    color: #0f766e;
+    font-size: 0.82rem;
+}
+
+.app-users-status {
+    min-width: 72px;
+    padding: 0.28rem 0.65rem;
+    font-size: 0.82rem;
+}
+
+.app-users-status--on {
+    background: rgba(34, 197, 94, 0.12);
+    color: #166534;
+}
+
+.app-users-status--off {
+    background: rgba(239, 68, 68, 0.12);
+    color: #991b1b;
+}
+
+.app-users-empty {
+    margin: 0;
+    color: #64748b;
+}
+
+.text-ltr {
+    direction: ltr;
+    text-align: right;
+}
+
+@media (max-width: 1199.98px) {
+    .app-users-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .app-users-insights,
+    .app-users-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .base-admin-actions,
+    .dashboard-report-entry,
+    .app-users-hero {
+        align-items: stretch;
+    }
+
+    .base-admin-actions,
+    .dashboard-report-entry,
+    .app-users-hero__actions {
+        flex-direction: column;
+    }
+
+    .base-admin-actions .btn,
+    .dashboard-report-entry__action,
+    .app-users-hero__actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .app-users-hero {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+        border-radius: 18px;
+    }
+
+    .app-users-summary,
+    .app-users-metrics,
+    .app-users-role-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .app-users-top {
+        grid-template-columns: 48px minmax(0, 1fr);
+    }
+
+    .app-users-top b {
+        grid-column: 1 / -1;
+    }
+
+    .dashboard-report-entry,
+    .app-users-panel,
+    .app-users-stat {
+        border-radius: 16px;
+    }
+}

@@ -71,12 +71,18 @@
         <div class="page-shell">
 
             <div class="content-stack">
-                {% if user.username == 'thaaer' %}
-                <div class="d-flex justify-content-end">
+                {% if user.is_superuser %}
+                <div class="base-admin-actions">
+                    <a href="{% url 'pages:app_users_report' %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-chart-line"></i>
+                        تقرير مستخدمي التطبيق
+                    </a>
+                    {% if user.username == 'thaaer' %}
                     <a href="{% url 'mobile:dashboard' %}" class="btn btn-outline-warning btn-sm">
                         <i class="fas fa-mobile-screen-button"></i>
                         تجربة واجهة الموبايل
                     </a>
+                    {% endif %}
                 </div>
                 {% endif %}
 

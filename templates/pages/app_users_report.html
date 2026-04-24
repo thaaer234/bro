@@ -1,141 +1,139 @@
 {% extends "base.html" %}
 {% load static %}
-
-
+{% load humanize %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
 {% endblock %}
+
 {% block content %}
-<div class="container mt-4 app-users-report">
-  <div class="report-hero mb-4">
-    <div>
-      <h3>تقرير مستخدمي التطبيق</h3>
-      <p>إحصائيات حية + أكثر مستخدم نشاطًا اليوم</p>
+<div class="app-users-report">
+  <section class="app-users-hero">
+    <div class="app-users-hero__copy">
+      <span class="app-users-eyebrow">تطبيق الموبايل</span>
+      <h1>تقرير مستخدمي التطبيق</h1>
+      <p>ملخص واضح لحسابات الطلاب والأهالي والمدرسين، مع آخر دخول ونشاط الأجهزة المرتبطة اليوم.</p>
+      <div class="app-users-meta">
+        <span><i class="fas fa-clock"></i> آخر تحديث: {{ generated_at|date:"Y-m-d H:i" }}</span>
+        <span><i class="fas fa-signal"></i> أجهزة نشطة اليوم: {{ active_devices|intcomma }}</span>
+      </div>
     </div>
-    <div class="hero-actions">
-      <a href="{% url 'pages:system_report' %}" class="btn btn-outline-secondary">التقارير العامة</a>
+    <div class="app-users-hero__actions">
+      <a href="{% url 'pages:index' %}" class="btn btn-light">
+        <i class="fas fa-arrow-right"></i>
+        لوحة التحكم
+      </a>
+      <a href="{% url 'pages:system_report' %}" class="btn btn-outline-light">
+        <i class="fas fa-chart-pie"></i>
+        التقارير العامة
+      </a>
     </div>
-  </div>
+  </section>
 
-  <div class="row g-3">
-    <div class="col-md-3">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">عدد المستخدمين الكلي</h6>
-          <div class="display-6">{{ total_users }}</div>
-        </div>
+  <section class="app-users-summary" aria-label="ملخص مستخدمي التطبيق">
+    <article class="app-users-stat app-users-stat--primary">
+      <div class="app-users-stat__icon"><i class="fas fa-users"></i></div>
+      <div>
+        <span>كل المستخدمين</span>
+        <strong>{{ total_users|intcomma }}</strong>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">عدد الطلاب</h6>
-          <div class="display-6">{{ students_total }}</div>
-        </div>
+    </article>
+    <article class="app-users-stat">
+      <div class="app-users-stat__icon"><i class="fas fa-user-graduate"></i></div>
+      <div>
+        <span>الطلاب</span>
+        <strong>{{ students_total|intcomma }}</strong>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">عدد الأهالي</h6>
-          <div class="display-6">{{ parents_total }}</div>
-        </div>
+    </article>
+    <article class="app-users-stat">
+      <div class="app-users-stat__icon"><i class="fas fa-people-roof"></i></div>
+      <div>
+        <span>الأهالي</span>
+        <strong>{{ parents_total|intcomma }}</strong>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">عدد المدرّسين</h6>
-          <div class="display-6">{{ teachers_total }}</div>
-        </div>
+    </article>
+    <article class="app-users-stat">
+      <div class="app-users-stat__icon"><i class="fas fa-chalkboard-user"></i></div>
+      <div>
+        <span>المدرسون</span>
+        <strong>{{ teachers_total|intcomma }}</strong>
       </div>
-    </div>
-  </div>
+    </article>
+  </section>
 
-  <div class="row g-3 mt-1">
-    <div class="col-md-3">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">عدد الدخول اليومي</h6>
-          <div class="display-6">{{ daily_logins }}</div>
+  <section class="app-users-insights">
+    <article class="app-users-panel">
+      <div class="app-users-panel__head">
+        <h2>نشاط اليوم</h2>
+        <span>{{ last_activity|date:"Y-m-d H:i"|default:"لا يوجد نشاط" }}</span>
+      </div>
+      <div class="app-users-metrics">
+        <div>
+          <span>دخول يومي</span>
+          <strong>{{ daily_logins|intcomma }}</strong>
+        </div>
+        <div>
+          <span>أجهزة نشطة</span>
+          <strong>{{ active_devices|intcomma }}</strong>
+        </div>
+        <div>
+          <span>إجمالي الأجهزة</span>
+          <strong>{{ devices_total|intcomma }}</strong>
+        </div>
+        <div>
+          <span>حسابات غير مفعلة</span>
+          <strong>{{ inactive_users|intcomma }}</strong>
         </div>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">عدد الأجهزة المفعلة اليوم</h6>
-          <div class="display-6">{{ active_devices }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">إجمالي الأجهزة</h6>
-          <div class="display-6">{{ devices_total }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <h6 class="text-muted">آخر دخول</h6>
-          <div class="small">{{ last_activity|date:"Y-m-d H:i" }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
+    </article>
 
-  <div class="row g-3 mt-2">
-    <div class="col-lg-6">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="mb-3">توزيع الدخول حسب الدور</h5>
-          <div class="row g-2">
-            {% for role, count in role_counts.items %}
-            <div class="col-6">
-              <div class="mini-card text-center">
-                <div class="mini-title">{{ role }}</div>
-                <div class="mini-value">{{ count }}</div>
-              </div>
-            </div>
-            {% empty %}
-            <div class="col-12 text-muted">لا توجد بيانات.</div>
-            {% endfor %}
-          </div>
-        </div>
+    <article class="app-users-panel app-users-panel--accent">
+      <div class="app-users-panel__head">
+        <h2>الأكثر دخولًا اليوم</h2>
+        <span>حسب الأجهزة النشطة</span>
       </div>
-    </div>
-    <div class="col-lg-6">
-      <div class="card h-100 highlight-card">
-        <div class="card-body">
-          <h5 class="mb-2">الأكثر دخولًا اليوم</h5>
-          {% if most_active_user %}
-          <div class="top-user">
-            <div>
-              <div class="name">{{ most_active_user.name }}</div>
-              <div class="meta">نوع الحساب: {{ most_active_user.user_type }}</div>
-            </div>
-            <div class="count">{{ most_active_count }}</div>
-          </div>
-          {% else %}
-          <div class="text-muted">لا توجد بيانات اليوم.</div>
-          {% endif %}
+      {% if most_active_user %}
+      <div class="app-users-top">
+        <div class="app-users-avatar">{{ most_active_user.name|default:most_active_user.username|first }}</div>
+        <div>
+          <strong>{{ most_active_user.name }}</strong>
+          <span>{{ most_active_user.user_type_label }} - {{ most_active_user.username }}</span>
         </div>
+        <b>{{ most_active_count|intcomma }}</b>
       </div>
-    </div>
-  </div>
+      {% else %}
+      <p class="app-users-empty">لا توجد بيانات نشاط اليوم.</p>
+      {% endif %}
+    </article>
+  </section>
 
-  <div class="card mt-4">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">قائمة المستخدمين</h5>
-        <span class="text-muted">مرتبة حسب آخر دخول</span>
+  <section class="app-users-layout">
+    <article class="app-users-panel">
+      <div class="app-users-panel__head">
+        <h2>توزيع الدخول حسب الدور</h2>
       </div>
-      <div class="table-responsive">
-        <table class="table align-middle">
+      <div class="app-users-role-grid">
+        {% for role, count in role_counts.items %}
+        <div class="app-users-role">
+          <span>{{ role }}</span>
+          <strong>{{ count|intcomma }}</strong>
+        </div>
+        {% empty %}
+        <p class="app-users-empty">لا توجد بيانات.</p>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="app-users-panel app-users-table-panel">
+      <div class="app-users-panel__head">
+        <div>
+          <h2>قائمة المستخدمين</h2>
+          <p>مرتبة حسب آخر دخول، مع حالة الأجهزة المرتبطة لكل حساب.</p>
+        </div>
+        <span>{{ users_list|length|intcomma }} حساب</span>
+      </div>
+      <div class="table-responsive app-users-table-wrap">
+        <table class="table app-users-table align-middle">
           <thead>
             <tr>
               <th>الاسم</th>
@@ -143,31 +141,43 @@
               <th>النوع</th>
               <th>آخر دخول</th>
               <th>آخر نشاط جهاز</th>
-              <th>أجهزة مرتبطة</th>
+              <th>الأجهزة</th>
               <th>نشط اليوم</th>
+              <th>الحالة</th>
             </tr>
           </thead>
           <tbody>
             {% for row in users_list %}
             <tr>
-              <td>{{ row.name }}</td>
-              <td>{{ row.username }}</td>
-              <td>{{ row.user_type }}</td>
-              <td>{{ row.last_login|date:"Y-m-d H:i" }}</td>
-              <td>{{ row.last_seen|date:"Y-m-d H:i" }}</td>
-              <td>{{ row.devices }}</td>
-              <td>{{ row.today_active }}</td>
+              <td>
+                <div class="app-users-person">
+                  <span>{{ row.name|default:row.username|first }}</span>
+                  <strong>{{ row.name }}</strong>
+                </div>
+              </td>
+              <td class="text-ltr">{{ row.username }}</td>
+              <td><span class="app-users-chip">{{ row.user_type_label }}</span></td>
+              <td>{{ row.last_login|date:"Y-m-d H:i"|default:"-" }}</td>
+              <td>{{ row.last_seen|date:"Y-m-d H:i"|default:"-" }}</td>
+              <td>{{ row.devices|intcomma }}</td>
+              <td>{{ row.today_active|intcomma }}</td>
+              <td>
+                {% if row.is_active %}
+                <span class="app-users-status app-users-status--on">مفعل</span>
+                {% else %}
+                <span class="app-users-status app-users-status--off">متوقف</span>
+                {% endif %}
+              </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="7" class="text-center text-muted">لا توجد بيانات</td>
+              <td colspan="8" class="text-center text-muted">لا توجد بيانات</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
-    </div>
-  </div>
+    </article>
+  </section>
 </div>
-
 {% endblock %}

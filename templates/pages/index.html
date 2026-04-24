@@ -13,12 +13,18 @@
     </div>
 </div>
 
-{% if user.username == 'thaaer' %}
-<div class="mb-3">
-  <a href="{% url 'pages:app_users_report' %}" class="btn btn-success">
-    <i class="fas fa-chart-line"></i> تقرير مستخدمي التطبيق
-  </a>
-</div>
+{% if user.is_superuser %}
+<section class="dashboard-report-entry" aria-label="تقرير مستخدمي التطبيق">
+    <div class="dashboard-report-entry__copy">
+        <span class="dashboard-report-entry__eyebrow">متابعة تطبيق الموبايل</span>
+        <h3>تقرير مستخدمي التطبيق</h3>
+        <p>راقب دخول الطلاب والأهالي والمدرسين، الأجهزة المرتبطة، وآخر نشاط مباشر من لوحة واحدة.</p>
+    </div>
+    <a href="{% url 'pages:app_users_report' %}" class="btn btn-success dashboard-report-entry__action">
+        <i class="fas fa-chart-line"></i>
+        فتح التقرير
+    </a>
+</section>
 {% endif %}
 
 <div id="moduleContent">

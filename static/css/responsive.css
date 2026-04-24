@@ -33,6 +33,7 @@ iframe {
 .filter-actions,
 .activity-actions,
 .action-buttons,
+.base-admin-actions,
 .page-toolbar__actions,
 .quick-actions,
 .quick-action-grid,
@@ -176,6 +177,7 @@ iframe {
     .filter-actions,
     .activity-actions,
     .action-buttons,
+    .base-admin-actions,
     .page-toolbar__actions,
     .quick-actions,
     .action-grid {
@@ -187,6 +189,7 @@ iframe {
     .filter-actions .btn,
     .activity-actions .btn,
     .action-buttons .btn,
+    .base-admin-actions .btn,
     .page-toolbar__actions .btn,
     .quick-actions .btn,
     .action-grid .btn {

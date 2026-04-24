@@ -444,6 +444,19 @@ def sitemap_view(request):
 
 def app_users_report(request):
     today = timezone.localdate()
+    user_type_labels = {
+        "student": "طالب",
+        "parent": "ولي أمر",
+        "teacher": "مدرس",
+    }
+    login_role_labels = {
+        "teacher": "مدرس",
+        "student": "طالب",
+        "father": "أب",
+        "mother": "أم",
+        "parent": "ولي أمر",
+        "غير محدد": "غير محدد",
+    }
 
     device_stats = MobileDeviceToken.objects.values(
         "user_type", "user_id"
@@ -473,7 +486,7 @@ def app_users_report(request):
     )
 
     role_counts = {
-        row["login_role"] or "غير محدد": row["count"]
+        login_role_labels.get(row["login_role"] or "غير محدد", row["login_role"] or "غير محدد"): row["count"]
         for row in MobileDeviceToken.objects.values("login_role").annotate(count=Count("id"))
     }
 
@@ -491,10 +504,12 @@ def app_users_report(request):
             "name": profile_name,
             "username": user.username,
             "user_type": user.user_type,
+            "user_type_label": user_type_labels.get(user.user_type, user.user_type),
             "last_login": user.last_login,
             "devices": stats.get("devices", 0),
             "last_seen": stats.get("last_seen"),
             "today_active": stats.get("today_active", 0),
+            "is_active": user.is_active,
         })
 
     most_active_user = None
@@ -511,7 +526,10 @@ def app_users_report(request):
         "daily_logins": daily_logins,
         "active_devices": active_devices,
         "devices_total": devices_total,
+        "inactive_users": MobileUser.objects.filter(is_active=False).count(),
+        "active_users": MobileUser.objects.filter(is_active=True).count(),
         "last_activity": last_activity,
+        "generated_at": timezone.now(),
         "role_counts": role_counts,
         "users_list": users_list,
         "most_active_user": most_active_user,
