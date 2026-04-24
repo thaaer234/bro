@@ -71,7 +71,7 @@
         <div class="page-shell">
 
             <div class="content-stack">
-                {% if user.is_superuser %}
+                {% if user.username == 'thaaer' %}
                 <div class="d-flex justify-content-end">
                     <a href="{% url 'mobile:dashboard' %}" class="btn btn-outline-warning btn-sm">
                         <i class="fas fa-mobile-screen-button"></i>

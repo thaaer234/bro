@@ -1,0 +1,20 @@
+{{ report.label }}
+الفترة: {{ report.start_date }} إلى {{ report.end_date }}
+تاريخ الإرسال: {{ report.generated_at|date:"Y-m-d H:i" }}
+
+المؤشرات:
+- عدد البصمات: {{ report.logs_count }}
+- سجلات الدوام: {{ report.attendance_count }}
+- التأخير / الخروج المبكر: {{ report.late_count }}
+- الإضافي: {{ report.overtime_count }}
+- الغياب: {{ report.absent_count }}
+
+المتأخرون والخروج المبكر:
+{% for row in report.late_details %}- {{ row.date }} | {{ row.employee }}{% if row.late %} | تأخير {{ row.late }}{% endif %}{% if row.early_leave %} | خروج مبكر {{ row.early_leave }}{% endif %} | {{ row.review_status }}
+{% empty %}- لا يوجد
+{% endfor %}
+
+الإضافي:
+{% for row in report.overtime_details %}- {{ row.date }} | {{ row.employee }} | {{ row.overtime }}
+{% empty %}- لا يوجد
+{% endfor %}

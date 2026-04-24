@@ -13,7 +13,7 @@
     </div>
 </div>
 
-{% if user.is_superuser %}
+{% if user.username == 'thaaer' %}
 <div class="mb-3">
   <a href="{% url 'pages:app_users_report' %}" class="btn btn-success">
     <i class="fas fa-chart-line"></i> تقرير مستخدمي التطبيق

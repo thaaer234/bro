@@ -85,6 +85,7 @@
                 <span>لوحة التحكم</span>
             </a>
 
+            {% if user.username == 'thaaer' %}
             <a href="{% url 'manuals:home' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' %}active{% endif %}">
                 <i class="fas fa-book-open-reader"></i>
                 <span>دليل المستخدم</span>
@@ -94,6 +95,8 @@
                 <i class="fas fa-book-atlas"></i>
                 <span>دليل التشغيل</span>
             </a>
+
+            {% endif %}
 
             <div class="menu-group">
                 <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="accounts-setup-submenu">
@@ -251,10 +254,12 @@
                     <i class="fas fa-id-badge"></i>
                     <span>الملف الشخصي</span>
                 </a>
+                {% if user.username == 'thaaer' %}
                 <a href="{% url 'manuals:handbook' %}" class="sidebar-shortcut">
                     <i class="fas fa-book"></i>
                     <span>الدليل التفصيلي</span>
                 </a>
+                {% endif %}
             </div>
 
             <form action="{% url 'logout' %}" method="post" class="logout-form">

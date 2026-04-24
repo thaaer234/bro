@@ -463,6 +463,18 @@ EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '5'))
 EMAIL_SSL_CERTFILE = os.getenv('EMAIL_SSL_CERTFILE') or None
 EMAIL_SSL_KEYFILE = os.getenv('EMAIL_SSL_KEYFILE') or None
 EMAIL_SUBJECT_PREFIX = os.getenv('EMAIL_SUBJECT_PREFIX', '[مركز الأمن] ')
+
+BIOMETRIC_ATTENDANCE_EMAILS = [
+    item.strip()
+    for item in os.getenv(
+        'BIOMETRIC_ATTENDANCE_EMAILS',
+        f"{EMAIL_HOST_USER},ammarmarz730@gmail.com"
+    ).split(',')
+    if item.strip()
+]
+BIOMETRIC_DAILY_SUMMARY_TIME = os.getenv('BIOMETRIC_DAILY_SUMMARY_TIME', '23:55')
+BIOMETRIC_DECISION_BASE_URL = os.getenv('BIOMETRIC_DECISION_BASE_URL', 'http://127.0.0.1:8000')
+BIOMETRIC_DECISION_USERNAMES = env_list('BIOMETRIC_DECISION_USERNAMES', ['thaaer', 'ammar'])
 SECURITY_ALERT_EMAILS = [item.strip() for item in os.getenv('SECURITY_ALERT_EMAILS', 'thaaeralmasre98@gmail.com').split(',') if item.strip()]
 SECURITY_REPORT_EMAILS = [item.strip() for item in os.getenv('SECURITY_REPORT_EMAILS', 'thaaeralmasre98@gmail.com').split(',') if item.strip()]
 

@@ -64,6 +64,7 @@ from .services import (
     PayrollGenerationService,
 )
 from .biometric_sync import BiometricAutoSyncService
+from .email_notifications import send_weekly_biometric_summary
 from xhtml2pdf import pisa
 try:
     from weasyprint import HTML
@@ -1553,6 +1554,19 @@ class BiometricImportView(LoginRequiredMixin, View):
         return redirect('employ:biometric_dashboard')
 
 
+class BiometricWeeklySummaryEmailView(LoginRequiredMixin, View):
+    def post(self, request):
+        sent, report = send_weekly_biometric_summary()
+        if sent:
+            messages.success(
+                request,
+                f"تم إرسال ملخص بصمات الأسبوع إلى البريد الإلكتروني. عدد البصمات: {report['logs_count']}."
+            )
+        else:
+            messages.error(request, 'تعذر إرسال ملخص بصمات الأسبوع. تحقق من إعدادات البريد الإلكتروني والمستلمين.')
+        return redirect('employ:biometric_dashboard')
+
+
 @method_decorator(csrf_exempt, name='dispatch')
 class BiometricPushApiView(View):
     http_method_names = ['post']
@@ -1691,6 +1705,71 @@ class EmployeeAttendanceUpdateView(LoginRequiredMixin, UpdateView):
         )
         messages.success(self.request, 'تم تحديث سجل الدوام وربط القرار الإداري به.')
         return redirect(self.get_success_url())
+
+
+class EmployeeAttendanceEmailDecisionView(LoginRequiredMixin, View):
+    ACTIONS = {
+        'forgive': 'مسامحة',
+        'charge': 'محاسبة',
+        'count_overtime': 'حسبان الإضافي',
+        'deny_overtime': 'حرمان الإضافي',
+    }
+
+    def get(self, request, pk, action):
+        allowed_users = set(getattr(settings, 'BIOMETRIC_DECISION_USERNAMES', ['thaaer', 'ammar']))
+        if allowed_users and request.user.username not in allowed_users:
+            return HttpResponseForbidden('هذا القرار محصور بحسابات HR المخولة.')
+
+        attendance = get_object_or_404(EmployeeAttendance.objects.select_related('employee__user'), pk=pk)
+        label = self.ACTIONS.get(action)
+        if not label:
+            messages.error(request, 'قرار غير معروف.')
+            return redirect('employ:attendance_update', pk=attendance.pk)
+
+        now = timezone.now()
+        note = f'{label} من رابط البريد بواسطة {request.user.get_username()} بتاريخ {now:%Y-%m-%d %H:%M}.'
+
+        if action == 'forgive':
+            attendance.review_status = 'justified'
+            attendance.review_notes = note
+            attendance.reviewed_by = request.user
+            attendance.reviewed_at = now
+            attendance.save(update_fields=['review_status', 'review_notes', 'reviewed_by', 'reviewed_at', 'updated_at'])
+            messages.success(request, 'تم اعتماد المسامحة ولن يدخل التأخير أو الخروج المبكر في الحسم.')
+        elif action == 'charge':
+            attendance.review_status = 'unjustified'
+            attendance.review_notes = note
+            attendance.reviewed_by = request.user
+            attendance.reviewed_at = now
+            attendance.save(update_fields=['review_status', 'review_notes', 'reviewed_by', 'reviewed_at', 'updated_at'])
+            messages.success(request, 'تم اعتماد المحاسبة وسيدخل التأخير أو الخروج المبكر في حساب الرواتب.')
+        elif action == 'count_overtime':
+            attendance.review_notes = note
+            attendance.reviewed_by = request.user
+            attendance.reviewed_at = now
+            attendance.save(update_fields=['review_notes', 'reviewed_by', 'reviewed_at', 'updated_at'])
+            messages.success(request, 'تم تثبيت حسبان الإضافي كما هو في سجل الدوام.')
+        elif action == 'deny_overtime':
+            attendance.overtime_seconds = 0
+            attendance.review_notes = note
+            attendance.reviewed_by = request.user
+            attendance.reviewed_at = now
+            attendance.is_manually_adjusted = True
+            attendance.manual_adjustment_reason = note
+            attendance.source = 'manual'
+            attendance.save(update_fields=[
+                'overtime_seconds',
+                'review_notes',
+                'reviewed_by',
+                'reviewed_at',
+                'is_manually_adjusted',
+                'manual_adjustment_reason',
+                'source',
+                'updated_at',
+            ])
+            messages.success(request, 'تم حرمان الإضافي وتصفير ساعاته في سجل الدوام حتى لا تدخل في الراتب.')
+
+        return redirect('employ:attendance_update', pk=attendance.pk)
 
 
 class AttendanceSummaryView(LoginRequiredMixin, TemplateView):

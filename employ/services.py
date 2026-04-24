@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from accounts.models import EmployeeAdvance
 
+from .email_notifications import send_biometric_punch_email
 from .models import (
     AttendancePolicy,
     BiometricDevice,
@@ -151,6 +152,9 @@ class BiometricImportService:
 
         for log in created_logs:
             AttendanceGenerationService.sync_from_log(log)
+
+        for log in created_logs:
+            transaction.on_commit(lambda log=log: send_biometric_punch_email(log))
 
         return {
             'created': len(created_logs),

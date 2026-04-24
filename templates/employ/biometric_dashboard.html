@@ -9,6 +9,10 @@
 <div class="module-header">
     <h2>شاشة البصمة</h2>
     <div class="header-actions">
+        <form method="post" action="{% url 'employ:biometric_weekly_summary_email' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">إرسال ملخص أسبوعي</button>
+        </form>
         <a href="{% url 'employ:attendance_list' %}" class="btn btn-outline-primary">الدوام</a>
         <a href="{% url 'employ:hr' %}" class="btn btn-secondary">العودة</a>
     </div>

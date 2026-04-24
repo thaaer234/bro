@@ -1,0 +1,16 @@
+{{ employee_name }} - {{ status_label }}
+
+{{ summary_line }}
+
+تفاصيل الدوام:
+{% for row in metric_rows %}- {{ row.label }}: {{ row.value }}
+{% endfor %}
+
+{% if decision_links %}
+اتخاذ القرار:
+{% if decision_links.forgive %}- مسامحة: {{ decision_links.forgive }}
+- محاسبة: {{ decision_links.charge }}
+{% endif %}{% if decision_links.count_overtime %}- حسبان الإضافي: {{ decision_links.count_overtime }}
+- حرمان الإضافي: {{ decision_links.deny_overtime }}
+{% endif %}
+{% endif %}

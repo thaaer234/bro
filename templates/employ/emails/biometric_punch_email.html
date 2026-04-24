@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f3f5f7;font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#172033;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f5f7;padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:760px;background:#ffffff;border:1px solid #dce3ea;border-radius:14px;overflow:hidden;box-shadow:0 16px 40px rgba(15,23,42,.08);">
+          <tr>
+            <td style="background:#142b42;padding:24px 30px;color:#ffffff;">
+              <div style="font-size:13px;color:#cbd5e1;">{{ brand_short }}</div>
+              <h1 style="margin:8px 0 12px;font-size:24px;line-height:1.45;font-weight:800;">{{ employee_name }}</h1>
+              <span style="display:inline-block;background:{{ status_color }};color:#ffffff;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:700;">{{ status_label }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:26px 30px;">
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-right:5px solid {{ status_color }};border-radius:10px;padding:15px 17px;margin-bottom:18px;font-size:16px;line-height:1.9;font-weight:700;color:#172033;">
+                {{ summary_line }}
+              </div>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #dce3ea;border-radius:10px;overflow:hidden;">
+                <thead>
+                  <tr>
+                    <th colspan="2" style="background:#edf2f7;color:#334155;text-align:right;padding:13px 16px;font-size:15px;border-bottom:1px solid #dce3ea;">تفاصيل الدوام</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in metric_rows %}
+                  <tr>
+                    <td style="width:34%;background:#ffffff;color:#64748b;padding:12px 16px;border-bottom:1px solid #edf2f7;font-size:14px;">{{ row.label }}</td>
+                    <td style="background:#ffffff;color:#111827;padding:12px 16px;border-bottom:1px solid #edf2f7;font-size:14px;font-weight:700;">{{ row.value }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              {% if decision_links %}
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:20px;">
+                <tr>
+                  <td style="background:#fbfcfe;border:1px solid #dce3ea;border-radius:10px;padding:16px;">
+                    <div style="font-size:15px;font-weight:800;color:#172033;margin-bottom:12px;">اتخاذ القرار</div>
+                    {% if decision_links.forgive %}
+                      <a href="{{ decision_links.forgive }}" style="display:inline-block;background:#047857;color:#ffffff;text-decoration:none;border-radius:8px;padding:10px 16px;margin:0 0 8px 8px;font-weight:700;">مسامحة</a>
+                      <a href="{{ decision_links.charge }}" style="display:inline-block;background:#b42318;color:#ffffff;text-decoration:none;border-radius:8px;padding:10px 16px;margin:0 0 8px 8px;font-weight:700;">محاسبة</a>
+                    {% endif %}
+                    {% if decision_links.count_overtime %}
+                      <a href="{{ decision_links.count_overtime }}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;border-radius:8px;padding:10px 16px;margin:0 0 8px 8px;font-weight:700;">حسبان الإضافي</a>
+                      <a href="{{ decision_links.deny_overtime }}" style="display:inline-block;background:#6b7280;color:#ffffff;text-decoration:none;border-radius:8px;padding:10px 16px;margin:0 0 8px 8px;font-weight:700;">حرمان الإضافي</a>
+                    {% endif %}
+                    <div style="font-size:12px;color:#64748b;line-height:1.7;margin-top:6px;">سيطلب النظام تسجيل الدخول بحساب HR قبل تثبيت القرار على السجل والرواتب.</div>
+                  </td>
+                </tr>
+              </table>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 30px;color:#64748b;font-size:13px;line-height:1.7;">
+              <strong style="color:#334155;">{{ brand_name }}</strong><br>
+              تم إنشاء هذا البريد تلقائياً بعد مزامنة سجلات البصمة.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
