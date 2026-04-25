@@ -179,6 +179,49 @@ def _decision_links(attendance):
     return links
 
 
+def _with_email_decision_mode(links):
+    return {key: f'{value}?email=1' for key, value in links.items()}
+
+
+def _has_biometric_activity(target_date):
+    day_start = timezone.make_aware(datetime.combine(target_date, time.min))
+    next_day_start = day_start + timedelta(days=1)
+    return (
+        BiometricLog.objects.filter(punch_time__gte=day_start, punch_time__lt=next_day_start).exists()
+        or EmployeeAttendance.objects.filter(date=target_date).exists()
+    )
+
+
+def _latest_activity_date(max_date):
+    latest_log = (
+        BiometricLog.objects
+        .filter(punch_time__lt=timezone.make_aware(datetime.combine(max_date + timedelta(days=1), time.min)))
+        .order_by('-punch_time')
+        .values_list('punch_time', flat=True)
+        .first()
+    )
+    latest_attendance = (
+        EmployeeAttendance.objects
+        .filter(date__lte=max_date)
+        .order_by('-date')
+        .values_list('date', flat=True)
+        .first()
+    )
+
+    dates = []
+    if latest_log:
+        dates.append(timezone.localtime(latest_log).date())
+    if latest_attendance:
+        dates.append(latest_attendance)
+    return max(dates) if dates else max_date
+
+
+def _summary_target_date(target_date):
+    if _has_biometric_activity(target_date):
+        return target_date
+    return _latest_activity_date(target_date)
+
+
 def _status_for_attendance(attendance):
     if not attendance:
         return 'تم تسجيل البصمة', '#17324d'
@@ -322,32 +365,67 @@ def build_biometric_summary(start_date, end_date, label='ملخص البصمات
     total_early_leave_seconds = sum(row.early_leave_seconds for row in late_rows)
     total_overtime_seconds = sum(row.overtime_seconds for row in overtime_rows)
 
-    log_rows = [
-        {
-            'time': _format_local_dt(log.punch_time),
-            'employee': _employee_name(log.employee, log.device_user_id),
-            'type': PUNCH_LABELS.get(log.punch_type, PUNCH_LABELS['unknown']),
-            'device': log.device.name if log.device_id else '-',
-            'device_user_id': log.device_user_id,
-        }
-        for log in logs[:150]
-    ]
+    if attendances:
+        log_rows = []
+        for row in attendances[:150]:
+            status_label, status_color = _status_for_attendance(row)
+            log_rows.append({
+                'date': row.date,
+                'employee': row.employee.full_name,
+                'status': status_label,
+                'status_color': status_color,
+                'punches': [
+                    {
+                        'label': 'دخول',
+                        'value': _format_time(row.check_in) if row.check_in else 'لم يبصم دخول',
+                        'missing': not row.check_in,
+                    },
+                    {
+                        'label': 'خروج',
+                        'value': _format_time(row.check_out) if row.check_out else 'لم يبصم خروج',
+                        'missing': not row.check_out,
+                    },
+                ],
+            })
+        hidden_logs_count = max(0, len(attendances) - len(log_rows))
+    else:
+        log_rows = [
+            {
+                'date': timezone.localtime(log.punch_time).date(),
+                'employee': _employee_name(log.employee, log.device_user_id),
+                'status': PUNCH_LABELS.get(log.punch_type, PUNCH_LABELS['unknown']),
+                'status_color': '#17324d',
+                'punches': [
+                    {
+                        'label': PUNCH_LABELS.get(log.punch_type, PUNCH_LABELS['unknown']),
+                        'value': _format_time(log.punch_time),
+                        'missing': False,
+                    },
+                ],
+            }
+            for log in logs[:150]
+        ]
+        hidden_logs_count = max(0, len(logs) - len(log_rows))
 
     late_details = [
         {
+            'attendance_id': row.pk,
             'date': row.date,
             'employee': row.employee.full_name,
             'late': _format_duration(row.late_seconds) if row.late_seconds else '',
             'early_leave': _format_duration(row.early_leave_seconds) if row.early_leave_seconds else '',
             'review_status': _review_status_label(row.review_status),
+            'decision_links': _with_email_decision_mode(_decision_links(row)),
         }
         for row in late_rows
     ]
     overtime_details = [
         {
+            'attendance_id': row.pk,
             'date': row.date,
             'employee': row.employee.full_name,
             'overtime': _format_duration(row.overtime_seconds),
+            'decision_links': _with_email_decision_mode(_decision_links(row)),
         }
         for row in overtime_rows
     ]
@@ -365,7 +443,7 @@ def build_biometric_summary(start_date, end_date, label='ملخص البصمات
         'by_type': {PUNCH_LABELS.get(key, key): value for key, value in by_type.items()},
         'by_day': [{'date': key, 'total': by_day[key]} for key in sorted(by_day)],
         'logs': log_rows,
-        'hidden_logs_count': max(0, len(logs) - len(log_rows)),
+        'hidden_logs_count': hidden_logs_count,
         'late_details': late_details,
         'overtime_details': overtime_details,
         'total_late_seconds': total_late_seconds,
@@ -401,6 +479,7 @@ def send_biometric_summary(start_date, end_date, label='ملخص البصمات'
 
 def send_daily_biometric_summary(target_date=None):
     target_date = target_date or timezone.localdate()
+    target_date = _summary_target_date(target_date)
     sent, _report = send_biometric_summary(
         target_date,
         target_date,

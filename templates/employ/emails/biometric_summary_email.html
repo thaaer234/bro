@@ -4,21 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin:0;padding:0;background:#f2f5f8;font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#172033;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2f5f8;padding:28px 12px;">
+<body dir="rtl" style="direction:rtl;text-align:right;margin:0;padding:0;background:#f2f5f8;font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#172033;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="rtl" style="direction:rtl;text-align:right;background:#f2f5f8;padding:28px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:980px;background:#ffffff;border:1px solid #dbe3ec;border-radius:16px;overflow:hidden;box-shadow:0 18px 46px rgba(15,23,42,.10);">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="rtl" style="direction:rtl;text-align:right;max-width:980px;background:#ffffff;border:1px solid #dbe3ec;border-radius:16px;overflow:hidden;box-shadow:0 18px 46px rgba(15,23,42,.10);">
           <tr>
-            <td style="background:#132f4c;padding:28px 30px;color:#ffffff;">
+            <td dir="rtl" style="direction:rtl;text-align:right;background:#132f4c;padding:28px 30px;color:#ffffff;">
               <div style="font-size:13px;color:#cbd5e1;">{{ brand_short }}</div>
               <h1 style="margin:8px 0 8px;font-size:28px;line-height:1.35;font-weight:800;">{{ report.label }}</h1>
               <div style="font-size:15px;color:#dbeafe;">الفترة من {{ report.start_date }} إلى {{ report.end_date }}</div>
             </td>
           </tr>
           <tr>
-            <td style="padding:26px 30px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border-spacing:8px;margin:0 -8px 18px;">
+            <td dir="rtl" style="direction:rtl;text-align:right;padding:26px 30px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="rtl" style="direction:rtl;text-align:right;border-collapse:separate;border-spacing:8px;margin:0 -8px 18px;">
                 <tr>
                   <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:15px;text-align:center;">
                     <div style="font-size:12px;color:#64748b;">البصمات</div>
@@ -43,7 +43,7 @@
                 </tr>
               </table>
 
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden;margin-bottom:22px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="rtl" style="direction:rtl;text-align:right;border-collapse:collapse;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden;margin-bottom:22px;">
                 <thead>
                   <tr>
                     <th colspan="4" style="background:#edf2f7;text-align:right;padding:13px 16px;border-bottom:1px solid #dbe3ec;color:#334155;">إجماليات الوقت</th>
@@ -66,7 +66,7 @@
               </table>
 
               <h2 style="font-size:18px;margin:0 0 12px;color:#0f172a;">المتأخرون والخروج المبكر</h2>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden;margin-bottom:22px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="rtl" style="direction:rtl;text-align:right;border-collapse:collapse;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden;margin-bottom:22px;">
                 <thead>
                   <tr style="background:#edf2f7;">
                     <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">التاريخ</th>
@@ -74,6 +74,7 @@
                     <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">التأخير</th>
                     <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">الخروج المبكر</th>
                     <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">المراجعة</th>
+                    <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">الإجراء</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -84,20 +85,29 @@
                     <td style="padding:12px;border-bottom:1px solid #edf2f7;color:#b54708;">{{ row.late|default:"-" }}</td>
                     <td style="padding:12px;border-bottom:1px solid #edf2f7;color:#b54708;">{{ row.early_leave|default:"-" }}</td>
                     <td style="padding:12px;border-bottom:1px solid #edf2f7;">{{ row.review_status }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #edf2f7;">
+                      {% if row.decision_links.forgive %}
+                        <a href="{{ row.decision_links.forgive }}" style="display:inline-block;background:#047857;color:#ffffff;text-decoration:none;border-radius:8px;padding:8px 12px;margin:0 0 6px 6px;font-weight:700;font-size:13px;">مسامحة</a>
+                        <a href="{{ row.decision_links.charge }}" style="display:inline-block;background:#b42318;color:#ffffff;text-decoration:none;border-radius:8px;padding:8px 12px;margin:0 0 6px 6px;font-weight:700;font-size:13px;">محاسبة</a>
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
                   </tr>
                   {% empty %}
-                  <tr><td colspan="5" style="padding:13px;color:#64748b;">لا يوجد تأخير أو خروج مبكر ضمن الفترة.</td></tr>
+                  <tr><td colspan="6" style="padding:13px;color:#64748b;">لا يوجد تأخير أو خروج مبكر ضمن الفترة.</td></tr>
                   {% endfor %}
                 </tbody>
               </table>
 
               <h2 style="font-size:18px;margin:0 0 12px;color:#0f172a;">الإضافي</h2>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden;margin-bottom:22px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="rtl" style="direction:rtl;text-align:right;border-collapse:collapse;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden;margin-bottom:22px;">
                 <thead>
                   <tr style="background:#edf2f7;">
                     <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">التاريخ</th>
                     <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">الموظف</th>
                     <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">المدة</th>
+                    <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">الإجراء</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -106,30 +116,47 @@
                     <td style="padding:12px;border-bottom:1px solid #edf2f7;">{{ row.date }}</td>
                     <td style="padding:12px;border-bottom:1px solid #edf2f7;font-weight:700;">{{ row.employee }}</td>
                     <td style="padding:12px;border-bottom:1px solid #edf2f7;color:#166534;">{{ row.overtime }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #edf2f7;">
+                      {% if row.decision_links.count_overtime %}
+                        <a href="{{ row.decision_links.count_overtime }}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;border-radius:8px;padding:8px 12px;margin:0 0 6px 6px;font-weight:700;font-size:13px;">احتساب</a>
+                        <a href="{{ row.decision_links.deny_overtime }}" style="display:inline-block;background:#6b7280;color:#ffffff;text-decoration:none;border-radius:8px;padding:8px 12px;margin:0 0 6px 6px;font-weight:700;font-size:13px;">حرمان</a>
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
                   </tr>
                   {% empty %}
-                  <tr><td colspan="3" style="padding:13px;color:#64748b;">لا يوجد دوام إضافي ضمن الفترة.</td></tr>
+                  <tr><td colspan="4" style="padding:13px;color:#64748b;">لا يوجد دوام إضافي ضمن الفترة.</td></tr>
                   {% endfor %}
                 </tbody>
               </table>
 
               <h2 style="font-size:18px;margin:0 0 12px;color:#0f172a;">آخر البصمات</h2>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="rtl" style="direction:rtl;border-collapse:collapse;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden;">
                 <thead>
                   <tr style="background:#edf2f7;">
-                    <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">الوقت</th>
                     <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">الموظف</th>
-                    <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">الحركة</th>
-                    <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">الجهاز</th>
+                    <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">التاريخ</th>
+                    <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">البصمات</th>
+                    <th style="text-align:right;padding:12px;border-bottom:1px solid #dbe3ec;color:#334155;">الحالة</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for row in report.logs %}
                   <tr>
-                    <td style="padding:12px;border-bottom:1px solid #edf2f7;">{{ row.time }}</td>
-                    <td style="padding:12px;border-bottom:1px solid #edf2f7;font-weight:700;">{{ row.employee }}</td>
-                    <td style="padding:12px;border-bottom:1px solid #edf2f7;">{{ row.type }}</td>
-                    <td style="padding:12px;border-bottom:1px solid #edf2f7;">{{ row.device }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #edf2f7;font-weight:800;text-align:right;vertical-align:top;">{{ row.employee }}</td>
+                    <td style="padding:12px;border-bottom:1px solid #edf2f7;text-align:right;vertical-align:top;white-space:nowrap;">{{ row.date }}</td>
+                    <td style="padding:10px 12px;border-bottom:1px solid #edf2f7;text-align:right;vertical-align:top;">
+                      {% for punch in row.punches %}
+                        <div style="display:block;padding:5px 0;line-height:1.6;white-space:nowrap;">
+                          <span style="display:inline-block;min-width:58px;color:#64748b;font-weight:700;">{{ punch.label }}</span>
+                          <span style="font-weight:800;color:{% if punch.missing %}#b42318{% else %}#111827{% endif %};">{{ punch.value }}</span>
+                        </div>
+                      {% endfor %}
+                    </td>
+                    <td style="padding:12px;border-bottom:1px solid #edf2f7;text-align:right;vertical-align:top;">
+                      <span style="display:inline-block;background:{{ row.status_color }};color:#ffffff;border-radius:8px;padding:6px 10px;font-weight:700;font-size:13px;">{{ row.status }}</span>
+                    </td>
                   </tr>
                   {% empty %}
                   <tr><td colspan="4" style="padding:13px;color:#64748b;">لا توجد بصمات ضمن الفترة.</td></tr>
@@ -142,7 +169,7 @@
             </td>
           </tr>
           <tr>
-            <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 30px;color:#64748b;font-size:13px;line-height:1.7;">
+            <td dir="rtl" style="direction:rtl;text-align:right;background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 30px;color:#64748b;font-size:13px;line-height:1.7;">
               <strong style="color:#334155;">{{ brand_name }}</strong><br>
               تم إنشاء التقرير تلقائيا من سجلات جهاز البصمة وسجلات دوام الموظفين.
             </td>

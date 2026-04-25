@@ -11,6 +11,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
+from django.utils.html import escape
 from django.db import transaction
 from django.db.models import Sum, Count, Q
 from django.core.exceptions import FieldDoesNotExist
@@ -1768,6 +1769,46 @@ class EmployeeAttendanceEmailDecisionView(LoginRequiredMixin, View):
                 'updated_at',
             ])
             messages.success(request, 'تم حرمان الإضافي وتصفير ساعاته في سجل الدوام حتى لا تدخل في الراتب.')
+
+        if request.GET.get('email') == '1':
+            employee_name = escape(attendance.employee.full_name)
+            action_label = {
+                'forgive': 'مسامحة',
+                'charge': 'محاسبة',
+                'count_overtime': 'احتساب الإضافي',
+                'deny_overtime': 'حرمان الإضافي',
+            }.get(action, label)
+            edit_url = reverse('employ:attendance_update', kwargs={'pk': attendance.pk})
+            return HttpResponse(f"""
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تم تثبيت القرار</title>
+  <style>
+    body {{ margin:0; min-height:100vh; display:grid; place-items:center; background:#f3f6f9; font-family:'Segoe UI',Tahoma,Arial,sans-serif; color:#172033; }}
+    main {{ width:min(520px, calc(100vw - 32px)); background:#fff; border:1px solid #dbe3ec; border-radius:14px; padding:28px; box-shadow:0 18px 46px rgba(15,23,42,.10); }}
+    h1 {{ margin:0 0 10px; font-size:24px; }}
+    p {{ margin:0 0 18px; line-height:1.9; color:#475569; }}
+    .actions {{ display:flex; gap:10px; flex-wrap:wrap; }}
+    a, button {{ border:0; border-radius:8px; padding:10px 14px; font-weight:700; text-decoration:none; cursor:pointer; font-family:inherit; }}
+    a {{ background:#132f4c; color:#fff; }}
+    button {{ background:#e2e8f0; color:#172033; }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>تم تثبيت القرار</h1>
+    <p>تم تطبيق إجراء <strong>{escape(action_label)}</strong> على سجل دوام <strong>{employee_name}</strong> بتاريخ <strong>{attendance.date}</strong>.</p>
+    <div class="actions">
+      <a href="{edit_url}">عرض السجل</a>
+      <button type="button" onclick="window.close()">إغلاق</button>
+    </div>
+  </main>
+</body>
+</html>
+""")
 
         return redirect('employ:attendance_update', pk=attendance.pk)
 

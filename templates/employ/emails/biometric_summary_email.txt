@@ -11,10 +11,23 @@
 
 المتأخرون والخروج المبكر:
 {% for row in report.late_details %}- {{ row.date }} | {{ row.employee }}{% if row.late %} | تأخير {{ row.late }}{% endif %}{% if row.early_leave %} | خروج مبكر {{ row.early_leave }}{% endif %} | {{ row.review_status }}
+{% if row.decision_links.forgive %}  مسامحة: {{ row.decision_links.forgive }}
+  محاسبة: {{ row.decision_links.charge }}
+{% endif %}
 {% empty %}- لا يوجد
 {% endfor %}
 
 الإضافي:
 {% for row in report.overtime_details %}- {{ row.date }} | {{ row.employee }} | {{ row.overtime }}
+{% if row.decision_links.count_overtime %}  احتساب: {{ row.decision_links.count_overtime }}
+  حرمان: {{ row.decision_links.deny_overtime }}
+{% endif %}
 {% empty %}- لا يوجد
+{% endfor %}
+
+آخر البصمات:
+{% for row in report.logs %}- {{ row.employee }} | {{ row.date }} | {{ row.status }}
+{% for punch in row.punches %}  {{ punch.label }}: {{ punch.value }}
+{% endfor %}
+{% empty %}- لا توجد بصمات
 {% endfor %}
