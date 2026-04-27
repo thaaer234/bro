@@ -33,6 +33,21 @@
                 <button class="btn btn-primary w-100">تصفية</button>
             </div>
         </form>
+        <hr>
+        <form method="post" action="{% url 'employ:attendance_rebuild' %}" class="row g-2 align-items-end">
+            {% csrf_token %}
+            <div class="col-md-5">
+                <label class="form-label">إعادة احتساب يوم من البصمات</label>
+                {{ filter_form.employee }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">التاريخ</label>
+                <input type="date" name="date" class="form-control" value="{{ today|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-outline-primary w-100">إعادة الاحتساب</button>
+            </div>
+        </form>
     </div>
 </div>
 

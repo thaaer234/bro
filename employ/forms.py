@@ -12,6 +12,7 @@ from .models import (
     Employee,
     EmployeeAttendance,
     EmployeeSalaryRule,
+    HRHoliday,
     JobTitle,
     PayrollPeriod,
     Shift,
@@ -168,7 +169,16 @@ class EmployeeRegistrationForm(UserCreationForm):
     payroll_method = forms.ChoiceField(choices=Employee.PAYROLL_METHOD_CHOICES, required=False, label='طريقة حساب الراتب')
     hourly_rate = forms.DecimalField(label='أجر الساعة', required=False, min_value=0, max_digits=10, decimal_places=2)
     overtime_hourly_rate = forms.DecimalField(label='أجر ساعة الإضافي', required=False, min_value=0, max_digits=10, decimal_places=2)
+    auto_calculate_hourly_rate = forms.BooleanField(label='حساب سعر الساعة تلقائيًا', required=False, initial=True)
+    overtime_multiplier = forms.DecimalField(label='معامل الإضافي', required=False, min_value=0, max_digits=6, decimal_places=2, initial=Decimal('1.00'))
+    holiday_overtime_multiplier = forms.DecimalField(label='معامل إضافي العطلة', required=False, min_value=0, max_digits=6, decimal_places=2, initial=Decimal('2.00'))
+    deduction_multiplier = forms.DecimalField(label='معامل الخصم', required=False, min_value=0, max_digits=6, decimal_places=2, initial=Decimal('1.00'))
     required_monthly_hours = forms.IntegerField(label='الساعات المطلوبة شهريًا', required=False, min_value=0)
+    work_start_time = forms.TimeField(label='بداية الدوام', required=False, widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}))
+    work_end_time = forms.TimeField(label='نهاية الدوام', required=False, widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}))
+    required_daily_hours = forms.DecimalField(label='ساعات الدوام اليومية', required=False, min_value=0, max_digits=5, decimal_places=2)
+    work_grace_period_minutes = forms.IntegerField(label='سماح التأخير بالدقائق', required=False, min_value=0)
+    work_break_minutes = forms.IntegerField(label='الاستراحة بالدقائق', required=False, min_value=0)
     weekend_days = forms.MultipleChoiceField(
         choices=WEEKEND_DAY_CHOICES,
         required=False,
@@ -201,7 +211,7 @@ class EmployeeRegistrationForm(UserCreationForm):
         for name, field in self.fields.items():
             css_class = field.widget.attrs.get('class', '')
             if isinstance(field.widget, forms.CheckboxSelectMultiple):
-                field.widget.attrs['class'] = (css_class + ' form-check-input').strip()
+                field.widget.attrs['class'] = (css_class + ' weekend-checkbox-group').strip()
             elif isinstance(field.widget, (forms.Select, forms.SelectMultiple)):
                 field.widget.attrs['class'] = (css_class + ' form-select').strip()
             elif isinstance(field.widget, forms.ClearableFileInput):
@@ -209,11 +219,22 @@ class EmployeeRegistrationForm(UserCreationForm):
             else:
                 field.widget.attrs['class'] = (css_class + ' form-control').strip()
         self.fields['weekend_days'].help_text = 'اختر الأيام بدل كتابة الأرقام. الجمعة = 4.'
+        self.fields['required_monthly_hours'].help_text = 'الأدق لحساب سعر الساعة. مثال: 176.'
+        self.fields['holiday_overtime_multiplier'].help_text = 'يستخدم للجمعة والعطل الرسمية إذا داوم الموظف فيها.'
         self.fields['job_title'].help_text = 'تظهر المسميات المناسبة حسب القسم المختار.'
 
     def clean_weekend_days(self):
         values = self.cleaned_data.get('weekend_days') or []
         return ','.join(str(value) for value in values)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('work_start_time')
+        end_time = cleaned_data.get('work_end_time')
+        if bool(start_time) != bool(end_time):
+            self.add_error('work_start_time', 'أدخل بداية ونهاية الدوام معًا.')
+            self.add_error('work_end_time', 'أدخل بداية ونهاية الدوام معًا.')
+        return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -226,9 +247,18 @@ class EmployeeRegistrationForm(UserCreationForm):
             phone_number=self.cleaned_data['phone_number'],
             salary=self.cleaned_data['salary'],
             payroll_method=self.cleaned_data.get('payroll_method') or 'monthly',
+            auto_calculate_hourly_rate=self.cleaned_data.get('auto_calculate_hourly_rate', True),
             hourly_rate=self.cleaned_data.get('hourly_rate') or Decimal('0.00'),
             overtime_hourly_rate=self.cleaned_data.get('overtime_hourly_rate') or Decimal('0.00'),
+            overtime_multiplier=self.cleaned_data.get('overtime_multiplier') or Decimal('1.00'),
+            holiday_overtime_multiplier=self.cleaned_data.get('holiday_overtime_multiplier') or Decimal('2.00'),
+            deduction_multiplier=self.cleaned_data.get('deduction_multiplier') or Decimal('1.00'),
             required_monthly_hours=self.cleaned_data.get('required_monthly_hours') or 0,
+            work_start_time=self.cleaned_data.get('work_start_time'),
+            work_end_time=self.cleaned_data.get('work_end_time'),
+            required_daily_hours=self.cleaned_data.get('required_daily_hours') or Decimal('0.00'),
+            work_grace_period_minutes=self.cleaned_data.get('work_grace_period_minutes') or 0,
+            work_break_minutes=self.cleaned_data.get('work_break_minutes') or 0,
             weekend_days=self.cleaned_data.get('weekend_days') or '4,5',
             annual_leave_days=self.cleaned_data.get('annual_leave_days') or 14,
             sick_leave_days=self.cleaned_data.get('sick_leave_days') or 7,
@@ -362,9 +392,18 @@ class EmployeeProfileForm(forms.ModelForm):
             'phone_number',
             'salary',
             'payroll_method',
+            'auto_calculate_hourly_rate',
             'hourly_rate',
             'overtime_hourly_rate',
+            'overtime_multiplier',
+            'holiday_overtime_multiplier',
+            'deduction_multiplier',
             'required_monthly_hours',
+            'work_start_time',
+            'work_end_time',
+            'required_daily_hours',
+            'work_grace_period_minutes',
+            'work_break_minutes',
             'weekend_days',
             'annual_leave_days',
             'sick_leave_days',
@@ -389,6 +428,8 @@ class EmployeeProfileForm(forms.ModelForm):
             'address': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
             'contract_start': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'contract_end': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'work_start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'work_end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -401,6 +442,15 @@ class EmployeeProfileForm(forms.ModelForm):
             self.fields['email'].initial = user.email
         self.fields['weekend_days'].initial = [str(value) for value in sorted(self.instance.get_weekend_day_numbers())]
         self.fields['weekend_days'].help_text = 'اختر الأيام بدل كتابة الأرقام. الجمعة = 4.'
+        self.fields['salary'].help_text = 'يستخدم كراتب صاف/أساسي لحساب سعر الساعة عند تفعيل الحساب التلقائي.'
+        self.fields['auto_calculate_hourly_rate'].help_text = 'عند تفعيله يحسب النظام سعر الساعة من الراتب وساعات الشهر وقت الرواتب.'
+        self.fields['hourly_rate'].help_text = 'اتركه 0 إذا بدك الحساب التلقائي من الراتب وساعات الشهر.'
+        self.fields['overtime_hourly_rate'].help_text = 'اختياري. إذا بقي 0 يستخدم سعر الساعة × معامل الإضافي.'
+        self.fields['required_monthly_hours'].help_text = 'الأدق للحساب. مثال: 176 ساعة بالشهر.'
+        self.fields['required_daily_hours'].help_text = 'اختياري. إذا بقي 0 تُحسب من بداية ونهاية الدوام ناقص الاستراحة.'
+        self.fields['overtime_multiplier'].help_text = 'مثال: 1.5 يعني ساعة الإضافي = ساعة ونصف.'
+        self.fields['holiday_overtime_multiplier'].help_text = 'مثال: 2 يعني ساعة العطلة أو الجمعة تُحسب بساعتين.'
+        self.fields['deduction_multiplier'].help_text = 'مثال: 1 يعني الخصم الطبيعي، 2 يعني ضعف الخصم.'
         self.fields['department'].queryset = Department.objects.filter(is_active=True).order_by('name')
         self.fields['job_title'].queryset = JobTitle.objects.filter(is_active=True).select_related('department').order_by('name')
         self.fields['job_title'].help_text = 'تظهر المسميات المناسبة حسب القسم المختار.'
@@ -410,7 +460,7 @@ class EmployeeProfileForm(forms.ModelForm):
             if isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs['class'] = (css_class + ' form-check-input').strip()
             elif isinstance(field.widget, forms.CheckboxSelectMultiple):
-                field.widget.attrs['class'] = (css_class + ' form-check-input').strip()
+                field.widget.attrs['class'] = (css_class + ' weekend-checkbox-group').strip()
             elif isinstance(field.widget, (forms.Select, forms.SelectMultiple)):
                 field.widget.attrs['class'] = (css_class + ' form-select').strip()
             elif isinstance(field.widget, forms.ClearableFileInput):
@@ -421,6 +471,21 @@ class EmployeeProfileForm(forms.ModelForm):
     def clean_weekend_days(self):
         values = self.cleaned_data.get('weekend_days') or []
         return ','.join(str(value) for value in values)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('work_start_time')
+        end_time = cleaned_data.get('work_end_time')
+        required_monthly_hours = cleaned_data.get('required_monthly_hours') or 0
+
+        if bool(start_time) != bool(end_time):
+            self.add_error('work_start_time', 'أدخل بداية ونهاية الدوام معًا.')
+            self.add_error('work_end_time', 'أدخل بداية ونهاية الدوام معًا.')
+
+        if cleaned_data.get('auto_calculate_hourly_rate') and not required_monthly_hours:
+            self.fields['required_monthly_hours'].help_text += ' يفضّل تعبئتها حتى يكون سعر الساعة دقيقًا.'
+
+        return cleaned_data
 
     def save(self, commit=True):
         employee = super().save(commit=False)
@@ -474,6 +539,17 @@ class AttendancePolicyForm(forms.ModelForm):
             'absence_deduction_rate', 'overtime_enabled', 'overtime_multiplier',
             'rounding_method', 'holiday_handling', 'weekend_days', 'is_active'
         ]
+
+
+class HRHolidayForm(forms.ModelForm):
+    class Meta:
+        model = HRHoliday
+        fields = ['name', 'start_date', 'end_date', 'overtime_multiplier', 'is_paid', 'is_active', 'notes']
+        widgets = {
+            'start_date': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'end_date': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+        }
 
 
 class EmployeeSalaryRuleForm(forms.ModelForm):
@@ -555,4 +631,9 @@ class AttendanceFilterForm(forms.Form):
         required=False,
         choices=[('', 'كل الحالات')] + list(EmployeeAttendance.STATUS_CHOICES),
         label='الحالة'
+    )
+    review_status = forms.ChoiceField(
+        required=False,
+        choices=[('', 'كل قرارات الإدارة')] + list(EmployeeAttendance.REVIEW_STATUS_CHOICES),
+        label='قرار الإدارة'
     )

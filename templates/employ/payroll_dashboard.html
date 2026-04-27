@@ -119,6 +119,7 @@
                                 <th>الضريبة</th>
                                 <th>التأمين</th>
                                 <th>الصافي</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -149,10 +150,13 @@
                                 <td>{{ preview.tax_total|floatformat:2 }}</td>
                                 <td>{{ preview.insurance_total|floatformat:2 }}</td>
                                 <td><strong>{{ preview.net_salary|floatformat:2 }}</strong></td>
+                                <td>
+                                    <a class="btn btn-sm btn-outline-primary" target="_blank" href="{% url 'employ:employee_payroll_slip' preview.employee.pk %}?year={{ selected_year }}&month={{ selected_month }}">طباعة كشف</a>
+                                </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="16" class="text-center text-muted py-4">لا توجد بيانات رواتب لهذا الشهر.</td>
+                                <td colspan="17" class="text-center text-muted py-4">لا توجد بيانات رواتب لهذا الشهر.</td>
                             </tr>
                             {% endfor %}
                         </tbody>

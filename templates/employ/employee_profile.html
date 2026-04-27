@@ -12,6 +12,7 @@
     <h2>ملف الموظف</h2>
     <div class="header-actions">
         <a href="{% url 'employ:employee_update' employee.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> تعديل</a>
+        <a href="{% url 'employ:employee_payroll_slip' employee.pk %}?year={{ salary_year }}&month={{ salary_month }}" target="_blank" class="btn btn-outline-primary"><i class="fas fa-print"></i> طباعة كشف راتب</a>
         <a href="{% url 'employ:employee_advance_create' %}?employee={{ employee.pk }}" class="btn btn-warning"><i class="fas fa-hand-holding-usd"></i> سلفة</a>
         <a href="{% url 'employ:hr' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> العودة</a>
     </div>
@@ -152,6 +153,7 @@
                                 <th>التأخير</th>
                                 <th>الإضافي</th>
                                 <th>الحالة</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -164,9 +166,10 @@
                                 <td>{{ row.late_seconds|seconds_to_hhmm }}</td>
                                 <td>{{ row.overtime_seconds|seconds_to_hhmm }}</td>
                                 <td>{{ row.get_status_display }}</td>
+                                <td><a href="{% url 'employ:attendance_update' row.pk %}" class="btn btn-sm btn-outline-primary">تعديل</a></td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="7" class="text-center text-muted">لا توجد سجلات دوام بعد.</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted">لا توجد سجلات دوام بعد.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

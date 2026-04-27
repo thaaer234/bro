@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import Employee, Teacher, Vacation, EmployeePermission
+from .models import (
+    BiometricDevice,
+    BiometricLog,
+    Employee,
+    EmployeeAttendance,
+    EmployeePermission,
+    HRHoliday,
+    Teacher,
+    Vacation,
+)
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
@@ -48,3 +57,67 @@ class EmployeePermissionAdmin(admin.ModelAdmin):
     list_filter = ('permission', 'is_granted', 'granted_at')
     search_fields = ('employee__user__first_name', 'employee__user__last_name', 'employee__user__username')
     ordering = ('-granted_at',)
+
+
+@admin.register(BiometricDevice)
+class BiometricDeviceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'serial', 'ip', 'port', 'location', 'active', 'last_synced_at', 'created_at')
+    list_filter = ('active', 'created_at', 'last_synced_at')
+    search_fields = ('name', 'serial', 'ip', 'location')
+    readonly_fields = ('created_at', 'last_synced_at')
+    ordering = ('name',)
+
+
+@admin.register(BiometricLog)
+class BiometricLogAdmin(admin.ModelAdmin):
+    list_display = ('punch_time', 'device_user_id', 'employee', 'punch_type', 'device', 'created_at')
+    list_filter = ('punch_type', 'device', 'created_at', 'punch_time')
+    search_fields = (
+        'device_user_id',
+        'employee__user__first_name',
+        'employee__user__last_name',
+        'employee__user__username',
+        'device__name',
+        'device__serial',
+    )
+    readonly_fields = ('created_at',)
+    autocomplete_fields = ('employee', 'device')
+    date_hierarchy = 'punch_time'
+    list_select_related = ('employee__user', 'device')
+    ordering = ('-punch_time',)
+
+
+@admin.register(EmployeeAttendance)
+class EmployeeAttendanceAdmin(admin.ModelAdmin):
+    list_display = (
+        'date',
+        'employee',
+        'status',
+        'check_in',
+        'check_out',
+        'review_status',
+        'source',
+        'is_manually_adjusted',
+    )
+    list_filter = ('status', 'review_status', 'source', 'is_manually_adjusted', 'date')
+    search_fields = (
+        'employee__user__first_name',
+        'employee__user__last_name',
+        'employee__user__username',
+        'employee__biometric_user_id',
+        'notes',
+        'review_notes',
+    )
+    readonly_fields = ('updated_at', 'reviewed_at')
+    autocomplete_fields = ('employee', 'reviewed_by')
+    date_hierarchy = 'date'
+    list_select_related = ('employee__user', 'reviewed_by')
+    ordering = ('-date', 'employee__user__first_name')
+
+
+@admin.register(HRHoliday)
+class HRHolidayAdmin(admin.ModelAdmin):
+    list_display = ('name', 'start_date', 'end_date', 'overtime_multiplier', 'is_paid', 'is_active')
+    list_filter = ('is_active', 'is_paid', 'start_date', 'end_date')
+    search_fields = ('name', 'notes')
+    ordering = ('-start_date', 'name')

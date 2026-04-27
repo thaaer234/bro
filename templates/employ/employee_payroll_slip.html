@@ -1,0 +1,94 @@
+{% load employ_filters %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كشف راتب - {{ employee.full_name }}</title>
+    <style>
+        body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;margin:0;background:#eef2f7;color:#172033}
+        .page{width:min(960px,calc(100vw - 32px));margin:24px auto;background:#fff;border:1px solid #d9e1ec;border-radius:14px;padding:28px}
+        .header{display:flex;justify-content:space-between;gap:16px;border-bottom:2px solid #172033;padding-bottom:16px;margin-bottom:20px}
+        h1{font-size:24px;margin:0 0 8px}
+        .muted{color:#64748b}
+        .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+        .box{border:1px solid #e2e8f0;border-radius:10px;padding:12px;background:#f8fafc}
+        .label{font-size:13px;color:#64748b;margin-bottom:5px}
+        .value{font-weight:800;font-size:18px}
+        table{width:100%;border-collapse:collapse;margin-top:16px}
+        th,td{border:1px solid #e2e8f0;padding:9px 10px;text-align:right;font-size:14px}
+        th{background:#f1f5f9}
+        .total{font-size:20px;font-weight:900}
+        .actions{display:flex;gap:10px;justify-content:flex-end;margin-bottom:16px}
+        .btn{border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer;text-decoration:none}
+        .btn-primary{background:#132f4c;color:#fff}
+        .btn-secondary{background:#e2e8f0;color:#172033}
+        @media print{
+            body{background:#fff}
+            .page{width:auto;margin:0;border:0;border-radius:0}
+            .actions{display:none}
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="actions">
+            <button class="btn btn-primary" onclick="window.print()">طباعة</button>
+            <a class="btn btn-secondary" href="{% url 'employ:employee_profile' employee.pk %}?year={{ selected_year }}&month={{ selected_month }}">عودة</a>
+        </div>
+
+        <div class="header">
+            <div>
+                <h1>كشف راتب موظف</h1>
+                <div class="muted">الفترة: {{ selected_year }}/{{ selected_month }}</div>
+            </div>
+            <div>
+                <strong>{{ employee.full_name }}</strong>
+                <div class="muted">{{ employee.department|default:"-" }} / {{ employee.job_title|default:employee.get_position_display }}</div>
+                <div class="muted">معرف البصمة: {{ employee.biometric_user_id|default:"-" }}</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="box"><div class="label">الراتب الأساسي</div><div class="value">{{ preview.gross_salary|floatformat:2 }}</div></div>
+            <div class="box"><div class="label">الإضافي</div><div class="value">{{ preview.overtime_total|floatformat:2 }}</div></div>
+            <div class="box"><div class="label">الحسميات</div><div class="value">{{ preview.deductions_total|floatformat:2 }}</div></div>
+            <div class="box"><div class="label">الصافي</div><div class="value total">{{ preview.net_salary|floatformat:2 }}</div></div>
+        </div>
+
+        <table>
+            <tbody>
+                <tr><th>أجر الساعة</th><td>{{ preview.hourly_basis|floatformat:2 }}</td><th>طريقة الحساب</th><td>{{ preview.salary_type_display }}</td></tr>
+                <tr><th>أيام الدوام</th><td>{{ preview.payable_days }} / {{ preview.period_days }}</td><th>ساعات العمل</th><td>{{ preview.worked_seconds|seconds_to_hhmm }}</td></tr>
+                <tr><th>التأخير</th><td>{{ preview.late_seconds|seconds_to_hhmm }}</td><th>الخروج المبكر</th><td>{{ preview.early_leave_seconds|seconds_to_hhmm }}</td></tr>
+                <tr><th>الإضافي العادي</th><td>{{ preview.regular_overtime_seconds|seconds_to_hhmm }}</td><th>إضافي العطل</th><td>{{ preview.holiday_overtime_seconds|seconds_to_hhmm }}</td></tr>
+                <tr><th>خصم التأخير</th><td>{{ preview.late_deduction_total|floatformat:2 }}</td><th>خصم الغياب</th><td>{{ preview.absence_deduction_total|floatformat:2 }}</td></tr>
+                <tr><th>السلف</th><td>{{ preview.advances_total|floatformat:2 }}</td><th>ضريبة/تأمين</th><td>{{ preview.tax_total|floatformat:2 }} / {{ preview.insurance_total|floatformat:2 }}</td></tr>
+            </tbody>
+        </table>
+
+        <table>
+            <thead>
+                <tr><th>التاريخ</th><th>الدخول</th><th>الخروج</th><th>العمل</th><th>التأخير</th><th>الإضافي</th><th>الحالة</th></tr>
+            </thead>
+            <tbody>
+                {% for row in preview.attendances %}
+                <tr>
+                    <td>{{ row.date }}</td>
+                    <td>{{ row.check_in|date:"Y-m-d H:i"|default:"-" }}</td>
+                    <td>{{ row.check_out|date:"Y-m-d H:i"|default:"-" }}</td>
+                    <td>{{ row.worked_seconds|seconds_to_hhmm }}</td>
+                    <td>{{ row.late_seconds|seconds_to_hhmm }}</td>
+                    <td>{{ row.overtime_seconds|seconds_to_hhmm }}</td>
+                    <td>{{ row.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7">لا توجد سجلات دوام ضمن هذه الفترة.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="muted" style="margin-top:18px">تم توليد الكشف بتاريخ {{ generated_at|date:"Y-m-d H:i" }}</div>
+    </div>
+</body>
+</html>

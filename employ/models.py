@@ -14,6 +14,25 @@ from django.dispatch import receiver
 # Employee & Permissions
 # =============================
 
+class EmployeeShiftSnapshot:
+    def __init__(self, employee):
+        self.employee = employee
+        self.name = 'دوام مخصص'
+        self.start_time = employee.work_start_time
+        self.end_time = employee.work_end_time
+        self.grace_period_minutes = employee.work_grace_period_minutes or 0
+        self.break_seconds = (employee.work_break_minutes or 0) * 60
+        self.required_work_seconds = employee.get_required_daily_seconds()
+        self.is_night_shift = self.end_time <= self.start_time if self.start_time and self.end_time else False
+
+    def get_bounds_for_date(self, target_date):
+        start_dt = timezone.make_aware(datetime.combine(target_date, self.start_time))
+        end_dt = timezone.make_aware(datetime.combine(target_date, self.end_time))
+        if self.is_night_shift or end_dt <= start_dt:
+            end_dt += timedelta(days=1)
+        return start_dt, end_dt
+
+
 class Employee(models.Model):
     """الموظف: مرتبط بمستخدم النظام، ويُمنح صلاحيات ميزات مباشرةً عبر EmployeePermission."""
 
@@ -40,6 +59,15 @@ class Employee(models.Model):
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='أجر الساعة')
     overtime_hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='أجر ساعة الإضافي')
     required_monthly_hours = models.PositiveIntegerField(default=0, verbose_name='الساعات المطلوبة شهريًا')
+    auto_calculate_hourly_rate = models.BooleanField(default=True, verbose_name='حساب سعر الساعة تلقائيًا')
+    overtime_multiplier = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('1.00'), verbose_name='معامل الإضافي')
+    holiday_overtime_multiplier = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('2.00'), verbose_name='معامل إضافي العطلة')
+    deduction_multiplier = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('1.00'), verbose_name='معامل الخصم')
+    work_start_time = models.TimeField(blank=True, null=True, verbose_name='بداية الدوام')
+    work_end_time = models.TimeField(blank=True, null=True, verbose_name='نهاية الدوام')
+    required_daily_hours = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'), verbose_name='ساعات الدوام اليومية')
+    work_grace_period_minutes = models.PositiveIntegerField(default=0, verbose_name='سماح التأخير بالدقائق')
+    work_break_minutes = models.PositiveIntegerField(default=0, verbose_name='الاستراحة بالدقائق')
     weekend_days = models.CharField(max_length=20, blank=True, default='4,5', verbose_name='أيام العطلة الأسبوعية')
     annual_leave_days = models.PositiveIntegerField(default=14, verbose_name='الإجازات النظامية السنوية')
     sick_leave_days = models.PositiveIntegerField(default=7, verbose_name='الإجازات المرضية السنوية')
@@ -195,6 +223,8 @@ class Employee(models.Model):
 
     @property
     def effective_shift(self):
+        if self.work_start_time and self.work_end_time:
+            return EmployeeShiftSnapshot(self)
         return self.default_shift
 
     @property
@@ -229,6 +259,19 @@ class Employee(models.Model):
     def weekend_days_display(self):
         labels = self.get_weekend_day_labels()
         return '، '.join(labels) if labels else '-'
+
+    def get_required_daily_seconds(self):
+        if self.required_daily_hours:
+            return int(Decimal(self.required_daily_hours) * Decimal('3600'))
+        if not self.work_start_time or not self.work_end_time:
+            return self.default_shift.required_work_seconds if self.default_shift_id else 28800
+
+        start_dt = datetime.combine(date.today(), self.work_start_time)
+        end_dt = datetime.combine(date.today(), self.work_end_time)
+        if end_dt <= start_dt:
+            end_dt += timedelta(days=1)
+        seconds = int((end_dt - start_dt).total_seconds()) - ((self.work_break_minutes or 0) * 60)
+        return max(seconds, 0)
 
 
 class Department(models.Model):
@@ -333,6 +376,28 @@ class AttendancePolicy(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class HRHoliday(models.Model):
+    name = models.CharField(max_length=150, verbose_name='اسم العطلة')
+    start_date = models.DateField(verbose_name='من تاريخ')
+    end_date = models.DateField(verbose_name='إلى تاريخ')
+    overtime_multiplier = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('2.00'), verbose_name='معامل إضافي العطلة')
+    is_paid = models.BooleanField(default=True, verbose_name='عطلة مدفوعة')
+    is_active = models.BooleanField(default=True, verbose_name='نشطة')
+    notes = models.TextField(blank=True, verbose_name='ملاحظات')
+
+    class Meta:
+        verbose_name = 'عطلة رسمية'
+        verbose_name_plural = 'العطل الرسمية'
+        ordering = ['-start_date', 'name']
+
+    def __str__(self):
+        return f'{self.name} ({self.start_date} - {self.end_date})'
+
+    def clean(self):
+        if self.end_date < self.start_date:
+            raise ValidationError('تاريخ نهاية العطلة يجب أن يكون بعد تاريخ البداية.')
 
 
 class EmployeeSalaryRule(models.Model):

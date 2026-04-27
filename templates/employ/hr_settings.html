@@ -50,6 +50,10 @@
             <div class="stat-label">طرق حساب الراتب</div>
             <div class="stat-value">{{ settings_stats.salary_rules }}</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-label">العطل الرسمية</div>
+            <div class="stat-value">{{ settings_stats.holidays }}</div>
+        </div>
     </div>
 
     <div class="row g-3">
@@ -212,6 +216,47 @@
                                 </tr>
                                 {% empty %}
                                 <tr><td colspan="6" class="text-muted text-center">لا توجد طرق حساب راتب.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-1">
+        <div class="col-lg-6">
+            <div class="panel-card h-100">
+                <div class="card-body">
+                    <h5 class="mb-3">العطل الرسمية وإضافي العطلة</h5>
+                    <form method="post" action="{% url 'employ:holiday_create' %}">
+                        {% csrf_token %}
+                        {{ holiday_form.as_p }}
+                        <button class="btn btn-primary">حفظ العطلة</button>
+                    </form>
+                    <div class="form-note">أي دوام ضمن هذه التواريخ يُحسب كإضافي عطلة. معامل الموظف الخاص يحدد القيمة الفعلية في كشف الراتب.</div>
+                    <hr>
+                    <div class="table-responsive">
+                        <table class="table table-sm rule-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>العطلة</th>
+                                    <th>الفترة</th>
+                                    <th>الإضافي</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in holidays %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.start_date|date:"Y-m-d" }} - {{ item.end_date|date:"Y-m-d" }}</td>
+                                    <td><span class="pill">x{{ item.overtime_multiplier }}</span></td>
+                                    <td>{% if item.is_active %}نشطة{% else %}معطلة{% endif %}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-muted text-center">لا توجد عطل رسمية.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>

@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.db import transaction as db_transaction
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from decimal import Decimal
@@ -285,6 +286,7 @@ class AccountAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, Financi
 @admin.register(JournalEntry)
 class JournalEntryAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, admin.ModelAdmin):
     resource_class = JournalEntryResource
+    include_null_academic_year = True
     list_display = [
         'reference', 'date', 'description_short', 'total_amount_display',
         'posting_status', 'entry_type_badge', 'transaction_count', 'created_by', 'created_at'
@@ -412,9 +414,20 @@ class JournalEntryAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, ad
         return response
     export_as_json.short_description = "📤 تصدير كـ JSON"
 
+    def delete_model(self, request, obj):
+        with db_transaction.atomic():
+            super().delete_model(request, obj)
+        Account.rebuild_all_balances()
+
+    def delete_queryset(self, request, queryset):
+        with db_transaction.atomic():
+            super().delete_queryset(request, queryset)
+        Account.rebuild_all_balances()
+
 @admin.register(Transaction)
 class TransactionAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, admin.ModelAdmin):
     academic_year_field = 'journal_entry__academic_year'
+    include_null_academic_year = True
     academic_year_foreignkey_scopes = {
         'journal_entry': 'academic_year',
         'account': 'academic_year',

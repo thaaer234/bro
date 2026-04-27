@@ -3,6 +3,17 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+<style>
+.employee-edit-sections{display:grid;gap:1rem}
+.employee-edit-section{border:1px solid #e2e8f0;border-radius:12px;padding:1rem;background:#fff}
+.employee-edit-section h6{font-weight:800;color:#0f172a;margin-bottom:1rem}
+.weekend-checks div.weekend-checkbox-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem}
+.weekend-checks div.weekend-checkbox-group>div{margin:0}
+.weekend-checks label{display:flex;align-items:center;gap:.45rem;border:1px solid #e2e8f0;border-radius:8px;padding:.55rem .7rem;background:#f8fafc;cursor:pointer}
+.weekend-checks input[type="checkbox"]{float:none;margin:0}
+.payroll-preview-row{display:flex;justify-content:space-between;gap:1rem;border-bottom:1px solid #e5e7eb;padding:.55rem 0}
+.payroll-preview-row:last-child{border-bottom:0}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -29,19 +40,92 @@
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <div class="row g-3">
-                        {% for field in form %}
-                        <div class="col-md-6">
-                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}
-                            <div class="form-text">{{ field.help_text }}</div>
-                            {% endif %}
-                            {% for error in field.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        {% endfor %}
+                    <div class="employee-edit-sections">
+                        <section class="employee-edit-section">
+                            <h6>بيانات الموظف</h6>
+                            <div class="row g-3">
+                                {% for field in form %}
+                                    {% if field.name == 'username' or field.name == 'first_name' or field.name == 'last_name' or field.name == 'email' or field.name == 'phone_number' or field.name == 'employee_code' or field.name == 'biometric_user_id' or field.name == 'national_id' or field.name == 'profile_photo' or field.name == 'address' %}
+                                    <div class="{% if field.name == 'address' %}col-12{% else %}col-md-6{% endif %}">
+                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <section class="employee-edit-section">
+                            <h6>الوظيفة والربط الإداري</h6>
+                            <div class="row g-3">
+                                {% for field in form %}
+                                    {% if field.name == 'position' or field.name == 'department' or field.name == 'job_title' or field.name == 'contract_type' or field.name == 'contract_start' or field.name == 'contract_end' or field.name == 'employment_status' or field.name == 'default_shift' or field.name == 'attendance_policy' or field.name == 'salary_rule' %}
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <section class="employee-edit-section">
+                            <h6>دوام الموظف</h6>
+                            <div class="row g-3">
+                                {% for field in form %}
+                                    {% if field.name == 'work_start_time' or field.name == 'work_end_time' or field.name == 'required_daily_hours' or field.name == 'required_monthly_hours' or field.name == 'work_grace_period_minutes' or field.name == 'work_break_minutes' %}
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                                <div class="col-12">
+                                    <label class="form-label" for="{{ form.weekend_days.id_for_label }}">{{ form.weekend_days.label }}</label>
+                                    <div class="weekend-checks">{{ form.weekend_days }}</div>
+                                    {% if form.weekend_days.help_text %}<div class="form-text">{{ form.weekend_days.help_text }}</div>{% endif %}
+                                    {% for error in form.weekend_days.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="employee-edit-section">
+                            <h6>الراتب والإضافي والخصم</h6>
+                            <div class="row g-3">
+                                {% for field in form %}
+                                    {% if field.name == 'salary' or field.name == 'payroll_method' or field.name == 'auto_calculate_hourly_rate' or field.name == 'hourly_rate' or field.name == 'overtime_hourly_rate' or field.name == 'overtime_multiplier' or field.name == 'holiday_overtime_multiplier' or field.name == 'deduction_multiplier' or field.name == 'annual_leave_days' or field.name == 'sick_leave_days' %}
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <section class="employee-edit-section">
+                            <h6>الطوارئ</h6>
+                            <div class="row g-3">
+                                {% for field in form %}
+                                    {% if field.name == 'emergency_contact_name' or field.name == 'emergency_contact_phone' %}
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </section>
                     </div>
                     <div class="mt-4 d-flex gap-2">
                         <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
@@ -53,6 +137,37 @@
     </div>
 
     <div class="col-lg-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">حسبة الدوام الفورية</h5>
+            </div>
+            <div class="card-body">
+                <div class="payroll-preview-row">
+                    <span class="text-muted">سعر الساعة</span>
+                    <strong><span id="payroll-hourly-rate">0.00</span></strong>
+                </div>
+                <div class="payroll-preview-row">
+                    <span class="text-muted">ساعة الإضافي</span>
+                    <strong><span id="payroll-overtime-rate">0.00</span></strong>
+                </div>
+                <div class="payroll-preview-row">
+                    <span class="text-muted">إضافي العطلة</span>
+                    <strong><span id="payroll-holiday-overtime-rate">0.00</span></strong>
+                </div>
+                <div class="payroll-preview-row">
+                    <span class="text-muted">ساعة الخصم</span>
+                    <strong><span id="payroll-deduction-rate">0.00</span></strong>
+                </div>
+                <div class="payroll-preview-row">
+                    <span class="text-muted">ساعات اليوم</span>
+                    <strong><span id="payroll-daily-hours">0.00</span></strong>
+                </div>
+                <div class="form-text mt-2">
+                    الحساب يعتمد على الراتب وساعات الشهر. إذا تركت ساعات الشهر فارغة سيقدّرها من ساعات اليوم وأيام العطلة.
+                </div>
+            </div>
+        </div>
+
         <div class="card shadow-sm">
             <div class="card-header">
                 <h5 class="mb-0">تغيير كلمة المرور</h5>
@@ -128,6 +243,106 @@
     });
 
     renderJobTitles();
+})();
+
+(function(){
+    const byId = id => document.getElementById(id);
+    const salary = byId('id_salary');
+    const monthlyHours = byId('id_required_monthly_hours');
+    const startTime = byId('id_work_start_time');
+    const endTime = byId('id_work_end_time');
+    const dailyHoursField = byId('id_required_daily_hours');
+    const breakMinutes = byId('id_work_break_minutes');
+    const overtimeMultiplier = byId('id_overtime_multiplier');
+    const holidayOvertimeMultiplier = byId('id_holiday_overtime_multiplier');
+    const deductionMultiplier = byId('id_deduction_multiplier');
+    const manualHourly = byId('id_hourly_rate');
+    const manualOvertime = byId('id_overtime_hourly_rate');
+    const autoHourly = byId('id_auto_calculate_hourly_rate');
+    const weekendInputs = Array.from(document.querySelectorAll('input[name="weekend_days"]'));
+
+    const outHourly = byId('payroll-hourly-rate');
+    const outOvertime = byId('payroll-overtime-rate');
+    const outHolidayOvertime = byId('payroll-holiday-overtime-rate');
+    const outDeduction = byId('payroll-deduction-rate');
+    const outDaily = byId('payroll-daily-hours');
+
+    function numberValue(field) {
+        if (!field) return 0;
+        const value = parseFloat(String(field.value || '0').replace(',', '.'));
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    function timeToMinutes(value) {
+        if (!value || !value.includes(':')) return null;
+        const parts = value.split(':').map(part => parseInt(part, 10));
+        if (parts.some(part => !Number.isFinite(part))) return null;
+        return parts[0] * 60 + parts[1];
+    }
+
+    function calculateDailyHours() {
+        const explicit = numberValue(dailyHoursField);
+        if (explicit > 0) return explicit;
+
+        const start = timeToMinutes(startTime && startTime.value);
+        const end = timeToMinutes(endTime && endTime.value);
+        if (start === null || end === null) return 0;
+
+        let minutes = end - start;
+        if (minutes <= 0) minutes += 24 * 60;
+        minutes = Math.max(0, minutes - numberValue(breakMinutes));
+        return minutes / 60;
+    }
+
+    function estimateMonthlyHours(dailyHours) {
+        const explicitMonthly = numberValue(monthlyHours);
+        if (explicitMonthly > 0) return explicitMonthly;
+
+        const weekendCount = weekendInputs.filter(input => input.checked).length || 0;
+        const workingDays = Math.max(1, 30 - Math.round((weekendCount * 30) / 7));
+        return dailyHours * workingDays;
+    }
+
+    function money(value) {
+        return (Number.isFinite(value) ? value : 0).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function refreshPayrollPreview() {
+        const dailyHours = calculateDailyHours();
+        const estimatedMonthlyHours = estimateMonthlyHours(dailyHours);
+        const baseSalary = numberValue(salary);
+        const manualHourlyRate = numberValue(manualHourly);
+        const autoEnabled = !autoHourly || autoHourly.checked;
+
+        let hourlyRate = manualHourlyRate;
+        if (autoEnabled || hourlyRate <= 0) {
+            hourlyRate = estimatedMonthlyHours > 0 ? baseSalary / estimatedMonthlyHours : 0;
+        }
+
+        const overtimeRate = numberValue(manualOvertime) || (hourlyRate * (numberValue(overtimeMultiplier) || 1));
+        const holidayOvertimeRate = hourlyRate * (numberValue(holidayOvertimeMultiplier) || 2);
+        const deductionRate = hourlyRate * (numberValue(deductionMultiplier) || 1);
+
+        if (outHourly) outHourly.textContent = money(hourlyRate);
+        if (outOvertime) outOvertime.textContent = money(overtimeRate);
+        if (outHolidayOvertime) outHolidayOvertime.textContent = money(holidayOvertimeRate);
+        if (outDeduction) outDeduction.textContent = money(deductionRate);
+        if (outDaily) outDaily.textContent = money(dailyHours);
+    }
+
+    [
+        salary, monthlyHours, startTime, endTime, dailyHoursField, breakMinutes,
+        overtimeMultiplier, holidayOvertimeMultiplier, deductionMultiplier, manualHourly, manualOvertime, autoHourly,
+        ...weekendInputs
+    ].filter(Boolean).forEach(field => {
+        field.addEventListener('input', refreshPayrollPreview);
+        field.addEventListener('change', refreshPayrollPreview);
+    });
+
+    refreshPayrollPreview();
 })();
 </script>
 {% endblock %}

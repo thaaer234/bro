@@ -34,6 +34,7 @@ from .models import (
     EmployeePayroll,
     EmployeePermission,
     EmployeeSalaryRule,
+    HRHoliday,
     JobTitle,
     ManualTeacherSalary,
     PayrollPeriod,
@@ -53,6 +54,7 @@ from .forms import (
     EmployeeProfileForm,
     EmployeeRegistrationForm,
     EmployeeSalaryRuleForm,
+    HRHolidayForm,
     PayrollPeriodForm,
     ShiftForm,
     TeacherForm,
@@ -642,10 +644,20 @@ class hr(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        today = timezone.now().date()
+        month_start = today.replace(day=1)
+        pending_reviews = EmployeeAttendance.objects.filter(review_status='pending')
+        active_employees = context['employees'].filter(employment_status='active')
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
         context['employee_count'] = context['employees'].count()
-        context['active_employee_count'] = context['employees'].filter(employment_status='active').count()
+        context['active_employee_count'] = active_employees.count()
         context['biometric_ready_count'] = context['employees'].exclude(biometric_user_id__isnull=True).exclude(biometric_user_id='').count()
+        context['missing_biometric_count'] = active_employees.filter(Q(biometric_user_id__isnull=True) | Q(biometric_user_id='')).count()
+        context['pending_reviews_count'] = pending_reviews.count()
+        context['pending_early_leave_count'] = pending_reviews.filter(early_leave_seconds__gt=0).count()
+        context['monthly_absent_count'] = EmployeeAttendance.objects.filter(date__gte=month_start, date__lte=today, status='absent').count()
+        context['monthly_overtime_seconds'] = EmployeeAttendance.objects.filter(date__gte=month_start, date__lte=today).aggregate(total=Sum('overtime_seconds'))['total'] or 0
+        context['open_vacations_count'] = Vacation.objects.filter(start_date__lte=today, end_date__gte=today).count()
         return context
 
 
@@ -1436,17 +1448,20 @@ class HRSettingsView(LoginRequiredMixin, TemplateView):
             'shifts': Shift.objects.order_by('name'),
             'attendance_policies': AttendancePolicy.objects.order_by('name'),
             'salary_rules': EmployeeSalaryRule.objects.order_by('name'),
+            'holidays': HRHoliday.objects.order_by('-start_date', 'name'),
             'department_form': DepartmentForm(),
             'job_title_form': JobTitleForm(),
             'shift_form': ShiftForm(),
             'policy_form': AttendancePolicyForm(),
             'salary_rule_form': EmployeeSalaryRuleForm(),
+            'holiday_form': HRHolidayForm(),
             'settings_stats': {
                 'departments': Department.objects.count(),
                 'job_titles': JobTitle.objects.count(),
                 'shifts': Shift.objects.filter(is_active=True).count(),
                 'attendance_policies': AttendancePolicy.objects.filter(is_active=True).count(),
                 'salary_rules': EmployeeSalaryRule.objects.filter(is_active=True).count(),
+                'holidays': HRHoliday.objects.filter(is_active=True).count(),
             },
         })
         return context
@@ -1489,6 +1504,16 @@ class AttendancePolicyCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         messages.success(self.request, 'تم حفظ سياسة الدوام بنجاح.')
+        return super().form_valid(form)
+
+
+class HRHolidayCreateView(LoginRequiredMixin, CreateView):
+    model = HRHoliday
+    form_class = HRHolidayForm
+    success_url = reverse_lazy('employ:hr_settings')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'تم حفظ العطلة الرسمية بنجاح.')
         return super().form_valid(form)
 
 
@@ -1655,6 +1680,7 @@ class EmployeeAttendanceListView(LoginRequiredMixin, ListView):
             start_date = self.filter_form.cleaned_data.get('start_date')
             end_date = self.filter_form.cleaned_data.get('end_date')
             status = self.filter_form.cleaned_data.get('status')
+            review_status = self.filter_form.cleaned_data.get('review_status')
             if employee:
                 queryset = queryset.filter(employee=employee)
             if start_date:
@@ -1663,6 +1689,8 @@ class EmployeeAttendanceListView(LoginRequiredMixin, ListView):
                 queryset = queryset.filter(date__lte=end_date)
             if status:
                 queryset = queryset.filter(status=status)
+            if review_status:
+                queryset = queryset.filter(review_status=review_status)
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1869,6 +1897,28 @@ class PayrollDashboardView(LoginRequiredMixin, TemplateView):
                 'insurance_total': sum((item['insurance_total'] for item in previews), Decimal('0.00')),
                 'net_salary': sum((item['net_salary'] for item in previews), Decimal('0.00')),
             },
+        })
+        return context
+
+
+class EmployeePayrollSlipView(LoginRequiredMixin, TemplateView):
+    template_name = 'employ/employee_payroll_slip.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        employee = get_object_or_404(
+            Employee.objects.select_related('user', 'department', 'job_title', 'default_shift', 'salary_rule'),
+            pk=kwargs['pk'],
+        )
+        selected_year = _safe_period_int(self.request.GET.get('year'), timezone.now().year)
+        selected_month = _safe_period_int(self.request.GET.get('month'), timezone.now().month, min_value=1, max_value=12)
+        preview = LivePayrollService.preview_for_period(employee, selected_year, selected_month)
+        context.update({
+            'employee': employee,
+            'preview': preview,
+            'selected_year': selected_year,
+            'selected_month': selected_month,
+            'generated_at': timezone.now(),
         })
         return context
 

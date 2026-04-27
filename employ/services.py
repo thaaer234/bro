@@ -16,6 +16,7 @@ from .models import (
     EmployeeAttendance,
     EmployeePayroll,
     EmployeePayrollLine,
+    HRHoliday,
     PayrollPeriod,
     Vacation,
 )
@@ -82,6 +83,21 @@ def _apply_rounding(seconds, method):
     else:
         step = 60
     return int(round(seconds / step) * step)
+
+
+def _holiday_for_date(target_date):
+    return HRHoliday.objects.filter(
+        is_active=True,
+        start_date__lte=target_date,
+        end_date__gte=target_date,
+    ).order_by('-start_date').first()
+
+
+def _is_holiday_attendance(employee, attendance):
+    return (
+        attendance.date.weekday() in employee.get_weekend_day_numbers()
+        or _holiday_for_date(attendance.date) is not None
+    )
 
 
 def _employee_required_monthly_seconds(employee, shift, start_date, end_date):
@@ -271,6 +287,7 @@ class AttendanceGenerationService:
 
         shift = employee.effective_shift
         policy = employee.effective_attendance_policy
+        official_holiday = _holiday_for_date(target_date)
         day_start = timezone.make_aware(datetime.combine(target_date, time.min))
         next_day_start = day_start + timedelta(days=1)
         same_day_logs = list(
@@ -302,7 +319,8 @@ class AttendanceGenerationService:
             return attendance
 
         is_weekend = target_date.weekday() in employee.get_weekend_day_numbers()
-        if is_weekend and not same_day_logs:
+        is_holiday_day = is_weekend or official_holiday is not None
+        if is_holiday_day and not same_day_logs:
             attendance.check_in = None
             attendance.check_out = None
             attendance.worked_seconds = 0
@@ -313,7 +331,31 @@ class AttendanceGenerationService:
             attendance.status = 'weekend'
             attendance.review_status = 'not_required'
             attendance.source = 'biometric'
-            attendance.notes = 'يوم عطلة أسبوعية حسب إعدادات ملف الموظف.'
+            attendance.notes = official_holiday.name if official_holiday else 'يوم عطلة أسبوعية حسب إعدادات ملف الموظف.'
+            attendance.save()
+            return attendance
+
+        if is_holiday_day and same_day_logs:
+            check_in = same_day_logs[0].punch_time
+            check_out = same_day_logs[-1].punch_time if len(same_day_logs) > 1 else None
+            worked_seconds = _seconds_between(check_in, check_out) if check_out else 0
+            if shift and shift.break_seconds and worked_seconds:
+                worked_seconds = max(0, worked_seconds - shift.break_seconds)
+            rounding_method = getattr(policy, 'rounding_method', 'minute') if policy else 'minute'
+            overtime_seconds = _apply_rounding(worked_seconds, rounding_method)
+
+            attendance.check_in = check_in
+            attendance.check_out = check_out
+            attendance.worked_seconds = worked_seconds
+            attendance.late_seconds = 0
+            attendance.early_leave_seconds = 0
+            attendance.overtime_seconds = overtime_seconds
+            attendance.absence_seconds = 0
+            attendance.status = 'partial' if not check_out else 'present'
+            attendance.review_status = 'pending' if overtime_seconds else 'not_required'
+            attendance.source = 'biometric'
+            holiday_label = official_holiday.name if official_holiday else 'عطلة أسبوعية'
+            attendance.notes = f'{holiday_label}: تم احتساب كل ساعات الدوام كإضافي عطلة من {len(same_day_logs)} سجلات بصمة.'
             attendance.save()
             return attendance
 
@@ -604,6 +646,8 @@ class LivePayrollService:
         deductible_early_leave_seconds = sum(item.early_leave_seconds for item in deductible_attendances)
         pending_review_count = sum(1 for item in attendances if item.review_status == 'pending')
         total_overtime_seconds = sum(item.overtime_seconds for item in attendances)
+        regular_overtime_seconds = 0
+        holiday_overtime_seconds = 0
         total_absence_seconds = sum(item.absence_seconds for item in attendances)
 
         advances = list(
@@ -631,6 +675,7 @@ class LivePayrollService:
         payable_days = present_count + late_count + partial_count
         hourly_rate = _decimal(getattr(employee, 'hourly_rate', 0))
         overtime_hourly_rate = _decimal(getattr(employee, 'overtime_hourly_rate', 0))
+        auto_hourly_rate = bool(getattr(employee, 'auto_calculate_hourly_rate', True))
 
         if salary_type == 'hourly':
             gross_salary = hourly_rate * (Decimal(total_worked_seconds) / Decimal('3600'))
@@ -641,24 +686,48 @@ class LivePayrollService:
 
         hourly_basis = hourly_rate
         hourly_basis_source = 'manual' if hourly_basis else 'derived'
-        if not hourly_basis:
+        if auto_hourly_rate or not hourly_basis:
             if required_period_seconds:
                 hourly_basis = base_salary / (Decimal(required_period_seconds) / Decimal('3600')) if base_salary else Decimal('0')
+                hourly_basis_source = 'derived'
             elif base_salary:
                 hourly_basis = base_salary / Decimal('30') / Decimal('8')
                 hourly_basis_source = 'estimated'
             else:
                 hourly_basis_source = 'missing'
 
-        overtime_multiplier = getattr(rule, 'overtime_multiplier', Decimal('1.00')) if rule else Decimal('1.00')
-        if rule and rule.max_overtime_seconds:
-            total_overtime_seconds = min(total_overtime_seconds, rule.max_overtime_seconds)
+        overtime_multiplier = _decimal(getattr(employee, 'overtime_multiplier', 0)) or (
+            _decimal(getattr(rule, 'overtime_multiplier', Decimal('1.00'))) if rule else Decimal('1.00')
+        )
+        deduction_multiplier = _decimal(getattr(employee, 'deduction_multiplier', 0)) or Decimal('1.00')
         overtime_basis = overtime_hourly_rate or (hourly_basis * overtime_multiplier)
-        overtime_amount = overtime_basis * (Decimal(total_overtime_seconds) / Decimal('3600'))
+        holiday_overtime_multiplier = _decimal(getattr(employee, 'holiday_overtime_multiplier', 0)) or Decimal('2.00')
+        overtime_amount = Decimal('0')
+        remaining_overtime_seconds = total_overtime_seconds
+        if rule and rule.max_overtime_seconds:
+            remaining_overtime_seconds = min(remaining_overtime_seconds, rule.max_overtime_seconds)
+        for item in attendances:
+            if not item.overtime_seconds or remaining_overtime_seconds <= 0:
+                continue
+            seconds = min(item.overtime_seconds, remaining_overtime_seconds)
+            remaining_overtime_seconds -= seconds
+            holiday = _holiday_for_date(item.date)
+            if holiday:
+                holiday_overtime_seconds += seconds
+                basis = hourly_basis * (_decimal(holiday.overtime_multiplier) or holiday_overtime_multiplier)
+            elif item.date.weekday() in employee.get_weekend_day_numbers():
+                holiday_overtime_seconds += seconds
+                basis = hourly_basis * holiday_overtime_multiplier
+            else:
+                regular_overtime_seconds += seconds
+                basis = overtime_basis
+            overtime_amount += basis * (Decimal(seconds) / Decimal('3600'))
+        total_overtime_seconds = regular_overtime_seconds + holiday_overtime_seconds
 
         late_deduction = Decimal('0')
         if not rule or rule.late_deduction_enabled:
             late_deduction = hourly_basis * (Decimal(deductible_late_seconds + deductible_early_leave_seconds) / Decimal('3600'))
+            late_deduction *= deduction_multiplier
 
         absence_deduction = Decimal('0')
         if not rule or rule.absence_deduction_enabled:
@@ -666,6 +735,7 @@ class LivePayrollService:
                 absence_deduction = gross_salary * (Decimal(total_absence_seconds) / Decimal(required_period_seconds))
             else:
                 absence_deduction = hourly_basis * (Decimal(total_absence_seconds) / Decimal('3600'))
+            absence_deduction *= deduction_multiplier
 
         deductions_total = late_deduction + absence_deduction
         if rule and rule.max_deduction_amount:
@@ -726,6 +796,8 @@ class LivePayrollService:
             'deductible_early_leave_seconds': deductible_early_leave_seconds,
             'pending_review_count': pending_review_count,
             'overtime_seconds': total_overtime_seconds,
+            'regular_overtime_seconds': regular_overtime_seconds,
+            'holiday_overtime_seconds': holiday_overtime_seconds,
             'absence_seconds': total_absence_seconds,
             'required_period_seconds': required_period_seconds,
             'salary_type': salary_type,

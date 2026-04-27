@@ -1,0 +1,13 @@
+{
+  "server_url": "https://alyaman-institute.com/employ/biometric/push/",
+  "token": "bro_bio_9fA7xK2mQ8pL4vN1sT6zR3wY",
+  "device_ip": "172.16.0.2",
+  "device_port": 4370,
+  "device_serial": "AQE7012460825",
+  "timeout": 20,
+  "state_file": "biometric_bridge_state.json",
+  "overlap_minutes": 2,
+  "interval_seconds": 30,
+  "log_file": "biometric_bridge.log",
+  "run_mode": "loop"
+}

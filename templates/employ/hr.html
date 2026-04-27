@@ -1,110 +1,163 @@
 {% extends "base.html" %}
 {% load static %}
+{% load employ_filters %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+<style>
+.hr-workspace{display:grid;gap:1rem}
+.hr-topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.hr-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.hr-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem}
+.hr-metric{background:#fff;border:1px solid #dbe3ec;border-radius:10px;padding:1rem}
+.hr-metric .label{color:#64748b;font-size:.88rem}
+.hr-metric .value{font-size:1.6rem;font-weight:800;color:#0f172a}
+.hr-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75rem}
+.hr-step{display:flex;align-items:center;gap:.75rem;background:#fff;border:1px solid #dbe3ec;border-radius:10px;padding:.9rem;text-decoration:none;color:#172033}
+.hr-step:hover{border-color:#2563eb;background:#f8fbff}
+.hr-step i{width:36px;height:36px;border-radius:9px;background:#eef4ff;color:#1d4ed8;display:grid;place-items:center}
+.hr-step strong{display:block}
+.hr-step span{color:#64748b;font-size:.85rem}
+.hr-panel{background:#fff;border:1px solid #dbe3ec;border-radius:12px;overflow:hidden}
+.hr-panel-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem;border-bottom:1px solid #e2e8f0}
+.hr-table th{white-space:nowrap;background:#f8fafc;font-size:.86rem}
+.hr-table td{vertical-align:middle}
+.status-pill{display:inline-flex;align-items:center;border-radius:999px;padding:.22rem .55rem;font-size:.78rem;font-weight:700;background:#eef2f7;color:#334155}
+.status-pill.ok{background:#dcfce7;color:#166534}
+.status-pill.warn{background:#fef3c7;color:#92400e}
+.status-pill.bad{background:#fee2e2;color:#991b1b}
+.icon-actions{display:flex;gap:.35rem;flex-wrap:wrap}
+@media (max-width: 768px){.hr-topbar,.hr-panel-head{display:block}.hr-actions{margin-top:.75rem}.hr-table{min-width:900px}}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="module-header premium-hero">
-    <h2>إدارة الموظفين وHR</h2>
-    <div class="header-actions">
-        <a href="{% url 'employ:employee_register' %}" class="btn btn-primary">
-            <i class="fas fa-user-plus"></i> تسجيل موظف
+<div class="hr-workspace">
+    <div class="hr-topbar">
+        <div>
+            <h2 class="mb-1">إدارة الموارد البشرية</h2>
+            <div class="text-muted">من هنا تتابع دورة الموظف كاملة: ملف، بصمة، دوام، مراجعة، راتب، وكشف.</div>
+        </div>
+        <div class="hr-actions">
+            <a href="{% url 'employ:employee_register' %}" class="btn btn-primary"><i class="fas fa-user-plus"></i> موظف جديد</a>
+            <a href="{% url 'employ:attendance_list' %}" class="btn btn-outline-primary"><i class="fas fa-calendar-check"></i> الدوام</a>
+            <a href="{% url 'employ:payroll_dashboard' %}" class="btn btn-outline-success"><i class="fas fa-wallet"></i> الرواتب</a>
+            <a href="{% url 'employ:hr_settings' %}" class="btn btn-secondary"><i class="fas fa-cog"></i> الإعدادات</a>
+        </div>
+    </div>
+
+    {% include "partials/_alerts.html" %}
+
+    <div class="hr-metrics">
+        <div class="hr-metric"><div class="label">إجمالي الموظفين</div><div class="value">{{ employee_count }}</div></div>
+        <div class="hr-metric"><div class="label">على رأس العمل</div><div class="value">{{ active_employee_count }}</div></div>
+        <div class="hr-metric"><div class="label">جاهزون للبصمة</div><div class="value">{{ biometric_ready_count }}</div></div>
+        <div class="hr-metric"><div class="label">بدون معرف بصمة</div><div class="value">{{ missing_biometric_count }}</div></div>
+        <div class="hr-metric"><div class="label">بانتظار مراجعة</div><div class="value">{{ pending_reviews_count }}</div></div>
+        <div class="hr-metric"><div class="label">إضافي الشهر</div><div class="value">{{ monthly_overtime_seconds|seconds_to_hhmm }}</div></div>
+    </div>
+
+    <div class="hr-flow">
+        <a class="hr-step" href="{% url 'employ:employee_register' %}">
+            <i class="fas fa-id-badge"></i><div><strong>تسجيل موظف</strong><span>بيانات، عقد، شفت، راتب</span></div>
         </a>
-        <a href="{% url 'employ:biometric_dashboard' %}" class="btn btn-outline-primary">
-            <i class="fas fa-fingerprint"></i> البصمة
+        <a class="hr-step" href="{% url 'employ:biometric_dashboard' %}">
+            <i class="fas fa-fingerprint"></i><div><strong>ربط البصمة</strong><span>الأجهزة والسجلات الخام</span></div>
         </a>
-        <a href="{% url 'employ:payroll_dashboard' %}" class="btn btn-outline-success">
-            <i class="fas fa-wallet"></i> الرواتب
+        <a class="hr-step" href="{% url 'employ:attendance_list' %}?review_status=pending">
+            <i class="fas fa-clipboard-check"></i><div><strong>مراجعة الدوام</strong><span>{{ pending_reviews_count }} سجل يحتاج قرار</span></div>
+        </a>
+        <a class="hr-step" href="{% url 'employ:payroll_dashboard' %}">
+            <i class="fas fa-file-invoice-dollar"></i><div><strong>مسير الرواتب</strong><span>حساب وطباعة كشوف</span></div>
         </a>
     </div>
-</div>
 
-{% include "partials/_alerts.html" %}
-
-<div class="dashboard-cards mb-4">
-    <div class="dashboard-card">
-        <div class="dashboard-card-title">إجمالي الموظفين</div>
-        <div class="dashboard-card-value">{{ employee_count }}</div>
+    <div class="hr-panel">
+        <div class="hr-panel-head">
+            <div>
+                <h5 class="mb-1">الموظفون</h5>
+                <div class="text-muted small">اعمل من نفس السطر: ملف، تعديل، صلاحيات، كشف راتب.</div>
+            </div>
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" placeholder="بحث بالاسم أو الكود أو البصمة" value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="department" class="form-select">
+                        <option value="">كل الأقسام</option>
+                        {% for department in departments %}
+                        <option value="{{ department.id }}" {% if request.GET.department == department.id|stringformat:"s" %}selected{% endif %}>{{ department.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="position" class="form-select">
+                        <option value="">كل الوظائف</option>
+                        {% for value,label in employees.model.POSITION_CHOICES %}
+                        <option value="{{ value }}" {% if request.GET.position == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button class="btn btn-primary w-100">تصفية</button>
+                    <a href="{% url 'employ:hr' %}" class="btn btn-outline-secondary">مسح</a>
+                </div>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table hr-table mb-0">
+                <thead>
+                    <tr>
+                        <th>الموظف</th>
+                        <th>الكود</th>
+                        <th>القسم</th>
+                        <th>الدوام</th>
+                        <th>البصمة</th>
+                        <th>الحالة</th>
+                        <th>الراتب</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees %}
+                    <tr>
+                        <td>
+                            <strong>{{ employee.full_name }}</strong>
+                            <small class="d-block text-muted">{{ employee.job_title|default:employee.get_position_display }}</small>
+                        </td>
+                        <td>{{ employee.employee_code|default:"-" }}</td>
+                        <td>{{ employee.department|default:"-" }}</td>
+                        <td>
+                            {% if employee.work_start_time and employee.work_end_time %}
+                            {{ employee.work_start_time|time:"H:i" }} - {{ employee.work_end_time|time:"H:i" }}
+                            {% else %}
+                            {{ employee.default_shift|default:"-" }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if employee.biometric_user_id %}
+                            <span class="status-pill ok">{{ employee.biometric_user_id }}</span>
+                            {% else %}
+                            <span class="status-pill warn">غير مربوط</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="status-pill {% if employee.employment_status == 'active' %}ok{% else %}bad{% endif %}">{{ employee.get_employment_status_display }}</span></td>
+                        <td>{{ employee.salary|floatformat:2 }}</td>
+                        <td>
+                            <div class="icon-actions">
+                                <a href="{% url 'employ:employee_profile' employee.id %}" class="btn btn-sm btn-outline-secondary" title="ملف"><i class="fas fa-id-card"></i></a>
+                                <a href="{% url 'employ:employee_update' employee.id %}" class="btn btn-sm btn-outline-primary" title="تعديل"><i class="fas fa-edit"></i></a>
+                                <a href="{% url 'employ:employee_permissions' employee.id %}" class="btn btn-sm btn-outline-warning" title="صلاحيات"><i class="fas fa-key"></i></a>
+                                <a href="{% url 'employ:employee_payroll_slip' employee.id %}" target="_blank" class="btn btn-sm btn-outline-success" title="كشف راتب"><i class="fas fa-print"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">لا يوجد موظفون.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="dashboard-card">
-        <div class="dashboard-card-title">على رأس العمل</div>
-        <div class="dashboard-card-value">{{ active_employee_count }}</div>
-    </div>
-    <div class="dashboard-card">
-        <div class="dashboard-card-title">جاهزون للبصمة</div>
-        <div class="dashboard-card-value">{{ biometric_ready_count }}</div>
-    </div>
-</div>
-
-<div class="filters surface-panel mb-3">
-    <form method="get" class="row g-2">
-        <div class="col-md-3">
-            <input type="text" name="search" class="form-control" placeholder="بحث بالاسم أو الكود أو معرف البصمة" value="{{ request.GET.search }}">
-        </div>
-        <div class="col-md-3">
-            <select name="department" class="form-control">
-                <option value="">كل الأقسام</option>
-                {% for department in departments %}
-                <option value="{{ department.id }}" {% if request.GET.department == department.id|stringformat:"s" %}selected{% endif %}>{{ department.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-3">
-            <select name="position" class="form-control">
-                <option value="">كل الوظائف</option>
-                {% for value,label in employees.model.POSITION_CHOICES %}
-                <option value="{{ value }}" {% if request.GET.position == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-3 d-flex gap-2">
-            <button type="submit" class="btn btn-primary w-100">تصفية</button>
-            <a href="{% url 'employ:hr' %}" class="btn btn-secondary w-100">إعادة</a>
-        </div>
-    </form>
-</div>
-
-<div class="table-container surface-panel">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>الموظف</th>
-                <th>الكود</th>
-                <th>القسم</th>
-                <th>الشفت</th>
-                <th>معرف البصمة</th>
-                <th>الحالة</th>
-                <th>الراتب</th>
-                <th>الإجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for employee in employees %}
-            <tr>
-                <td>
-                    <strong>{{ employee.full_name }}</strong>
-                    <small class="d-block text-muted">{{ employee.job_title|default:employee.get_position_display }}</small>
-                </td>
-                <td>{{ employee.employee_code|default:"-" }}</td>
-                <td>{{ employee.department|default:"-" }}</td>
-                <td>{{ employee.default_shift|default:"-" }}</td>
-                <td>{{ employee.biometric_user_id|default:"غير مربوط" }}</td>
-                <td>{{ employee.get_employment_status_display }}</td>
-                <td>{{ employee.salary|floatformat:2 }}</td>
-                <td class="d-flex gap-1">
-                    <a href="{% url 'employ:employee_profile' employee.id %}" class="btn btn-sm btn-secondary"><i class="fas fa-id-card"></i></a>
-                    <a href="{% url 'employ:employee_update' employee.id %}" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
-                    <a href="{% url 'employ:employee_permissions' employee.id %}" class="btn btn-sm btn-warning"><i class="fas fa-key"></i></a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="8" class="text-center text-muted">لا يوجد موظفون.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </div>
 {% endblock %}
