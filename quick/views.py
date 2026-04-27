@@ -7007,13 +7007,25 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
             displayed_enrollments.append(available_lookup[enrollment_id])
 
         post_data = request.POST.copy()
+        missing_status_students = []
         for enrollment in displayed_enrollments:
             status_key = f"student_{enrollment.id}_status"
-            if not post_data.get(status_key):
-                fallback_key = f"{status_key}_fallback"
-                fallback_status = post_data.get(fallback_key)
-                if fallback_status:
-                    post_data[status_key] = fallback_status
+            resolved_status = post_data.get(f"{status_key}_resolved")
+            if resolved_status in {'present', 'absent'}:
+                post_data[status_key] = resolved_status
+            elif post_data.get(status_key) in {'present', 'absent'}:
+                pass
+            else:
+                missing_status_students.append(enrollment.student.full_name)
+
+        if missing_status_students:
+            preview_names = '، '.join(missing_status_students[:6])
+            if len(missing_status_students) > 6:
+                preview_names += f'، و{len(missing_status_students) - 6} آخرين'
+            messages.error(request, f'تعذر حفظ الحضور لأن حالة بعض الطلاب لم تصل من الصفحة: {preview_names}. يرجى تحديث الصفحة والمحاولة مجدداً.')
+            context = self.get_context_data(**kwargs)
+            context.update(self._build_attendance_context(session, attendance_date))
+            return self.render_to_response(context)
 
         form = QuickSessionAttendanceBulkForm(post_data, session=session, enrollments=displayed_enrollments)
         if not form.is_valid():
@@ -7038,10 +7050,9 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
         for enrollment in displayed_enrollments:
             prefix = f"student_{enrollment.id}"
             status = (
-                post_data.get(f"{prefix}_status")
-                or post_data.get(f"{prefix}_status_fallback")
+                post_data.get(f"{prefix}_status_resolved")
+                or post_data.get(f"{prefix}_status")
                 or form.cleaned_data.get(f"{prefix}_status")
-                or 'present'
             )
             status = 'present' if status == 'present' else 'absent'
             notes = form.cleaned_data.get(f"{prefix}_notes", '')
@@ -7073,7 +7084,8 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
                 if not full_name:
                     continue
                 status = (
-                    request.POST.get(f'guest_status_{row_key}')
+                    request.POST.get(f'guest_status_{row_key}_resolved')
+                    or request.POST.get(f'guest_status_{row_key}')
                     or request.POST.get(f'guest_status_{row_key}_fallback')
                     or 'present'
                 )

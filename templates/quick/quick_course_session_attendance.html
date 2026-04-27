@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 
 {% block extra_css %}
 <style>
@@ -121,11 +122,23 @@
 }
 .quick-attendance-page .qa-choice.active[data-status="present"] span{background:var(--qa-success-soft);color:var(--qa-success);border-color:#96d2bb}
 .quick-attendance-page .qa-choice.active[data-status="absent"] span{background:var(--qa-danger-soft);color:var(--qa-danger);border-color:#eeb7ac}
+.quick-attendance-page .qa-status-select{
+    min-height:48px;border-radius:16px;border:2px solid #d4e0ec;font-weight:900;color:var(--qa-ink);
+    background-color:#fff;box-shadow:none
+}
+.quick-attendance-page .qa-status-select.is-present{border-color:#96d2bb;background:var(--qa-success-soft);color:var(--qa-success)}
+.quick-attendance-page .qa-status-select.is-absent{border-color:#eeb7ac;background:var(--qa-danger-soft);color:var(--qa-danger)}
+.quick-attendance-page .qa-status-select.is-native-backed{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
 .quick-attendance-page .qa-actions{
     display:flex;justify-content:space-between;gap:.85rem;flex-wrap:wrap;margin-top:1.25rem;padding-top:1rem;border-top:1px solid #e7eef6
 }
 .quick-attendance-page .qa-bulk{display:flex;gap:.65rem;flex-wrap:wrap}
 .quick-attendance-page .qa-bulk .btn,.quick-attendance-page .qa-save-btn{border-radius:15px;font-weight:900;padding:.8rem 1rem}
+.quick-attendance-page .qa-unsaved{
+    display:none;margin-top:1rem;border:1px solid #f0c36a;background:#fff8e6;color:#6f4b00;
+    border-radius:18px;padding:.85rem 1rem;font-weight:800
+}
+.quick-attendance-page .qa-unsaved.is-visible{display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
 .quick-attendance-page .qa-empty{
     text-align:center;padding:2.4rem 1rem;border:1px dashed #cad6e4;border-radius:22px;background:var(--qa-soft);color:var(--qa-muted)
 }
@@ -222,6 +235,10 @@
                 {% csrf_token %}
                 <input type="hidden" name="attendance_date" value="{{ attendance_date|date:'Y-m-d' }}">
                 <input type="hidden" name="day_number" value="{{ selected_day_number }}">
+                <div class="qa-unsaved" id="unsavedAttendanceNotice" role="status" aria-live="polite">
+                    <span id="unsavedAttendanceText">لديك تغييرات غير محفوظة على حضور هذا اليوم.</span>
+                    <button type="submit" class="btn btn-warning btn-sm" data-submit-attendance>حفظ الآن</button>
+                </div>
 
                 {% if not guest_attendance_ready %}
                 <div class="alert alert-warning mt-3 mb-0">
@@ -258,7 +275,7 @@
                     {% for row in attendance_rows %}
                     <article class="qa-row {% if row.normalized_status == 'present' %}is-present{% else %}is-absent{% endif %} attendance-row"
                              data-row-key="{{ row.row_key }}"
-                             {% if row.row_type == 'enrollment' %}data-enrollment-id="{{ row.enrollment.id }}"{% endif %}
+                             {% if row.row_type == 'enrollment' %}data-enrollment-id="{{ row.enrollment.id|unlocalize }}"{% endif %}
                              data-is-extra="{% if row.is_extra %}true{% else %}false{% endif %}">
 
                         <div class="qa-row-top">
@@ -266,12 +283,12 @@
 
                             <div>
                                 {% if row.row_type == 'enrollment' %}
-                                <input type="hidden" name="displayed_enrollment_ids" value="{{ row.enrollment.id }}">
+                                <input type="hidden" name="displayed_enrollment_ids" value="{{ row.enrollment.id|unlocalize }}">
                                 <a href="{% url 'quick:student_profile' row.enrollment.student.id %}" class="qa-name">
                                     <i class="fas fa-user-graduate"></i>
                                     <span>{{ row.enrollment.student.full_name }}</span>
                                 </a>
-                                <div class="qa-meta">{{ row.enrollment.student.phone|default:"-" }} | تسجيل #{{ row.enrollment.id }}</div>
+                                <div class="qa-meta">{{ row.enrollment.student.phone|default:"-" }} | تسجيل #{{ row.enrollment.id|unlocalize }}</div>
                                 <div class="qa-badges">
                                     {% if row.is_assigned %}<span class="qa-badge assigned">ضمن الجلسة الأساسية</span>{% endif %}
                                     {% if row.is_extra %}<span class="qa-badge extra">إضافة مؤقتة لليوم</span>{% endif %}
@@ -304,18 +321,16 @@
                         <div class="qa-controls">
                             <div class="qa-toggle">
                                 {% if row.row_type == 'enrollment' %}
-                                <input type="hidden" name="student_{{ row.enrollment.id }}_status_fallback" value="{{ row.normalized_status }}" class="status-hidden-input">
                                 {% for status_value, status_label in status_choices %}
-                                <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}">
-                                    <input type="radio" name="student_{{ row.enrollment.id }}_status" value="{{ status_value }}" {% if row.normalized_status == status_value %}checked{% endif %}>
+                                <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}" aria-pressed="{% if row.normalized_status == status_value %}true{% else %}false{% endif %}">
+                                    <input type="radio" name="student_{{ row.enrollment.id|unlocalize }}_status_resolved" value="{{ status_value }}" class="status-resolved-input" {% if row.normalized_status == status_value %}checked{% endif %}>
                                     <span>{{ status_label }}</span>
                                 </label>
                                 {% endfor %}
                                 {% else %}
-                                <input type="hidden" name="guest_status_{{ row.row_key }}_fallback" value="{{ row.normalized_status }}" class="status-hidden-input">
                                 {% for status_value, status_label in status_choices %}
-                                <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}">
-                                    <input type="radio" name="guest_status_{{ row.row_key }}" value="{{ status_value }}" {% if row.normalized_status == status_value %}checked{% endif %}>
+                                <label class="qa-choice{% if row.normalized_status == status_value %} active{% endif %}" data-status="{{ status_value }}" aria-pressed="{% if row.normalized_status == status_value %}true{% else %}false{% endif %}">
+                                    <input type="radio" name="guest_status_{{ row.row_key }}_resolved" value="{{ status_value }}" class="status-resolved-input" {% if row.normalized_status == status_value %}checked{% endif %}>
                                     <span>{{ status_label }}</span>
                                 </label>
                                 {% endfor %}
@@ -324,7 +339,7 @@
 
                             <div>
                                 {% if row.row_type == 'enrollment' %}
-                                <input type="text" name="student_{{ row.enrollment.id }}_notes" class="form-control qa-note" value="{{ row.notes_field.value|default_if_none:'' }}" placeholder="ملاحظة إضافية إن وجدت">
+                                <input type="text" name="student_{{ row.enrollment.id|unlocalize }}_notes" class="form-control qa-note" value="{{ row.notes_field.value|default_if_none:'' }}" placeholder="ملاحظة إضافية إن وجدت">
                                 {% else %}
                                 <input type="text" name="guest_notes_{{ row.row_key }}" class="form-control qa-note" value="{{ row.guest_record.notes|default_if_none:'' }}" placeholder="ملاحظة إضافية إن وجدت">
                                 {% endif %}
@@ -341,7 +356,7 @@
                         <button type="button" class="btn btn-outline-success" data-bulk-status="present">تحديد الكل حاضر</button>
                         <button type="button" class="btn btn-outline-danger" data-bulk-status="absent">تحديد الكل غائب</button>
                     </div>
-                    <button type="submit" class="btn btn-success qa-save-btn">حفظ حضور اليوم {{ selected_day_number }}</button>
+                    <button type="submit" class="btn btn-success qa-save-btn" data-submit-attendance>حفظ حضور اليوم {{ selected_day_number }}</button>
                 </div>
             </form>
         </section>
@@ -371,13 +386,16 @@
 
         <div class="qa-controls">
             <div class="qa-toggle">
-                <input type="hidden" value="present" class="status-hidden-input">
-                <label class="qa-choice active" data-status="present">
-                    <input type="radio" value="present">
+                <select class="form-select qa-status-select status-resolved-input is-native-backed is-present" tabindex="-1" aria-hidden="true" hidden>
+                    <option value="present" selected>حاضر</option>
+                    <option value="absent">غائب</option>
+                </select>
+                <label class="qa-choice active" data-status="present" aria-pressed="true">
+                    <input type="radio" value="present" class="status-resolved-input" checked>
                     <span>حاضر</span>
                 </label>
-                <label class="qa-choice" data-status="absent">
-                    <input type="radio" value="absent">
+                <label class="qa-choice" data-status="absent" aria-pressed="false">
+                    <input type="radio" value="absent" class="status-resolved-input">
                     <span>غائب</span>
                 </label>
             </div>
@@ -390,18 +408,25 @@
 
 <script>
 (function(){
+    const form = document.getElementById('quickAttendanceForm');
     const input = document.getElementById('extraGuestNameInput');
     const addBtn = document.getElementById('addExtraGuestBtn');
     const list = document.getElementById('attendanceList');
     const template = document.getElementById('guestRowTemplate');
+    const unsavedNotice = document.getElementById('unsavedAttendanceNotice');
+    const unsavedText = document.getElementById('unsavedAttendanceText');
+    const submitButtons = Array.from(document.querySelectorAll('[data-submit-attendance]'));
+    const selectedDayNumber = '{{ selected_day_number }}';
     let guestCounter = 0;
+    let hasUnsavedChanges = false;
+    let isSubmitting = false;
 
     function rows(){
-        return Array.from(list.querySelectorAll('.attendance-row'));
+        return list ? Array.from(list.querySelectorAll('.attendance-row')) : [];
     }
 
-    function summaryNodes(){
-        return {
+    function nodes(){
+        return Object.assign({
             present: document.getElementById('presentCount'),
             absent: document.getElementById('absentCount'),
             total: document.getElementById('totalCount'),
@@ -409,95 +434,164 @@
             sAbsent: document.getElementById('summaryAbsent'),
             sExtra: document.getElementById('summaryExtra'),
             sTotal: document.getElementById('summaryTotal'),
-        };
+        }, {});
+    }
+
+    function rowStatus(row){
+        const checked = row.querySelector('.status-resolved-input[type="radio"]:checked');
+        if (checked) {
+            return checked.value === 'absent' ? 'absent' : 'present';
+        }
+        const field = row.querySelector('.status-resolved-input');
+        return field && field.value === 'absent' ? 'absent' : 'present';
     }
 
     function refreshIndexes(){
         rows().forEach((row, index) => {
-            row.querySelectorAll('.attendance-row-index').forEach(node => {
-                node.textContent = index + 1;
+            row.querySelectorAll('.attendance-row-index').forEach(indexNode => {
+                indexNode.textContent = index + 1;
             });
         });
+    }
+
+    function counts(){
+        const allRows = rows();
+        const extraRows = allRows.filter(row => row.dataset.isExtra === 'true').length;
+        const presentRows = allRows.filter(row => rowStatus(row) === 'present').length;
+        return {
+            total: allRows.length,
+            extra: extraRows,
+            present: presentRows,
+            absent: allRows.length - presentRows,
+        };
     }
 
     function refreshSummary(){
-        const allRows = rows();
-        const extraRows = allRows.filter(row => row.dataset.isExtra === 'true').length;
-        const presentRows = allRows.filter(row => row.classList.contains('is-present')).length;
-        const absentRows = allRows.length - presentRows;
-        const nodes = summaryNodes();
-        if (nodes.present) nodes.present.textContent = presentRows;
-        if (nodes.absent) nodes.absent.textContent = absentRows;
-        if (nodes.sPresent) nodes.sPresent.textContent = presentRows;
-        if (nodes.sAbsent) nodes.sAbsent.textContent = absentRows;
-        if (nodes.sExtra) nodes.sExtra.textContent = extraRows;
-        if (nodes.total) nodes.total.textContent = allRows.length;
-        if (nodes.sTotal) nodes.sTotal.textContent = allRows.length;
+        const current = counts();
+        const summary = nodes();
+        if (summary.present) summary.present.textContent = current.present;
+        if (summary.absent) summary.absent.textContent = current.absent;
+        if (summary.sPresent) summary.sPresent.textContent = current.present;
+        if (summary.sAbsent) summary.sAbsent.textContent = current.absent;
+        if (summary.sExtra) summary.sExtra.textContent = current.extra;
+        if (summary.total) summary.total.textContent = current.total;
+        if (summary.sTotal) summary.sTotal.textContent = current.total;
+        refreshUnsavedState();
     }
 
-    function setStatus(row, status){
+    function refreshUnsavedState(){
+        const current = counts();
+        const message = `غير محفوظ: ${current.present} حاضر، ${current.absent} غائب، الإجمالي ${current.total}.`;
+        if (unsavedText) {
+            unsavedText.textContent = hasUnsavedChanges ? message : 'لديك تغييرات غير محفوظة على حضور هذا اليوم.';
+        }
+        if (unsavedNotice) unsavedNotice.classList.toggle('is-visible', hasUnsavedChanges);
+    }
+
+    function markDirty(){
+        if (isSubmitting) return;
+        hasUnsavedChanges = true;
+        refreshUnsavedState();
+    }
+
+    function writeStatus(row, status, markChanged){
+        status = status === 'absent' ? 'absent' : 'present';
+        const previousStatus = rowStatus(row);
+
         row.classList.remove('is-present', 'is-absent');
         row.classList.add(status === 'present' ? 'is-present' : 'is-absent');
-        const hiddenStatusInput = row.querySelector('.status-hidden-input');
-        if (hiddenStatusInput) {
-            hiddenStatusInput.value = status;
-        }
+
+        row.querySelectorAll('.status-resolved-input[type="radio"]').forEach(radio => {
+            radio.checked = radio.value === status;
+            radio.defaultChecked = radio.checked;
+        });
+        row.querySelectorAll('select.status-resolved-input').forEach(select => {
+            select.value = status;
+        });
+
         row.querySelectorAll('.qa-choice').forEach(choice => {
-            const active = choice.dataset.status === status;
-            choice.classList.toggle('active', active);
-            const radio = choice.querySelector('input[type="radio"]');
+            const isActive = choice.dataset.status === status;
+            choice.classList.toggle('active', isActive);
+            choice.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            const radio = choice.querySelector('.status-resolved-input[type="radio"]');
             if (radio) {
-                radio.checked = active;
-                if (active) {
-                    radio.setAttribute('checked', 'checked');
-                } else {
-                    radio.removeAttribute('checked');
-                }
+                radio.checked = isActive;
+                radio.defaultChecked = isActive;
             }
         });
+
+        if (markChanged && previousStatus !== status) {
+            markDirty();
+        }
         refreshSummary();
     }
 
+    function setRowStatus(row, status){
+        writeStatus(row, status, true);
+    }
+
+    function setAllRows(status){
+        rows().forEach(row => writeStatus(row, status, true));
+    }
+
+    function prepareSubmit(){
+        rows().forEach(row => {
+            writeStatus(row, rowStatus(row), false);
+            const resolved = (
+                row.querySelector('.status-resolved-input[name][type="radio"]:checked') ||
+                row.querySelector('select.status-resolved-input[name]') ||
+                row.querySelector('.status-resolved-input[name]')
+            );
+            if (!resolved || !resolved.name) {
+                return;
+            }
+            const statusName = resolved.name.replace('_status_resolved', '_status');
+            let statusField = row.querySelector(`input[type="hidden"][name="${statusName}"]`);
+            if (!statusField) {
+                statusField = document.createElement('input');
+                statusField.type = 'hidden';
+                statusField.name = statusName;
+                row.appendChild(statusField);
+            }
+            statusField.value = resolved.value;
+        });
+    }
+
     function bindRow(row){
-        const rowKey = row.dataset.rowKey || row.dataset.enrollmentId;
+        if (!row) return;
+
+        writeStatus(row, rowStatus(row), false);
 
         row.querySelectorAll('.qa-choice').forEach(choice => {
-            choice.addEventListener('click', function(){
-                const radio = this.querySelector('input[type="radio"]');
-                if (radio) {
-                    radio.checked = true;
-                }
-                setStatus(row, this.dataset.status);
-            });
-        });
-
-        row.querySelectorAll('.qa-choice input[type="radio"]').forEach(radio => {
-            radio.addEventListener('change', function(){
-                if (this.checked) {
-                    setStatus(row, this.value);
-                }
+            choice.setAttribute('role', 'button');
+            choice.addEventListener('click', function(event){
+                event.preventDefault();
+                setRowStatus(row, this.dataset.status);
             });
         });
 
         row.querySelectorAll('.remove-extra-row').forEach(button => {
             button.addEventListener('click', function(){
                 row.remove();
+                markDirty();
                 refreshIndexes();
                 refreshSummary();
             });
         });
 
         row.querySelectorAll('.qa-note').forEach(note => {
-            note.addEventListener('input', function(){
-                const peer = list.querySelector(`.attendance-row[data-row-key="${rowKey}"] .qa-note`);
-                if (peer && peer !== this && peer.value !== this.value) {
-                    peer.value = this.value;
-                }
+            note.addEventListener('input', markDirty);
+        });
+
+        row.querySelectorAll('.status-resolved-input').forEach(select => {
+            select.addEventListener('change', function(){
+                writeStatus(row, this.value, true);
             });
         });
     }
 
     function addGuestRow(){
+        if (!input || !template || !list) return;
         const fullName = (input.value || '').trim();
         if (!fullName) return;
 
@@ -518,16 +612,11 @@
         const note = row.querySelector('.qa-note');
         note.name = `guest_notes_${rowKey}`;
 
-        const hiddenStatusInput = row.querySelector('.status-hidden-input');
-        if (hiddenStatusInput) {
-            hiddenStatusInput.name = `guest_status_${rowKey}_fallback`;
-            hiddenStatusInput.value = 'present';
+        const resolved = row.querySelector('.status-resolved-input');
+        if (resolved) {
+            resolved.name = `guest_status_${rowKey}_resolved`;
+            resolved.value = 'present';
         }
-
-            row.querySelectorAll('.qa-choice input').forEach(radio => {
-                radio.name = `guest_status_${rowKey}`;
-                radio.checked = radio.value === 'present';
-            });
 
         const emptyNode = list.querySelector('.qa-empty');
         if (emptyNode) emptyNode.remove();
@@ -535,16 +624,17 @@
         list.appendChild(fragment);
         const inserted = list.querySelector(`.attendance-row[data-row-key="${rowKey}"]`);
         bindRow(inserted);
-        setStatus(inserted, 'present');
+        writeStatus(inserted, 'present', false);
         input.value = '';
         refreshIndexes();
         refreshSummary();
+        markDirty();
     }
 
     document.querySelectorAll('[data-bulk-status]').forEach(button => {
         button.addEventListener('click', function(){
-            const status = this.dataset.bulkStatus;
-            rows().forEach(row => setStatus(row, status));
+            setAllRows(this.dataset.bulkStatus);
+            markDirty();
         });
     });
 
@@ -564,6 +654,24 @@
     rows().forEach(bindRow);
     refreshIndexes();
     refreshSummary();
+
+    if (form) {
+        form.addEventListener('submit', function(){
+            prepareSubmit();
+            isSubmitting = true;
+            hasUnsavedChanges = false;
+            submitButtons.forEach(button => {
+                button.disabled = true;
+                button.textContent = 'جار الحفظ...';
+            });
+        });
+    }
+
+    window.addEventListener('beforeunload', function(event){
+        if (!hasUnsavedChanges || isSubmitting) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
 })();
 </script>
 {% endblock %}

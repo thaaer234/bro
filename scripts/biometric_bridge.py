@@ -200,6 +200,8 @@ def push_logs(config, logs):
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {config['token']}",
+            "User-Agent": "BiometricBridge/1.0 (+https://alyaman-institute.com)",
+            "Accept": "application/json",
         },
         method="POST",
     )

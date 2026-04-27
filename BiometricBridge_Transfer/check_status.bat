@@ -1,20 +1,20 @@
 @echo off
-echo Checking Startup folder entry...
+echo Checking old Startup folder entries...
 echo.
 if exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\BiometricBridge_start.bat" (
-  echo Startup BAT exists:
+  echo Old Startup BAT exists and should be removed:
   echo %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\BiometricBridge_start.bat
 ) else (
-  echo Startup BAT is missing.
+  echo Old Startup BAT is absent.
 )
 if exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\BiometricBridge Watchdog.lnk" (
-  echo Startup shortcut exists:
+  echo Old Startup shortcut exists and should be removed:
   echo %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\BiometricBridge Watchdog.lnk
 ) else (
-  echo Startup shortcut is missing.
+  echo Old Startup shortcut is absent.
 )
 echo.
-echo Checking registry fallback...
+echo Checking registry startup entry...
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "BiometricBridgeWatchdog"
 echo.
 echo Checking watchdog process...

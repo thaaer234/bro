@@ -41,6 +41,40 @@
     padding: 1rem;
     background: #fff;
 }
+.page-journal_entry_create .entry-side-toggle,
+.page-journal_entry_update .entry-side-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+}
+.page-journal_entry_create .entry-side-toggle__input,
+.page-journal_entry_update .entry-side-toggle__input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.page-journal_entry_create .entry-side-toggle__btn,
+.page-journal_entry_update .entry-side-toggle__btn {
+    border: 2px solid #dbe6f0;
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: .7rem .8rem;
+    font-weight: 800;
+    color: #50627a;
+    width: 100%;
+}
+.page-journal_entry_create .entry-side-toggle__btn.is-active[data-side="debit"],
+.page-journal_entry_update .entry-side-toggle__btn.is-active[data-side="debit"] {
+    border-color: #9bd3bd;
+    background: #e6f7ef;
+    color: #13795b;
+}
+.page-journal_entry_create .entry-side-toggle__btn.is-active[data-side="credit"],
+.page-journal_entry_update .entry-side-toggle__btn.is-active[data-side="credit"] {
+    border-color: #efb5ac;
+    background: #fde9e5;
+    color: #b84535;
+}
 @media (max-width: 767.98px) {
     .page-journal_entry_create .accounts-summary-grid,
     .page-journal_entry_update .accounts-summary-grid {
@@ -121,9 +155,11 @@
                                 </div>
                                 <div class="col-md-3">
                                     <label for="{{ form.is_debit.id_for_label }}" class="form-label">النوع</label>
-                                    <div class="form-check form-switch mt-2">
+                                    <div class="entry-side-toggle" data-entry-side-toggle>
                                         {{ form.is_debit }}
-                                        <label class="form-check-label" for="{{ form.is_debit.id_for_label }}">
+                                        <button type="button" class="entry-side-toggle__btn" data-side="debit">مدين</button>
+                                        <button type="button" class="entry-side-toggle__btn" data-side="credit">دائن</button>
+                                        <label class="form-check-label d-none" for="{{ form.is_debit.id_for_label }}">
                                             <span class="debit-label">مدين</span>
                                             <span class="credit-label" style="display:none;">دائن</span>
                                         </label>
@@ -199,7 +235,45 @@
         </div>
     </form>
 
-    <div id="empty-form" style="display:none;">{{ transaction_formset.empty_form }}</div>
+    <template id="empty-form-template">
+        <div class="formset-row transaction-row" data-form-index="__prefix__">
+            {% with form=transaction_formset.empty_form %}
+            {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+            {% if form.DELETE %}
+            <div class="delete-checkbox">
+                {{ form.DELETE }}
+                <label for="{{ form.DELETE.id_for_label }}" class="form-label text-danger"><small>حذف هذا السطر</small></label>
+            </div>
+            {% endif %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="{{ form.account.id_for_label }}" class="form-label">الحساب</label>
+                    {{ form.account }}
+                </div>
+                <div class="col-md-2">
+                    <label for="{{ form.cost_center.id_for_label }}" class="form-label">مركز الكلفة</label>
+                    {{ form.cost_center }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.amount.id_for_label }}" class="form-label">المبلغ</label>
+                    {{ form.amount }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.is_debit.id_for_label }}" class="form-label">النوع</label>
+                    <div class="entry-side-toggle" data-entry-side-toggle>
+                        {{ form.is_debit }}
+                        <button type="button" class="entry-side-toggle__btn" data-side="debit">مدين</button>
+                        <button type="button" class="entry-side-toggle__btn" data-side="credit">دائن</button>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">الوصف</label>
+                    {{ form.description }}
+                </div>
+            </div>
+            {% endwith %}
+        </div>
+    </template>
 </section>
 {% endblock %}
 
@@ -227,14 +301,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     document.getElementById('add-transaction').addEventListener('click', function() {
-        const emptyForm = document.getElementById('empty-form').innerHTML;
+        const emptyForm = document.getElementById('empty-form-template').innerHTML;
         const newForm = emptyForm.replace(/__prefix__/g, formIndex);
         const formsetContainer = document.getElementById('transaction-formset');
         const newFormDiv = document.createElement('div');
-        newFormDiv.className = 'formset-row transaction-row';
-        newFormDiv.setAttribute('data-form-index', formIndex);
         newFormDiv.innerHTML = newForm;
-        formsetContainer.appendChild(newFormDiv);
+        formsetContainer.appendChild(newFormDiv.firstElementChild);
 
         const totalForms = document.getElementById('id_transactions-TOTAL_FORMS');
         totalForms.value = parseInt(totalForms.value) + 1;
@@ -263,19 +335,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         document.querySelectorAll('input[name*="is_debit"]').forEach(function(checkbox) {
+            checkbox.classList.add('entry-side-toggle__input');
+            if (checkbox.dataset.sideBound === 'true') { return; }
+            checkbox.dataset.sideBound = 'true';
             checkbox.addEventListener('change', function() {
                 const row = this.closest('.formset-row');
-                const debitLabel = row.querySelector('.debit-label');
-                const creditLabel = row.querySelector('.credit-label');
-                if (this.checked) {
-                    debitLabel.style.display = 'inline';
-                    creditLabel.style.display = 'none';
-                } else {
-                    debitLabel.style.display = 'none';
-                    creditLabel.style.display = 'inline';
-                }
+                row.querySelectorAll('.entry-side-toggle__btn').forEach(function(button) {
+                    const active = (button.dataset.side === 'debit' && checkbox.checked) || (button.dataset.side === 'credit' && !checkbox.checked);
+                    button.classList.toggle('is-active', active);
+                });
             });
             checkbox.dispatchEvent(new Event('change'));
+        });
+
+        document.querySelectorAll('.entry-side-toggle__btn').forEach(function(button) {
+            if (button.dataset.sideButtonBound === 'true') { return; }
+            button.dataset.sideButtonBound = 'true';
+            button.addEventListener('click', function() {
+                const row = this.closest('.formset-row');
+                const checkbox = row.querySelector('input[name*="is_debit"]');
+                if (!checkbox) { return; }
+                checkbox.checked = this.dataset.side === 'debit';
+                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                updateTotals();
+            });
         });
 
         document.querySelectorAll('input[name*="DELETE"]').forEach(function(checkbox) {
