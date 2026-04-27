@@ -18,6 +18,11 @@ except Exception as exc:
 DEFAULT_CONFIG = "biometric_bridge_config.json"
 DEFAULT_STATE = "biometric_bridge_state.json"
 DEFAULT_LOG = "biometric_bridge.log"
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
 
 
 def parse_args():
@@ -200,8 +205,10 @@ def push_logs(config, logs):
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {config['token']}",
-            "User-Agent": "BiometricBridge/1.0 (+https://alyaman-institute.com)",
             "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9,ar;q=0.8",
+            "User-Agent": DEFAULT_USER_AGENT,
+            "X-Biometric-Bridge": "1",
         },
         method="POST",
     )
