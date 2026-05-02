@@ -3166,13 +3166,36 @@ def _build_quick_report_course_filters(request, default_course_type='ALL'):
     }
 
 
+QUICK_SESSION_STATUS_CHOICES = (
+    ('all', 'كل الكلاسات'),
+    ('upcoming', 'القادمة فقط'),
+    ('running', 'الجارية فقط'),
+    ('finished', 'المنتهية فقط'),
+)
+
+
+def _get_quick_session_status_filter(request):
+    session_status = request.GET.get('session_status') or 'all'
+    choices = dict(QUICK_SESSION_STATUS_CHOICES)
+    if session_status not in choices:
+        session_status = 'all'
+    return session_status, choices[session_status]
+
+
 def _build_quick_session_population_report(request):
     filters = _build_quick_report_course_filters(request, default_course_type='ALL')
     courses = list(filters['courses'])
     today = timezone.localdate()
+    session_status, session_status_label = _get_quick_session_status_filter(request)
 
     report = {
         **filters,
+        'session_status': session_status,
+        'session_status_label': session_status_label,
+        'session_status_options': [
+            {'value': value, 'label': label}
+            for value, label in QUICK_SESSION_STATUS_CHOICES
+        ],
         'course_rows': [],
         'total_courses': len(courses),
         'total_sessions': 0,
@@ -3225,6 +3248,12 @@ def _build_quick_session_population_report(request):
         )
         .order_by('course__name', 'start_date', 'start_time', 'title', 'id')
     )
+    if session_status == 'upcoming':
+        sessions = [session for session in sessions if today < session.start_date]
+    elif session_status == 'running':
+        sessions = [session for session in sessions if session.start_date <= today <= session.end_date]
+    elif session_status == 'finished':
+        sessions = [session for session in sessions if today > session.end_date]
 
     sessions_by_course = defaultdict(list)
     largest_session = None
@@ -3276,6 +3305,8 @@ def _build_quick_session_population_report(request):
         assigned_course_enrollments = stats.get('assigned_enrollments', 0) or 0
         unassigned_course_enrollments = max(0, total_course_enrollments - assigned_course_enrollments)
         session_rows = sessions_by_course.get(course.id, [])
+        if session_status != 'all' and not session_rows:
+            continue
         capacity_total = sum(item['capacity'] for item in session_rows if item['capacity'])
         assigned_via_sessions = sum(item['assigned_count'] for item in session_rows)
 

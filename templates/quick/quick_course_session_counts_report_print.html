@@ -169,6 +169,7 @@
                 <p>تفصيل الكلاسات والطلاب المنزلين وغير المنزلين حسب الفلتر الحالي.</p>
             </div>
             <div class="report-meta">
+                <div>حالة الكلاسات: {{ session_status_label }}</div>
                 <div>نوع الدورة: {{ course_type_report_label }}</div>
                 <div>تاريخ الطباعة: {{ generated_at|date:"Y-m-d H:i" }}</div>
             </div>
@@ -176,6 +177,7 @@
 
         <div class="report-body">
             <div class="summary-grid">
+                <div class="summary-card"><div class="summary-label">حالة الكلاسات</div><div class="summary-value" style="font-size:18px;">{{ session_status_label }}</div></div>
                 <div class="summary-card"><div class="summary-label">الدورات الظاهرة</div><div class="summary-value">{{ total_courses }}</div></div>
                 <div class="summary-card"><div class="summary-label">الكلاسات الفعالة</div><div class="summary-value">{{ total_sessions }}</div></div>
                 <div class="summary-card"><div class="summary-label">إجمالي المسجلين</div><div class="summary-value">{{ total_enrollments }}</div></div>

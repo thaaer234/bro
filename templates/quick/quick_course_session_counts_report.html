@@ -85,6 +85,14 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div>
+                    <label class="form-label fw-bold">حالة الكلاسات</label>
+                    <select name="session_status" class="form-select">
+                        {% for option in session_status_options %}
+                        <option value="{{ option.value }}" {% if option.value == session_status %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div class="filter-wide">
                     <label class="form-label fw-bold">الدورات المحددة</label>
                     <select name="course_ids" class="form-select" multiple size="6">
@@ -108,6 +116,7 @@
     </div>
 
     <div class="quick-count-stats">
+        <div class="quick-count-stat"><span class="quick-count-stat__label">حالة الكلاسات</span><strong class="quick-count-stat__value" style="font-size:1.35rem;">{{ session_status_label }}</strong></div>
         <div class="quick-count-stat"><span class="quick-count-stat__label">الدورات الظاهرة</span><strong class="quick-count-stat__value">{{ total_courses }}</strong></div>
         <div class="quick-count-stat"><span class="quick-count-stat__label">الكلاسات الفعالة</span><strong class="quick-count-stat__value">{{ total_sessions }}</strong></div>
         <div class="quick-count-stat"><span class="quick-count-stat__label">إجمالي المسجلين</span><strong class="quick-count-stat__value">{{ total_enrollments }}</strong></div>
