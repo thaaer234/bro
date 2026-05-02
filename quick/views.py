@@ -7145,6 +7145,12 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
 
 class QuickCourseSchedulePrintView(LoginRequiredMixin, TemplateView):
     template_name = 'quick/quick_course_schedule_print.html'
+    SESSION_STATUS_CHOICES = (
+        ('all', 'كل الكلاسات'),
+        ('upcoming', 'القادمة فقط'),
+        ('running', 'الجارية فقط'),
+        ('finished', 'المنتهية فقط'),
+    )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -7155,6 +7161,10 @@ class QuickCourseSchedulePrintView(LoginRequiredMixin, TemplateView):
             except (TypeError, ValueError):
                 continue
         course_type = self.request.GET.get('course_type') or 'INTENSIVE'
+        session_status = self.request.GET.get('session_status') or 'all'
+        valid_statuses = {value for value, _label in self.SESSION_STATUS_CHOICES}
+        if session_status not in valid_statuses:
+            session_status = 'all'
         courses = QuickCourse.objects.filter(is_active=True, course_type=course_type).select_related('academic_year')
         if selected_ids:
             courses = courses.filter(id__in=selected_ids)
@@ -7163,6 +7173,23 @@ class QuickCourseSchedulePrintView(LoginRequiredMixin, TemplateView):
             .select_related('course', 'course__academic_year')
             .order_by('start_date', 'start_time', 'course__name', 'title')
         )
+        today = timezone.localdate()
+        if session_status == 'upcoming':
+            sessions = sessions.filter(start_date__gt=today)
+        elif session_status == 'running':
+            sessions = sessions.filter(start_date__lte=today, end_date__gte=today)
+        elif session_status == 'finished':
+            sessions = sessions.filter(end_date__lt=today)
+        filter_links = []
+        for value, label in self.SESSION_STATUS_CHOICES:
+            query_params = [('course_type', course_type), ('session_status', value)]
+            query_params.extend(('course_ids', course_id) for course_id in selected_ids)
+            filter_links.append({
+                'value': value,
+                'label': label,
+                'url': f"{self.request.path}?{urlencode(query_params)}",
+                'is_active': value == session_status,
+            })
         total_students = 0
         sessions_by_course = defaultdict(list)
         for session in sessions:
@@ -7190,6 +7217,9 @@ class QuickCourseSchedulePrintView(LoginRequiredMixin, TemplateView):
             'course_cards': course_cards,
             'selected_course_ids': selected_ids,
             'selected_course_type': course_type,
+            'selected_session_status': session_status,
+            'selected_session_status_label': dict(self.SESSION_STATUS_CHOICES).get(session_status, 'كل الكلاسات'),
+            'session_status_filter_links': filter_links,
             'course_type_choices': QuickCourse.COURSE_TYPE_CHOICES,
             'total_courses': courses.count(),
             'total_sessions': sessions.count(),

@@ -77,6 +77,35 @@
             flex-wrap:wrap;
         }
 
+        .status-filters{
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            width:100%;
+            margin-top:4px;
+        }
+
+        .status-filter{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-height:38px;
+            padding:8px 13px;
+            border:1px solid var(--line);
+            border-radius:999px;
+            background:#fff;
+            color:var(--ink);
+            text-decoration:none;
+            font-size:.9rem;
+            font-weight:800;
+        }
+
+        .status-filter.is-active{
+            border-color:var(--primary);
+            background:var(--primary);
+            color:#fff;
+        }
+
         .btn{
             display:inline-flex;
             align-items:center;
@@ -568,6 +597,11 @@
                 <a href="{% url 'quick:course_list' %}" class="btn btn-secondary">العودة للدورات</a>
                 <button type="button" class="btn btn-primary" onclick="window.print()">طباعة البرنامج</button>
             </div>
+            <div class="status-filters" aria-label="فلترة الكلاسات حسب الحالة">
+                {% for filter_link in session_status_filter_links %}
+                <a href="{{ filter_link.url }}" class="status-filter{% if filter_link.is_active %} is-active{% endif %}">{{ filter_link.label }}</a>
+                {% endfor %}
+            </div>
         </div>
 
         <div class="sheet">
@@ -592,6 +626,10 @@
                         <div class="meta-card">
                             <div class="meta-card__label">نوع الدورات المعروضة</div>
                             <div class="meta-card__value">{{ selected_course_type }}</div>
+                        </div>
+                        <div class="meta-card">
+                            <div class="meta-card__label">حالة الكلاسات</div>
+                            <div class="meta-card__value">{{ selected_session_status_label }}</div>
                         </div>
                     </div>
                 </div>

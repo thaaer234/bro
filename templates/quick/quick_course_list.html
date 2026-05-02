@@ -26,6 +26,9 @@
             <a href="{% url 'quick:quick_course_schedule_print' %}" class="btn btn-outline-info">
                 <i class="fas fa-print"></i> برنامج الصفوف
             </a>
+            <a href="{% url 'quick:quick_course_schedule_print' %}?session_status=upcoming" class="btn btn-outline-info">
+                <i class="fas fa-print"></i> الكلاسات القادمة
+            </a>
             <a href="{% url 'quick:quick_course_conflicts_report' %}" class="btn btn-outline-danger">
                 <i class="fas fa-user-clock"></i> تعارض الطلاب
             </a>

@@ -13,6 +13,7 @@
         </div>
         <div class="header-actions">
             <a href="{% url 'quick:course_detail' course.id %}" class="btn btn--ghost">ملف الدورة</a>
+            <a href="{% url 'quick:quick_course_schedule_print' %}?course_ids={{ course.id }}&course_type={{ course.course_type }}&session_status=upcoming" class="btn btn-outline-info"><i class="fas fa-print"></i> الكلاسات القادمة</a>
             <a href="{% url 'quick:classroom_list' %}" class="btn btn-outline-secondary"><i class="fas fa-school"></i> الصفوف تبعي</a>
             <a href="{% url 'quick:course_time_options_manage' course.id %}" class="btn btn-info"><i class="fas fa-clock"></i> الأوقات المتاحة</a>
             <form method="post" action="{% url 'quick:course_generate_schedule' course.id %}" class="d-inline">
