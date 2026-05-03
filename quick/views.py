@@ -7344,6 +7344,8 @@ class QuickCourseAttendanceReportView(LoginRequiredMixin, TemplateView):
             session = assignments.get(enrollment.id)
             class_label = _quick_session_short_label(session)
             cells = []
+            absent_count = 0
+            present_count = 0
             for day in days:
                 day_date = day['date']
                 if session is None:
@@ -7357,8 +7359,10 @@ class QuickCourseAttendanceReportView(LoginRequiredMixin, TemplateView):
                 else:
                     saved_status = records.get((enrollment.id, day_date))
                     if saved_status == 'present':
+                        present_count += 1
                         cells.append({'status': 'present', 'label': f'م {class_label}', 'class_label': class_label})
                     else:
+                        absent_count += 1
                         cells.append({'status': 'absent', 'label': f'غ {class_label}', 'class_label': class_label})
 
             report_rows.append({
@@ -7366,9 +7370,14 @@ class QuickCourseAttendanceReportView(LoginRequiredMixin, TemplateView):
                 'student': enrollment.student,
                 'session': session,
                 'class_label': class_label,
+                'absent_count': absent_count,
+                'present_count': present_count,
                 'cells': cells,
             })
-        return report_rows
+        return sorted(
+            report_rows,
+            key=lambda row: (-row['absent_count'], -row['present_count'], row['student'].full_name or '', row['enrollment'].id),
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -125,7 +125,7 @@
             color: #14243a;
             background: #f8fafc;
         }
-        .class-col { min-width: 92px; font-weight: 900; background: #f8fafc; }
+        .class-col, .count-col { min-width: 72px; font-weight: 900; background: #f8fafc; }
         .index-col { width: 42px; min-width: 42px; font-weight: 900; background: #f8fafc; }
         .muted { color: #64748b; font-size: 11px; margin-top: 3px; font-weight: 700; }
         .day-head { font-size: 12px; line-height: 1.45; }
@@ -152,7 +152,7 @@
             table { min-width: 0; font-size: 8.5px; }
             th, td { padding: 3px; }
             .student-col { min-width: 140px; }
-            .class-col { min-width: 58px; }
+            .class-col, .count-col { min-width: 46px; }
             .index-col { width: 26px; min-width: 26px; }
             .mark { min-width: 25px; height: 18px; border-radius: 5px; padding: 0 3px; }
         }
@@ -201,6 +201,7 @@
                             <th class="index-col">#</th>
                             <th class="student-col">اسم الطالب</th>
                             <th class="class-col">الكلاس</th>
+                            <th class="count-col">غياب</th>
                             {% for day in attendance_report_days %}
                             <th>
                                 <div class="day-head">
@@ -223,13 +224,14 @@
                                 {{ row.class_label }}
                                 {% if row.session %}<div class="muted">{{ row.session.title }}</div>{% else %}<div class="muted">غير موزع</div>{% endif %}
                             </td>
+                            <td class="count-col">{{ row.absent_count }}</td>
                             {% for cell in row.cells %}
                             <td><span class="mark {{ cell.status }}">{{ cell.label }}</span></td>
                             {% endfor %}
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="{{ attendance_report_days|length|add:3 }}">لا يوجد طلاب مسجلون في هذه الدورة حالياً.</td>
+                            <td colspan="{{ attendance_report_days|length|add:4 }}">لا يوجد طلاب مسجلون في هذه الدورة حالياً.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
