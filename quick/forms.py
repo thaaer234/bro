@@ -361,5 +361,32 @@ class QuickSessionAttendanceBulkForm(forms.Form):
             )
             self.fields[f"{field_prefix}_notes"] = forms.CharField(
                 required=False,
+                max_length=255,
                 label=f"ملاحظات {enrollment.student.full_name}",
             )
+
+    def clean_attendance_date(self):
+        attendance_date = self.cleaned_data["attendance_date"]
+        if self.session is None:
+            return attendance_date
+        if attendance_date < self.session.start_date or attendance_date > self.session.end_date:
+            raise ValidationError("تاريخ الحضور خارج مدة الكلاس.")
+        return attendance_date
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.session is None:
+            return cleaned
+
+        enrollment_ids = {enrollment.id for enrollment in self.enrollments}
+        if len(enrollment_ids) != len(self.enrollments):
+            raise ValidationError("توجد سجلات طلاب مكررة في كشف الحضور.")
+
+        invalid = [
+            enrollment.student.full_name
+            for enrollment in self.enrollments
+            if enrollment.course_id != self.session.course_id
+        ]
+        if invalid:
+            raise ValidationError("يوجد طلاب لا يتبعون دورة هذا الكلاس: " + "، ".join(invalid[:6]))
+        return cleaned

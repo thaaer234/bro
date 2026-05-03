@@ -17,6 +17,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView, ListView, DetailView
 # from .models import QuickStudent, QuickEnrollment, QuickCourse, AcademicYear
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.utils.dateparse import parse_date
 from .forms import (
     AcademicYearForm,
@@ -6884,6 +6885,69 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
             .order_by('student__full_name', 'id')
         )
 
+    def _can_edit_attendance_date(self, attendance_date):
+        today = timezone.localdate()
+        return attendance_date == today or self.request.user.is_superuser
+
+    def _save_attendance_record(self, session, enrollment, attendance_date, day_number, status, notes, user):
+        record, _ = QuickCourseSessionAttendance.objects.get_or_create(
+            session=session,
+            enrollment=enrollment,
+            attendance_date=attendance_date,
+            defaults={'created_by': user},
+        )
+        record.day_number = day_number
+        record.status = status
+        record.notes = notes
+        record.created_by = user
+        record.full_clean()
+        record.save()
+        return record
+
+    def _save_guest_attendance_record(self, session, guest_id, attendance_date, day_number, full_name, status, notes, user):
+        if guest_id:
+            guest_record = get_object_or_404(session.guest_attendance_records, id=guest_id)
+        else:
+            guest_record = session.guest_attendance_records.model(session=session)
+        guest_record.attendance_date = attendance_date
+        guest_record.day_number = day_number
+        guest_record.full_name = full_name
+        guest_record.status = status
+        guest_record.notes = notes
+        guest_record.created_by = user
+        guest_record.full_clean()
+        guest_record.save()
+        return guest_record
+
+    def _build_attendance_report(self, session, assignments, day_options, day_counts):
+        report_enrollments = [assignment.enrollment for assignment in assignments]
+        report_enrollment_ids = [enrollment.id for enrollment in report_enrollments]
+        report_records = {
+            (record.enrollment_id, record.day_number): record.status
+            for record in session.attendance_records.filter(enrollment_id__in=report_enrollment_ids)
+        }
+        report_rows = []
+        for enrollment in report_enrollments:
+            cells = []
+            for day in day_options:
+                if day['is_future']:
+                    cells.append({'status': 'pending', 'label': 'ق', 'day': day})
+                    continue
+                if not day_counts.get(day['number']):
+                    cells.append({'status': 'not-taken', 'label': 'ل', 'day': day})
+                    continue
+                saved_status = report_records.get((enrollment.id, day['number']))
+                if saved_status == 'present':
+                    cells.append({'status': 'present', 'label': 'م', 'day': day})
+                else:
+                    cells.append({'status': 'absent', 'label': 'غ', 'day': day})
+            report_rows.append({
+                'enrollment': enrollment,
+                'student': enrollment.student,
+                'cells': cells,
+            })
+        return report_rows
+
     def _build_attendance_context(self, session, attendance_date, form=None):
         assignments = self._get_assignments(session)
         available_enrollments = self._get_available_enrollments(session)
@@ -6976,6 +7040,8 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
                 'url': f"{reverse('quick:course_session_attendance', kwargs={'session_id': session.id})}?day={day_number}",
             })
 
+        attendance_report_rows = self._build_attendance_report(session, assignments, day_options, day_counts)
+
         return {
             'session': session,
             'course': session.course,
@@ -7000,6 +7066,8 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
             ),
             'day_options': day_options,
             'selected_day_number': selected_day_number,
+            'attendance_report_days': day_options,
+            'attendance_report_rows': attendance_report_rows,
         }
 
     def get_context_data(self, **kwargs):
@@ -7016,6 +7084,10 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
         if attendance_date < session.start_date:
             messages.error(request, 'لا يمكن أخذ الحضور قبل بداية الصف.')
             return redirect('quick:course_session_attendance', session_id=session.id)
+        if not self._can_edit_attendance_date(attendance_date):
+            messages.error(request, 'تعديل حضور يوم سابق متاح للمدير فقط.')
+            day_number = session.get_day_number_for_date(attendance_date) or 1
+            return redirect(f"{reverse('quick:course_session_attendance', kwargs={'session_id': session.id})}?day={day_number}")
 
         available_enrollments = self._get_available_enrollments(session)
         available_lookup = {enrollment.id: enrollment for enrollment in available_enrollments}
@@ -7078,100 +7150,130 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
         day_number = session.get_day_number_for_date(attendance_date) or 1
         saved = 0
         desired_enrollment_ids = []
-        for enrollment in displayed_enrollments:
-            prefix = f"student_{enrollment.id}"
-            status = (
-                post_data.get(f"{prefix}_status_resolved")
-                or post_data.get(f"{prefix}_status")
-                or form.cleaned_data.get(f"{prefix}_status")
-            )
-            status = 'present' if status == 'present' else 'absent'
-            notes = form.cleaned_data.get(f"{prefix}_notes", '')
-            QuickCourseSessionAttendance.objects.update_or_create(
-                session=session,
-                enrollment=enrollment,
-                attendance_date=attendance_date,
-                defaults={
-                    'day_number': day_number,
-                    'status': status,
-                    'notes': notes,
-                    'created_by': request.user,
-                },
-            )
-            desired_enrollment_ids.append(enrollment.id)
-            saved += 1
-
         persisted_guest_ids = []
         guest_save_failed = False
         try:
-            guest_keys = []
-            for raw_value in request.POST.getlist('guest_row_keys'):
-                row_key = (raw_value or '').strip()
-                if row_key and row_key not in guest_keys:
-                    guest_keys.append(row_key)
+            with transaction.atomic():
+                for enrollment in displayed_enrollments:
+                    prefix = f"student_{enrollment.id}"
+                    status = (
+                        post_data.get(f"{prefix}_status_resolved")
+                        or post_data.get(f"{prefix}_status")
+                        or form.cleaned_data.get(f"{prefix}_status")
+                    )
+                    status = 'present' if status == 'present' else 'absent'
+                    notes = form.cleaned_data.get(f"{prefix}_notes", '')
+                    self._save_attendance_record(
+                        session=session,
+                        enrollment=enrollment,
+                        attendance_date=attendance_date,
+                        day_number=day_number,
+                        status=status,
+                        notes=notes,
+                        user=request.user,
+                    )
+                    desired_enrollment_ids.append(enrollment.id)
+                    saved += 1
 
-            for row_key in guest_keys:
-                full_name = (request.POST.get(f'guest_name_{row_key}') or '').strip()
-                if not full_name:
-                    continue
-                status = (
-                    request.POST.get(f'guest_status_{row_key}_resolved')
-                    or request.POST.get(f'guest_status_{row_key}')
-                    or request.POST.get(f'guest_status_{row_key}_fallback')
-                    or 'present'
-                )
-                status = 'present' if status == 'present' else 'absent'
-                notes = (request.POST.get(f'guest_notes_{row_key}') or '').strip()
+                guest_keys = []
+                for raw_value in request.POST.getlist('guest_row_keys'):
+                    row_key = (raw_value or '').strip()
+                    if row_key and row_key not in guest_keys:
+                        guest_keys.append(row_key)
 
-                if row_key.startswith('guest-'):
-                    try:
-                        guest_id = int(row_key.split('-', 1)[1])
-                    except (TypeError, ValueError):
-                        guest_id = None
-                    if guest_id:
-                        guest_record, _ = session.guest_attendance_records.update_or_create(
-                            id=guest_id,
-                            defaults={
-                                'attendance_date': attendance_date,
-                                'day_number': day_number,
-                                'full_name': full_name,
-                                'status': status,
-                                'notes': notes,
-                                'created_by': request.user,
-                            },
-                        )
-                        persisted_guest_ids.append(guest_record.id)
-                        saved += 1
+                for row_key in guest_keys:
+                    full_name = (request.POST.get(f'guest_name_{row_key}') or '').strip()
+                    if not full_name:
                         continue
+                    status = (
+                        request.POST.get(f'guest_status_{row_key}_resolved')
+                        or request.POST.get(f'guest_status_{row_key}')
+                        or request.POST.get(f'guest_status_{row_key}_fallback')
+                        or 'present'
+                    )
+                    status = 'present' if status == 'present' else 'absent'
+                    notes = (request.POST.get(f'guest_notes_{row_key}') or '').strip()
 
-                guest_record = session.guest_attendance_records.create(
-                    attendance_date=attendance_date,
-                    day_number=day_number,
-                    full_name=full_name,
-                    status=status,
-                    notes=notes,
-                    created_by=request.user,
-                )
-                persisted_guest_ids.append(guest_record.id)
-                saved += 1
+                    guest_id = None
+                    if row_key.startswith('guest-'):
+                        try:
+                            guest_id = int(row_key.split('-', 1)[1])
+                        except (TypeError, ValueError):
+                            guest_id = None
+
+                    guest_record = self._save_guest_attendance_record(
+                        session=session,
+                        guest_id=guest_id,
+                        attendance_date=attendance_date,
+                        day_number=day_number,
+                        full_name=full_name,
+                        status=status,
+                        notes=notes,
+                        user=request.user,
+                    )
+                    persisted_guest_ids.append(guest_record.id)
+                    saved += 1
+
+                session.attendance_records.filter(attendance_date=attendance_date).exclude(
+                    enrollment_id__in=desired_enrollment_ids
+                ).delete()
+                session.guest_attendance_records.filter(attendance_date=attendance_date).exclude(
+                    id__in=persisted_guest_ids
+                ).delete()
         except OperationalError:
             guest_save_failed = True
-
-        session.attendance_records.filter(attendance_date=attendance_date).exclude(
-            enrollment_id__in=desired_enrollment_ids
-        ).delete()
-        try:
-            session.guest_attendance_records.filter(attendance_date=attendance_date).exclude(
-                id__in=persisted_guest_ids
-            ).delete()
-        except OperationalError:
-            guest_save_failed = True
+        except ValidationError as exc:
+            messages.error(request, 'تعذر حفظ الحضور: ' + ' | '.join(exc.messages[:6]))
+            context = self.get_context_data(**kwargs)
+            context.update(self._build_attendance_context(session, attendance_date, form=form))
+            return self.render_to_response(context)
 
         if guest_save_failed:
-            messages.warning(request, 'تم حفظ حضور الطلاب الأساسيين، لكن الأسماء اليدوية تحتاج تشغيل migrate أولاً لتعمل بشكل كامل.')
+            messages.error(request, 'تعذر حفظ الحضور لأن جدول الأسماء اليدوية غير جاهز أو قاعدة البيانات رفضت العملية. شغّل migrate ثم أعد المحاولة.')
         else:
             messages.success(request, f'تم حفظ حضور {saved} طالب لليوم رقم {day_number}.')
         return redirect(f"{reverse('quick:course_session_attendance', kwargs={'session_id': session.id})}?day={day_number}")
+
+
+class QuickCourseSessionAttendanceReportView(QuickCourseSessionAttendanceView):
+    template_name = 'quick/quick_course_session_attendance_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = TemplateView.get_context_data(self, **kwargs)
+        session = self._get_session()
+        assignments = self._get_assignments(session)
+        today = timezone.localdate()
+        day_counts = {
+            row['day_number']: row['count']
+            for row in session.attendance_records.values('day_number').annotate(count=Count('id'))
+        }
+        try:
+            for row in session.guest_attendance_records.values('day_number').annotate(count=Count('id')):
+                day_counts[row['day_number']] = day_counts.get(row['day_number'], 0) + row['count']
+        except OperationalError:
+            pass
+
+        days = []
+        for day_number in range(1, (session.total_days or 0) + 1):
+            day_date = session.start_date + timedelta(days=day_number - 1)
+            days.append({
+                'number': day_number,
+                'date': day_date,
+                'is_future': day_date > today,
+                'saved_count': day_counts.get(day_number, 0),
+            })
+
+        context.update({
+            'session': session,
+            'course': session.course,
+            'today': today,
+            'generated_at': timezone.localtime(),
+            'attendance_report_days': days,
+            'attendance_report_rows': self._build_attendance_report(session, assignments, days, day_counts),
+            'assigned_count': len(assignments),
+            'back_url': reverse('quick:course_session_attendance', kwargs={'session_id': session.id}),
+        })
+        return context
 
 
 class QuickCourseSchedulePrintView(LoginRequiredMixin, TemplateView):

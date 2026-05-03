@@ -142,6 +142,8 @@
 .quick-attendance-page .qa-empty{
     text-align:center;padding:2.4rem 1rem;border:1px dashed #cad6e4;border-radius:22px;background:var(--qa-soft);color:var(--qa-muted)
 }
+.quick-attendance-page .qa-report-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.quick-attendance-page .qa-report-link{border-radius:14px;font-weight:900;padding:.75rem 1rem}
 @media (max-width:1199.98px){
     .quick-attendance-page .qa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
     .quick-attendance-page .qa-toolbar,.quick-attendance-page .qa-controls{grid-template-columns:1fr}
@@ -359,6 +361,16 @@
                     <button type="submit" class="btn btn-success qa-save-btn" data-submit-attendance>حفظ حضور اليوم {{ selected_day_number }}</button>
                 </div>
             </form>
+        </section>
+
+        <section class="qa-panel" id="quickAttendanceReport">
+            <div class="qa-report-head">
+                <div>
+                    <h2 class="qa-panel-title">تقرير حضور الصف</h2>
+                    <p class="qa-panel-subtitle">افتح التقرير المنسق بصفحة مستقلة للطباعة. م = حاضر، غ = غائب، ل = لم يؤخذ الحضور، ق = قادم.</p>
+                </div>
+                <a href="{% url 'quick:course_session_attendance_report' session.id %}" target="_blank" class="btn btn-primary qa-report-link">فتح تقرير الطباعة</a>
+            </div>
         </section>
     </div>
 </div>

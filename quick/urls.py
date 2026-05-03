@@ -33,6 +33,7 @@ urlpatterns = [
     path('sessions/<int:session_id>/students/<int:enrollment_id>/unassign/', require_employee_perm('course_accounting_edit')(views.quick_course_session_unassign_student), name='course_session_unassign_student'),
     path('sessions/<int:session_id>/extend/', require_employee_perm('course_accounting_edit')(views.quick_course_session_extend), name='course_session_extend'),
     path('sessions/<int:session_id>/attendance/', require_employee_perm('attendance_take')(views.QuickCourseSessionAttendanceView.as_view()), name='course_session_attendance'),
+    path('sessions/<int:session_id>/attendance/report/', require_employee_perm('attendance_take')(views.QuickCourseSessionAttendanceReportView.as_view()), name='course_session_attendance_report'),
     path('attendance/quick-courses/', require_employee_perm('attendance_view')(views.QuickCourseAttendanceDashboardView.as_view()), name='quick_course_attendance'),
     path('attendance/quick-courses/archive/', require_employee_perm('attendance_view')(views.QuickCourseAttendanceArchiveView.as_view()), name='quick_course_attendance_archive'),
 
