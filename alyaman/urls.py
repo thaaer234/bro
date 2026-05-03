@@ -13,6 +13,7 @@ from core.views import secure_backup
 from errors import security_views
 from errors.security import capture_login_event
 from employ.decorators import require_superuser
+from registration.session_security import mark_active_session
 # from . import views
 def root(request):
     if not request.user.is_authenticated:
@@ -43,6 +44,7 @@ from errors.admin import admin_site
 class SafeLoginView(LoginView):
     def form_valid(self, form):
         response = super().form_valid(form)
+        mark_active_session(self.request, form.get_user())
         try:
             capture_login_event(
                 self.request,

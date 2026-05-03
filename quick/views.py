@@ -6184,6 +6184,25 @@ def _format_quick_session_date_label(session):
     return f'{session.start_date.strftime("%Y-%m-%d")} - {session.end_date.strftime("%Y-%m-%d")}'
 
 
+def _quick_session_short_label(session):
+    if session is None:
+        return '-'
+
+    for value in (session.code, session.title, session.display_code):
+        value = (value or '').strip()
+        if not value:
+            continue
+        match = re.search(r'(\d+)\s*$', value)
+        if match:
+            return match.group(1)
+        if '-' in value:
+            suffix = value.rsplit('-', 1)[-1].strip()
+            if suffix:
+                return suffix
+        return value
+    return '-'
+
+
 def _generate_course_sessions_from_options(course, user):
     options = list(
         course.time_options.filter(is_active=True)
@@ -7272,6 +7291,112 @@ class QuickCourseSessionAttendanceReportView(QuickCourseSessionAttendanceView):
             'attendance_report_rows': self._build_attendance_report(session, assignments, days, day_counts),
             'assigned_count': len(assignments),
             'back_url': reverse('quick:course_session_attendance', kwargs={'session_id': session.id}),
+        })
+        return context
+
+
+class QuickCourseAttendanceReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'quick/quick_course_attendance_report.html'
+
+    def _build_days(self, sessions, today):
+        if not sessions:
+            return []
+        start_date = min(session.start_date for session in sessions)
+        end_date = max(session.end_date for session in sessions)
+        days = []
+        current_date = start_date
+        day_number = 1
+        while current_date <= end_date:
+            days.append({
+                'number': day_number,
+                'date': current_date,
+                'is_future': current_date > today,
+            })
+            current_date += timedelta(days=1)
+            day_number += 1
+        return days
+
+    def _build_report_rows(self, course, sessions, enrollments, days):
+        session_ids = [session.id for session in sessions]
+        assignments = {
+            assignment.enrollment_id: assignment.session
+            for assignment in QuickCourseSessionEnrollment.objects.filter(
+                session__course=course,
+                session__is_active=True,
+            ).select_related('session', 'session__room')
+        }
+        records = {
+            (record.enrollment_id, record.attendance_date): record.status
+            for record in QuickCourseSessionAttendance.objects.filter(
+                session_id__in=session_ids,
+                enrollment_id__in=[enrollment.id for enrollment in enrollments],
+            )
+        }
+        day_counts = {
+            (row['session_id'], row['attendance_date']): row['count']
+            for row in QuickCourseSessionAttendance.objects.filter(session_id__in=session_ids)
+            .values('session_id', 'attendance_date')
+            .annotate(count=Count('id'))
+        }
+
+        report_rows = []
+        for enrollment in enrollments:
+            session = assignments.get(enrollment.id)
+            class_label = _quick_session_short_label(session)
+            cells = []
+            for day in days:
+                day_date = day['date']
+                if session is None:
+                    cells.append({'status': 'no-class', 'label': '-', 'class_label': class_label})
+                elif day_date < session.start_date or day_date > session.end_date:
+                    cells.append({'status': 'outside', 'label': '-', 'class_label': class_label})
+                elif day['is_future']:
+                    cells.append({'status': 'pending', 'label': f'ق {class_label}', 'class_label': class_label})
+                elif not day_counts.get((session.id, day_date)):
+                    cells.append({'status': 'not-taken', 'label': f'ل {class_label}', 'class_label': class_label})
+                else:
+                    saved_status = records.get((enrollment.id, day_date))
+                    if saved_status == 'present':
+                        cells.append({'status': 'present', 'label': f'م {class_label}', 'class_label': class_label})
+                    else:
+                        cells.append({'status': 'absent', 'label': f'غ {class_label}', 'class_label': class_label})
+
+            report_rows.append({
+                'enrollment': enrollment,
+                'student': enrollment.student,
+                'session': session,
+                'class_label': class_label,
+                'cells': cells,
+            })
+        return report_rows
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course = get_object_or_404(QuickCourse.objects.select_related('academic_year'), pk=self.kwargs['course_id'], is_active=True)
+        sessions = list(
+            QuickCourseSession.objects.filter(course=course, is_active=True)
+            .select_related('room')
+            .order_by('start_date', 'start_time', 'id')
+        )
+        enrollments = list(
+            QuickEnrollment.objects.filter(course=course, student__is_active=True)
+            .select_related('student')
+            .order_by('student__full_name', 'id')
+        )
+        today = timezone.localdate()
+        days = self._build_days(sessions, today)
+        report_rows = self._build_report_rows(course, sessions, enrollments, days)
+
+        context.update({
+            'course': course,
+            'sessions': sessions,
+            'today': today,
+            'generated_at': timezone.localtime(),
+            'attendance_report_days': days,
+            'attendance_report_rows': report_rows,
+            'students_count': len(enrollments),
+            'sessions_count': len(sessions),
+            'back_url': reverse('quick:course_detail', kwargs={'pk': course.id}),
         })
         return context
 

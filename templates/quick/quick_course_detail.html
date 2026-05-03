@@ -14,6 +14,7 @@
         <div class="header-actions">
             <a href="{% url 'quick:course_time_options_manage' course.id %}" class="btn btn-info"><i class="fas fa-clock"></i> الأوقات المتاحة</a>
             <a href="{% url 'quick:course_sessions_manage' course.id %}" class="btn btn-primary"><i class="fas fa-calendar-days"></i> إدارة الصفوف</a>
+            <a href="{% url 'quick:course_attendance_report' course.id %}" target="_blank" class="btn btn-success"><i class="fas fa-clipboard-check"></i> تقرير حضور الدورة</a>
             <a href="{% url 'quick:course_update' course.id %}" class="btn btn-warning"><i class="fas fa-edit"></i> تعديل الدورة</a>
             <a href="{% url 'quick:quick_course_schedule_print' %}?course_ids={{ course.id }}&course_type={{ course.course_type }}" class="btn btn-outline-info"><i class="fas fa-print"></i> برنامج الصفوف</a>
             <a href="{% url 'quick:quick_course_schedule_print' %}?course_ids={{ course.id }}&course_type={{ course.course_type }}&session_status=upcoming" class="btn btn-outline-info"><i class="fas fa-print"></i> الكلاسات القادمة</a>

@@ -18,6 +18,7 @@ urlpatterns = [
     path('courses/create/', require_employee_perm('course_accounting_create')(views.QuickCourseCreateView.as_view()), name='course_create'),
     path('courses/<int:pk>/', require_employee_perm('course_accounting_view')(views.QuickCourseDetailView.as_view()), name='course_detail'),
     path('courses/<int:pk>/update/', require_employee_perm('course_accounting_edit')(views.QuickCourseUpdateView.as_view()), name='course_update'),
+    path('courses/<int:course_id>/attendance/report/', require_employee_perm('attendance_view')(views.QuickCourseAttendanceReportView.as_view()), name='course_attendance_report'),
     path('courses/<int:course_id>/sessions/', require_employee_perm('course_accounting_view')(views.QuickCourseSessionsManageView.as_view()), name='course_sessions_manage'),
     path('courses/<int:course_id>/time-options/', require_employee_perm('course_accounting_view')(views.QuickCourseTimeOptionsManageView.as_view()), name='course_time_options_manage'),
     path('courses/<int:course_id>/sessions/add/', require_employee_perm('course_accounting_edit')(views.quick_course_add_session), name='course_add_session'),

@@ -1,0 +1,224 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تم إنهاء الجلسة | معهد اليمان</title>
+    <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Cairo", "Segoe UI", Tahoma, sans-serif;
+            color: #14213d;
+            background:
+                radial-gradient(circle at 14% 18%, rgba(19, 93, 163, .15), transparent 28%),
+                radial-gradient(circle at 82% 72%, rgba(20, 129, 95, .14), transparent 30%),
+                linear-gradient(135deg, #eef4fb 0%, #f8fbfd 48%, #eef7f4 100%);
+        }
+        .session-page {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 28px;
+        }
+        .session-card {
+            width: min(1040px, 100%);
+            display: grid;
+            grid-template-columns: minmax(0, .95fr) minmax(340px, 1.05fr);
+            overflow: hidden;
+            border: 1px solid rgba(120, 145, 170, .3);
+            border-radius: 28px;
+            background: rgba(255, 255, 255, .86);
+            box-shadow: 0 28px 80px rgba(15, 35, 60, .16);
+            backdrop-filter: blur(18px);
+        }
+        .visual {
+            position: relative;
+            min-height: 560px;
+            display: grid;
+            place-items: center;
+            padding: 34px;
+            color: #fff;
+            background: linear-gradient(145deg, #0b2f5b 0%, #135da3 58%, #14815f 100%);
+        }
+        .visual::after {
+            content: "";
+            position: absolute;
+            inset: 18px;
+            border: 1px solid rgba(255,255,255,.18);
+            border-radius: 24px;
+            pointer-events: none;
+        }
+        .security-svg {
+            width: min(360px, 92%);
+            height: auto;
+            filter: drop-shadow(0 26px 30px rgba(0,0,0,.2));
+        }
+        .content {
+            padding: 46px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 22px;
+        }
+        .eyebrow {
+            width: fit-content;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            color: #8a4b00;
+            background: #fff3d6;
+            border: 1px solid #f1cf80;
+            font-weight: 800;
+            font-size: 14px;
+        }
+        h1 {
+            margin: 0;
+            font-size: clamp(30px, 4vw, 48px);
+            line-height: 1.2;
+            letter-spacing: 0;
+            color: #102844;
+        }
+        .lead {
+            margin: 0;
+            color: #43546b;
+            font-size: 18px;
+            line-height: 1.9;
+        }
+        .notice {
+            border: 1px solid #d8e3ee;
+            border-radius: 18px;
+            padding: 16px 18px;
+            background: #f7fafc;
+            color: #263a52;
+            line-height: 1.8;
+        }
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .meta-item {
+            border: 1px solid #d8e3ee;
+            border-radius: 16px;
+            padding: 14px;
+            background: #fff;
+        }
+        .meta-label {
+            display: block;
+            color: #6b7d92;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+        .meta-value {
+            display: block;
+            color: #102844;
+            font-weight: 900;
+            overflow-wrap: anywhere;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .btn {
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 18px;
+            border-radius: 14px;
+            border: 1px solid transparent;
+            text-decoration: none;
+            font-weight: 900;
+        }
+        .btn-primary { color: #fff; background: #135da3; }
+        .btn-secondary { color: #17324f; background: #e7eef6; border-color: #cbd8e6; }
+        .support {
+            color: #6b7d92;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        @media (max-width: 860px) {
+            .session-card { grid-template-columns: 1fr; }
+            .visual { min-height: 300px; }
+            .content { padding: 30px 24px; }
+        }
+        @media (max-width: 520px) {
+            .session-page { padding: 16px; }
+            .meta { grid-template-columns: 1fr; }
+            .actions .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <main class="session-page">
+        <section class="session-card" aria-labelledby="session-title">
+            <div class="visual" aria-hidden="true">
+                <svg class="security-svg" viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg" role="img">
+                    <defs>
+                        <linearGradient id="screen" x1="86" y1="88" x2="342" y2="310" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#ffffff"/>
+                            <stop offset="1" stop-color="#d9ecff"/>
+                        </linearGradient>
+                        <linearGradient id="shield" x1="178" y1="132" x2="285" y2="265" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#ffe7a3"/>
+                            <stop offset="1" stop-color="#f59e0b"/>
+                        </linearGradient>
+                    </defs>
+                    <rect x="58" y="78" width="304" height="214" rx="28" fill="url(#screen)" opacity=".98"/>
+                    <rect x="82" y="108" width="256" height="138" rx="18" fill="#123f72" opacity=".13"/>
+                    <rect x="118" y="316" width="184" height="24" rx="12" fill="#d9ecff"/>
+                    <rect x="174" y="286" width="72" height="40" rx="10" fill="#c3ddf7"/>
+                    <path d="M210 126l86 34v62c0 58-43 91-86 108-43-17-86-50-86-108v-62l86-34z" fill="url(#shield)"/>
+                    <path d="M210 156v126" stroke="#7c4a03" stroke-width="14" stroke-linecap="round" opacity=".28"/>
+                    <circle cx="210" cy="220" r="44" fill="#fff7dc"/>
+                    <path d="M194 219l13 13 25-30" fill="none" stroke="#14815f" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="118" cy="144" r="12" fill="#ffffff" opacity=".85"/>
+                    <circle cx="154" cy="144" r="12" fill="#ffffff" opacity=".58"/>
+                    <path d="M92 266h236" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity=".55"/>
+                </svg>
+            </div>
+
+            <div class="content">
+                <span class="eyebrow">تنبيه أمان الحساب</span>
+                <div>
+                    <h1 id="session-title">تم إنهاء جلستك</h1>
+                    <p class="lead">هذا الحساب تم فتحه من جهاز أو متصفح آخر، لذلك أوقفنا الجلسة الحالية لحماية بيانات النظام.</p>
+                </div>
+
+                <div class="notice">
+                    إذا كنت أنت من سجل الدخول من الجهاز الآخر، يمكنك المتابعة بتسجيل الدخول من جديد هنا. إذا لم تكن أنت، تواصل مع الإدارة فوراً وغيّر كلمة المرور.
+                </div>
+
+                <div class="meta">
+                    <div class="meta-item">
+                        <span class="meta-label">الحساب</span>
+                        <span class="meta-value">{{ username|default:"-" }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">آخر تسجيل نشط</span>
+                        <span class="meta-value">{{ active_at|date:"Y-m-d h:i A"|default:"-" }}</span>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <a href="{% url 'login' %}" class="btn btn-primary">تسجيل الدخول مجدداً</a>
+                    <a href="{% url 'registration:password_reset_request' %}" class="btn btn-secondary">طلب تغيير كلمة المرور</a>
+                </div>
+
+                <div class="support">
+                    لحماية الحسابات، يسمح النظام بجلسة نشطة واحدة لكل مستخدم. فتح الحساب من جهاز جديد ينهي الجلسات السابقة تلقائياً.
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

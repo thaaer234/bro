@@ -55,6 +55,21 @@ class UserProfile(models.Model):
         return f"{self.user.username} Profile"
 
 
+class UserSessionState(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='session_state')
+    session_key = models.CharField(max_length=120, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default='')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'جلسة المستخدم النشطة'
+        verbose_name_plural = 'جلسات المستخدمين النشطة'
+
+    def __str__(self):
+        return f"{self.user.username} active session"
+
+
 class PasswordResetRequest(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_requests')
     reason = models.TextField(verbose_name="سبب الطلب")
