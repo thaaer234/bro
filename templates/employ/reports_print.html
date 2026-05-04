@@ -30,8 +30,24 @@
         tbody tr:nth-child(even){background:#fbfdff}
         .page-break{break-before:page;page-break-before:always}
         .empty{text-align:center;color:#64748b;padding:16px}
+        .employee-page{background:#fff}
+        .employee-cover{border:2px solid #172033;border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#f8fafc}
+        .employee-cover-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid #cbd5e1;padding-bottom:10px;margin-bottom:10px}
+        .employee-name{font-size:28px;font-weight:900;margin:0;color:#0f172a}
+        .employee-subtitle{color:#475569;margin-top:5px;font-size:13px}
+        .employee-period{text-align:left;color:#475569;line-height:1.8;font-size:12px}
+        .employee-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 12px}
+        .employee-kpi{border:1px solid #dbe3ec;border-radius:9px;background:#fff;padding:9px}
+        .employee-kpi .label{font-size:11px;color:#64748b}
+        .employee-kpi .value{font-size:16px;color:#0f172a;font-weight:900;margin-top:3px}
+        .employee-section-title{font-size:14px;font-weight:900;margin:12px 0 7px;color:#0f172a}
+        .employee-table th,.employee-table td{font-size:10.5px;padding:4px 5px}
         @media print{
+            {% if selected_report == 'employee_pages' %}
+            @page{size:A4 portrait;margin:9mm}
+            {% else %}
             @page{size:A4 landscape;margin:10mm}
+            {% endif %}
             body{background:#fff}
             .toolbar{display:none}
             .page{width:auto;margin:0;border:0;border-radius:0;padding:0}
@@ -40,6 +56,10 @@
             section{break-inside:auto}
             tr{break-inside:avoid;page-break-inside:avoid}
             .page-break{break-before:page;page-break-before:always}
+            .employee-page{break-before:page;page-break-before:always;margin:0;padding:0}
+            .employee-page:first-of-type{break-before:auto;page-break-before:auto}
+            .employee-cover{break-inside:avoid;page-break-inside:avoid}
+            .employee-kpis{grid-template-columns:repeat(4,1fr)}
         }
     </style>
 </head>
@@ -50,6 +70,7 @@
     </div>
 
     <main class="page">
+        {% if selected_report != 'employee_pages' %}
         <div class="header">
             <div>
                 <h1>تقارير HR</h1>
@@ -71,6 +92,7 @@
             <div class="kpi"><div class="label">إجمالي التأخير</div><div class="value">{{ late_total|seconds_to_hhmm }}</div></div>
             <div class="kpi"><div class="label">إجمالي الإضافي</div><div class="value">{{ overtime_total|seconds_to_hhmm }}</div></div>
         </div>
+        {% endif %}
 
         {% if selected_report == 'all' or selected_report == 'missing' %}
         <section>
@@ -258,16 +280,37 @@
 
         {% if selected_report == 'employee_pages' %}
         {% for row in employee_page_rows %}
-        <section class="page-break">
-            <div class="section-head"><h2>{{ row.employee.full_name }}</h2><div class="muted">{{ row.employee.department|default:"-" }} | الدوام المسجل بالبروفايل: {{ row.employee.report_shift_label }}</div></div>
-            <table><tbody>
-                <tr><th>الحضور</th><td>{{ row.summary.present_days }}</td><th>الغياب</th><td>{{ row.summary.absent_days }}</td><th>الالتزام</th><td>{{ row.commitment_rate }}%</td></tr>
-                <tr><th>التأخير</th><td>{{ row.summary.late_seconds|seconds_to_hhmm }}</td><th>الخروج المبكر</th><td>{{ row.summary.early_leave_seconds|seconds_to_hhmm }}</td><th>الإضافي</th><td>{{ row.summary.overtime_seconds|seconds_to_hhmm }}</td></tr>
-                <tr><th>إنجاز ساعات الدوام</th><td>{{ row.work_completion_rate }}%</td><th>بصمات ناقصة</th><td>{{ row.missing_punch_days }}</td><th>دوام الجمعة</th><td>{{ row.friday_worked_days }}</td></tr>
-                <tr><th>عطل بدون الجمعة</th><td>{{ row.holidays_except_friday }}</td><th>إجازات مستخدمة</th><td>{{ row.vacation_used_days }}</td><th>إجازات متبقية</th><td>{{ row.vacation_remaining_days }}</td></tr>
-            </tbody></table>
-            <div class="section-head" style="margin-top:14px"><h2>تفاصيل الاستثناءات</h2><div class="muted">غياب، تأخير، خروج مبكر، إضافي، أو بصمة ناقصة</div></div>
-            <table>
+        <section class="employee-page">
+            <div class="employee-cover">
+                <div class="employee-cover-top">
+                    <div>
+                        <h2 class="employee-name">{{ row.employee.full_name }}</h2>
+                        <div class="employee-subtitle">{{ row.employee.department|default:"-" }} | {{ row.employee.job_title|default:row.employee.get_position_display }}</div>
+                        <div class="employee-subtitle">الدوام المسجل بالبروفايل: {{ row.employee.report_shift_label }}</div>
+                    </div>
+                    <div class="employee-period">
+                        <div>الفترة: {{ start_date|date:"Y-m-d" }} إلى {{ end_date|date:"Y-m-d" }}</div>
+                        <div>تاريخ الطباعة: {{ generated_at|date:"Y-m-d H:i" }}</div>
+                    </div>
+                </div>
+                <div class="employee-kpis">
+                    <div class="employee-kpi"><div class="label">الحضور</div><div class="value">{{ row.summary.present_days }}</div></div>
+                    <div class="employee-kpi"><div class="label">الغياب</div><div class="value">{{ row.summary.absent_days }}</div></div>
+                    <div class="employee-kpi"><div class="label">الالتزام</div><div class="value">{{ row.commitment_rate }}%</div></div>
+                    <div class="employee-kpi"><div class="label">إنجاز ساعات الدوام</div><div class="value">{{ row.work_completion_rate }}%</div></div>
+                    <div class="employee-kpi"><div class="label">التأخير</div><div class="value">{{ row.summary.late_seconds|seconds_to_hhmm }}</div></div>
+                    <div class="employee-kpi"><div class="label">الخروج المبكر</div><div class="value">{{ row.summary.early_leave_seconds|seconds_to_hhmm }}</div></div>
+                    <div class="employee-kpi"><div class="label">الإضافي</div><div class="value">{{ row.summary.overtime_seconds|seconds_to_hhmm }}</div></div>
+                    <div class="employee-kpi"><div class="label">بصمات ناقصة</div><div class="value">{{ row.missing_punch_days }}</div></div>
+                    <div class="employee-kpi"><div class="label">عطل بدون الجمعة</div><div class="value">{{ row.holidays_except_friday }}</div></div>
+                    <div class="employee-kpi"><div class="label">دوام الجمعة</div><div class="value">{{ row.friday_worked_days }}</div></div>
+                    <div class="employee-kpi"><div class="label">إجازات مستخدمة</div><div class="value">{{ row.vacation_used_days }}</div></div>
+                    <div class="employee-kpi"><div class="label">إجازات متبقية</div><div class="value">{{ row.vacation_remaining_days }}</div></div>
+                </div>
+            </div>
+
+            <div class="employee-section-title">تفاصيل الاستثناءات</div>
+            <table class="employee-table">
                 <thead><tr><th>التاريخ</th><th>الحالة</th><th>الدخول</th><th>الخروج</th><th>عمل فعلي</th><th>تأخير</th><th>خروج مبكر</th><th>إضافي</th></tr></thead>
                 <tbody>
                     {% for att in row.exception_attendances %}
@@ -277,8 +320,8 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <div class="section-head" style="margin-top:14px"><h2>دوام يوم الجمعة</h2><div class="muted">الأيام التي تم تسجيل بصمة فيها يوم الجمعة</div></div>
-            <table>
+            <div class="employee-section-title">دوام يوم الجمعة</div>
+            <table class="employee-table">
                 <thead><tr><th>التاريخ</th><th>الدخول</th><th>الخروج</th><th>عمل فعلي</th><th>إضافي</th></tr></thead>
                 <tbody>
                     {% for att in row.friday_attendances %}
