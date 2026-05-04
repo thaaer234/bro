@@ -95,12 +95,19 @@
             <p>توتال الخروج المبكر لكل موظف مرتب حسب الأكثر.</p>
             <div class="metric">{{ early_leave_total|seconds_to_hhmm }}</div>
         </a>
-        <a class="report-card {% if selected_report == 'ideas' or selected_report == 'overview' %}active{% endif %}" href="{% url 'employ:employee_reports' %}?report=ideas&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}">
-            <div class="report-card-icon"><i class="fas fa-lightbulb"></i></div>
-            <h5>أفكار تقارير مهمة</h5>
-            <p>اقتراحات تقارير HR يمكن إضافتها لاحقاً حسب احتياج الإدارة.</p>
-            <div class="metric">{{ hr_report_ideas|length }} أفكار</div>
+        <a class="report-card {% if selected_report == 'holiday' %}active{% endif %}" href="{% url 'employ:employee_reports' %}?report=holiday&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}">
+            <div class="report-card-icon"><i class="fas fa-calendar-day"></i></div>
+            <h5>تقرير العطل</h5>
+            <p>ملخص العطل الأسبوعية والرسمية لكل موظف، مع تفاصيل أي دوام خلال العطل.</p>
+            <div class="metric">{{ holiday_total_days }} يوم</div>
         </a>
+        <a class="report-card {% if selected_report == 'no_late' %}active{% endif %}" href="{% url 'employ:employee_reports' %}?report=no_late&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"><div class="report-card-icon"><i class="fas fa-user-check"></i></div><h5>بدون تأخير</h5><p>الموظفون بدون أي تأخير ضمن الفترة.</p><div class="metric">{{ no_late_rows|length }} موظف</div></a>
+        <a class="report-card {% if selected_report == 'absence' %}active{% endif %}" href="{% url 'employ:employee_reports' %}?report=absence&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"><div class="report-card-icon"><i class="fas fa-user-minus"></i></div><h5>الغياب المتكرر</h5><p>الغياب حسب الموظف والقسم مع التفاصيل.</p><div class="metric">{{ absent_count }} يوم</div></a>
+        <a class="report-card {% if selected_report == 'punch_types' %}active{% endif %}" href="{% url 'employ:employee_reports' %}?report=punch_types&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"><div class="report-card-icon"><i class="fas fa-list-check"></i></div><h5>نقص البصمات حسب النوع</h5><p>دخول ناقص، خروج ناقص، أو الاثنين.</p><div class="metric">{{ missing_punch_count }} سجل</div></a>
+        <a class="report-card {% if selected_report == 'commitment' %}active{% endif %}" href="{% url 'employ:employee_reports' %}?report=commitment&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"><div class="report-card-icon"><i class="fas fa-chart-line"></i></div><h5>الالتزام بالدوام</h5><p>أيام مكتملة مقابل أيام ناقصة لكل موظف.</p><div class="metric">نسبة الالتزام</div></a>
+        <a class="report-card {% if selected_report == 'unusual_overtime' %}active{% endif %}" href="{% url 'employ:employee_reports' %}?report=unusual_overtime&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"><div class="report-card-icon"><i class="fas fa-triangle-exclamation"></i></div><h5>الإضافي غير المعتاد</h5><p>موظفون تجاوزوا {{ overtime_threshold_hours }} ساعة إضافية.</p><div class="metric">{{ unusual_overtime_rows|length }} موظف</div></a>
+        <a class="report-card {% if selected_report == 'leaves' %}active{% endif %}" href="{% url 'employ:employee_reports' %}?report=leaves&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"><div class="report-card-icon"><i class="fas fa-calendar-check"></i></div><h5>الإجازات السنوية</h5><p>المستهلك والمتبقي لكل موظف.</p><div class="metric">رصيد الإجازات</div></a>
+        <a class="report-card {% if selected_report == 'employee_pages' %}active{% endif %}" href="{% url 'employ:employee_reports' %}?report=employee_pages&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"><div class="report-card-icon"><i class="fas fa-address-card"></i></div><h5>صفحة لكل موظف</h5><p>ملخص حضور وتأخير والتزام وإضافي وبصمات وعطل ودوام الجمعة.</p><div class="metric">{{ employee_page_rows|length }} صفحة</div></a>
     </div>
 
     <div class="report-kpis">
@@ -110,6 +117,7 @@
         <div class="report-kpi"><div class="label">مرات الخروج المبكر</div><div class="value">{{ early_leave_count }}</div></div>
         <div class="report-kpi"><div class="label">إجمالي التأخير</div><div class="value">{{ late_total|seconds_to_hhmm }}</div></div>
         <div class="report-kpi"><div class="label">إجمالي الإضافي</div><div class="value">{{ overtime_total|seconds_to_hhmm }}</div></div>
+        <div class="report-kpi"><div class="label">دوام ضمن العطل</div><div class="value">{{ holiday_worked_days }}</div></div>
     </div>
 
     {% if selected_report == 'overview' or selected_report == 'ideas' %}
@@ -141,12 +149,12 @@
         </div>
         <div class="table-responsive">
             <table class="table report-table mb-0">
-                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>عدد البصمات الناقصة</th><th>أيام الدوام المسجلة</th></tr></thead>
+                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>عدد البصمات الناقصة</th></tr></thead>
                 <tbody>
                     {% for row in missing_summary_rows %}
-                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.missing_punch_days }}</td><td>{{ row.attendance_days }}</td></tr>
+                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.missing_punch_days }}</td></tr>
                     {% empty %}
-                    <tr><td colspan="6" class="text-center text-muted py-4">لا توجد بصمات ناقصة ضمن هذه الفترة.</td></tr>
+                    <tr><td colspan="5" class="text-center text-muted py-4">لا توجد بصمات ناقصة ضمن هذه الفترة.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -190,12 +198,12 @@
         </div>
         <div class="table-responsive">
             <table class="table report-table mb-0">
-                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>إجمالي التأخير</th><th>مرات التأخير</th><th>أيام الدوام</th></tr></thead>
+                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>إجمالي التأخير</th><th>مرات التأخير</th></tr></thead>
                 <tbody>
                     {% for row in late_report_rows %}
-                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.late_seconds|seconds_to_hhmm }}</td><td>{{ row.late_days }}</td><td>{{ row.attendance_days }}</td></tr>
+                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.late_seconds|seconds_to_hhmm }}</td><td>{{ row.late_days }}</td></tr>
                     {% empty %}
-                    <tr><td colspan="7" class="text-center text-muted">لا يوجد تأخير ضمن هذه الفترة.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted">لا يوجد تأخير ضمن هذه الفترة.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -229,12 +237,12 @@
         </div>
         <div class="table-responsive">
             <table class="table report-table mb-0">
-                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>إجمالي الإضافي</th><th>أيام الإضافي</th><th>أيام الدوام</th></tr></thead>
+                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>إجمالي الإضافي</th><th>أيام الإضافي</th></tr></thead>
                 <tbody>
                     {% for row in overtime_report_rows %}
-                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.overtime_seconds|seconds_to_hhmm }}</td><td>{{ row.overtime_days }}</td><td>{{ row.attendance_days }}</td></tr>
+                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.overtime_seconds|seconds_to_hhmm }}</td><td>{{ row.overtime_days }}</td></tr>
                     {% empty %}
-                    <tr><td colspan="7" class="text-center text-muted">لا يوجد إضافي ضمن هذه الفترة.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted">لا يوجد إضافي ضمن هذه الفترة.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -268,12 +276,12 @@
         </div>
         <div class="table-responsive">
             <table class="table report-table mb-0">
-                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>إجمالي الخروج المبكر</th><th>مرات الخروج المبكر</th><th>أيام الدوام</th></tr></thead>
+                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>إجمالي الخروج المبكر</th><th>مرات الخروج المبكر</th></tr></thead>
                 <tbody>
                     {% for row in early_leave_report_rows %}
-                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.early_leave_seconds|seconds_to_hhmm }}</td><td>{{ row.early_leave_days }}</td><td>{{ row.attendance_days }}</td></tr>
+                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.early_leave_seconds|seconds_to_hhmm }}</td><td>{{ row.early_leave_days }}</td></tr>
                     {% empty %}
-                    <tr><td colspan="7" class="text-center text-muted">لا يوجد خروج مبكر ضمن هذه الفترة.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted">لا يوجد خروج مبكر ضمن هذه الفترة.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -294,6 +302,105 @@
             </table>
         </div>
     </div>
+    {% endif %}
+
+    {% if selected_report == 'holiday' %}
+    <div class="report-panel">
+        <div class="report-panel-head">
+            <div>
+                <h5>ملخص العطل حسب الموظف</h5>
+                <div class="text-muted small">كل موظف وكم يوم عطلة ضمن الفترة، مع عدد الأيام التي داوم فيها خلال العطلة.</div>
+            </div>
+            <a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=holiday" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table report-table mb-0">
+                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>إجمالي العطل</th><th>عطل رسمية</th><th>عطل أسبوعية</th><th>داوم في العطل</th><th>إضافي العطل</th></tr></thead>
+                <tbody>
+                    {% for row in holiday_report_rows %}
+                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.holiday_days }}</td><td>{{ row.official_holiday_days }}</td><td>{{ row.weekend_days }}</td><td>{{ row.worked_holiday_days }}</td><td>{{ row.overtime_seconds|seconds_to_hhmm }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center text-muted">لا توجد عطل ضمن هذه الفترة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="report-panel">
+        <div class="report-panel-head"><div><h5>تفاصيل العطل</h5><div class="text-muted small">كل يوم عطلة لكل موظف ضمن الفترة المختارة.</div></div></div>
+        <div class="table-responsive">
+            <table class="table report-table mb-0">
+                <thead><tr><th>التاريخ</th><th>الموظف</th><th>القسم</th><th>نوع العطلة</th><th>اسم العطلة</th><th>الدوام</th><th>الدخول</th><th>الخروج</th><th>إضافي العطلة</th></tr></thead>
+                <tbody>
+                    {% for row in holiday_detail_rows %}
+                    <tr>
+                        <td>{{ row.date|date:"Y-m-d" }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.holiday_type }}</td><td>{{ row.holiday_name }}</td><td>{{ row.employee.report_shift_label }}</td>
+                        <td>{{ row.attendance.check_in|date:"H:i"|default:"-" }}</td><td>{{ row.attendance.check_out|date:"H:i"|default:"-" }}</td><td>{{ row.overtime_seconds|seconds_to_hhmm }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center text-muted">لا توجد تفاصيل عطل ضمن هذه الفترة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if selected_report == 'no_late' %}
+    <div class="report-panel"><div class="report-panel-head"><div><h5>تقرير الموظفين بدون أي تأخير</h5><div class="text-muted small">موظفون لديهم سجلات دوام ضمن الفترة ولم يسجل عليهم أي تأخير.</div></div><a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=no_late" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a></div>
+        <div class="table-responsive"><table class="table report-table mb-0"><thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>أيام مكتملة</th><th>نسبة الالتزام</th></tr></thead><tbody>{% for row in no_late_rows %}<tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.complete_days }}</td><td>{{ row.commitment_rate }}%</td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted">لا يوجد موظفون بدون تأخير ضمن الفترة.</td></tr>{% endfor %}</tbody></table></div>
+    </div>
+    {% endif %}
+
+    {% if selected_report == 'absence' %}
+    <div class="report-panel"><div class="report-panel-head"><div><h5>ملخص الغياب المتكرر</h5><div class="text-muted small">حسب الموظف والقسم، مرتب من الأكثر غياباً.</div></div><a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=absence" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a></div>
+        <div class="table-responsive"><table class="table report-table mb-0"><thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>أيام الغياب</th><th>مدة الغياب</th></tr></thead><tbody>{% for row in absence_report_rows %}<tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.absent_days }}</td><td>{{ row.absence_seconds|seconds_to_hhmm }}</td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted">لا يوجد غياب ضمن الفترة.</td></tr>{% endfor %}</tbody></table></div>
+    </div>
+    <div class="report-panel"><div class="report-panel-head"><div><h5>تفاصيل الغياب</h5></div></div><div class="table-responsive"><table class="table report-table mb-0"><thead><tr><th>التاريخ</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>الحالة</th></tr></thead><tbody>{% for row in absence_detail_rows %}<tr><td>{{ row.date|date:"Y-m-d" }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.get_status_display }}</td></tr>{% empty %}<tr><td colspan="5" class="text-center text-muted">لا توجد تفاصيل غياب.</td></tr>{% endfor %}</tbody></table></div></div>
+    {% endif %}
+
+    {% if selected_report == 'punch_types' %}
+    <div class="report-panel"><div class="report-panel-head"><div><h5>نقص البصمات حسب الموظف والنوع</h5><div class="text-muted small">دخول ناقص، خروج ناقص، أو الاثنين.</div></div><a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=punch_types" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a></div>
+        <div class="table-responsive"><table class="table report-table mb-0"><thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>دخول ناقص</th><th>خروج ناقص</th><th>الدخول والخروج ناقصان</th><th>الإجمالي</th></tr></thead><tbody>{% for row in punch_type_rows %}<tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.missing_check_in_days }}</td><td>{{ row.missing_check_out_days }}</td><td>{{ row.missing_both_days }}</td><td>{{ row.missing_punch_days }}</td></tr>{% empty %}<tr><td colspan="8" class="text-center text-muted">لا يوجد نقص بصمات ضمن الفترة.</td></tr>{% endfor %}</tbody></table></div>
+    </div>
+    {% endif %}
+
+    {% if selected_report == 'commitment' %}
+    <div class="report-panel"><div class="report-panel-head"><div><h5>تقرير الالتزام بالدوام</h5><div class="text-muted small">أيام مكتملة مقابل أيام ناقصة لكل موظف.</div></div><a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=commitment" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a></div>
+        <div class="table-responsive"><table class="table report-table mb-0"><thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>أيام مكتملة</th><th>أيام ناقصة</th><th>نسبة الالتزام</th></tr></thead><tbody>{% for row in commitment_rows %}<tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.complete_days }}</td><td>{{ row.incomplete_days }}</td><td>{{ row.commitment_rate }}%</td></tr>{% empty %}<tr><td colspan="7" class="text-center text-muted">لا توجد بيانات التزام.</td></tr>{% endfor %}</tbody></table></div>
+    </div>
+    {% endif %}
+
+    {% if selected_report == 'unusual_overtime' %}
+    <div class="report-panel"><div class="report-panel-head"><div><h5>تقرير الإضافي غير المعتاد</h5><div class="text-muted small">الموظفون الذين تجاوزوا {{ overtime_threshold_hours }} ساعة إضافية ضمن الفترة.</div></div><a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=unusual_overtime&overtime_threshold_hours={{ overtime_threshold_hours }}" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a></div>
+        <div class="p-3"><form method="get" class="row g-2 align-items-end"><input type="hidden" name="report" value="unusual_overtime"><input type="hidden" name="start_date" value="{{ start_date|date:'Y-m-d' }}"><input type="hidden" name="end_date" value="{{ end_date|date:'Y-m-d' }}"><div class="col-md-4"><label class="form-label">حد الإضافي بالساعات</label><input type="number" class="form-control" name="overtime_threshold_hours" min="1" value="{{ overtime_threshold_hours }}"></div><div class="col-md-2"><button class="btn btn-primary w-100">تطبيق</button></div></form></div>
+        <div class="table-responsive"><table class="table report-table mb-0"><thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الدوام</th><th>إجمالي الإضافي</th><th>أيام الإضافي</th></tr></thead><tbody>{% for row in unusual_overtime_rows %}<tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.employee.report_shift_label }}</td><td>{{ row.overtime_seconds|seconds_to_hhmm }}</td><td>{{ row.overtime_days }}</td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted">لا يوجد موظفون تجاوزوا الحد.</td></tr>{% endfor %}</tbody></table></div>
+    </div>
+    {% endif %}
+
+    {% if selected_report == 'leaves' %}
+    <div class="report-panel"><div class="report-panel-head"><div><h5>تقرير الإجازات السنوية</h5><div class="text-muted small">المستهلك والمتبقي لكل موظف ضمن الفترة.</div></div><a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=leaves" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a></div>
+        <div class="table-responsive"><table class="table report-table mb-0"><thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الرصيد السنوي</th><th>المستهلك</th><th>المتبقي</th></tr></thead><tbody>{% for row in leave_report_rows %}<tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.annual_days }}</td><td>{{ row.used_days }}</td><td>{{ row.remaining_days }}</td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted">لا توجد بيانات إجازات.</td></tr>{% endfor %}</tbody></table></div>
+    </div>
+    {% endif %}
+
+    {% if selected_report == 'employee_pages' %}
+    <div class="report-panel"><div class="report-panel-head"><div><h5>تقرير صفحة لكل موظف</h5><div class="text-muted small">كل موظف له صفحة مستقلة للطباعة فيها ملخص حضوره والتزامه وبصماته وعطله ودوام الجمعة.</div></div><a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=employee_pages" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a></div></div>
+    {% for row in employee_page_rows %}
+    <div class="report-panel">
+        <div class="report-panel-head"><div><h5>{{ row.employee.full_name }}</h5><div class="text-muted small">{{ row.employee.department|default:"-" }} | {{ row.employee.report_shift_label }}</div></div></div>
+        <div class="report-kpis p-3">
+            <div class="report-kpi"><div class="label">الحضور</div><div class="value">{{ row.summary.present_days }}</div></div>
+            <div class="report-kpi"><div class="label">التأخير</div><div class="value">{{ row.summary.late_seconds|seconds_to_hhmm }}</div></div>
+            <div class="report-kpi"><div class="label">الإضافي</div><div class="value">{{ row.summary.overtime_seconds|seconds_to_hhmm }}</div></div>
+            <div class="report-kpi"><div class="label">الالتزام</div><div class="value">{{ row.commitment_rate }}%</div></div>
+            <div class="report-kpi"><div class="label">بصمات ناقصة</div><div class="value">{{ row.missing_punch_days }}</div></div>
+            <div class="report-kpi"><div class="label">عطل بدون الجمعة</div><div class="value">{{ row.holidays_except_friday }}</div></div>
+            <div class="report-kpi"><div class="label">دوام الجمعة</div><div class="value">{{ row.friday_worked_days }}</div></div>
+            <div class="report-kpi"><div class="label">إجازات متبقية</div><div class="value">{{ row.vacation_remaining_days }}</div></div>
+        </div>
+    </div>
+    {% endfor %}
     {% endif %}
 </div>
 {% endblock %}

@@ -205,6 +205,28 @@ def _employee_shift_label(employee):
     return str(shift)
 
 
+def _date_range(start_date, end_date):
+    current = start_date
+    while current <= end_date:
+        yield current
+        current += timedelta(days=1)
+
+
+def _holiday_from_list(target_date, holidays):
+    for holiday in holidays:
+        if holiday.start_date <= target_date <= holiday.end_date:
+            return holiday
+    return None
+
+
+def _overlap_days(start_a, end_a, start_b, end_b):
+    start = max(start_a, start_b)
+    end = min(end_a, end_b)
+    if start > end:
+        return 0
+    return (end - start).days + 1
+
+
 # خريطة المجموعات بحسب بادئة كود الصلاحية
 GROUP_PREFIXES = {
     'students_': 'students',
@@ -2037,8 +2059,14 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
         if start_date > end_date:
             start_date, end_date = end_date, start_date
         selected_report = self.request.GET.get('report', 'overview')
-        if selected_report not in {'overview', 'missing', 'late', 'overtime', 'early', 'ideas'}:
+        if selected_report not in {
+            'overview', 'missing', 'late', 'overtime', 'early', 'holiday',
+            'no_late', 'absence', 'punch_types', 'commitment',
+            'unusual_overtime', 'leaves', 'employee_pages', 'ideas',
+        }:
             selected_report = 'overview'
+        overtime_threshold_hours = _safe_period_int(self.request.GET.get('overtime_threshold_hours'), 20, min_value=1)
+        overtime_threshold_seconds = overtime_threshold_hours * 3600
 
         attendance_qs = (
             EmployeeAttendance.objects
@@ -2079,12 +2107,21 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
                 'early_leave_seconds': 0,
                 'overtime_seconds': 0,
                 'absence_seconds': 0,
+                'absent_days': 0,
+                'present_days': 0,
+                'complete_days': 0,
+                'incomplete_days': 0,
+                'missing_check_in_days': 0,
+                'missing_check_out_days': 0,
+                'missing_both_days': 0,
             }
 
         missing_punch_rows = []
         late_detail_rows = []
         overtime_detail_rows = []
         early_leave_detail_rows = []
+        absence_detail_rows = []
+        attendance_details_by_employee = {employee_id: [] for employee_id in employees_by_id}
         for attendance in attendance_rows:
             attendance.employee.report_shift_label = getattr(
                 attendance.employee,
@@ -2110,6 +2147,13 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
                 'early_leave_seconds': 0,
                 'overtime_seconds': 0,
                 'absence_seconds': 0,
+                'absent_days': 0,
+                'present_days': 0,
+                'complete_days': 0,
+                'incomplete_days': 0,
+                'missing_check_in_days': 0,
+                'missing_check_out_days': 0,
+                'missing_both_days': 0,
             })
             bucket['attendance_days'] += 1
             bucket['worked_seconds'] += metrics['worked_seconds']
@@ -2117,6 +2161,30 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             bucket['early_leave_seconds'] += metrics['early_leave_seconds']
             bucket['overtime_seconds'] += metrics['overtime_seconds']
             bucket['absence_seconds'] += metrics['absence_seconds']
+            if attendance.status == 'present':
+                bucket['present_days'] += 1
+            if attendance.status == 'absent':
+                bucket['absent_days'] += 1
+                absence_detail_rows.append(attendance)
+
+            has_check_in = bool(attendance.check_in)
+            has_check_out = bool(attendance.check_out)
+            is_complete_day = (
+                has_check_in and has_check_out
+                and metrics['late_seconds'] == 0
+                and metrics['early_leave_seconds'] == 0
+            )
+            if is_complete_day:
+                bucket['complete_days'] += 1
+            else:
+                bucket['incomplete_days'] += 1
+
+            if not has_check_in and not has_check_out:
+                bucket['missing_both_days'] += 1
+            elif not has_check_in:
+                bucket['missing_check_in_days'] += 1
+            elif not has_check_out:
+                bucket['missing_check_out_days'] += 1
 
             if not attendance.check_in or not attendance.check_out:
                 bucket['missing_punch_days'] += 1
@@ -2130,6 +2198,7 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             if metrics['overtime_seconds'] > 0:
                 bucket['overtime_days'] += 1
                 overtime_detail_rows.append(attendance)
+            attendance_details_by_employee.setdefault(attendance.employee_id, []).append(attendance)
 
         ranking_rows = sorted(
             ranking_map.values(),
@@ -2155,6 +2224,148 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             key=lambda row: row['missing_punch_days'],
             reverse=True,
         )
+        no_late_rows = sorted(
+            [row for row in ranking_rows if row['attendance_days'] > 0 and row['late_seconds'] == 0],
+            key=lambda row: row['employee'].full_name or '',
+        )
+        absence_report_rows = sorted(
+            ranking_rows,
+            key=lambda row: (row['absent_days'], row['absence_seconds']),
+            reverse=True,
+        )
+        punch_type_rows = sorted(
+            [row for row in ranking_rows if row['missing_punch_days'] > 0],
+            key=lambda row: (row['missing_punch_days'], row['missing_both_days']),
+            reverse=True,
+        )
+        commitment_rows = []
+        for row in ranking_rows:
+            attendance_days = row['attendance_days']
+            row['commitment_rate'] = round((row['complete_days'] / attendance_days) * 100, 1) if attendance_days else 0
+            commitment_rows.append(row)
+        commitment_rows = sorted(
+            commitment_rows,
+            key=lambda row: (row['commitment_rate'], row['complete_days']),
+            reverse=True,
+        )
+        unusual_overtime_rows = sorted(
+            [row for row in ranking_rows if row['overtime_seconds'] > overtime_threshold_seconds],
+            key=lambda row: row['overtime_seconds'],
+            reverse=True,
+        )
+        attendance_by_employee_date = {
+            (row.employee_id, row.date): row
+            for row in attendance_rows
+        }
+        official_holidays = list(
+            HRHoliday.objects.filter(
+                is_active=True,
+                start_date__lte=end_date,
+                end_date__gte=start_date,
+            ).order_by('start_date', 'name')
+        )
+        holiday_report_rows = []
+        holiday_detail_rows = []
+        for employee in employees_by_id.values():
+            weekend_days = employee.get_weekend_day_numbers()
+            summary = {
+                'employee': employee,
+                'holiday_days': 0,
+                'official_holiday_days': 0,
+                'weekend_days': 0,
+                'worked_holiday_days': 0,
+                'overtime_seconds': 0,
+            }
+            for target_date in _date_range(start_date, end_date):
+                official_holiday = _holiday_from_list(target_date, official_holidays)
+                is_weekend = target_date.weekday() in weekend_days
+                if not official_holiday and not is_weekend:
+                    continue
+
+                attendance = attendance_by_employee_date.get((employee.pk, target_date))
+                overtime_seconds = getattr(attendance, 'overtime_seconds', 0) if attendance else 0
+                has_punch = bool(attendance and (attendance.check_in or attendance.check_out))
+                holiday_name = official_holiday.name if official_holiday else 'عطلة أسبوعية'
+                holiday_type = 'رسمية' if official_holiday else 'أسبوعية'
+
+                summary['holiday_days'] += 1
+                summary['official_holiday_days'] += 1 if official_holiday else 0
+                summary['weekend_days'] += 1 if is_weekend and not official_holiday else 0
+                summary['worked_holiday_days'] += 1 if has_punch else 0
+                summary['overtime_seconds'] += overtime_seconds or 0
+                holiday_detail_rows.append({
+                    'date': target_date,
+                    'employee': employee,
+                    'holiday_name': holiday_name,
+                    'holiday_type': holiday_type,
+                    'attendance': attendance,
+                    'has_punch': has_punch,
+                    'overtime_seconds': overtime_seconds or 0,
+                })
+            holiday_report_rows.append(summary)
+        holiday_report_rows = sorted(
+            holiday_report_rows,
+            key=lambda row: (row['holiday_days'], row['worked_holiday_days'], row['overtime_seconds']),
+            reverse=True,
+        )
+        holiday_detail_rows = sorted(
+            holiday_detail_rows,
+            key=lambda row: (row['date'], row['employee'].full_name or ''),
+        )
+        vacations = list(
+            Vacation.objects.select_related('employee__user', 'employee__department', 'employee__job_title').filter(
+                start_date__lte=end_date,
+                end_date__gte=start_date,
+            )
+        )
+        vacation_days_by_employee = {}
+        vacation_detail_rows = []
+        for vacation in vacations:
+            days = _overlap_days(vacation.start_date, vacation.end_date, start_date, end_date)
+            if days <= 0:
+                continue
+            vacation_days_by_employee[vacation.employee_id] = vacation_days_by_employee.get(vacation.employee_id, 0) + days
+            vacation_detail_rows.append({
+                'employee': vacation.employee,
+                'vacation': vacation,
+                'days': days,
+            })
+        leave_report_rows = []
+        for employee in employees_by_id.values():
+            used_days = vacation_days_by_employee.get(employee.pk, 0)
+            annual_days = employee.annual_leave_days or 0
+            leave_report_rows.append({
+                'employee': employee,
+                'annual_days': annual_days,
+                'used_days': used_days,
+                'remaining_days': max(annual_days - used_days, 0),
+            })
+        leave_report_rows = sorted(leave_report_rows, key=lambda row: row['used_days'], reverse=True)
+
+        holiday_detail_by_employee = {}
+        for row in holiday_detail_rows:
+            holiday_detail_by_employee.setdefault(row['employee'].pk, []).append(row)
+
+        employee_page_rows = []
+        for row in ranking_rows:
+            employee = row['employee']
+            employee_holidays = holiday_detail_by_employee.get(employee.pk, [])
+            holiday_days_except_friday = sum(1 for item in employee_holidays if item['date'].weekday() != 4)
+            friday_worked_days = sum(
+                1 for item in attendance_details_by_employee.get(employee.pk, [])
+                if item.date.weekday() == 4 and (item.check_in or item.check_out)
+            )
+            employee_page_rows.append({
+                'employee': employee,
+                'summary': row,
+                'attendances': sorted(attendance_details_by_employee.get(employee.pk, []), key=lambda item: item.date),
+                'holidays_except_friday': holiday_days_except_friday,
+                'friday_worked_days': friday_worked_days,
+                'missing_punch_days': row['missing_punch_days'],
+                'commitment_rate': row.get('commitment_rate', 0),
+                'vacation_used_days': vacation_days_by_employee.get(employee.pk, 0),
+                'vacation_remaining_days': max((employee.annual_leave_days or 0) - vacation_days_by_employee.get(employee.pk, 0), 0),
+            })
 
         month_rows = AttendanceReportService.summary_for_month(today.year, today.month)
         late_total = sum(row['late_seconds'] for row in ranking_rows)
@@ -2186,6 +2397,20 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             'late_detail_rows': late_detail_rows,
             'overtime_detail_rows': overtime_detail_rows,
             'early_leave_detail_rows': early_leave_detail_rows,
+            'holiday_report_rows': holiday_report_rows,
+            'holiday_detail_rows': holiday_detail_rows,
+            'holiday_total_days': sum(row['holiday_days'] for row in holiday_report_rows),
+            'holiday_worked_days': sum(row['worked_holiday_days'] for row in holiday_report_rows),
+            'no_late_rows': no_late_rows,
+            'absence_report_rows': absence_report_rows,
+            'absence_detail_rows': absence_detail_rows,
+            'punch_type_rows': punch_type_rows,
+            'commitment_rows': commitment_rows,
+            'unusual_overtime_rows': unusual_overtime_rows,
+            'overtime_threshold_hours': overtime_threshold_hours,
+            'leave_report_rows': leave_report_rows,
+            'vacation_detail_rows': vacation_detail_rows,
+            'employee_page_rows': employee_page_rows,
             'hr_report_ideas': [
                 'تقرير الموظفين بدون أي تأخير خلال الفترة.',
                 'تقرير الغياب المتكرر حسب الموظف والقسم.',
@@ -2206,7 +2431,11 @@ class EmployeeReportsPrintView(EmployeeReportsView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         selected_report = self.request.GET.get('report', 'all')
-        if selected_report not in {'all', 'missing', 'late', 'overtime', 'early'}:
+        if selected_report not in {
+            'all', 'missing', 'late', 'overtime', 'early', 'holiday',
+            'no_late', 'absence', 'punch_types', 'commitment',
+            'unusual_overtime', 'leaves', 'employee_pages',
+        }:
             selected_report = 'all'
         context.update({
             'selected_report': selected_report,
