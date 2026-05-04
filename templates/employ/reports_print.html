@@ -1,0 +1,164 @@
+{% load employ_filters %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة تقارير HR</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;margin:0;background:#eef2f7;color:#111827}
+        .toolbar{width:min(1120px,calc(100vw - 28px));margin:18px auto;display:flex;justify-content:flex-end;gap:10px}
+        .btn{border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer;text-decoration:none}
+        .btn-primary{background:#123456;color:#fff}
+        .btn-secondary{background:#e2e8f0;color:#172033}
+        .page{width:min(1120px,calc(100vw - 28px));margin:0 auto 24px;background:#fff;border:1px solid #d9e1ec;border-radius:14px;padding:26px}
+        .header{display:flex;justify-content:space-between;gap:16px;border-bottom:2px solid #172033;padding-bottom:14px;margin-bottom:16px}
+        h1{font-size:25px;margin:0 0 8px}
+        h2{font-size:18px;margin:0}
+        .muted{color:#64748b}
+        .meta{text-align:left;line-height:1.8}
+        .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:14px 0 18px}
+        .kpi{border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;padding:10px}
+        .label{font-size:12px;color:#64748b;margin-bottom:4px}
+        .value{font-size:17px;font-weight:800}
+        section{margin-top:18px}
+        .section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:8px}
+        table{width:100%;border-collapse:collapse}
+        th,td{border:1px solid #dbe3ec;padding:7px 8px;text-align:right;font-size:12.5px}
+        th{background:#f1f5f9;font-weight:800}
+        tbody tr:nth-child(even){background:#fbfdff}
+        .page-break{break-before:page;page-break-before:always}
+        .empty{text-align:center;color:#64748b;padding:16px}
+        @media print{
+            @page{size:A4 landscape;margin:10mm}
+            body{background:#fff}
+            .toolbar{display:none}
+            .page{width:auto;margin:0;border:0;border-radius:0;padding:0}
+            .kpis{grid-template-columns:repeat(6,1fr)}
+            th,td{font-size:11px;padding:5px 6px}
+            section{break-inside:auto}
+            tr{break-inside:avoid;page-break-inside:avoid}
+            .page-break{break-before:page;page-break-before:always}
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button class="btn btn-primary" onclick="window.print()">طباعة</button>
+        <a class="btn btn-secondary" href="{% url 'employ:employee_reports' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}">عودة للتقرير</a>
+    </div>
+
+    <main class="page">
+        <div class="header">
+            <div>
+                <h1>تقارير HR</h1>
+                <div class="muted">من {{ start_date|date:"Y-m-d" }} إلى {{ end_date|date:"Y-m-d" }}</div>
+            </div>
+            <div class="meta muted">
+                <div>تاريخ الطباعة: {{ generated_at|date:"Y-m-d H:i" }}</div>
+                <div>
+                    {% if selected_report == 'all' %}كل التقارير{% elif selected_report == 'missing' %}تقرير البصمات الناقصة{% elif selected_report == 'late' %}تقرير التأخير{% elif selected_report == 'overtime' %}تقرير الإضافي{% elif selected_report == 'early' %}تقرير الخروج المبكر{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="kpis">
+            <div class="kpi"><div class="label">بصمات ناقصة</div><div class="value">{{ missing_punch_count }}</div></div>
+            <div class="kpi"><div class="label">موظفون لديهم نقص</div><div class="value">{{ missing_punch_employee_count }}</div></div>
+            <div class="kpi"><div class="label">مرات التأخير</div><div class="value">{{ late_count }}</div></div>
+            <div class="kpi"><div class="label">مرات خروج مبكر</div><div class="value">{{ early_leave_count }}</div></div>
+            <div class="kpi"><div class="label">إجمالي التأخير</div><div class="value">{{ late_total|seconds_to_hhmm }}</div></div>
+            <div class="kpi"><div class="label">إجمالي الإضافي</div><div class="value">{{ overtime_total|seconds_to_hhmm }}</div></div>
+        </div>
+
+        {% if selected_report == 'all' or selected_report == 'missing' %}
+        <section>
+            <div class="section-head">
+                <h2>تقرير البصمات الناقصة</h2>
+                <div class="muted">{{ missing_punch_total_count }} سجل</div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>#</th><th>التاريخ</th><th>الموظف</th><th>القسم</th><th>الدخول</th><th>الخروج</th><th>الحالة</th><th>التأخير</th><th>الخروج المبكر</th></tr>
+                </thead>
+                <tbody>
+                    {% for row in missing_punch_rows %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ row.date|date:"Y-m-d" }}</td>
+                        <td>{{ row.employee.full_name }}</td>
+                        <td>{{ row.employee.department|default:"-" }}</td>
+                        <td>{{ row.check_in|date:"H:i"|default:"لا يوجد" }}</td>
+                        <td>{{ row.check_out|date:"H:i"|default:"لا يوجد" }}</td>
+                        <td>{{ row.get_status_display }}</td>
+                        <td>{{ row.late_seconds|seconds_to_hhmm }}</td>
+                        <td>{{ row.early_leave_seconds|seconds_to_hhmm }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="empty">لا توجد سجلات بصمة ناقصة ضمن هذه الفترة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        {% endif %}
+
+        {% if selected_report == 'all' or selected_report == 'late' %}
+        <section class="{% if selected_report == 'all' %}page-break{% endif %}">
+            <div class="section-head">
+                <h2>تقرير التأخير</h2>
+                <div class="muted">مرتب من الأكثر للأقل</div>
+            </div>
+            <table>
+                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>إجمالي التأخير</th><th>مرات التأخير</th><th>أيام الدوام</th></tr></thead>
+                <tbody>
+                    {% for row in late_report_rows %}
+                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.late_seconds|seconds_to_hhmm }}</td><td>{{ row.late_days }}</td><td>{{ row.attendance_days }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="empty">لا يوجد تأخير ضمن هذه الفترة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        {% endif %}
+
+        {% if selected_report == 'all' or selected_report == 'overtime' %}
+        <section class="{% if selected_report == 'all' %}page-break{% endif %}">
+            <div class="section-head">
+                <h2>تقرير الإضافي</h2>
+                <div class="muted">مرتب من الأكثر للأقل</div>
+            </div>
+            <table>
+                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>إجمالي الإضافي</th><th>أيام الإضافي</th><th>أيام الدوام</th></tr></thead>
+                <tbody>
+                    {% for row in overtime_report_rows %}
+                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.overtime_seconds|seconds_to_hhmm }}</td><td>{{ row.overtime_days }}</td><td>{{ row.attendance_days }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="empty">لا يوجد إضافي ضمن هذه الفترة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        {% endif %}
+
+        {% if selected_report == 'all' or selected_report == 'early' %}
+        <section class="{% if selected_report == 'all' %}page-break{% endif %}">
+            <div class="section-head">
+                <h2>تقرير الخروج المبكر</h2>
+                <div class="muted">مرتب من الأكثر للأقل</div>
+            </div>
+            <table>
+                <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>إجمالي الخروج المبكر</th><th>مرات الخروج المبكر</th><th>أيام الدوام</th></tr></thead>
+                <tbody>
+                    {% for row in early_leave_report_rows %}
+                    <tr><td>{{ forloop.counter }}</td><td>{{ row.employee.full_name }}</td><td>{{ row.employee.department|default:"-" }}</td><td>{{ row.early_leave_seconds|seconds_to_hhmm }}</td><td>{{ row.early_leave_days }}</td><td>{{ row.attendance_days }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="empty">لا يوجد خروج مبكر ضمن هذه الفترة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>

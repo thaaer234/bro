@@ -19,6 +19,9 @@
 .report-table th{background:#f8fafc;white-space:nowrap;font-size:.86rem}
 .report-table td{vertical-align:middle}
 .report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.report-stack{display:grid;gap:1rem}
+.idea-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.75rem;margin:0;padding:0;list-style:none}
+.idea-list li{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:.75rem;color:#334155}
 .status-pill{display:inline-flex;align-items:center;border-radius:999px;padding:.22rem .55rem;font-size:.78rem;font-weight:700;background:#eef2f7;color:#334155}
 .status-pill.warn{background:#fef3c7;color:#92400e}
 .status-pill.bad{background:#fee2e2;color:#991b1b}
@@ -39,6 +42,7 @@
             <a href="{% url 'employ:hr' %}" class="btn btn-outline-secondary">الموظفون</a>
             <a href="{% url 'employ:attendance_list' %}" class="btn btn-outline-primary">الدوام</a>
             <a href="{% url 'employ:payroll_dashboard' %}" class="btn btn-secondary">الرواتب</a>
+            <a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=all" target="_blank" class="btn btn-primary">طباعة الكل</a>
         </div>
     </div>
 
@@ -74,6 +78,7 @@
                 <h5>الموظفون غير مكتملة بصمتهم</h5>
                 <div class="text-muted small">من {{ start_date|date:"Y-m-d" }} إلى {{ end_date|date:"Y-m-d" }}</div>
             </div>
+            <a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=missing" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a>
             {% if missing_punch_total_count > missing_punch_limit %}
             <span class="status-pill warn">يعرض أول {{ missing_punch_limit }} من {{ missing_punch_total_count }}</span>
             {% endif %}
@@ -112,51 +117,108 @@
         </div>
     </div>
 
-    <div class="report-grid">
+    <div class="report-stack">
         <div class="report-panel">
-            <div class="report-panel-head"><h5>الأكثر تأخيراً</h5></div>
+            <div class="report-panel-head">
+                <div>
+                    <h5>تقرير التأخير</h5>
+                    <div class="text-muted small">إجمالي التأخير لكل موظف ضمن الفترة، مرتب من الأكثر للأقل.</div>
+                </div>
+                <a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=late" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a>
+            </div>
             <div class="table-responsive">
-                <table class="table table-sm report-table mb-0">
-                    <thead><tr><th>الموظف</th><th>المدة</th><th>المرات</th></tr></thead>
+                <table class="table report-table mb-0">
+                    <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>إجمالي التأخير</th><th>مرات التأخير</th><th>أيام الدوام</th></tr></thead>
                     <tbody>
-                        {% for row in most_late_rows %}
-                        <tr><td>{{ row.employee.full_name }}</td><td>{{ row.late_seconds|seconds_to_hhmm }}</td><td>{{ row.late_days }}</td></tr>
+                        {% for row in late_report_rows %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ row.employee.full_name }}</td>
+                            <td>{{ row.employee.department|default:"-" }}</td>
+                            <td>{{ row.late_seconds|seconds_to_hhmm }}</td>
+                            <td>{{ row.late_days }}</td>
+                            <td>{{ row.attendance_days }}</td>
+                        </tr>
                         {% empty %}
-                        <tr><td colspan="3" class="text-center text-muted">لا يوجد تأخير.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted">لا يوجد تأخير ضمن هذه الفترة.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
+
         <div class="report-panel">
-            <div class="report-panel-head"><h5>الأكثر إضافياً</h5></div>
+            <div class="report-panel-head">
+                <div>
+                    <h5>تقرير الإضافي</h5>
+                    <div class="text-muted small">إجمالي ساعات الإضافي لكل موظف ضمن الفترة، مرتب من الأكثر للأقل.</div>
+                </div>
+                <a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=overtime" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a>
+            </div>
             <div class="table-responsive">
-                <table class="table table-sm report-table mb-0">
-                    <thead><tr><th>الموظف</th><th>المدة</th><th>الأيام</th></tr></thead>
+                <table class="table report-table mb-0">
+                    <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>إجمالي الإضافي</th><th>أيام الإضافي</th><th>أيام الدوام</th></tr></thead>
                     <tbody>
-                        {% for row in most_overtime_rows %}
-                        <tr><td>{{ row.employee.full_name }}</td><td>{{ row.overtime_seconds|seconds_to_hhmm }}</td><td>{{ row.overtime_days }}</td></tr>
+                        {% for row in overtime_report_rows %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ row.employee.full_name }}</td>
+                            <td>{{ row.employee.department|default:"-" }}</td>
+                            <td>{{ row.overtime_seconds|seconds_to_hhmm }}</td>
+                            <td>{{ row.overtime_days }}</td>
+                            <td>{{ row.attendance_days }}</td>
+                        </tr>
                         {% empty %}
-                        <tr><td colspan="3" class="text-center text-muted">لا يوجد إضافي.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted">لا يوجد إضافي ضمن هذه الفترة.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
+
         <div class="report-panel">
-            <div class="report-panel-head"><h5>الأكثر خروجاً مبكراً</h5></div>
+            <div class="report-panel-head">
+                <div>
+                    <h5>تقرير الخروج المبكر</h5>
+                    <div class="text-muted small">إجمالي الخروج المبكر لكل موظف ضمن الفترة، مرتب من الأكثر للأقل.</div>
+                </div>
+                <a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=early" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a>
+            </div>
             <div class="table-responsive">
-                <table class="table table-sm report-table mb-0">
-                    <thead><tr><th>الموظف</th><th>المدة</th><th>المرات</th></tr></thead>
+                <table class="table report-table mb-0">
+                    <thead><tr><th>#</th><th>الموظف</th><th>القسم</th><th>إجمالي الخروج المبكر</th><th>مرات الخروج المبكر</th><th>أيام الدوام</th></tr></thead>
                     <tbody>
-                        {% for row in most_early_leave_rows %}
-                        <tr><td>{{ row.employee.full_name }}</td><td>{{ row.early_leave_seconds|seconds_to_hhmm }}</td><td>{{ row.early_leave_days }}</td></tr>
+                        {% for row in early_leave_report_rows %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ row.employee.full_name }}</td>
+                            <td>{{ row.employee.department|default:"-" }}</td>
+                            <td>{{ row.early_leave_seconds|seconds_to_hhmm }}</td>
+                            <td>{{ row.early_leave_days }}</td>
+                            <td>{{ row.attendance_days }}</td>
+                        </tr>
                         {% empty %}
-                        <tr><td colspan="3" class="text-center text-muted">لا يوجد خروج مبكر.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted">لا يوجد خروج مبكر ضمن هذه الفترة.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <div class="report-panel">
+        <div class="report-panel-head">
+            <div>
+                <h5>أفكار تقارير مهمة للـ HR</h5>
+                <div class="text-muted small">اقتراحات يمكن إضافتها لاحقاً حسب احتياج الإدارة.</div>
+            </div>
+        </div>
+        <div class="p-3">
+            <ul class="idea-list">
+                {% for idea in hr_report_ideas %}
+                <li>{{ idea }}</li>
+                {% endfor %}
+            </ul>
         </div>
     </div>
 </div>

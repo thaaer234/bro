@@ -45,6 +45,7 @@ urlpatterns = [
     path('payroll/periods/create/', require_employee_perm('hr_salary')(views.PayrollPeriodCreateView.as_view()), name='payroll_period_create'),
     path('payroll/periods/<int:pk>/generate/', require_employee_perm('hr_salary')(views.PayrollGenerateView.as_view()), name='payroll_generate'),
     path('reports/hr/', require_employee_perm('reports_attendance')(views.EmployeeReportsView.as_view()), name='employee_reports'),
+    path('reports/hr/print/', require_employee_perm('reports_attendance')(views.EmployeeReportsPrintView.as_view()), name='employee_reports_print'),
     
     # الإجازات
     path('vacations/', require_employee_perm('hr_vacations')(views.VacationListView.as_view()), name='vacation_list'),

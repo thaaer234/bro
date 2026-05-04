@@ -2002,21 +2002,21 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             for key in ('worked_seconds', 'late_seconds', 'early_leave_seconds', 'overtime_seconds', 'absence_seconds'):
                 row[key] = row[key] or 0
             ranking_rows.append(row)
-        most_late_rows = sorted(
+        late_report_rows = sorted(
             [row for row in ranking_rows if row['late_seconds'] > 0],
             key=lambda row: (row['late_seconds'], row['late_days']),
             reverse=True,
-        )[:10]
-        most_overtime_rows = sorted(
+        )
+        overtime_report_rows = sorted(
             [row for row in ranking_rows if row['overtime_seconds'] > 0],
             key=lambda row: (row['overtime_seconds'], row['overtime_days']),
             reverse=True,
-        )[:10]
-        most_early_leave_rows = sorted(
+        )
+        early_leave_report_rows = sorted(
             [row for row in ranking_rows if row['early_leave_seconds'] > 0],
             key=lambda row: (row['early_leave_seconds'], row['early_leave_days']),
             reverse=True,
-        )[:10]
+        )
 
         month_rows = AttendanceReportService.summary_for_month(today.year, today.month)
         totals = attendance_qs.aggregate(
@@ -2042,11 +2042,34 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             'missing_punch_rows': missing_punch_qs[:300],
             'missing_punch_total_count': missing_punch_qs.count(),
             'missing_punch_limit': 300,
-            'most_late_rows': most_late_rows,
-            'most_overtime_rows': most_overtime_rows,
-            'most_early_leave_rows': most_early_leave_rows,
+            'late_report_rows': late_report_rows,
+            'overtime_report_rows': overtime_report_rows,
+            'early_leave_report_rows': early_leave_report_rows,
+            'hr_report_ideas': [
+                'تقرير الموظفين بدون أي تأخير خلال الفترة.',
+                'تقرير الغياب المتكرر حسب الموظف والقسم.',
+                'تقرير نقص البصمات حسب الموظف: دخول ناقص، خروج ناقص، أو الاثنين.',
+                'تقرير الالتزام بالدوام: أيام مكتملة مقابل أيام ناقصة لكل موظف.',
+                'تقرير الإضافي غير المعتاد للموظفين الذين تجاوزوا حد معين.',
+                'تقرير الإجازات السنوية والمستهلك والمتبقي لكل موظف.',
+            ],
             'recent_payrolls': EmployeePayroll.objects.select_related('employee__user', 'period').order_by('-generated_at')[:20],
             'recent_advances': EmployeeAdvance.objects.select_related('employee__user').order_by('-date')[:20],
+        })
+        return context
+
+
+class EmployeeReportsPrintView(EmployeeReportsView):
+    template_name = 'employ/reports_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        selected_report = self.request.GET.get('report', 'all')
+        if selected_report not in {'all', 'missing', 'late', 'overtime', 'early'}:
+            selected_report = 'all'
+        context.update({
+            'selected_report': selected_report,
+            'generated_at': timezone.now(),
         })
         return context
 
