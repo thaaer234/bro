@@ -137,6 +137,74 @@ def _safe_date_param(value, default):
         return default
 
 
+def _seconds_between(start, end):
+    if not start or not end:
+        return 0
+    return max(0, int((end - start).total_seconds()))
+
+
+def _attendance_metrics_from_employee_shift(attendance):
+    employee = attendance.employee
+    shift = employee.effective_shift if employee else None
+    check_in = attendance.check_in
+    check_out = attendance.check_out
+    worked_seconds = _seconds_between(check_in, check_out) if check_in and check_out else 0
+
+    if not shift:
+        return {
+            'worked_seconds': worked_seconds,
+            'late_seconds': attendance.late_seconds or 0,
+            'early_leave_seconds': attendance.early_leave_seconds or 0,
+            'overtime_seconds': attendance.overtime_seconds or 0,
+            'absence_seconds': attendance.absence_seconds or 0,
+        }
+
+    shift_start, shift_end = shift.get_bounds_for_date(attendance.date)
+    break_seconds = getattr(shift, 'break_seconds', 0) or 0
+    required_work_seconds = getattr(shift, 'required_work_seconds', 0) or employee.get_required_daily_seconds()
+    grace_seconds = (getattr(shift, 'grace_period_minutes', 0) or 0) * 60
+    policy = employee.effective_attendance_policy
+    rounding_method = getattr(policy, 'rounding_method', 'minute') if policy else 'minute'
+
+    late_seconds = max(0, _seconds_between(shift_start, check_in) - grace_seconds) if check_in else 0
+    early_leave_seconds = _seconds_between(check_out, shift_end) if check_out and check_out < shift_end else 0
+    overtime_seconds = _seconds_between(shift_end, check_out) if check_out and check_out > shift_end else 0
+    worked_seconds = max(0, worked_seconds - break_seconds)
+    absence_seconds = max(0, required_work_seconds - worked_seconds)
+
+    def apply_rounding(seconds):
+        if seconds <= 0:
+            return 0
+        if rounding_method == 'none':
+            return seconds
+        if rounding_method == '5_minutes':
+            unit = 300
+        elif rounding_method == '15_minutes':
+            unit = 900
+        else:
+            unit = 60
+        return int(round(seconds / unit) * unit)
+
+    return {
+        'worked_seconds': worked_seconds,
+        'late_seconds': apply_rounding(late_seconds),
+        'early_leave_seconds': apply_rounding(early_leave_seconds),
+        'overtime_seconds': apply_rounding(overtime_seconds),
+        'absence_seconds': absence_seconds,
+    }
+
+
+def _employee_shift_label(employee):
+    shift = employee.effective_shift if employee else None
+    if not shift:
+        return '-'
+    start_time = getattr(shift, 'start_time', None)
+    end_time = getattr(shift, 'end_time', None)
+    if start_time and end_time:
+        return f'{start_time:%H:%M} - {end_time:%H:%M}'
+    return str(shift)
+
+
 # خريطة المجموعات بحسب بادئة كود الصلاحية
 GROUP_PREFIXES = {
     'students_': 'students',
@@ -1975,80 +2043,149 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
         attendance_qs = (
             EmployeeAttendance.objects
             .filter(date__gte=start_date, date__lte=end_date)
-            .select_related('employee__user', 'employee__department', 'employee__job_title')
-        )
-        missing_punch_qs = attendance_qs.filter(Q(check_in__isnull=True) | Q(check_out__isnull=True)).order_by('-date', 'employee__user__first_name')
-
-        ranking_values = list(
-            attendance_qs.values('employee_id').annotate(
-                attendance_days=Count('id'),
-                missing_punch_days=Count('id', filter=Q(check_in__isnull=True) | Q(check_out__isnull=True)),
-                late_days=Count('id', filter=Q(late_seconds__gt=0)),
-                early_leave_days=Count('id', filter=Q(early_leave_seconds__gt=0)),
-                overtime_days=Count('id', filter=Q(overtime_seconds__gt=0)),
-                worked_seconds=Sum('worked_seconds'),
-                late_seconds=Sum('late_seconds'),
-                early_leave_seconds=Sum('early_leave_seconds'),
-                overtime_seconds=Sum('overtime_seconds'),
-                absence_seconds=Sum('absence_seconds'),
+            .select_related(
+                'employee__user',
+                'employee__department',
+                'employee__job_title',
+                'employee__default_shift',
+                'employee__attendance_policy',
             )
+            .order_by('-date', 'employee__user__first_name')
         )
-        employees_by_id = Employee.objects.select_related('user', 'department', 'job_title').in_bulk(
-            [row['employee_id'] for row in ranking_values]
+        attendance_rows = list(attendance_qs)
+        attendance_employee_ids = {row.employee_id for row in attendance_rows}
+        employees_by_id = Employee.objects.select_related(
+            'user',
+            'department',
+            'job_title',
+            'default_shift',
+            'attendance_policy',
+        ).filter(
+            Q(employment_status='active') | Q(pk__in=attendance_employee_ids)
+        ).in_bulk()
+
+        ranking_map = {}
+        for employee in employees_by_id.values():
+            employee.report_shift_label = _employee_shift_label(employee)
+            ranking_map[employee.pk] = {
+                'employee': employee,
+                'attendance_days': 0,
+                'missing_punch_days': 0,
+                'late_days': 0,
+                'early_leave_days': 0,
+                'overtime_days': 0,
+                'worked_seconds': 0,
+                'late_seconds': 0,
+                'early_leave_seconds': 0,
+                'overtime_seconds': 0,
+                'absence_seconds': 0,
+            }
+
+        missing_punch_rows = []
+        late_detail_rows = []
+        overtime_detail_rows = []
+        early_leave_detail_rows = []
+        for attendance in attendance_rows:
+            attendance.employee.report_shift_label = getattr(
+                attendance.employee,
+                'report_shift_label',
+                _employee_shift_label(attendance.employee),
+            )
+            metrics = _attendance_metrics_from_employee_shift(attendance)
+            attendance.worked_seconds = metrics['worked_seconds']
+            attendance.late_seconds = metrics['late_seconds']
+            attendance.early_leave_seconds = metrics['early_leave_seconds']
+            attendance.overtime_seconds = metrics['overtime_seconds']
+            attendance.absence_seconds = metrics['absence_seconds']
+
+            bucket = ranking_map.setdefault(attendance.employee_id, {
+                'employee': attendance.employee,
+                'attendance_days': 0,
+                'missing_punch_days': 0,
+                'late_days': 0,
+                'early_leave_days': 0,
+                'overtime_days': 0,
+                'worked_seconds': 0,
+                'late_seconds': 0,
+                'early_leave_seconds': 0,
+                'overtime_seconds': 0,
+                'absence_seconds': 0,
+            })
+            bucket['attendance_days'] += 1
+            bucket['worked_seconds'] += metrics['worked_seconds']
+            bucket['late_seconds'] += metrics['late_seconds']
+            bucket['early_leave_seconds'] += metrics['early_leave_seconds']
+            bucket['overtime_seconds'] += metrics['overtime_seconds']
+            bucket['absence_seconds'] += metrics['absence_seconds']
+
+            if not attendance.check_in or not attendance.check_out:
+                bucket['missing_punch_days'] += 1
+                missing_punch_rows.append(attendance)
+            if metrics['late_seconds'] > 0:
+                bucket['late_days'] += 1
+                late_detail_rows.append(attendance)
+            if metrics['early_leave_seconds'] > 0:
+                bucket['early_leave_days'] += 1
+                early_leave_detail_rows.append(attendance)
+            if metrics['overtime_seconds'] > 0:
+                bucket['overtime_days'] += 1
+                overtime_detail_rows.append(attendance)
+
+        ranking_rows = sorted(
+            ranking_map.values(),
+            key=lambda row: row['employee'].full_name or '',
         )
-        ranking_rows = []
-        for row in ranking_values:
-            employee = employees_by_id.get(row['employee_id'])
-            if not employee:
-                continue
-            row['employee'] = employee
-            for key in ('worked_seconds', 'late_seconds', 'early_leave_seconds', 'overtime_seconds', 'absence_seconds'):
-                row[key] = row[key] or 0
-            ranking_rows.append(row)
         late_report_rows = sorted(
-            [row for row in ranking_rows if row['late_seconds'] > 0],
+            ranking_rows,
             key=lambda row: (row['late_seconds'], row['late_days']),
             reverse=True,
         )
         overtime_report_rows = sorted(
-            [row for row in ranking_rows if row['overtime_seconds'] > 0],
+            ranking_rows,
             key=lambda row: (row['overtime_seconds'], row['overtime_days']),
             reverse=True,
         )
         early_leave_report_rows = sorted(
-            [row for row in ranking_rows if row['early_leave_seconds'] > 0],
+            ranking_rows,
             key=lambda row: (row['early_leave_seconds'], row['early_leave_days']),
+            reverse=True,
+        )
+        missing_summary_rows = sorted(
+            [row for row in ranking_rows if row['missing_punch_days'] > 0],
+            key=lambda row: row['missing_punch_days'],
             reverse=True,
         )
 
         month_rows = AttendanceReportService.summary_for_month(today.year, today.month)
-        totals = attendance_qs.aggregate(
-            late_total=Sum('late_seconds'),
-            early_leave_total=Sum('early_leave_seconds'),
-            overtime_total=Sum('overtime_seconds'),
-            absence_total=Sum('absence_seconds'),
-        )
+        late_total = sum(row['late_seconds'] for row in ranking_rows)
+        early_leave_total = sum(row['early_leave_seconds'] for row in ranking_rows)
+        overtime_total = sum(row['overtime_seconds'] for row in ranking_rows)
+        absence_total = sum(row['absence_seconds'] for row in ranking_rows)
         context.update({
             'today': today,
             'start_date': start_date,
             'end_date': end_date,
             'selected_report': selected_report,
             'month_rows': month_rows,
-            'absent_count': attendance_qs.filter(status='absent').count(),
-            'late_count': attendance_qs.filter(late_seconds__gt=0).count(),
-            'early_leave_count': attendance_qs.filter(early_leave_seconds__gt=0).count(),
-            'missing_punch_count': missing_punch_qs.count(),
-            'missing_punch_employee_count': missing_punch_qs.values('employee_id').distinct().count(),
-            'overtime_total': totals['overtime_total'] or 0,
-            'late_total': totals['late_total'] or 0,
-            'early_leave_total': totals['early_leave_total'] or 0,
-            'absence_total': totals['absence_total'] or 0,
-            'missing_punch_rows': missing_punch_qs[:300],
-            'missing_punch_total_count': missing_punch_qs.count(),
-            'missing_punch_limit': 300,
+            'absent_count': sum(1 for row in attendance_rows if row.status == 'absent'),
+            'late_count': sum(1 for row in attendance_rows if row.late_seconds > 0),
+            'early_leave_count': sum(1 for row in attendance_rows if row.early_leave_seconds > 0),
+            'missing_punch_count': len(missing_punch_rows),
+            'missing_punch_employee_count': len({row.employee_id for row in missing_punch_rows}),
+            'overtime_total': overtime_total,
+            'late_total': late_total,
+            'early_leave_total': early_leave_total,
+            'absence_total': absence_total,
+            'missing_punch_rows': missing_punch_rows,
+            'missing_punch_total_count': len(missing_punch_rows),
+            'missing_punch_limit': None,
+            'missing_summary_rows': missing_summary_rows,
             'late_report_rows': late_report_rows,
             'overtime_report_rows': overtime_report_rows,
             'early_leave_report_rows': early_leave_report_rows,
+            'late_detail_rows': late_detail_rows,
+            'overtime_detail_rows': overtime_detail_rows,
+            'early_leave_detail_rows': early_leave_detail_rows,
             'hr_report_ideas': [
                 'تقرير الموظفين بدون أي تأخير خلال الفترة.',
                 'تقرير الغياب المتكرر حسب الموظف والقسم.',
