@@ -121,6 +121,22 @@ def _safe_period_int(value, default, min_value=None, max_value=None):
     return parsed_value
 
 
+def _same_day_last_year(target_date):
+    try:
+        return target_date.replace(year=target_date.year - 1)
+    except ValueError:
+        return target_date.replace(year=target_date.year - 1, day=28)
+
+
+def _safe_date_param(value, default):
+    if not value:
+        return default
+    try:
+        return datetime.strptime(str(value), '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return default
+
+
 # خريطة المجموعات بحسب بادئة كود الصلاحية
 GROUP_PREFIXES = {
     'students_': 'students',
@@ -1947,16 +1963,88 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
+        default_start_date = _same_day_last_year(today)
+        start_date = _safe_date_param(self.request.GET.get('start_date'), default_start_date)
+        end_date = _safe_date_param(self.request.GET.get('end_date'), today)
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
+        attendance_qs = (
+            EmployeeAttendance.objects
+            .filter(date__gte=start_date, date__lte=end_date)
+            .select_related('employee__user', 'employee__department', 'employee__job_title')
+        )
+        missing_punch_qs = attendance_qs.filter(Q(check_in__isnull=True) | Q(check_out__isnull=True)).order_by('-date', 'employee__user__first_name')
+
+        ranking_values = list(
+            attendance_qs.values('employee_id').annotate(
+                attendance_days=Count('id'),
+                missing_punch_days=Count('id', filter=Q(check_in__isnull=True) | Q(check_out__isnull=True)),
+                late_days=Count('id', filter=Q(late_seconds__gt=0)),
+                early_leave_days=Count('id', filter=Q(early_leave_seconds__gt=0)),
+                overtime_days=Count('id', filter=Q(overtime_seconds__gt=0)),
+                worked_seconds=Sum('worked_seconds'),
+                late_seconds=Sum('late_seconds'),
+                early_leave_seconds=Sum('early_leave_seconds'),
+                overtime_seconds=Sum('overtime_seconds'),
+                absence_seconds=Sum('absence_seconds'),
+            )
+        )
+        employees_by_id = Employee.objects.select_related('user', 'department', 'job_title').in_bulk(
+            [row['employee_id'] for row in ranking_values]
+        )
+        ranking_rows = []
+        for row in ranking_values:
+            employee = employees_by_id.get(row['employee_id'])
+            if not employee:
+                continue
+            row['employee'] = employee
+            for key in ('worked_seconds', 'late_seconds', 'early_leave_seconds', 'overtime_seconds', 'absence_seconds'):
+                row[key] = row[key] or 0
+            ranking_rows.append(row)
+        most_late_rows = sorted(
+            [row for row in ranking_rows if row['late_seconds'] > 0],
+            key=lambda row: (row['late_seconds'], row['late_days']),
+            reverse=True,
+        )[:10]
+        most_overtime_rows = sorted(
+            [row for row in ranking_rows if row['overtime_seconds'] > 0],
+            key=lambda row: (row['overtime_seconds'], row['overtime_days']),
+            reverse=True,
+        )[:10]
+        most_early_leave_rows = sorted(
+            [row for row in ranking_rows if row['early_leave_seconds'] > 0],
+            key=lambda row: (row['early_leave_seconds'], row['early_leave_days']),
+            reverse=True,
+        )[:10]
+
         month_rows = AttendanceReportService.summary_for_month(today.year, today.month)
-        absent_count = EmployeeAttendance.objects.filter(date__year=today.year, date__month=today.month, status='absent').count()
-        late_count = EmployeeAttendance.objects.filter(date__year=today.year, date__month=today.month, status='late').count()
-        overtime_total = EmployeeAttendance.objects.filter(date__year=today.year, date__month=today.month).aggregate(total=Sum('overtime_seconds'))['total'] or 0
+        totals = attendance_qs.aggregate(
+            late_total=Sum('late_seconds'),
+            early_leave_total=Sum('early_leave_seconds'),
+            overtime_total=Sum('overtime_seconds'),
+            absence_total=Sum('absence_seconds'),
+        )
         context.update({
             'today': today,
+            'start_date': start_date,
+            'end_date': end_date,
             'month_rows': month_rows,
-            'absent_count': absent_count,
-            'late_count': late_count,
-            'overtime_total': overtime_total,
+            'absent_count': attendance_qs.filter(status='absent').count(),
+            'late_count': attendance_qs.filter(late_seconds__gt=0).count(),
+            'early_leave_count': attendance_qs.filter(early_leave_seconds__gt=0).count(),
+            'missing_punch_count': missing_punch_qs.count(),
+            'missing_punch_employee_count': missing_punch_qs.values('employee_id').distinct().count(),
+            'overtime_total': totals['overtime_total'] or 0,
+            'late_total': totals['late_total'] or 0,
+            'early_leave_total': totals['early_leave_total'] or 0,
+            'absence_total': totals['absence_total'] or 0,
+            'missing_punch_rows': missing_punch_qs[:300],
+            'missing_punch_total_count': missing_punch_qs.count(),
+            'missing_punch_limit': 300,
+            'most_late_rows': most_late_rows,
+            'most_overtime_rows': most_overtime_rows,
+            'most_early_leave_rows': most_early_leave_rows,
             'recent_payrolls': EmployeePayroll.objects.select_related('employee__user', 'period').order_by('-generated_at')[:20],
             'recent_advances': EmployeeAdvance.objects.select_related('employee__user').order_by('-date')[:20],
         })

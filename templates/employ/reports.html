@@ -4,88 +4,155 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/employ.css' %}">
+<style>
+.hr-report-page{display:grid;gap:1rem}
+.hr-report-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.hr-report-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.report-filter{background:#fff;border:1px solid #dbe3ec;border-radius:10px;padding:1rem}
+.report-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.75rem}
+.report-kpi{background:#fff;border:1px solid #dbe3ec;border-radius:10px;padding:1rem}
+.report-kpi .label{color:#64748b;font-size:.86rem}
+.report-kpi .value{font-size:1.55rem;font-weight:800;color:#0f172a}
+.report-panel{background:#fff;border:1px solid #dbe3ec;border-radius:10px;overflow:hidden}
+.report-panel-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem;border-bottom:1px solid #e2e8f0}
+.report-panel-head h5{margin:0}
+.report-table th{background:#f8fafc;white-space:nowrap;font-size:.86rem}
+.report-table td{vertical-align:middle}
+.report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.status-pill{display:inline-flex;align-items:center;border-radius:999px;padding:.22rem .55rem;font-size:.78rem;font-weight:700;background:#eef2f7;color:#334155}
+.status-pill.warn{background:#fef3c7;color:#92400e}
+.status-pill.bad{background:#fee2e2;color:#991b1b}
+.status-pill.ok{background:#dcfce7;color:#166534}
+@media (max-width: 1100px){.report-grid{grid-template-columns:1fr}}
+@media (max-width: 768px){.hr-report-head,.report-panel-head{display:block}.hr-report-actions{margin-top:.75rem}.report-table{min-width:760px}}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="module-header">
-    <h2>تقارير HR</h2>
-    <a href="{% url 'employ:payroll_dashboard' %}" class="btn btn-secondary">الرواتب</a>
-</div>
+<div class="hr-report-page">
+    <div class="hr-report-head">
+        <div>
+            <h2 class="mb-1">تقارير HR</h2>
+            <div class="text-muted">تقرير البصمات الناقصة وترتيب الموظفين حسب التأخير والإضافي والخروج المبكر.</div>
+        </div>
+        <div class="hr-report-actions">
+            <a href="{% url 'employ:hr' %}" class="btn btn-outline-secondary">الموظفون</a>
+            <a href="{% url 'employ:attendance_list' %}" class="btn btn-outline-primary">الدوام</a>
+            <a href="{% url 'employ:payroll_dashboard' %}" class="btn btn-secondary">الرواتب</a>
+        </div>
+    </div>
 
-<div class="dashboard-cards mb-4">
-    <div class="dashboard-card">
-        <div class="dashboard-card-title">تقرير التأخير</div>
-        <div class="dashboard-card-value">{{ late_count }}</div>
+    <div class="report-filter">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">من تاريخ</label>
+                <input type="date" class="form-control" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">إلى تاريخ</label>
+                <input type="date" class="form-control" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button class="btn btn-primary w-100">عرض التقرير</button>
+                <a class="btn btn-outline-secondary" href="{% url 'employ:employee_reports' %}">آخر سنة</a>
+            </div>
+        </form>
     </div>
-    <div class="dashboard-card">
-        <div class="dashboard-card-title">تقرير الغياب</div>
-        <div class="dashboard-card-value">{{ absent_count }}</div>
-    </div>
-    <div class="dashboard-card">
-        <div class="dashboard-card-title">الإضافي بالثواني</div>
-        <div class="dashboard-card-value">{{ overtime_total|seconds_to_hhmm }}</div>
-    </div>
-</div>
 
-<div class="row g-3">
-    <div class="col-lg-7">
-        <div class="card shadow-sm">
-            <div class="card-header"><h5 class="mb-0">التقرير الشهري</h5></div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <thead><tr><th>الموظف</th><th>الدوام</th><th>التأخير</th><th>الغياب</th><th>الإضافي</th></tr></thead>
+    <div class="report-kpis">
+        <div class="report-kpi"><div class="label">سجلات بصمة ناقصة</div><div class="value">{{ missing_punch_count }}</div></div>
+        <div class="report-kpi"><div class="label">موظفون لديهم نقص بصمة</div><div class="value">{{ missing_punch_employee_count }}</div></div>
+        <div class="report-kpi"><div class="label">مرات التأخير</div><div class="value">{{ late_count }}</div></div>
+        <div class="report-kpi"><div class="label">مرات الخروج المبكر</div><div class="value">{{ early_leave_count }}</div></div>
+        <div class="report-kpi"><div class="label">إجمالي التأخير</div><div class="value">{{ late_total|seconds_to_hhmm }}</div></div>
+        <div class="report-kpi"><div class="label">إجمالي الإضافي</div><div class="value">{{ overtime_total|seconds_to_hhmm }}</div></div>
+    </div>
+
+    <div class="report-panel">
+        <div class="report-panel-head">
+            <div>
+                <h5>الموظفون غير مكتملة بصمتهم</h5>
+                <div class="text-muted small">من {{ start_date|date:"Y-m-d" }} إلى {{ end_date|date:"Y-m-d" }}</div>
+            </div>
+            {% if missing_punch_total_count > missing_punch_limit %}
+            <span class="status-pill warn">يعرض أول {{ missing_punch_limit }} من {{ missing_punch_total_count }}</span>
+            {% endif %}
+        </div>
+        <div class="table-responsive">
+            <table class="table report-table mb-0">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>الموظف</th>
+                        <th>القسم</th>
+                        <th>الدخول</th>
+                        <th>الخروج</th>
+                        <th>الحالة</th>
+                        <th>التأخير</th>
+                        <th>الخروج المبكر</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in missing_punch_rows %}
+                    <tr>
+                        <td>{{ row.date|date:"Y-m-d" }}</td>
+                        <td>{{ row.employee.full_name }}</td>
+                        <td>{{ row.employee.department|default:"-" }}</td>
+                        <td>{% if row.check_in %}<span class="status-pill ok">{{ row.check_in|date:"H:i" }}</span>{% else %}<span class="status-pill bad">لا يوجد</span>{% endif %}</td>
+                        <td>{% if row.check_out %}<span class="status-pill ok">{{ row.check_out|date:"H:i" }}</span>{% else %}<span class="status-pill bad">لا يوجد</span>{% endif %}</td>
+                        <td>{{ row.get_status_display }}</td>
+                        <td>{{ row.late_seconds|seconds_to_hhmm }}</td>
+                        <td>{{ row.early_leave_seconds|seconds_to_hhmm }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">لا توجد سجلات بصمة ناقصة ضمن هذه الفترة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="report-grid">
+        <div class="report-panel">
+            <div class="report-panel-head"><h5>الأكثر تأخيراً</h5></div>
+            <div class="table-responsive">
+                <table class="table table-sm report-table mb-0">
+                    <thead><tr><th>الموظف</th><th>المدة</th><th>المرات</th></tr></thead>
                     <tbody>
-                        {% for row in month_rows %}
-                        <tr>
-                            <td>{{ row.employee.full_name }}</td>
-                            <td>{{ row.attendance_days }}</td>
-                            <td>{{ row.late_seconds|seconds_to_hhmm }}</td>
-                            <td>{{ row.absence_seconds|seconds_to_hhmm }}</td>
-                            <td>{{ row.overtime_seconds|seconds_to_hhmm }}</td>
-                        </tr>
+                        {% for row in most_late_rows %}
+                        <tr><td>{{ row.employee.full_name }}</td><td>{{ row.late_seconds|seconds_to_hhmm }}</td><td>{{ row.late_days }}</td></tr>
                         {% empty %}
-                        <tr><td colspan="5" class="text-center text-muted">لا توجد بيانات.</td></tr>
+                        <tr><td colspan="3" class="text-center text-muted">لا يوجد تأخير.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
-    <div class="col-lg-5">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header"><h5 class="mb-0">تقرير الرواتب</h5></div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <thead><tr><th>الموظف</th><th>الفترة</th><th>الصافي</th></tr></thead>
+        <div class="report-panel">
+            <div class="report-panel-head"><h5>الأكثر إضافياً</h5></div>
+            <div class="table-responsive">
+                <table class="table table-sm report-table mb-0">
+                    <thead><tr><th>الموظف</th><th>المدة</th><th>الأيام</th></tr></thead>
                     <tbody>
-                        {% for payroll in recent_payrolls %}
-                        <tr>
-                            <td>{{ payroll.employee.full_name }}</td>
-                            <td>{{ payroll.period.name }}</td>
-                            <td>{{ payroll.net_salary|floatformat:2 }}</td>
-                        </tr>
+                        {% for row in most_overtime_rows %}
+                        <tr><td>{{ row.employee.full_name }}</td><td>{{ row.overtime_seconds|seconds_to_hhmm }}</td><td>{{ row.overtime_days }}</td></tr>
                         {% empty %}
-                        <tr><td colspan="3" class="text-center text-muted">لا توجد مسيرات.</td></tr>
+                        <tr><td colspan="3" class="text-center text-muted">لا يوجد إضافي.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-        <div class="card shadow-sm">
-            <div class="card-header"><h5 class="mb-0">تقرير السلف</h5></div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <thead><tr><th>الموظف</th><th>التاريخ</th><th>المبلغ</th><th>المتبقي</th></tr></thead>
+        <div class="report-panel">
+            <div class="report-panel-head"><h5>الأكثر خروجاً مبكراً</h5></div>
+            <div class="table-responsive">
+                <table class="table table-sm report-table mb-0">
+                    <thead><tr><th>الموظف</th><th>المدة</th><th>المرات</th></tr></thead>
                     <tbody>
-                        {% for advance in recent_advances %}
-                        <tr>
-                            <td>{{ advance.employee.full_name|default:advance.employee_name }}</td>
-                            <td>{{ advance.date }}</td>
-                            <td>{{ advance.amount|floatformat:2 }}</td>
-                            <td>{{ advance.outstanding_amount|floatformat:2 }}</td>
-                        </tr>
+                        {% for row in most_early_leave_rows %}
+                        <tr><td>{{ row.employee.full_name }}</td><td>{{ row.early_leave_seconds|seconds_to_hhmm }}</td><td>{{ row.early_leave_days }}</td></tr>
                         {% empty %}
-                        <tr><td colspan="4" class="text-center text-muted">لا توجد سلف.</td></tr>
+                        <tr><td colspan="3" class="text-center text-muted">لا يوجد خروج مبكر.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
