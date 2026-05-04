@@ -1968,6 +1968,9 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
         end_date = _safe_date_param(self.request.GET.get('end_date'), today)
         if start_date > end_date:
             start_date, end_date = end_date, start_date
+        selected_report = self.request.GET.get('report', 'overview')
+        if selected_report not in {'overview', 'missing', 'late', 'overtime', 'early', 'ideas'}:
+            selected_report = 'overview'
 
         attendance_qs = (
             EmployeeAttendance.objects
@@ -2029,6 +2032,7 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             'today': today,
             'start_date': start_date,
             'end_date': end_date,
+            'selected_report': selected_report,
             'month_rows': month_rows,
             'absent_count': attendance_qs.filter(status='absent').count(),
             'late_count': attendance_qs.filter(late_seconds__gt=0).count(),
