@@ -388,16 +388,53 @@
     <div class="report-panel"><div class="report-panel-head"><div><h5>تقرير صفحة لكل موظف</h5><div class="text-muted small">كل موظف له صفحة مستقلة للطباعة فيها ملخص حضوره والتزامه وبصماته وعطله ودوام الجمعة.</div></div><a href="{% url 'employ:employee_reports_print' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&report=employee_pages" target="_blank" class="btn btn-sm btn-outline-primary">طباعة التقرير</a></div></div>
     {% for row in employee_page_rows %}
     <div class="report-panel">
-        <div class="report-panel-head"><div><h5>{{ row.employee.full_name }}</h5><div class="text-muted small">{{ row.employee.department|default:"-" }} | {{ row.employee.report_shift_label }}</div></div></div>
+        <div class="report-panel-head">
+            <div>
+                <h5>{{ row.employee.full_name }}</h5>
+                <div class="text-muted small">{{ row.employee.department|default:"-" }} | الدوام المسجل بالبروفايل: {{ row.employee.report_shift_label }}</div>
+            </div>
+            <span class="status-pill ok">نسبة الالتزام {{ row.commitment_rate }}%</span>
+        </div>
         <div class="report-kpis p-3">
             <div class="report-kpi"><div class="label">الحضور</div><div class="value">{{ row.summary.present_days }}</div></div>
+            <div class="report-kpi"><div class="label">الغياب</div><div class="value">{{ row.summary.absent_days }}</div></div>
             <div class="report-kpi"><div class="label">التأخير</div><div class="value">{{ row.summary.late_seconds|seconds_to_hhmm }}</div></div>
+            <div class="report-kpi"><div class="label">الخروج المبكر</div><div class="value">{{ row.summary.early_leave_seconds|seconds_to_hhmm }}</div></div>
             <div class="report-kpi"><div class="label">الإضافي</div><div class="value">{{ row.summary.overtime_seconds|seconds_to_hhmm }}</div></div>
             <div class="report-kpi"><div class="label">الالتزام</div><div class="value">{{ row.commitment_rate }}%</div></div>
+            <div class="report-kpi"><div class="label">إنجاز ساعات الدوام</div><div class="value">{{ row.work_completion_rate }}%</div></div>
             <div class="report-kpi"><div class="label">بصمات ناقصة</div><div class="value">{{ row.missing_punch_days }}</div></div>
             <div class="report-kpi"><div class="label">عطل بدون الجمعة</div><div class="value">{{ row.holidays_except_friday }}</div></div>
             <div class="report-kpi"><div class="label">دوام الجمعة</div><div class="value">{{ row.friday_worked_days }}</div></div>
             <div class="report-kpi"><div class="label">إجازات متبقية</div><div class="value">{{ row.vacation_remaining_days }}</div></div>
+        </div>
+        <div class="p-3 pt-0">
+            <h6 class="mb-2">تفاصيل الاستثناءات</h6>
+            <div class="table-responsive">
+                <table class="table table-sm report-table mb-0">
+                    <thead><tr><th>التاريخ</th><th>الحالة</th><th>الدخول</th><th>الخروج</th><th>عمل فعلي</th><th>تأخير</th><th>خروج مبكر</th><th>إضافي</th></tr></thead>
+                    <tbody>
+                        {% for att in row.exception_attendances %}
+                        <tr><td>{{ att.date|date:"Y-m-d" }}</td><td>{{ att.report_status_label }}</td><td>{{ att.check_in|date:"H:i"|default:"-" }}</td><td>{{ att.check_out|date:"H:i"|default:"-" }}</td><td>{{ att.worked_seconds|seconds_to_hhmm }}</td><td>{{ att.late_seconds|seconds_to_hhmm }}</td><td>{{ att.early_leave_seconds|seconds_to_hhmm }}</td><td>{{ att.overtime_seconds|seconds_to_hhmm }}</td></tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted">لا توجد استثناءات ضمن الفترة.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <h6 class="mt-3 mb-2">دوام يوم الجمعة</h6>
+            <div class="table-responsive">
+                <table class="table table-sm report-table mb-0">
+                    <thead><tr><th>التاريخ</th><th>الدخول</th><th>الخروج</th><th>عمل فعلي</th><th>إضافي</th></tr></thead>
+                    <tbody>
+                        {% for att in row.friday_attendances %}
+                        <tr><td>{{ att.date|date:"Y-m-d" }}</td><td>{{ att.check_in|date:"H:i"|default:"-" }}</td><td>{{ att.check_out|date:"H:i"|default:"-" }}</td><td>{{ att.worked_seconds|seconds_to_hhmm }}</td><td>{{ att.overtime_seconds|seconds_to_hhmm }}</td></tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted">لا يوجد دوام يوم الجمعة ضمن الفترة.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     {% endfor %}

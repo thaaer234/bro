@@ -259,13 +259,35 @@
         {% if selected_report == 'employee_pages' %}
         {% for row in employee_page_rows %}
         <section class="page-break">
-            <div class="section-head"><h2>{{ row.employee.full_name }}</h2><div class="muted">{{ row.employee.department|default:"-" }} | {{ row.employee.report_shift_label }}</div></div>
+            <div class="section-head"><h2>{{ row.employee.full_name }}</h2><div class="muted">{{ row.employee.department|default:"-" }} | الدوام المسجل بالبروفايل: {{ row.employee.report_shift_label }}</div></div>
             <table><tbody>
                 <tr><th>الحضور</th><td>{{ row.summary.present_days }}</td><th>الغياب</th><td>{{ row.summary.absent_days }}</td><th>الالتزام</th><td>{{ row.commitment_rate }}%</td></tr>
                 <tr><th>التأخير</th><td>{{ row.summary.late_seconds|seconds_to_hhmm }}</td><th>الخروج المبكر</th><td>{{ row.summary.early_leave_seconds|seconds_to_hhmm }}</td><th>الإضافي</th><td>{{ row.summary.overtime_seconds|seconds_to_hhmm }}</td></tr>
-                <tr><th>بصمات ناقصة</th><td>{{ row.missing_punch_days }}</td><th>عطل بدون الجمعة</th><td>{{ row.holidays_except_friday }}</td><th>دوام الجمعة</th><td>{{ row.friday_worked_days }}</td></tr>
-                <tr><th>إجازات مستخدمة</th><td>{{ row.vacation_used_days }}</td><th>إجازات متبقية</th><td>{{ row.vacation_remaining_days }}</td><th></th><td></td></tr>
+                <tr><th>إنجاز ساعات الدوام</th><td>{{ row.work_completion_rate }}%</td><th>بصمات ناقصة</th><td>{{ row.missing_punch_days }}</td><th>دوام الجمعة</th><td>{{ row.friday_worked_days }}</td></tr>
+                <tr><th>عطل بدون الجمعة</th><td>{{ row.holidays_except_friday }}</td><th>إجازات مستخدمة</th><td>{{ row.vacation_used_days }}</td><th>إجازات متبقية</th><td>{{ row.vacation_remaining_days }}</td></tr>
             </tbody></table>
+            <div class="section-head" style="margin-top:14px"><h2>تفاصيل الاستثناءات</h2><div class="muted">غياب، تأخير، خروج مبكر، إضافي، أو بصمة ناقصة</div></div>
+            <table>
+                <thead><tr><th>التاريخ</th><th>الحالة</th><th>الدخول</th><th>الخروج</th><th>عمل فعلي</th><th>تأخير</th><th>خروج مبكر</th><th>إضافي</th></tr></thead>
+                <tbody>
+                    {% for att in row.exception_attendances %}
+                    <tr><td>{{ att.date|date:"Y-m-d" }}</td><td>{{ att.report_status_label }}</td><td>{{ att.check_in|date:"H:i"|default:"-" }}</td><td>{{ att.check_out|date:"H:i"|default:"-" }}</td><td>{{ att.worked_seconds|seconds_to_hhmm }}</td><td>{{ att.late_seconds|seconds_to_hhmm }}</td><td>{{ att.early_leave_seconds|seconds_to_hhmm }}</td><td>{{ att.overtime_seconds|seconds_to_hhmm }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="empty">لا توجد استثناءات ضمن الفترة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="section-head" style="margin-top:14px"><h2>دوام يوم الجمعة</h2><div class="muted">الأيام التي تم تسجيل بصمة فيها يوم الجمعة</div></div>
+            <table>
+                <thead><tr><th>التاريخ</th><th>الدخول</th><th>الخروج</th><th>عمل فعلي</th><th>إضافي</th></tr></thead>
+                <tbody>
+                    {% for att in row.friday_attendances %}
+                    <tr><td>{{ att.date|date:"Y-m-d" }}</td><td>{{ att.check_in|date:"H:i"|default:"-" }}</td><td>{{ att.check_out|date:"H:i"|default:"-" }}</td><td>{{ att.worked_seconds|seconds_to_hhmm }}</td><td>{{ att.overtime_seconds|seconds_to_hhmm }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="empty">لا يوجد دوام يوم الجمعة ضمن الفترة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </section>
         {% endfor %}
         {% endif %}

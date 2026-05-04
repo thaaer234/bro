@@ -157,6 +157,7 @@ def _attendance_metrics_from_employee_shift(attendance):
             'early_leave_seconds': attendance.early_leave_seconds or 0,
             'overtime_seconds': attendance.overtime_seconds or 0,
             'absence_seconds': attendance.absence_seconds or 0,
+            'required_work_seconds': 0,
         }
 
     shift_start, shift_end = shift.get_bounds_for_date(attendance.date)
@@ -191,6 +192,7 @@ def _attendance_metrics_from_employee_shift(attendance):
         'early_leave_seconds': apply_rounding(early_leave_seconds),
         'overtime_seconds': apply_rounding(overtime_seconds),
         'absence_seconds': absence_seconds,
+        'required_work_seconds': required_work_seconds,
     }
 
 
@@ -2107,6 +2109,7 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
                 'early_leave_seconds': 0,
                 'overtime_seconds': 0,
                 'absence_seconds': 0,
+                'required_work_seconds': 0,
                 'absent_days': 0,
                 'present_days': 0,
                 'complete_days': 0,
@@ -2134,6 +2137,11 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             attendance.early_leave_seconds = metrics['early_leave_seconds']
             attendance.overtime_seconds = metrics['overtime_seconds']
             attendance.absence_seconds = metrics['absence_seconds']
+            attendance.required_work_seconds_report = metrics.get('required_work_seconds', 0)
+            has_check_in = bool(attendance.check_in)
+            has_check_out = bool(attendance.check_out)
+            attendance.report_is_absent = (not has_check_in and not has_check_out) or attendance.status == 'absent'
+            attendance.report_status_label = 'غياب' if attendance.report_is_absent else attendance.get_status_display()
 
             bucket = ranking_map.setdefault(attendance.employee_id, {
                 'employee': attendance.employee,
@@ -2147,6 +2155,7 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
                 'early_leave_seconds': 0,
                 'overtime_seconds': 0,
                 'absence_seconds': 0,
+                'required_work_seconds': 0,
                 'absent_days': 0,
                 'present_days': 0,
                 'complete_days': 0,
@@ -2161,14 +2170,13 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             bucket['early_leave_seconds'] += metrics['early_leave_seconds']
             bucket['overtime_seconds'] += metrics['overtime_seconds']
             bucket['absence_seconds'] += metrics['absence_seconds']
-            if attendance.status == 'present':
+            bucket['required_work_seconds'] += metrics.get('required_work_seconds', 0)
+            if has_check_in or has_check_out:
                 bucket['present_days'] += 1
-            if attendance.status == 'absent':
+            if attendance.report_is_absent:
                 bucket['absent_days'] += 1
                 absence_detail_rows.append(attendance)
 
-            has_check_in = bool(attendance.check_in)
-            has_check_out = bool(attendance.check_out)
             is_complete_day = (
                 has_check_in and has_check_out
                 and metrics['late_seconds'] == 0
@@ -2349,20 +2357,36 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
         employee_page_rows = []
         for row in ranking_rows:
             employee = row['employee']
+            employee_attendances = sorted(attendance_details_by_employee.get(employee.pk, []), key=lambda item: item.date)
             employee_holidays = holiday_detail_by_employee.get(employee.pk, [])
             holiday_days_except_friday = sum(1 for item in employee_holidays if item['date'].weekday() != 4)
-            friday_worked_days = sum(
-                1 for item in attendance_details_by_employee.get(employee.pk, [])
+            friday_attendances = [
+                item for item in employee_attendances
                 if item.date.weekday() == 4 and (item.check_in or item.check_out)
-            )
+            ]
+            missing_attendances = [
+                item for item in employee_attendances
+                if not item.check_in or not item.check_out
+            ]
+            exception_attendances = [
+                item for item in employee_attendances
+                if item.report_is_absent or item.late_seconds or item.early_leave_seconds or item.overtime_seconds or not item.check_in or not item.check_out
+            ]
+            required_seconds = row.get('required_work_seconds') or 0
+            worked_seconds = row.get('worked_seconds') or 0
             employee_page_rows.append({
                 'employee': employee,
                 'summary': row,
-                'attendances': sorted(attendance_details_by_employee.get(employee.pk, []), key=lambda item: item.date),
+                'attendances': employee_attendances,
+                'exception_attendances': exception_attendances,
+                'friday_attendances': friday_attendances,
+                'missing_attendances': missing_attendances,
+                'holidays': employee_holidays,
                 'holidays_except_friday': holiday_days_except_friday,
-                'friday_worked_days': friday_worked_days,
+                'friday_worked_days': len(friday_attendances),
                 'missing_punch_days': row['missing_punch_days'],
                 'commitment_rate': row.get('commitment_rate', 0),
+                'work_completion_rate': round((worked_seconds / required_seconds) * 100, 1) if required_seconds else 0,
                 'vacation_used_days': vacation_days_by_employee.get(employee.pk, 0),
                 'vacation_remaining_days': max((employee.annual_leave_days or 0) - vacation_days_by_employee.get(employee.pk, 0), 0),
             })
@@ -2378,7 +2402,7 @@ class EmployeeReportsView(LoginRequiredMixin, TemplateView):
             'end_date': end_date,
             'selected_report': selected_report,
             'month_rows': month_rows,
-            'absent_count': sum(1 for row in attendance_rows if row.status == 'absent'),
+            'absent_count': sum(1 for row in attendance_rows if getattr(row, 'report_is_absent', False)),
             'late_count': sum(1 for row in attendance_rows if row.late_seconds > 0),
             'early_leave_count': sum(1 for row in attendance_rows if row.early_leave_seconds > 0),
             'missing_punch_count': len(missing_punch_rows),
