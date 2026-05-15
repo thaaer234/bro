@@ -415,14 +415,23 @@ class JournalEntryAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, ad
     export_as_json.short_description = "📤 تصدير كـ JSON"
 
     def delete_model(self, request, obj):
+        accounts_to_update = set(t.account for t in obj.transactions.all())
         with db_transaction.atomic():
             super().delete_model(request, obj)
-        Account.rebuild_all_balances()
+        for account in accounts_to_update:
+            account.balance = account.get_net_balance()
+            account.save(update_fields=['balance'])
 
     def delete_queryset(self, request, queryset):
+        accounts_to_update = set()
+        for obj in queryset:
+            for t in obj.transactions.all():
+                accounts_to_update.add(t.account)
         with db_transaction.atomic():
             super().delete_queryset(request, queryset)
-        Account.rebuild_all_balances()
+        for account in accounts_to_update:
+            account.balance = account.get_net_balance()
+            account.save(update_fields=['balance'])
 
 @admin.register(Transaction)
 class TransactionAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, admin.ModelAdmin):
