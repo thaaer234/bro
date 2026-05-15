@@ -415,23 +415,37 @@ class JournalEntryAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, ad
     export_as_json.short_description = "📤 تصدير كـ JSON"
 
     def delete_model(self, request, obj):
-        accounts_to_update = set(t.account for t in obj.transactions.all())
-        with db_transaction.atomic():
-            super().delete_model(request, obj)
-        for account in accounts_to_update:
-            account.balance = account.get_net_balance()
-            account.save(update_fields=['balance'])
+        try:
+            accounts_to_update = set(t.account for t in obj.transactions.all())
+            with db_transaction.atomic():
+                super().delete_model(request, obj)
+            for account in accounts_to_update:
+                account.balance = account.get_net_balance()
+                account.save(update_fields=['balance'])
+        except Exception as e:
+            import traceback
+            with open('deletion_error.log', 'a', encoding='utf-8') as f:
+                f.write(f"\n--- Error in delete_model at {timezone.now()} ---\n")
+                f.write(traceback.format_exc())
+            raise
 
     def delete_queryset(self, request, queryset):
-        accounts_to_update = set()
-        for obj in queryset:
-            for t in obj.transactions.all():
-                accounts_to_update.add(t.account)
-        with db_transaction.atomic():
-            super().delete_queryset(request, queryset)
-        for account in accounts_to_update:
-            account.balance = account.get_net_balance()
-            account.save(update_fields=['balance'])
+        try:
+            accounts_to_update = set()
+            for obj in queryset:
+                for t in obj.transactions.all():
+                    accounts_to_update.add(t.account)
+            with db_transaction.atomic():
+                super().delete_queryset(request, queryset)
+            for account in accounts_to_update:
+                account.balance = account.get_net_balance()
+                account.save(update_fields=['balance'])
+        except Exception as e:
+            import traceback
+            with open('deletion_error.log', 'a', encoding='utf-8') as f:
+                f.write(f"\n--- Error in delete_queryset at {timezone.now()} ---\n")
+                f.write(traceback.format_exc())
+            raise
 
 @admin.register(Transaction)
 class TransactionAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, admin.ModelAdmin):
