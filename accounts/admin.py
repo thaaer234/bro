@@ -416,36 +416,67 @@ class JournalEntryAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, ad
 
     def delete_model(self, request, obj):
         try:
-            accounts_to_update = set(t.account for t in obj.transactions.all())
+            # Get affected account IDs surgically
+            affected_account_ids = list(obj.transactions.values_list('account_id', flat=True).distinct())
+            
             with db_transaction.atomic():
                 super().delete_model(request, obj)
-            for account in accounts_to_update:
-                account.balance = account.get_net_balance()
-                account.save(update_fields=['balance'])
+            
+            # Surgically update only the affected accounts
+            for account_id in affected_account_ids:
+                try:
+                    account = Account.objects.get(id=account_id)
+                    account.balance = account.get_net_balance()
+                    account.save(update_fields=['balance'])
+                except Account.DoesNotExist:
+                    continue
         except Exception as e:
-            import traceback
-            with open('deletion_error.log', 'a', encoding='utf-8') as f:
-                f.write(f"\n--- Error in delete_model at {timezone.now()} ---\n")
-                f.write(traceback.format_exc())
-            raise
+            self._log_deletion_debug("delete_model", e)
+            raise e
 
     def delete_queryset(self, request, queryset):
         try:
-            accounts_to_update = set()
-            for obj in queryset:
-                for t in obj.transactions.all():
-                    accounts_to_update.add(t.account)
+            # Efficiently collect all account IDs affected by this queryset
+            from accounts.models import Transaction
+            affected_account_ids = set(
+                Transaction.objects.filter(journal_entry__in=queryset)
+                .values_list('account_id', flat=True)
+                .distinct()
+            )
+            
+            # Perform deletion (triggers signals)
             with db_transaction.atomic():
-                super().delete_queryset(request, queryset)
-            for account in accounts_to_update:
-                account.balance = account.get_net_balance()
-                account.save(update_fields=['balance'])
+                queryset.delete()
+            
+            # Surgically update only affected accounts
+            for account_id in affected_account_ids:
+                try:
+                    account = Account.objects.get(id=account_id)
+                    account.balance = account.get_net_balance()
+                    account.save(update_fields=['balance'])
+                except Account.DoesNotExist:
+                    continue
         except Exception as e:
-            import traceback
-            with open('deletion_error.log', 'a', encoding='utf-8') as f:
-                f.write(f"\n--- Error in delete_queryset at {timezone.now()} ---\n")
-                f.write(traceback.format_exc())
-            raise
+            self._log_deletion_debug("delete_queryset", e)
+            raise e
+
+    def _log_deletion_debug(self, method, exception):
+        import traceback
+        import os
+        from django.utils import timezone
+        from django.conf import settings
+        # Use absolute path to ensure file is created in project root
+        log_path = os.path.join(settings.BASE_DIR, 'deletion_debug.log')
+        try:
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(f"\n{'='*60}\n")
+                f.write(f"TIMESTAMP: {timezone.now()}\n")
+                f.write(f"METHOD: {method}\n")
+                f.write(f"ERROR: {str(exception)}\n")
+                f.write(f"TRACEBACK:\n{traceback.format_exc()}\n")
+                f.write(f"{'='*60}\n")
+        except:
+            pass
 
 @admin.register(Transaction)
 class TransactionAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, admin.ModelAdmin):
