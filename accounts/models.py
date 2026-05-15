@@ -2881,28 +2881,37 @@ def delete_student_operation_when_entry_deleted(sender, instance, **kwargs):
         return
 
     linked_objects = []
-    linked_objects.extend(instance.receipts.all())
-    linked_objects.extend(instance.enrollments.all())
+    # Collect related objects efficiently
+    linked_objects.extend(list(instance.receipts.all()))
+    linked_objects.extend(list(instance.enrollments.all()))
 
     from quick.models import QuickEnrollment, QuickStudentReceipt
 
-    linked_objects.extend(QuickStudentReceipt.objects.filter(journal_entry=instance))
+    linked_objects.extend(list(QuickStudentReceipt.objects.filter(journal_entry=instance)))
 
     if instance.reference and instance.reference.startswith('QE-'):
         try:
-            enrollment_id = int(instance.reference.split('-', 1)[1])
+            parts = instance.reference.split('-', 1)
+            if len(parts) > 1:
+                enrollment_id = int(parts[1])
+                linked_objects.extend(list(QuickEnrollment.objects.filter(id=enrollment_id)))
         except (TypeError, ValueError):
-            enrollment_id = None
-        if enrollment_id:
-            linked_objects.extend(QuickEnrollment.objects.filter(id=enrollment_id))
+            pass
 
     seen = set()
     for obj in linked_objects:
         key = (obj.__class__, obj.pk)
-        if obj.pk and key in seen:
+        if not obj.pk or key in seen:
             continue
         seen.add(key)
-        _delete_linked_instance(obj)
+        
+        try:
+            # Check if object still exists and hasn't been deleted by another cascade
+            if obj.__class__.objects.filter(pk=obj.pk).exists():
+                _delete_linked_instance(obj)
+        except Exception:
+            # Prevent one failed linked deletion from crashing the whole process
+            pass
 
 
 @receiver(pre_delete, sender=Studentenrollment)
@@ -2910,11 +2919,37 @@ def delete_student_entry_when_enrollment_deleted(sender, instance, **kwargs):
     if getattr(instance, '_skip_linked_cleanup', False):
         return
 
+    affected_accounts = set()
+
+    # 1. Collect accounts from enrollment journal entries
     for entry in [instance.enrollment_journal_entry, instance.completion_journal_entry]:
-        if not entry:
-            continue
-        entry._skip_linked_cleanup = True
-        entry.delete()
+        if entry:
+            for t in entry.transactions.all():
+                affected_accounts.add(t.account)
+
+    # 2. Delete all linked receipts and collect their accounts
+    for receipt in instance.payments.all():
+        for entry in receipt.get_linked_journal_entries():
+            for t in entry.transactions.all():
+                affected_accounts.add(t.account)
+        receipt.delete()
+
+    # 3. Delete enrollment journal entries
+    for entry in [instance.enrollment_journal_entry, instance.completion_journal_entry]:
+        if entry:
+            try:
+                entry._skip_linked_cleanup = True
+                entry.delete()
+            except:
+                pass
+    
+    # 4. Surgically update balances for affected accounts
+    for account in affected_accounts:
+        try:
+            account.balance = account.get_net_balance()
+            account.save(update_fields=['balance'])
+        except:
+            pass
 
 
 @receiver(pre_delete, sender=StudentReceipt)
