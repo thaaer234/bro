@@ -213,9 +213,12 @@ def fix_single_journal_mojibake(request, pk):
 
 def _delete_journal_entry_with_rebuild(journal_entry):
     entry_reference = journal_entry.reference
+    accounts_to_update = set(t.account for t in journal_entry.transactions.all())
     with db_transaction.atomic():
         journal_entry.delete()
-    Account.rebuild_all_balances()
+    for account in accounts_to_update:
+        account.balance = account.get_net_balance()
+        account.save(update_fields=['balance'])
     return entry_reference
 
 
