@@ -1,4 +1,4 @@
-﻿from django import forms 
+from django import forms 
 from django.views.generic import ListView, CreateView, DeleteView, UpdateView
 from django.views.generic.edit import FormView
 from django.urls import reverse, reverse_lazy
@@ -3532,6 +3532,73 @@ def _normalize_quick_decimal_input(raw_value):
     return Decimal(raw_text)
 
 
+def _get_quick_enrollment_paid_amount(enrollment):
+    """
+    Calculate the actual paid amount of a QuickEnrollment from the Journal Entries / Transactions
+    in the Chart of Accounts, so that any manual or automatic journal entry affects the total
+    perfectly matching the Chart of Accounts.
+    """
+    from decimal import Decimal
+    from django.db.models import Q, Sum
+    from accounts.models import Account, Transaction, JournalEntry
+
+    student = enrollment.student
+    course = enrollment.course
+
+    # 1. Base sum from QuickStudentReceipt objects
+    receipts = QuickStudentReceipt.objects.filter(quick_enrollment=enrollment)
+    receipt_je_ids = []
+    receipts_paid = Decimal('0.00')
+
+    student_ar_account = Account.get_or_create_quick_student_ar_account(student)
+
+    for r in receipts:
+        if r.journal_entry_id:
+            receipt_je_ids.append(r.journal_entry_id)
+            # Find actual credit transaction to student AR in this journal entry
+            tx_amount = Transaction.objects.filter(
+                journal_entry_id=r.journal_entry_id,
+                account=student_ar_account,
+                is_debit=False
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+            if tx_amount > 0:
+                receipts_paid += tx_amount
+            else:
+                receipts_paid += r.paid_amount or Decimal('0.00')
+        else:
+            receipts_paid += r.paid_amount or Decimal('0.00')
+
+    # 2. Add manual journal entries that are not linked to any QuickStudentReceipt,
+    # but represent a credit to the student's AR account for this specific course.
+    manual_credits = Decimal('0.00')
+
+    # Let's get all credits on student_ar_account that are NOT in receipt_je_ids
+    manual_txs = Transaction.objects.filter(
+        account=student_ar_account,
+        is_debit=False,
+        journal_entry__is_posted=True
+    )
+    if receipt_je_ids:
+        manual_txs = manual_txs.exclude(journal_entry_id__in=receipt_je_ids)
+
+    # Filter by course markers
+    course_name_clean = str(course.name or '').strip()
+    course_name_ar_clean = str(course.name_ar or '').strip()
+
+    # Build Q filters for description matches or cost center matches
+    q_filter = Q(description__icontains=course_name_clean) | Q(journal_entry__description__icontains=course_name_clean)
+    if course_name_ar_clean:
+        q_filter |= Q(description__icontains=course_name_ar_clean) | Q(journal_entry__description__icontains=course_name_ar_clean)
+    if course.cost_center_id:
+        q_filter |= Q(cost_center_id=course.cost_center_id)
+
+    manual_txs = manual_txs.filter(q_filter)
+    manual_credits = manual_txs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    return receipts_paid + manual_credits
+
+
 def _get_quick_teacher_payout_totals(courses):
     courses = list(courses)
     if not courses:
@@ -3547,7 +3614,13 @@ def _get_quick_teacher_payout_totals(courses):
             is_debit=True,
             account_id__in=account_to_course.keys(),
             journal_entry__is_posted=True,
-            journal_entry__description__icontains=QUICK_TEACHER_PAYOUT_MARKER,
+        )
+        .exclude(
+            Q(description__icontains='حسم') | 
+            Q(description__icontains='discount') |
+            Q(journal_entry__description__icontains='حسم') |
+            Q(journal_entry__description__icontains='discount') |
+            Q(journal_entry__entry_type='ADJUSTMENT')
         )
         .values('account_id')
         .annotate(total=Sum('amount'))
@@ -3574,7 +3647,7 @@ def _extract_quick_teacher_payout_note(entry_description, course):
     prefix = f'{QUICK_TEACHER_PAYOUT_MARKER} #{course.id}] دفع للأستاذ - {course.name}'
     text = str(entry_description or '')
     if not text.startswith(prefix):
-        return ''
+        return text
     note = text[len(prefix):].strip()
     if note.startswith('-'):
         note = note[1:].strip()
@@ -3587,7 +3660,11 @@ def _get_quick_teacher_payout_entries(course):
         JournalEntry.objects.filter(
             transactions__account=deferred_account,
             transactions__is_debit=True,
-            description__icontains=QUICK_TEACHER_PAYOUT_MARKER,
+        )
+        .exclude(
+            Q(description__icontains='حسم') | 
+            Q(description__icontains='discount') |
+            Q(entry_type='ADJUSTMENT')
         )
         .distinct()
         .prefetch_related('transactions__account')
@@ -3621,9 +3698,12 @@ def _get_quick_teacher_payout_entry_for_course(course, entry_id, for_update=Fals
     deferred_account = Account.get_or_create_quick_course_deferred_account(course)
     qs = JournalEntry.objects.filter(
         pk=entry_id,
-        description__icontains=QUICK_TEACHER_PAYOUT_MARKER,
         transactions__account=deferred_account,
         transactions__is_debit=True,
+    ).exclude(
+        Q(description__icontains='حسم') | 
+        Q(description__icontains='discount') |
+        Q(entry_type='ADJUSTMENT')
     ).distinct()
     if for_update:
         qs = qs.select_for_update()
@@ -3634,16 +3714,11 @@ def _get_quick_teacher_payout_entry_for_course(course, entry_id, for_update=Fals
 
 
 def _get_quick_course_total_paid(course):
-    enrollment_ids = list(
-        QuickEnrollment.objects.filter(course=course, is_completed=False).values_list('id', flat=True)
-    )
-    if not enrollment_ids:
-        return Decimal('0.00')
-    return (
-        QuickStudentReceipt.objects.filter(quick_enrollment_id__in=enrollment_ids)
-        .aggregate(total=Sum('paid_amount'))['total']
-        or Decimal('0.00')
-    )
+    enrollments = QuickEnrollment.objects.filter(course=course, is_completed=False)
+    total = Decimal('0.00')
+    for enrollment in enrollments:
+        total += _get_quick_enrollment_paid_amount(enrollment)
+    return total
 
 
 def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=False, start_date=None, end_date=None):
@@ -3686,7 +3761,7 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
 
     for enrollment in enrollments:
         net_amount = enrollment.net_amount or Decimal('0')
-        paid_total = paid_map.get(enrollment.id, Decimal('0'))
+        paid_total = _get_quick_enrollment_paid_amount(enrollment)
         remaining = max(Decimal('0'), net_amount - paid_total)
 
         stats = course_map.get(enrollment.course_id)
@@ -3768,7 +3843,7 @@ def _build_quick_outstanding_rows(courses, start_date=None, end_date=None):
 
     for enrollment in enrollments:
         net_amount = enrollment.net_amount or Decimal('0')
-        paid_total = paid_map.get(enrollment.id, Decimal('0'))
+        paid_total = _get_quick_enrollment_paid_amount(enrollment)
         remaining = max(Decimal('0'), net_amount - paid_total)
         if remaining <= 0:
             continue
@@ -9538,9 +9613,7 @@ class QuickOutstandingCourseDetailView(LoginRequiredMixin, TemplateView):
 
         for enrollment in enrollments:
             net_amount = enrollment.net_amount or Decimal('0.00')
-            total_paid = QuickStudentReceipt.objects.filter(
-                quick_enrollment=enrollment
-            ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
+            total_paid = _get_quick_enrollment_paid_amount(enrollment)
 
             remaining = max(Decimal('0.00'), net_amount - total_paid)
 
@@ -9729,10 +9802,7 @@ class QuickCourseStudentsView(LoginRequiredMixin, TemplateView):
             return None
 
     def calculate_paid_amount(self, enrollment):
-        total_paid = QuickStudentReceipt.objects.filter(
-            quick_enrollment=enrollment
-        ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
-        return total_paid
+        return _get_quick_enrollment_paid_amount(enrollment)
 
     def apply_filter(self, student_data, filter_type):
         if filter_type == 'paid':
