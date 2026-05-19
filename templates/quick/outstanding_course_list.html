@@ -300,25 +300,31 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
     </div>
 
     <div class="row g-3">
-        <div class="col-lg-6 col-md-6">
+        <div class="col-lg-4 col-md-6">
             <div class="outstanding-stat outstanding-stat--primary">
                 <div class="label">عدد الدورات</div>
                 <div class="value">{{ total_courses }}</div>
             </div>
         </div>
-        <div class="col-lg-6 col-md-6">
+        <div class="col-lg-4 col-md-6">
             <div class="outstanding-stat outstanding-stat--info">
                 <div class="label">إجمالي المدفوع</div>
                 <div class="value">{{ total_paid_amount|floatformat:0 }}</div>
             </div>
         </div>
-        <div class="col-lg-6 col-md-6">
+        <div class="col-lg-4 col-md-6">
+            <div class="outstanding-stat outstanding-stat--warning">
+                <div class="label">إجمالي الإيراد المؤجل (الحساب 2151)</div>
+                <div class="value">{{ total_deferred_revenue|floatformat:0 }}</div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
             <div class="outstanding-stat outstanding-stat--danger">
                 <div class="label">إجمالي مسحوبات الأستاذ</div>
                 <div class="value">{{ total_teacher_withdrawals|floatformat:0 }}</div>
             </div>
         </div>
-        <div class="col-lg-6 col-md-6">
+        <div class="col-lg-4 col-md-6">
             <div class="outstanding-stat outstanding-stat--success">
                 <div class="label">إجمالي الرصيد الصافي المتبقي</div>
                 <div class="value">{{ total_net_remaining_after_withdrawals|floatformat:0 }}</div>
@@ -352,6 +358,7 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
                             <th class="text-center">المسددون</th>
                             <th class="text-center">غير المسددين</th>
                             <th class="text-end">إجمالي المدفوع</th>
+                            <th class="text-end">الإيراد المؤجل (الحساب)</th>
                             <th class="text-end">مسحوبات الأستاذ</th>
                             <th class="text-end">الرصيد الصافي المتبقي</th>
                             <th class="text-center">الإجراءات</th>
@@ -371,12 +378,18 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
                             <td class="text-center"><span class="quick-badge quick-badge-success">{{ item.paid_students }}</span></td>
                             <td class="text-center"><span class="quick-badge quick-badge-warning">{{ item.outstanding_students }}</span></td>
                             <td class="text-end quick-money">{{ item.total_paid|floatformat:0 }} ل.س</td>
+                            <td class="text-end quick-money fw-bold text-warning">{{ item.deferred_revenue|floatformat:0 }} ل.س</td>
                             <td class="text-end quick-money">{{ item.teacher_withdrawals|floatformat:0 }} ل.س</td>
                             <td class="text-end quick-money">{{ item.net_remaining_after_withdrawals|floatformat:0 }} ل.س</td>
                             <td class="text-center quick-actions-cell">
                                 <a href="{% url 'quick:course_students' item.course.id %}?course_type={{ course_type }}" class="btn btn-sm btn-outline-primary quick-btn" data-guide-key="quick-outstanding-show-students">
-                                    <i class="fas fa-users me-1"></i> جميع الطلاب
+                                    <i class="fas fa-users me-1"></i> الطلاب
                                 </a>
+                                {% if item.deferred_account_code %}
+                                <a href="{% url 'accounts:account_statement' %}?account_code={{ item.deferred_account_code }}" target="_blank" class="btn btn-sm btn-outline-info quick-btn ms-1">
+                                    <i class="fas fa-file-invoice me-1"></i> كشف حساب الدورة
+                                </a>
+                                {% endif %}
                                 {% if item.course.course_type == 'INTENSIVE' or item.course.course_type == 'EXAM' %}
                                 <button
                                     type="button"

@@ -3737,9 +3737,17 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
             'total_paid': Decimal('0.00'),
             'teacher_withdrawals': teacher_payout_map.get(course.id, Decimal('0.00')),
             'net_remaining_after_withdrawals': Decimal('0.00'),
+            'deferred_revenue': Decimal('0.00'),
+            'deferred_account_code': '',
         }
         for course in courses
     }
+
+    for course in courses:
+        from accounts.models import Account
+        deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+        course_map[course.id]['deferred_revenue'] = deferred_account.get_net_balance()
+        course_map[course.id]['deferred_account_code'] = deferred_account.code
 
     enrollments_qs = QuickEnrollment.objects.filter(course__in=courses, is_completed=False)
     if start_date:
@@ -3805,6 +3813,7 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
         'total_net_remaining_after_withdrawals': sum(
             row['net_remaining_after_withdrawals'] for row in course_data
         ),
+        'total_deferred_revenue': sum(row['deferred_revenue'] for row in course_data),
     }
 
     return course_data, totals
