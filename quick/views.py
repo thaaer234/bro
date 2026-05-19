@@ -3616,20 +3616,16 @@ def _get_quick_course_recognized_revenue_totals(courses):
         account_to_course[deferred_account.id] = course.id
 
     from django.db.models import Q, Sum
-    REVENUE_RECOGNITION_Q = (
-        Q(description__icontains='الاعتراف') |
-        Q(description__icontains='إيراد') |
-        Q(description__icontains='revenue') |
-        Q(description__icontains='realized') |
-        Q(description__icontains='realise') |
-        Q(description__icontains='اعتراف') |
-        Q(journal_entry__description__icontains='الاعتراف') |
-        Q(journal_entry__description__icontains='إيراد') |
-        Q(journal_entry__description__icontains='revenue') |
-        Q(journal_entry__description__icontains='realized') |
-        Q(journal_entry__description__icontains='realise') |
-        Q(journal_entry__description__icontains='اعتراف')
-    )
+    
+    # We include all possible spelling variations and typos like 'يايراد'
+    REVENUE_RECOGNITION_KEYWORDS = [
+        'الاعتراف', 'اعتراف', 'إيراد', 'ايراد', 'يايراد', 'بالايراد', 'بالإيراد',
+        'realized', 'realise', 'revenue', 'recognition'
+    ]
+    
+    q_filter = Q()
+    for kw in REVENUE_RECOGNITION_KEYWORDS:
+        q_filter |= Q(description__icontains=kw) | Q(journal_entry__description__icontains=kw)
 
     rows = (
         Transaction.objects.filter(
@@ -3637,7 +3633,7 @@ def _get_quick_course_recognized_revenue_totals(courses):
             account_id__in=account_to_course.keys(),
             journal_entry__is_posted=True,
         )
-        .filter(REVENUE_RECOGNITION_Q)
+        .filter(q_filter)
         .values('account_id')
         .annotate(total=Sum('amount'))
     )
@@ -3661,33 +3657,43 @@ def _get_quick_teacher_payout_totals(courses):
         deferred_account = Account.get_or_create_quick_course_deferred_account(course)
         account_to_course[deferred_account.id] = course.id
 
+    from django.db.models import Q, Sum
+    
+    # 1. Discount exclusions
+    discount_filter = (
+        Q(description__icontains='حسم') | 
+        Q(description__icontains='discount') |
+        Q(journal_entry__description__icontains='حسم') |
+        Q(journal_entry__description__icontains='discount') |
+        Q(journal_entry__entry_type='ADJUSTMENT')
+    )
+    
+    # 2. Revenue Recognition exclusions
+    REVENUE_RECOGNITION_KEYWORDS = [
+        'الاعتراف', 'اعتراف', 'إيراد', 'ايراد', 'يايراد', 'بالايراد', 'بالإيراد',
+        'realized', 'realise', 'revenue', 'recognition'
+    ]
+    recognized_filter = Q()
+    for kw in REVENUE_RECOGNITION_KEYWORDS:
+        recognized_filter |= Q(description__icontains=kw) | Q(journal_entry__description__icontains=kw)
+        
+    # 3. Withdrawal Reversal/Refund exclusions (student cancellations)
+    WITHDRAWAL_REVERSAL_KEYWORDS = [
+        'عكس', 'سحب', 'انسحاب', 'withdraw', 'cancel', 'refund', 'reversal'
+    ]
+    withdrawal_filter = Q()
+    for kw in WITHDRAWAL_REVERSAL_KEYWORDS:
+        withdrawal_filter |= Q(description__icontains=kw) | Q(journal_entry__description__icontains=kw)
+
     payout_rows = (
         Transaction.objects.filter(
             is_debit=True,
             account_id__in=account_to_course.keys(),
             journal_entry__is_posted=True,
         )
-        .exclude(
-            Q(description__icontains='حسم') | 
-            Q(description__icontains='discount') |
-            Q(journal_entry__description__icontains='حسم') |
-            Q(journal_entry__description__icontains='discount') |
-            Q(journal_entry__entry_type='ADJUSTMENT')
-        )
-        .exclude(
-            Q(description__icontains='الاعتراف') |
-            Q(description__icontains='إيراد') |
-            Q(description__icontains='revenue') |
-            Q(description__icontains='realized') |
-            Q(description__icontains='realise') |
-            Q(description__icontains='اعتراف') |
-            Q(journal_entry__description__icontains='الاعتراف') |
-            Q(journal_entry__description__icontains='إيراد') |
-            Q(journal_entry__description__icontains='revenue') |
-            Q(journal_entry__description__icontains='realized') |
-            Q(journal_entry__description__icontains='realise') |
-            Q(journal_entry__description__icontains='اعتراف')
-        )
+        .exclude(discount_filter)
+        .exclude(recognized_filter)
+        .exclude(withdrawal_filter)
         .values('account_id')
         .annotate(total=Sum('amount'))
     )
@@ -9624,9 +9630,23 @@ def quick_course_audit_json(request, course_id):
     ledger_debits_payout = Decimal('0.00')
     ledger_debits_recognized = Decimal('0.00')
     
+    REVENUE_RECOGNITION_KEYWORDS = [
+        'الاعتراف', 'اعتراف', 'إيراد', 'ايراد', 'يايراد', 'بالايراد', 'بالإيراد',
+        'realized', 'realise', 'revenue', 'recognition'
+    ]
+    WITHDRAWAL_REVERSAL_KEYWORDS = [
+        'عكس', 'سحب', 'انسحاب', 'withdraw', 'cancel', 'refund', 'reversal'
+    ]
+    
+    ledger_debits_withdrawal = Decimal('0.00')
+
     for tx in txs:
-        is_discount = 'QUICK_DISCOUNT' in (tx.journal_entry.description or '') or 'حسم' in (tx.description or '') or 'حسم' in (tx.journal_entry.description or '')
-        is_recognized = any(x in (tx.description or '') or x in (tx.journal_entry.description or '') for x in ['الاعتراف', 'إيراد', 'revenue', 'realized', 'realise', 'اعتراف'])
+        desc_lower = ((tx.description or '') + ' ' + (tx.journal_entry.description or '')).lower()
+        is_discount = 'QUICK_DISCOUNT' in (tx.journal_entry.description or '') or 'حسم' in (tx.description or '') or 'حسم' in (tx.journal_entry.description or '') or tx.journal_entry.entry_type == 'ADJUSTMENT'
+        
+        is_recognized = any(kw in desc_lower for kw in REVENUE_RECOGNITION_KEYWORDS)
+        is_withdrawal = any(kw in desc_lower for kw in WITHDRAWAL_REVERSAL_KEYWORDS)
+        
         if not tx.is_debit:
             ledger_credits += tx.amount
         else:
@@ -9634,6 +9654,8 @@ def quick_course_audit_json(request, course_id):
                 ledger_debits_discount += tx.amount
             elif is_recognized:
                 ledger_debits_recognized += tx.amount
+            elif is_withdrawal:
+                ledger_debits_withdrawal += tx.amount
             else:
                 ledger_debits_payout += tx.amount
 
@@ -9711,6 +9733,7 @@ def quick_course_audit_json(request, course_id):
             'debits_discount': float(ledger_debits_discount),
             'debits_payout': float(ledger_debits_payout),
             'debits_recognized': float(ledger_debits_recognized),
+            'debits_withdrawal': float(ledger_debits_withdrawal),
         },
         'audit': {
             'normal_difference': float(normal_difference),

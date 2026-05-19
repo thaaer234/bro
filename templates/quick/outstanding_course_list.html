@@ -1034,6 +1034,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     ledgerDebitsPayout.textContent = formatAmount(data.ledger_stats.debits_payout) + ' ل.س';
                     const ledRec = document.getElementById('auditLedgerDebitsRecognized');
                     if (ledRec) ledRec.textContent = formatAmount(data.ledger_stats.debits_recognized) + ' ل.س';
+                    
+                    const ledWithdrawContainer = document.getElementById('auditLedgerDebitsWithdrawalContainer');
+                    const ledWithdraw = document.getElementById('auditLedgerDebitsWithdrawal');
+                    if (ledWithdrawContainer && ledWithdraw) {
+                        if (data.ledger_stats.debits_withdrawal > 0) {
+                            ledWithdrawContainer.style.display = 'flex';
+                            ledWithdraw.textContent = formatAmount(data.ledger_stats.debits_withdrawal) + ' ل.س';
+                        } else {
+                            ledWithdrawContainer.style.display = 'none';
+                        }
+                    }
+                    
                     ledgerBalance.textContent = formatAmount(data.ledger_stats.balance) + ' ل.س';
                     auditAccountCode.textContent = data.deferred_account_code;
                     
