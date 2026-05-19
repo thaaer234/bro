@@ -3578,6 +3578,12 @@ def _get_quick_enrollment_paid_amount(enrollment):
         account=student_ar_account,
         is_debit=False,
         journal_entry__is_posted=True
+    ).exclude(
+        Q(description__icontains='حسم') |
+        Q(journal_entry__description__icontains='حسم') |
+        Q(journal_entry__description__icontains='خصم') |
+        Q(journal_entry__description__icontains='discount') |
+        Q(journal_entry__entry_type='ADJUSTMENT')
     )
     if receipt_je_ids:
         manual_txs = manual_txs.exclude(journal_entry_id__in=receipt_je_ids)
