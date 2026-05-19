@@ -179,6 +179,115 @@ body.page-outstanding_courses .quick-report-page .modal-content {
     border: 1px solid var(--report-border);
 }
 
+@media print {
+    /* Hide navigation sidebar, top header, search, pagination, and filter forms */
+    #sidebar-wrapper, .top-header, .navbar, .header-container, 
+    .quick-filter-grid, .quick-hero-actions, .pagination, 
+    .quick-actions-cell, th:last-child, td:last-child, 
+    .btn, .outstanding-toolbar, .no-print {
+        display: none !important;
+    }
+    
+    /* Make body and page content fill the page */
+    body, html, #wrapper, #page-content-wrapper, .container-fluid, .quick-report-page {
+        background: #ffffff !important;
+        color: #000000 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-shadow: none !important;
+    }
+    
+    /* Hero outstanding section print formatting */
+    .outstanding-hero {
+        background: #f8fbff !important;
+        border: 2px solid #1e4f9f !important;
+        color: #10243a !important;
+        padding: 1.5rem !important;
+        border-radius: 12px !important;
+        box-shadow: none !important;
+        margin-bottom: 1.5rem !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .outstanding-hero h2 {
+        color: #163a74 !important;
+        font-size: 1.6rem !important;
+    }
+    
+    .outstanding-hero p {
+        color: #334e68 !important;
+    }
+    
+    /* Stat cards layout inside print */
+    .row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .col-lg-4, .col-md-6 {
+        flex: 1 1 18% !important;
+        width: auto !important;
+        max-width: 100% !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .outstanding-stat {
+        background: #ffffff !important;
+        border: 1px solid #c8d7e9 !important;
+        border-radius: 8px !important;
+        padding: 0.75rem !important;
+        box-shadow: none !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .outstanding-stat .label {
+        font-size: 0.75rem !important;
+        color: #555555 !important;
+    }
+    
+    .outstanding-stat .value {
+        font-size: 1.2rem !important;
+        font-weight: 800 !important;
+    }
+    
+    /* Table headers and rows print styling */
+    .quick-report-table {
+        border: 1px solid #000000 !important;
+        border-radius: 0 !important;
+        width: 100% !important;
+    }
+    
+    .quick-report-table thead th {
+        background: #153b63 !important;
+        color: #ffffff !important;
+        font-weight: bold !important;
+        border: 1px solid #000000 !important;
+        padding: 0.6rem !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .quick-report-table tbody td {
+        border-top: 1px solid #000000 !important;
+        border-bottom: 1px solid #000000 !important;
+        padding: 0.6rem !important;
+        color: #000000 !important;
+    }
+    
+    .quick-report-table tbody tr:nth-child(even) {
+        background: #f9f9f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
 /* Design Lock: isolate all outstanding tables from global system styles */
 body.page-outstanding_courses .quick-report-page .outstanding-table-shell .table-responsive,
 body.page-outstanding_courses .quick-report-page #teacherPayoutsListWrap {
@@ -269,6 +378,9 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
                 <a href="{% url 'quick:late_payment_courses' %}?course_type={{ course_type }}" class="btn btn-warning quick-btn" data-guide-key="quick-outstanding-late-payments">
                     <i class="fas fa-user-clock me-1"></i> المتأخرون عن السداد
                 </a>
+                <button type="button" class="btn btn-warning quick-btn fw-bold" onclick="window.print()" style="border-radius: 10px; font-weight: 800;">
+                    <i class="fas fa-print me-1"></i> طباعة الكشف الحالي
+                </button>
                 <a href="{% url 'quick:outstanding_courses_print' %}?course_type=INTENSIVE" target="_blank" class="btn btn-outline-light quick-btn" data-guide-key="quick-outstanding-print-intensive">
                     <i class="fas fa-print me-1"></i> طباعة المكثفات
                 </a>
@@ -374,6 +486,7 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
                             <th class="text-end">إجمالي المدفوع</th>
                             <th class="text-end">الإيراد المؤجل (الحساب)</th>
                             <th class="text-end">مسحوبات الأستاذ</th>
+                            <th class="text-end">الاعتراف بالإيراد</th>
                             <th class="text-end">الرصيد الصافي المتبقي</th>
                             <th class="text-center">الإجراءات</th>
                         </tr>
@@ -394,6 +507,7 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
                             <td class="text-end quick-money">{{ item.total_paid|floatformat:0 }} ل.س</td>
                             <td class="text-end quick-money fw-bold text-warning">{{ item.deferred_revenue|floatformat:0 }} ل.س</td>
                             <td class="text-end quick-money">{{ item.teacher_withdrawals|floatformat:0 }} ل.س</td>
+                            <td class="text-end quick-money text-info">{{ item.recognized_revenue|floatformat:0 }} ل.س</td>
                             <td class="text-end quick-money">{{ item.net_remaining_after_withdrawals|floatformat:0 }} ل.س</td>
                             <td class="text-center quick-actions-cell">
                                 <a href="{% url 'quick:course_students' item.course.id %}?course_type={{ course_type }}" class="btn btn-sm btn-outline-primary quick-btn" data-guide-key="quick-outstanding-show-students">
