@@ -9564,7 +9564,7 @@ def quick_course_audit_json(request, course_id):
     # A. Unposted students
     unposted_students = []
     for e in enrollments:
-        if not e.enrollment_journal_entry_id:
+        if not e.enrollment_journal_entry:
             unposted_students.append({
                 'student_name': e.student.full_name,
                 'gross_amount': float(e.gross_amount),
