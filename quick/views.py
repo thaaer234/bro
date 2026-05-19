@@ -3605,6 +3605,52 @@ def _get_quick_enrollment_paid_amount(enrollment):
     return receipts_paid + manual_credits
 
 
+def _get_quick_course_recognized_revenue_totals(courses):
+    courses = list(courses)
+    if not courses:
+        return {}
+
+    account_to_course = {}
+    for course in courses:
+        deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+        account_to_course[deferred_account.id] = course.id
+
+    from django.db.models import Q, Sum
+    REVENUE_RECOGNITION_Q = (
+        Q(description__icontains='الاعتراف') |
+        Q(description__icontains='إيراد') |
+        Q(description__icontains='revenue') |
+        Q(description__icontains='realized') |
+        Q(description__icontains='realise') |
+        Q(description__icontains='اعتراف') |
+        Q(journal_entry__description__icontains='الاعتراف') |
+        Q(journal_entry__description__icontains='إيراد') |
+        Q(journal_entry__description__icontains='revenue') |
+        Q(journal_entry__description__icontains='realized') |
+        Q(journal_entry__description__icontains='realise') |
+        Q(journal_entry__description__icontains='اعتراف')
+    )
+
+    rows = (
+        Transaction.objects.filter(
+            is_debit=True,
+            account_id__in=account_to_course.keys(),
+            journal_entry__is_posted=True,
+        )
+        .filter(REVENUE_RECOGNITION_Q)
+        .values('account_id')
+        .annotate(total=Sum('amount'))
+    )
+
+    recognized_by_course = {course.id: Decimal('0.00') for course in courses}
+    for row in rows:
+        course_id = account_to_course.get(row['account_id'])
+        if course_id is None:
+            continue
+        recognized_by_course[course_id] = row['total'] or Decimal('0.00')
+    return recognized_by_course
+
+
 def _get_quick_teacher_payout_totals(courses):
     courses = list(courses)
     if not courses:
@@ -3627,6 +3673,20 @@ def _get_quick_teacher_payout_totals(courses):
             Q(journal_entry__description__icontains='حسم') |
             Q(journal_entry__description__icontains='discount') |
             Q(journal_entry__entry_type='ADJUSTMENT')
+        )
+        .exclude(
+            Q(description__icontains='الاعتراف') |
+            Q(description__icontains='إيراد') |
+            Q(description__icontains='revenue') |
+            Q(description__icontains='realized') |
+            Q(description__icontains='realise') |
+            Q(description__icontains='اعتراف') |
+            Q(journal_entry__description__icontains='الاعتراف') |
+            Q(journal_entry__description__icontains='إيراد') |
+            Q(journal_entry__description__icontains='revenue') |
+            Q(journal_entry__description__icontains='realized') |
+            Q(journal_entry__description__icontains='realise') |
+            Q(journal_entry__description__icontains='اعتراف')
         )
         .values('account_id')
         .annotate(total=Sum('amount'))
@@ -3730,6 +3790,7 @@ def _get_quick_course_total_paid(course):
 def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=False, start_date=None, end_date=None):
     courses = list(courses)
     teacher_payout_map = _get_quick_teacher_payout_totals(courses)
+    recognized_revenue_map = _get_quick_course_recognized_revenue_totals(courses)
     course_map = {
         course.id: {
             'course': course,
@@ -3742,6 +3803,7 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
             'total_outstanding': Decimal('0.00'),
             'total_paid': Decimal('0.00'),
             'teacher_withdrawals': teacher_payout_map.get(course.id, Decimal('0.00')),
+            'recognized_revenue': recognized_revenue_map.get(course.id, Decimal('0.00')),
             'net_remaining_after_withdrawals': Decimal('0.00'),
             'deferred_revenue': Decimal('0.00'),
             'deferred_account_code': '',
@@ -3798,7 +3860,7 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
         stats['total_paid'] += paid_total
         stats['net_remaining_after_withdrawals'] = max(
             Decimal('0.00'),
-            stats['total_paid'] - stats['teacher_withdrawals']
+            stats['total_paid'] - stats['teacher_withdrawals'] - stats['recognized_revenue']
         )
 
     course_data = list(course_map.values())
@@ -3816,6 +3878,7 @@ def _build_quick_outstanding_course_summary(courses, include_zero_outstanding=Fa
         'total_students': sum(row['total_students'] for row in course_data),
         'total_paid_amount': sum(row['total_paid'] for row in course_data),
         'total_teacher_withdrawals': sum(row['teacher_withdrawals'] for row in course_data),
+        'total_recognized_revenue': sum(row['recognized_revenue'] for row in course_data),
         'total_net_remaining_after_withdrawals': sum(
             row['net_remaining_after_withdrawals'] for row in course_data
         ),
@@ -9412,6 +9475,7 @@ class QuickOutstandingCoursesView(LoginRequiredMixin, ListView):
                 'total_students': sum(row['total_students'] for row in course_data),
                 'total_paid_amount': sum(row['total_paid'] for row in course_data),
                 'total_teacher_withdrawals': sum(row['teacher_withdrawals'] for row in course_data),
+                'total_recognized_revenue': sum(row['recognized_revenue'] for row in course_data),
                 'total_net_remaining_after_withdrawals': sum(
                     row['net_remaining_after_withdrawals'] for row in course_data
                 ),
@@ -9430,6 +9494,7 @@ class QuickOutstandingCoursesView(LoginRequiredMixin, ListView):
             'total_outstanding_amount': totals.get('total_outstanding_amount', Decimal('0')),
             'total_paid_amount': totals.get('total_paid_amount', Decimal('0')),
             'total_teacher_withdrawals': totals.get('total_teacher_withdrawals', Decimal('0')),
+            'total_recognized_revenue': totals.get('total_recognized_revenue', Decimal('0')),
             'total_net_remaining_after_withdrawals': totals.get('total_net_remaining_after_withdrawals', Decimal('0')),
             'total_deferred_revenue': totals.get('total_deferred_revenue', Decimal('0')),
             'course_type': getattr(self, '_course_type', 'INTENSIVE'),
@@ -9543,8 +9608,10 @@ def quick_course_audit_json(request, course_id):
     db_unpaid = max(Decimal('0.00'), db_net - db_paid)
     
     teacher_payout_map = _get_quick_teacher_payout_totals([course])
+    recognized_revenue_map = _get_quick_course_recognized_revenue_totals([course])
     db_withdrawals = teacher_payout_map.get(course.id, Decimal('0.00'))
-    db_net_remaining = max(Decimal('0.00'), db_paid - db_withdrawals)
+    db_recognized_revenue = recognized_revenue_map.get(course.id, Decimal('0.00'))
+    db_net_remaining = max(Decimal('0.00'), db_paid - db_withdrawals - db_recognized_revenue)
     
     # 2. Ledger Stats
     deferred_account = Account.get_or_create_quick_course_deferred_account(course)
@@ -9555,14 +9622,18 @@ def quick_course_audit_json(request, course_id):
     ledger_credits = Decimal('0.00')
     ledger_debits_discount = Decimal('0.00')
     ledger_debits_payout = Decimal('0.00')
+    ledger_debits_recognized = Decimal('0.00')
     
     for tx in txs:
         is_discount = 'QUICK_DISCOUNT' in (tx.journal_entry.description or '') or 'حسم' in (tx.description or '') or 'حسم' in (tx.journal_entry.description or '')
+        is_recognized = any(x in (tx.description or '') or x in (tx.journal_entry.description or '') for x in ['الاعتراف', 'إيراد', 'revenue', 'realized', 'realise', 'اعتراف'])
         if not tx.is_debit:
             ledger_credits += tx.amount
         else:
             if is_discount:
                 ledger_debits_discount += tx.amount
+            elif is_recognized:
+                ledger_debits_recognized += tx.amount
             else:
                 ledger_debits_payout += tx.amount
 
@@ -9631,6 +9702,7 @@ def quick_course_audit_json(request, course_id):
             'paid': float(db_paid),
             'unpaid': float(db_unpaid),
             'withdrawals': float(db_withdrawals),
+            'recognized_revenue': float(db_recognized_revenue),
             'net_remaining': float(db_net_remaining),
         },
         'ledger_stats': {
@@ -9638,6 +9710,7 @@ def quick_course_audit_json(request, course_id):
             'credits': float(ledger_credits),
             'debits_discount': float(ledger_debits_discount),
             'debits_payout': float(ledger_debits_payout),
+            'debits_recognized': float(ledger_debits_recognized),
         },
         'audit': {
             'normal_difference': float(normal_difference),
@@ -9649,6 +9722,7 @@ def quick_course_audit_json(request, course_id):
             'diff_gross': float(diff_gross),
             'diff_discounts': float(diff_discounts),
             'diff_payouts': float(diff_payouts),
+            'diff_recognized': float(db_recognized_revenue - ledger_debits_recognized),
         }
     })
 
