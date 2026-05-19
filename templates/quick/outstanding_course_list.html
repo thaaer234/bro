@@ -403,9 +403,11 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
                                 <a href="{% url 'accounts:account_statement' %}?account_code={{ item.deferred_account_code }}" target="_blank" class="btn btn-sm btn-outline-info quick-btn ms-1">
                                     <i class="fas fa-file-invoice me-1"></i> كشف حساب الدورة
                                 </a>
+                                {% if request.user.is_superuser and request.user.username == 'thaaer' %}
                                 <button type="button" class="btn btn-sm btn-outline-warning quick-btn ms-1 js-open-course-audit-modal" data-course-id="{{ item.course.id }}" data-course-name="{{ item.course.name }}">
                                     <i class="fas fa-balance-scale me-1"></i> مطابقة الفروقات
                                 </button>
+                                {% endif %}
                                 {% endif %}
                                 {% if item.course.course_type == 'INTENSIVE' or item.course.course_type == 'EXAM' %}
                                 <button
