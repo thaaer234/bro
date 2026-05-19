@@ -283,19 +283,33 @@ body.page-outstanding_courses .quick-report-page #quickCoursesTable .quick-actio
     </div>
 
     <div class="card outstanding-card">
-        <div class="card-body quick-filter-grid">
+        <div class="card-body quick-filter-grid d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <h5 class="mb-1">تصفية التقرير</h5>
-                <div class="quick-subtle">اختر نوع الدورة لعرض ملخص دقيق للبيانات المالية.</div>
+                <div class="quick-subtle">اختر نوع الدورة ونوع كشف التصفية لعرض البيانات والفرق المالي.</div>
             </div>
-            <form method="get">
-                <label class="form-label">نوع الدورة</label>
-                <select id="course_type_select" name="course_type" class="form-select" onchange="this.form.submit()">
-                    {% for option in course_type_options %}
-                    <option value="{{ option.value }}" {% if option.value == course_type %}selected{% endif %}>{{ option.label }}</option>
-                    {% endfor %}
-                </select>
-            </form>
+            <div class="d-flex align-items-center gap-4 flex-wrap">
+                <form method="get" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="filter" value="{{ current_filter }}">
+                    <label class="form-label mb-0 white-space-nowrap fw-bold">نوع الدورة:</label>
+                    <select id="course_type_select" name="course_type" class="form-select" onchange="this.form.submit()" style="min-width: 150px;">
+                        {% for option in course_type_options %}
+                        <option value="{{ option.value }}" {% if option.value == course_type %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold">نوع الكشف:</span>
+                    <div class="btn-group" role="group">
+                        <a href="?course_type={{ course_type }}" class="btn {% if not current_filter %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm">
+                            <i class="fas fa-list me-1"></i> جميع الدورات
+                        </a>
+                        <a href="?course_type={{ course_type }}&filter=unpaid" class="btn {% if current_filter == 'unpaid' %}btn-warning{% else %}btn-outline-warning{% endif %} btn-sm">
+                            <i class="fas fa-exclamation-triangle me-1"></i> كشف فرق الإيراد المؤجل (غير مسددين فقط)
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

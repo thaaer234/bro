@@ -9387,7 +9387,31 @@ class QuickOutstandingCoursesView(LoginRequiredMixin, ListView):
         courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
         if course_type != 'ALL':
             courses = courses.filter(course_type=course_type)
+        
         course_data, totals = _build_quick_outstanding_course_summary(courses, include_zero_outstanding=True)
+        
+        filter_type = self.request.GET.get('filter') or ''
+        self._filter_type = filter_type
+        
+        if filter_type == 'unpaid':
+            course_data = [row for row in course_data if row['outstanding_students'] > 0]
+            totals = {
+                'total_courses': len(course_data),
+                'total_male_students': sum(row['male_students'] for row in course_data),
+                'total_female_students': sum(row['female_students'] for row in course_data),
+                'total_unknown_students': sum(row['unknown_students'] for row in course_data),
+                'total_outstanding_students': sum(row['outstanding_students'] for row in course_data),
+                'total_outstanding_amount': sum(row['total_outstanding'] for row in course_data),
+                'total_paid_students': sum(row['paid_students'] for row in course_data),
+                'total_students': sum(row['total_students'] for row in course_data),
+                'total_paid_amount': sum(row['total_paid'] for row in course_data),
+                'total_teacher_withdrawals': sum(row['teacher_withdrawals'] for row in course_data),
+                'total_net_remaining_after_withdrawals': sum(
+                    row['net_remaining_after_withdrawals'] for row in course_data
+                ),
+                'total_deferred_revenue': sum(row['deferred_revenue'] for row in course_data),
+            }
+            
         self._totals = totals
         return course_data
 
@@ -9401,10 +9425,12 @@ class QuickOutstandingCoursesView(LoginRequiredMixin, ListView):
             'total_paid_amount': totals.get('total_paid_amount', Decimal('0')),
             'total_teacher_withdrawals': totals.get('total_teacher_withdrawals', Decimal('0')),
             'total_net_remaining_after_withdrawals': totals.get('total_net_remaining_after_withdrawals', Decimal('0')),
+            'total_deferred_revenue': totals.get('total_deferred_revenue', Decimal('0')),
             'course_type': getattr(self, '_course_type', 'INTENSIVE'),
             'course_type_label': getattr(self, '_course_type_label', 'مكثفة'),
             'course_type_report_label': getattr(self, '_course_type_report_label', 'المكثفات'),
             'course_type_options': _get_course_type_options(),
+            'current_filter': getattr(self, '_filter_type', ''),
         })
         total_courses = totals.get('total_courses', 0) or 0
         total_paid_amount = totals.get('total_paid_amount', Decimal('0'))
