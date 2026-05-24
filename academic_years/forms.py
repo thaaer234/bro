@@ -1,8 +1,8 @@
 from django import forms
 
 from quick.models import AcademicYear
-from accounts.models import Course
-from .models import AcademicYearTransferBatch
+from accounts.models import Course, JournalEntry
+from .models import AcademicYearTransferBatch, JournalEntryTransferBatch
 
 
 class AcademicYearSelectionForm(forms.Form):
@@ -90,5 +90,52 @@ class AcademicYearTransferBatchForm(forms.ModelForm):
             invalid_courses = [course for course in source_courses if course.academic_year_id != source_academic_year.pk]
             if invalid_courses:
                 self.add_error("source_courses", "كل الدورات المختارة يجب أن تكون من الفصل المصدر.")
+
+        return cleaned_data
+
+
+class JournalEntryTransferBatchForm(forms.ModelForm):
+    """
+    form لنقل القيود المحاسبية التي بدون فصول
+    """
+    source_journal_entries = forms.ModelMultipleChoiceField(
+        queryset=JournalEntry.objects.none(),
+        label="القيود المراد ترحيلها (قيود التسجيل والدفع فقط)",
+        widget=forms.CheckboxSelectMultiple,
+        help_text="يتم عرض قيود التسجيل والدفع التي لا تملك فصل محدد فقط",
+    )
+
+    class Meta:
+        model = JournalEntryTransferBatch
+        fields = ["target_academic_year", "notes"]
+        widgets = {
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+        labels = {
+            "target_academic_year": "الفصل الهدف",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["target_academic_year"].queryset = AcademicYear.objects.order_by("-start_date", "-id")
+        
+        # عرض القيود التي بدون فصول (التسجيل والدفع فقط)
+        self.fields["source_journal_entries"].queryset = (
+            JournalEntry.objects
+            .filter(
+                academic_year__isnull=True,  # بدون فصول
+                entry_type__in=['enrollment', 'PAYMENT'],  # تسجيل أو دفع فقط
+            )
+            .select_related("created_by")
+            .order_by("-date", "-id")
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        target_academic_year = cleaned_data.get("target_academic_year")
+        source_journal_entries = cleaned_data.get("source_journal_entries")
+
+        if not source_journal_entries:
+            self.add_error("source_journal_entries", "يجب اختيار قيد واحد على الأقل للترحيل.")
 
         return cleaned_data

@@ -18,6 +18,8 @@ _scheduler_started = False
 
 
 def should_start_biometric_scheduler():
+    if os.environ.get('DISABLE_BIOMETRIC_SCHEDULER') == 'true':
+        return False
     blocked_commands = {
         'check',
         'makemigrations',

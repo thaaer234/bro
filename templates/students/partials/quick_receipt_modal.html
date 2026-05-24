@@ -44,11 +44,11 @@
       <div class="form-row">
         <div class="form-group">
           <label for="qr-disc-pct">نسبة الخصم %</label>
-          <input id="qr-disc-pct" type="number" class="form-control" step="0.01" min="0" max="100" value="{{ student.discount_percent|default:0 }}">
+          <input id="qr-disc-pct" type="number" class="form-control" step="0.01" min="0" max="100" value="{% if student.discount_percent %}{{ student.discount_percent }}{% endif %}">
         </div>
         <div class="form-group">
           <label for="qr-disc-amt">قيمة الخصم</label>
-          <input id="qr-disc-amt" type="text" class="form-control formatted-input" value="{{ student.discount_amount|default:0 }}">
+          <input id="qr-disc-amt" type="text" class="form-control formatted-input" value="{% if student.discount_amount %}{{ student.discount_amount }}{% endif %}">
         </div>
       </div>
       <div id="qr-net" class="net-amount" style="display:none">
@@ -56,7 +56,7 @@
       </div>
       <div class="form-group">
         <label for="qr-paid">المبلغ المدفوع</label>
-        <input id="qr-paid" type="text" class="form-control formatted-input" value="0">
+        <input id="qr-paid" type="text" class="form-control formatted-input" value="">
       </div>
     </div>
     <div class="modal-footer">

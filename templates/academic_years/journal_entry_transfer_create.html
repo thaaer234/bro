@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}إنشاء دفعة نقل قيود{% endblock %}
+
+{% block content %}
+<section class="card shadow-sm border-0">
+    <div class="card-body">
+        <h1 class="h4 mb-3">إنشاء دفعة نقل قيود</h1>
+        <p class="text-muted">اختر الفصل الهدف والقيود المراد نقلها. سيتم عرض قيود التسجيل والدفع فقط التي لا تملك فصل محدد.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.target_academic_year.id_for_label }}">{{ form.target_academic_year.label }}</label>
+                    {{ form.target_academic_year }}
+                    {% if form.target_academic_year.errors %}<div class="text-danger small mt-1">{{ form.target_academic_year.errors|join:", " }}</div>{% endif %}
+                </div>
+                
+                <div class="col-12">
+                    <label class="form-label">{{ form.source_journal_entries.label }}</label>
+                    <p class="text-muted small mb-2">{{ form.source_journal_entries.help_text|safe }}</p>
+                    <div class="border rounded p-3" style="max-height: 400px; overflow: auto;">
+                        <div class="row g-2">
+                            {% for option in form.source_journal_entries %}
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        {{ option.tag }}
+                                        <label class="form-check-label" for="{{ option.id_for_label }}">
+                                            <strong>{{ option.choice_label|default:"" }}</strong>
+                                        </label>
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <div class="col-12 text-muted text-center py-3">
+                                    لا توجد قيود بدون فصول للنقل
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% if form.source_journal_entries.errors %}<div class="text-danger small mt-1">{{ form.source_journal_entries.errors|join:", " }}</div>{% endif %}
+                </div>
+                
+                <div class="col-12">
+                    <label class="form-label" for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                    {{ form.notes }}
+                </div>
+                
+                {% if form.non_field_errors %}
+                <div class="col-12">
+                    <div class="alert alert-danger mb-0">{{ form.non_field_errors|join:", " }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">إنشاء المعاينة</button>
+                    <a href="{% url 'academic_years:journal_entry_transfer_list' %}" class="btn btn-outline-secondary">إلغاء</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

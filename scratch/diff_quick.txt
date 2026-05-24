@@ -1,0 +1,318 @@
+﻿diff --git a/quick/views.py b/quick/views.py
+index 5faf854..1e7cedc 100644
+--- a/quick/views.py
++++ b/quick/views.py
+@@ -70,9 +70,23 @@ from .models import (
+     AcademicYear,
+ )
+ from accounts.models import Course, CostCenter
++from academic_years.services.session import get_current_academic_year
++
++def _current_academic_year(request):
++    return getattr(request, "current_academic_year", None) or get_current_academic_year(request)
++
++def _scope_queryset_to_current_year(queryset, request, field_name="academic_year", include_null=False):
++    academic_year = _current_academic_year(request)
++    if not academic_year:
++        return queryset
++    if include_null:
++        return queryset.filter(Q(**{field_name: academic_year}) | Q(**{f"{field_name}__isnull": True}))
++    return queryset.filter(**{field_name: academic_year})
++
+ from .services.receipt_printer import QuickReceiptPrinterError, print_many_receipts
+ from employ.decorators import require_superuser
+ User = get_user_model()
++
+ logger = logging.getLogger('django')
+ 
+ QUICK_TEACHER_PAYOUT_MARKER = '[QUICK_TEACHER_PAYOUT'
+@@ -3129,6 +3143,7 @@ def _build_quick_report_course_filters(request, default_course_type='ALL'):
+         academic_year_id = None
+ 
+     base_courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year')
++    base_courses = _scope_queryset_to_current_year(base_courses, request)
+     if course_type != 'ALL':
+         base_courses = base_courses.filter(course_type=course_type)
+     if academic_year_id:
+@@ -4135,6 +4150,7 @@ class QuickOutstandingCoursesPrintView(LoginRequiredMixin, TemplateView):
+         context = super().get_context_data(**kwargs)
+         course_type, course_type_label, report_label = _get_outstanding_course_type(self.request)
+         courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
++        courses = _scope_queryset_to_current_year(courses, self.request)
+         if course_type != 'ALL':
+             courses = courses.filter(course_type=course_type)
+         course_data, totals = _build_quick_outstanding_course_summary(courses, include_zero_outstanding=True)
+@@ -4213,7 +4229,7 @@ class QuickCourseListView(LoginRequiredMixin, ListView):
+     context_object_name = 'courses'
+     
+     def get_queryset(self):
+-        return (
++        qs = (
+             QuickCourse.objects.filter(is_active=True)
+             .select_related('academic_year')
+             .annotate(
+@@ -4226,6 +4242,7 @@ class QuickCourseListView(LoginRequiredMixin, ListView):
+             )
+             .order_by('-created_at')
+         )
++        return _scope_queryset_to_current_year(qs, self.request)
+ 
+ 
+ class QuickClassroomListView(LoginRequiredMixin, ListView):
+@@ -4321,8 +4338,9 @@ class QuickStudentIntersectionView(LoginRequiredMixin, TemplateView):
+         context = super().get_context_data(**kwargs)
+ 
+         scope = self._get_scope()
++        courses_qs = _scope_queryset_to_current_year(QuickCourse.objects.filter(is_active=True), self.request)
+         courses_queryset = list(
+-            QuickCourse.objects.filter(is_active=True)
++            courses_qs
+             .select_related('academic_year')
+             .annotate(
+                 active_students_count=Count(
+@@ -4334,8 +4352,13 @@ class QuickStudentIntersectionView(LoginRequiredMixin, TemplateView):
+             .order_by('-academic_year__start_date', 'name')
+         )
+ 
++        sessions_qs = _scope_queryset_to_current_year(
++            QuickCourseSession.objects.filter(is_active=True, course__is_active=True),
++            self.request,
++            field_name='course__academic_year'
++        )
+         sessions_queryset = list(
+-            QuickCourseSession.objects.filter(is_active=True, course__is_active=True)
++            sessions_qs
+             .select_related('course', 'course__academic_year', 'room')
+             .annotate(
+                 active_students_count=Count(
+@@ -4900,7 +4923,7 @@ def _filter_quick_courses_by_stage(courses, stage):
+     return courses
+ 
+ 
+-def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINTH', assignment_status='ALL', course_id=None, session_id=None, search_query=''):
++def _build_quick_manual_sorting_payload(request=None, course_type='INTENSIVE', stage='NON_NINTH', assignment_status='ALL', course_id=None, session_id=None, search_query=''):
+     course_type = _resolve_quick_course_type_value(course_type, allow_all=True)
+     search_query = (search_query or '').strip()
+     normalized_search_query = _normalize_quick_student_name(search_query)
+@@ -4926,6 +4949,8 @@ def _build_quick_manual_sorting_payload(course_type='INTENSIVE', stage='NON_NINT
+         assignment_status = 'ALL'
+ 
+     courses_queryset = QuickCourse.objects.filter(is_active=True)
++    if request:
++        courses_queryset = _scope_queryset_to_current_year(courses_queryset, request)
+     if course_type != 'ALL':
+         courses_queryset = courses_queryset.filter(course_type=course_type)
+     courses_queryset = _filter_quick_courses_by_stage(courses_queryset, stage)
+@@ -5540,6 +5565,7 @@ class QuickManualSortingView(LoginRequiredMixin, TemplateView):
+             or 'ALL'
+         )
+         return _build_quick_manual_sorting_payload(
++            request=self.request,
+             course_type=course_type,
+             course_id=course_id,
+             session_id=session_id,
+@@ -5793,6 +5819,7 @@ class QuickManualSortingPrintView(LoginRequiredMixin, TemplateView):
+     def get_context_data(self, **kwargs):
+         context = super().get_context_data(**kwargs)
+         payload = _build_quick_manual_sorting_payload(
++            request=self.request,
+             course_type=self.request.GET.get('course_type') or 'INTENSIVE',
+             course_id=self.request.GET.get('course_id') or '',
+             session_id=self.request.GET.get('session_id') or '',
+@@ -5816,6 +5843,7 @@ class QuickManualSortingUnassignedPrintView(LoginRequiredMixin, TemplateView):
+     def get_context_data(self, **kwargs):
+         context = super().get_context_data(**kwargs)
+         payload = _build_quick_manual_sorting_payload(
++            request=self.request,
+             course_type=self.request.GET.get('course_type') or 'INTENSIVE',
+             course_id=self.request.GET.get('course_id') or '',
+             session_id=self.request.GET.get('session_id') or '',
+@@ -5980,8 +6008,10 @@ def _order_conflict_sessions(first_session, second_session):
+     return second_session, first_session
+ 
+ 
+-def _build_quick_session_conflict_report(course_type='ALL', selected_course_ids=None):
++def _build_quick_session_conflict_report(request=None, course_type='ALL', selected_course_ids=None):
+     courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
++    if request:
++        courses = _scope_queryset_to_current_year(courses, request)
+     if course_type != 'ALL':
+         courses = courses.filter(course_type=course_type)
+     if selected_course_ids:
+@@ -6440,6 +6470,9 @@ class QuickCourseDetailView(LoginRequiredMixin, DetailView):
+     template_name = 'quick/quick_course_detail.html'
+     context_object_name = 'course'
+ 
++    def get_queryset(self):
++        return _scope_queryset_to_current_year(super().get_queryset(), self.request)
++
+     def get_context_data(self, **kwargs):
+         context = super().get_context_data(**kwargs)
+         course = self.object
+@@ -6468,7 +6501,7 @@ class QuickCourseSessionsManageView(LoginRequiredMixin, TemplateView):
+ 
+     def get_context_data(self, **kwargs):
+         context = super().get_context_data(**kwargs)
+-        course = get_object_or_404(QuickCourse.objects.select_related('academic_year'), pk=self.kwargs['course_id'], is_active=True)
++        course = get_object_or_404(_scope_queryset_to_current_year(QuickCourse.objects.select_related('academic_year'), self.request), pk=self.kwargs['course_id'], is_active=True)
+         active_enrollments = (
+             QuickEnrollment.objects.filter(course=course, is_completed=False, student__is_active=True)
+             .select_related('student')
+@@ -6496,7 +6529,7 @@ class QuickCourseTimeOptionsManageView(LoginRequiredMixin, TemplateView):
+ 
+     def get_context_data(self, **kwargs):
+         context = super().get_context_data(**kwargs)
+-        course = get_object_or_404(QuickCourse.objects.select_related('academic_year'), pk=self.kwargs['course_id'], is_active=True)
++        course = get_object_or_404(_scope_queryset_to_current_year(QuickCourse.objects.select_related('academic_year'), self.request), pk=self.kwargs['course_id'], is_active=True)
+         options = course.time_options.filter(is_active=True).select_related('preferred_room').order_by('priority', 'start_date', 'start_time')
+         context.update({
+             'course': course,
+@@ -6747,7 +6780,7 @@ class QuickCourseSessionStudentsView(LoginRequiredMixin, TemplateView):
+     def get_context_data(self, **kwargs):
+         context = super().get_context_data(**kwargs)
+         session = get_object_or_404(
+-            QuickCourseSession.objects.select_related('course', 'course__academic_year'),
++            _scope_queryset_to_current_year(QuickCourseSession.objects.select_related('course', 'course__academic_year'), self.request, field_name='course__academic_year'),
+             pk=self.kwargs['session_id'],
+         )
+         assignments = list(
+@@ -6788,7 +6821,7 @@ class QuickCourseSessionStudentsPrintView(LoginRequiredMixin, TemplateView):
+     def get_context_data(self, **kwargs):
+         context = super().get_context_data(**kwargs)
+         session = get_object_or_404(
+-            QuickCourseSession.objects.select_related('course', 'course__academic_year', 'room'),
++            _scope_queryset_to_current_year(QuickCourseSession.objects.select_related('course', 'course__academic_year', 'room'), self.request, field_name='course__academic_year'),
+             pk=self.kwargs['session_id'],
+         )
+         assignments = list(
+@@ -6830,6 +6863,7 @@ class QuickAllSessionsManageView(LoginRequiredMixin, TemplateView):
+             'course__academic_year',
+             'room',
+         )
++        sessions = _scope_queryset_to_current_year(sessions, self.request, field_name='course__academic_year')
+         if course_type != 'ALL':
+             sessions = sessions.filter(course__course_type=course_type)
+         if search_query:
+@@ -6924,6 +6958,10 @@ class QuickCourseAttendanceDashboardView(LoginRequiredMixin, TemplateView):
+         sessions = (
+             QuickCourseSession.objects.filter(is_active=True)
+             .select_related('course', 'course__academic_year')
++        )
++        sessions = _scope_queryset_to_current_year(sessions, self.request, field_name='course__academic_year')
++        sessions = (
++            sessions
+             .prefetch_related(
+                 Prefetch(
+                     'session_enrollments',
+@@ -6991,6 +7029,10 @@ class QuickCourseAttendanceArchiveView(LoginRequiredMixin, TemplateView):
+         archived_sessions = (
+             QuickCourseSession.objects.filter(is_active=True, start_date__lt=today)
+             .select_related('course', 'course__academic_year')
++        )
++        archived_sessions = _scope_queryset_to_current_year(archived_sessions, self.request, field_name='course__academic_year')
++        archived_sessions = (
++            archived_sessions
+             .order_by('-start_date', '-start_time')
+         )
+         context['archived_sessions'] = [session for session in archived_sessions if session.is_finished]
+@@ -7002,7 +7044,7 @@ class QuickCourseSessionAttendanceView(LoginRequiredMixin, TemplateView):
+ 
+     def _get_session(self):
+         return get_object_or_404(
+-            QuickCourseSession.objects.select_related('course', 'course__academic_year'),
++            _scope_queryset_to_current_year(QuickCourseSession.objects.select_related('course', 'course__academic_year'), self.request, field_name='course__academic_year'),
+             pk=self.kwargs['session_id'],
+         )
+ 
+@@ -7537,7 +7579,7 @@ class QuickCourseAttendanceReportView(LoginRequiredMixin, TemplateView):
+ 
+     def get_context_data(self, **kwargs):
+         context = super().get_context_data(**kwargs)
+-        course = get_object_or_404(QuickCourse.objects.select_related('academic_year'), pk=self.kwargs['course_id'], is_active=True)
++        course = get_object_or_404(_scope_queryset_to_current_year(QuickCourse.objects.select_related('academic_year'), self.request), pk=self.kwargs['course_id'], is_active=True)
+         sessions = list(
+             QuickCourseSession.objects.filter(course=course, is_active=True)
+             .select_related('room')
+@@ -7589,6 +7631,7 @@ class QuickCourseSchedulePrintView(LoginRequiredMixin, TemplateView):
+         if session_status not in valid_statuses:
+             session_status = 'all'
+         courses = QuickCourse.objects.filter(is_active=True, course_type=course_type).select_related('academic_year')
++        courses = _scope_queryset_to_current_year(courses, self.request)
+         if selected_ids:
+             courses = courses.filter(id__in=selected_ids)
+         sessions = (
+@@ -7665,6 +7708,7 @@ class QuickCourseConflictReportView(LoginRequiredMixin, TemplateView):
+                 continue
+         course_type = self.request.GET.get('course_type') or 'ALL'
+         report = _build_quick_session_conflict_report(
++            request=self.request,
+             course_type=course_type,
+             selected_course_ids=selected_ids,
+         )
+@@ -7763,6 +7807,7 @@ class QuickCourseConflictReportPrintView(LoginRequiredMixin, TemplateView):
+                 continue
+         course_type = self.request.GET.get('course_type') or 'ALL'
+         report = _build_quick_session_conflict_report(
++            request=self.request,
+             course_type=course_type,
+             selected_course_ids=selected_ids,
+         )
+@@ -7813,6 +7858,7 @@ class QuickStudentListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+         academic_year_id = self.request.GET.get('academic_year')
+         gender = self.request.GET.get('gender')
+         queryset = QuickStudent.objects.filter(is_active=True).select_related('student', 'academic_year')
++        queryset = _scope_queryset_to_current_year(queryset, self.request)
+         if academic_year_id:
+             queryset = queryset.filter(academic_year_id=academic_year_id)
+         if gender in ('male', 'female'):
+@@ -9457,6 +9503,7 @@ class QuickOutstandingCoursesView(LoginRequiredMixin, ListView):
+         self._course_type_label = course_type_label
+         self._course_type_report_label = report_label
+         courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
++        courses = _scope_queryset_to_current_year(courses, self.request)
+         if course_type != 'ALL':
+             courses = courses.filter(course_type=course_type)
+         
+@@ -9870,7 +9917,7 @@ class QuickOutstandingCourseDetailView(LoginRequiredMixin, TemplateView):
+     def get_context_data(self, course_id=None, **kwargs):
+         context = super().get_context_data(**kwargs)
+         course_type, course_type_label, report_label = _get_outstanding_course_type(self.request)
+-        course = get_object_or_404(QuickCourse, pk=course_id)
++        course = get_object_or_404(_scope_queryset_to_current_year(QuickCourse.objects.all(), self.request), pk=course_id)
+ 
+         enrollments = QuickEnrollment.objects.filter(
+             course=course,
+@@ -9922,7 +9969,7 @@ class QuickCourseStudentsView(LoginRequiredMixin, TemplateView):
+     def get_context_data(self, course_id=None, **kwargs):
+         context = super().get_context_data(**kwargs)
+         course_type, course_type_label, report_label = _get_outstanding_course_type(self.request)
+-        course = get_object_or_404(QuickCourse, pk=course_id)
++        course = get_object_or_404(_scope_queryset_to_current_year(QuickCourse.objects.all(), self.request), pk=course_id)
+ 
+         enrolled_students = self.get_students_from_enrollments(course)
+         male_count = 0
+@@ -10739,6 +10786,7 @@ class QuickLatePaymentCoursesView(LoginRequiredMixin, ListView):
+         self._end_date = end_date
+ 
+         courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
++        courses = _scope_queryset_to_current_year(courses, self.request)
+         if course_type != 'ALL':
+             courses = courses.filter(course_type=course_type)
+ 
+@@ -10779,7 +10827,7 @@ class QuickLatePaymentCourseDetailView(LoginRequiredMixin, TemplateView):
+         context = super().get_context_data(**kwargs)
+         course_type, course_type_label, report_label = _get_outstanding_course_type(self.request)
+         start_date, end_date = _get_outstanding_date_range(self.request)
+-        course = get_object_or_404(QuickCourse, pk=course_id)
++        course = get_object_or_404(_scope_queryset_to_current_year(QuickCourse.objects.all(), self.request), pk=course_id)
+ 
+         rows, detail_data = _build_quick_outstanding_rows([course], start_date=start_date, end_date=end_date)
+         grouped_course = detail_data['grouped_courses'][0] if detail_data['grouped_courses'] else {
+@@ -10814,6 +10862,7 @@ class QuickLatePaymentCoursesPrintView(LoginRequiredMixin, TemplateView):
+         start_date, end_date = _get_outstanding_date_range(self.request)
+ 
+         courses = QuickCourse.objects.filter(is_active=True).select_related('academic_year').order_by('name')
++        courses = _scope_queryset_to_current_year(courses, self.request)
+         if course_type != 'ALL':
+             courses = courses.filter(course_type=course_type)
+ 

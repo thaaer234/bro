@@ -238,6 +238,220 @@ def delete_journal_entry(request, pk):
     return redirect(next_url)
 
 
+class ZeroCashboxesView(LoginRequiredMixin, View):
+    def get(self, request):
+        if not (request.user.is_superuser and request.user.username == 'thaaer'):
+            return JsonResponse({'error': 'غير مصرح بالدخول.'}, status=403)
+            
+        employee_cash_accounts_qs = (
+            Account.objects
+            .filter(code__startswith='121-', is_active=True)
+            .exclude(code__startswith='121-5')
+            .order_by('code')
+        )
+        
+        items_to_zero = []
+        for account in employee_cash_accounts_qs:
+            balance = account.get_net_balance_all_years()
+            if balance != Decimal('0.00'):
+                name = account.name_ar or account.name
+                if name.startswith("صندوق "):
+                    name = name.replace("صندوق ", "", 1)
+                items_to_zero.append({
+                    'code': account.code,
+                    'name': account.name_ar or account.name,
+                    'emp_name': name,
+                    'balance': float(balance)
+                })
+                
+        if not items_to_zero:
+            return JsonResponse({
+                'success': True,
+                'empty': True,
+                'message': 'جميع الصناديق الفرعية مصفرة بالفعل!'
+            })
+            
+        try:
+            main_cash = Account.objects.get(code='121', is_active=True)
+        except Account.DoesNotExist:
+            return JsonResponse({'error': 'لم يتم العثور على حساب النقدية الرئيسي 121!'}, status=400)
+            
+        names_str = "، ".join(item['emp_name'] for item in items_to_zero)
+        entry_desc = f"تصفير صناديق ({names_str})"
+        
+        debit_items = []
+        credit_items = []
+        
+        for item in items_to_zero:
+            code = item['code']
+            name = item['name']
+            bal = Decimal(str(item['balance']))
+            
+            if bal > Decimal('0.00'):
+                credit_items.append({
+                    'code': code,
+                    'name': name,
+                    'amount': float(bal),
+                    'side': 'credit',
+                    'side_ar': 'دائن (تصفير)'
+                })
+            elif bal < Decimal('0.00'):
+                abs_bal = abs(bal)
+                debit_items.append({
+                    'code': code,
+                    'name': name,
+                    'amount': float(abs_bal),
+                    'side': 'debit',
+                    'side_ar': 'مدين (تصفير)'
+                })
+                
+        sum_debits = sum(Decimal(str(x['amount'])) for x in debit_items)
+        sum_credits = sum(Decimal(str(x['amount'])) for x in credit_items)
+        net_diff = sum_debits - sum_credits
+        
+        main_cash_item = {
+            'code': main_cash.code,
+            'name': main_cash.name_ar or main_cash.name,
+            'amount': float(abs(net_diff)),
+        }
+        
+        if net_diff > Decimal('0.00'):
+            main_cash_item.update({
+                'side': 'credit',
+                'side_ar': 'دائن (ترحيل الفارق)'
+            })
+            credit_items.append(main_cash_item)
+        elif net_diff < Decimal('0.00'):
+            main_cash_item.update({
+                'side': 'debit',
+                'side_ar': 'مدين (ترحيل الفارق)'
+            })
+            debit_items.append(main_cash_item)
+            
+        total_debits = sum(x['amount'] for x in debit_items)
+        total_credits = sum(x['amount'] for x in credit_items)
+        
+        return JsonResponse({
+            'success': True,
+            'empty': False,
+            'description': entry_desc,
+            'debits': debit_items,
+            'credits': credit_items,
+            'total_debits': float(total_debits),
+            'total_credits': float(total_credits),
+            'date': timezone.now().date().strftime('%Y-%m-%d')
+        })
+
+    def post(self, request):
+        if not (request.user.is_superuser and request.user.username == 'thaaer'):
+            return HttpResponse("غير مصرح بالدخول.", status=403)
+            
+        employee_cash_accounts_qs = (
+            Account.objects
+            .filter(code__startswith='121-', is_active=True)
+            .exclude(code__startswith='121-5')
+            .order_by('code')
+        )
+        
+        items_to_zero = []
+        for account in employee_cash_accounts_qs:
+            balance = account.get_net_balance_all_years()
+            if balance != Decimal('0.00'):
+                name = account.name_ar or account.name
+                if name.startswith("صندوق "):
+                    name = name.replace("صندوق ", "", 1)
+                items_to_zero.append({
+                    'account': account,
+                    'balance': balance,
+                    'name': name
+                })
+                
+        if not items_to_zero:
+            messages.warning(request, "جميع الصناديق الفرعية مصفرة بالفعل!")
+            return redirect('accounts:dashboard')
+            
+        try:
+            main_cash = Account.objects.get(code='121', is_active=True)
+        except Account.DoesNotExist:
+            messages.error(request, "لم يتم العثور على حساب النقدية الرئيسي 121!")
+            return redirect('accounts:dashboard')
+            
+        names_str = "، ".join(item['name'] for item in items_to_zero)
+        entry_desc = f"تصفير صناديق ({names_str})"
+        
+        try:
+            with db_transaction.atomic():
+                debit_items = []
+                credit_items = []
+                total_debits_sum = Decimal('0.00')
+                
+                for item in items_to_zero:
+                    acc = item['account']
+                    bal = item['balance']
+                    
+                    if bal > Decimal('0.00'):
+                        # Positive balance: Credit cashbox
+                        credit_items.append({'account': acc, 'amount': bal})
+                        total_debits_sum += bal
+                    elif bal < Decimal('0.00'):
+                        # Negative balance: Debit cashbox
+                        abs_bal = abs(bal)
+                        debit_items.append({'account': acc, 'amount': abs_bal})
+                        
+                sum_debits = sum(x['amount'] for x in debit_items)
+                sum_credits = sum(x['amount'] for x in credit_items)
+                net_diff = sum_debits - sum_credits
+                
+                if net_diff > Decimal('0.00'):
+                    # More debits, so we credit main cash 121 to balance
+                    credit_items.append({'account': main_cash, 'amount': net_diff})
+                    total_debits_sum += net_diff
+                elif net_diff < Decimal('0.00'):
+                    # More credits, so we debit main cash 121 to balance
+                    abs_diff = abs(net_diff)
+                    debit_items.append({'account': main_cash, 'amount': abs_diff})
+                    total_debits_sum += abs_diff
+                    
+                # Create JournalEntry
+                entry = JournalEntry.objects.create(
+                    reference="",
+                    date=timezone.now().date(),
+                    description=entry_desc,
+                    entry_type='ADJUSTMENT',
+                    total_amount=total_debits_sum,
+                    created_by=request.user,
+                    academic_year=_current_academic_year(request)
+                )
+                
+                # Create Transactions
+                for item in debit_items:
+                    Transaction.objects.create(
+                        journal_entry=entry,
+                        account=item['account'],
+                        amount=item['amount'],
+                        is_debit=True,
+                        description=entry_desc
+                    )
+                    
+                for item in credit_items:
+                    Transaction.objects.create(
+                        journal_entry=entry,
+                        account=item['account'],
+                        amount=item['amount'],
+                        is_debit=False,
+                        description=entry_desc
+                    )
+                
+                # Post the entry (checks balance, updates is_posted and recalculates tree balances)
+                entry.post_entry(request.user)
+                
+            messages.success(request, f"تم بنجاح تصفير ومناقلة أرصدة الصناديق بقيد واحد: {entry.reference}")
+        except Exception as e:
+            messages.error(request, f"فشل تصفير الصناديق: {str(e)}")
+            
+        return redirect('accounts:dashboard')
+
+
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/dashboard.html'
     
@@ -245,31 +459,36 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         try:
+            academic_year = _current_academic_year(self.request)
+            
             # Calculate key metrics safely
             asset_accounts = Account.objects.filter(account_type='ASSET', is_active=True)
-            total_assets = sum(acc.get_net_balance() for acc in asset_accounts)
+            total_assets = sum(acc.get_net_balance(academic_year=academic_year) for acc in asset_accounts)
             
             liability_accounts = Account.objects.filter(account_type='LIABILITY', is_active=True)
-            total_liabilities = sum(acc.get_net_balance() for acc in liability_accounts)
+            total_liabilities = sum(acc.get_net_balance(academic_year=academic_year) for acc in liability_accounts)
             
             equity_accounts = Account.objects.filter(account_type='EQUITY', is_active=True)
-            total_equity = sum(acc.get_net_balance() for acc in equity_accounts)
+            total_equity = sum(acc.get_net_balance(academic_year=academic_year) for acc in equity_accounts)
             
             revenue_accounts = Account.objects.filter(account_type='REVENUE', is_active=True)
-            total_revenue = sum(acc.get_net_balance() for acc in revenue_accounts)
+            total_revenue = sum(acc.get_net_balance(academic_year=academic_year) for acc in revenue_accounts)
             
             expense_accounts = Account.objects.filter(account_type='EXPENSE', is_active=True)
-            total_expenses = sum(acc.get_net_balance() for acc in expense_accounts)
+            total_expenses = sum(acc.get_net_balance(academic_year=academic_year) for acc in expense_accounts)
             
-            # Get fund balance (cash + bank accounts)
+            # Get fund balance (cash + bank accounts) using rollup balance of all years,
+            # since physical cashboxes span all years and are displayed using get_net_balance_all_years()
             cash_accounts = Account.objects.filter(
                 code__in=['121', '1115'], is_active=True
             )
-            fund_balance = sum(acc.get_net_balance() for acc in cash_accounts)
+            fund_balance = sum(acc.get_rollup_balance(academic_year=None) for acc in cash_accounts)
             
             # Get employee advances safely
             try:
                 outstanding_advances = EmployeeAdvance.objects.filter(is_repaid=False)
+                if academic_year:
+                    outstanding_advances = outstanding_advances.filter(academic_year=academic_year)
                 employee_advances = sum(adv.outstanding_amount for adv in outstanding_advances)
             except:
                 employee_advances = Decimal('0.00')
@@ -299,10 +518,21 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 {
                     'code': account.code,
                     'title': account.name_ar or account.name,
-                    'balance': account.get_net_balance()
+                    # الصناديق تُعرض برصيدها الكلي عبر كل السنوات لأنها نقدية فعلية
+                    'balance': account.get_net_balance_all_years()
                 }
                 for account in employee_cash_accounts_qs
             ]
+            
+            recent_entries = JournalEntry.objects.select_related('created_by')
+            if academic_year:
+                recent_entries = recent_entries.filter(academic_year=academic_year)
+            recent_entries = recent_entries.order_by('-date', '-created_at')[:5]
+            
+            unposted_count = JournalEntry.objects.filter(is_posted=False)
+            if academic_year:
+                unposted_count = unposted_count.filter(academic_year=academic_year)
+            unposted_entries = unposted_count.count()
             
             context.update({
                 'total_assets': total_assets,
@@ -311,18 +541,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'total_revenue': total_revenue,
                 'total_expenses': total_expenses,
                 'net_income': total_revenue - total_expenses,
-                'recent_entries': JournalEntry.objects.select_related('created_by').order_by('-date', '-created_at')[:5],
+                'recent_entries': recent_entries,
                 'account_count': Account.objects.filter(is_active=True).count(),
-                'unposted_entries': JournalEntry.objects.filter(is_posted=False).count(),
+                'unposted_entries': unposted_entries,
                 'current_ratio': current_ratio,
                 'profit_margin': profit_margin,
                 'debt_ratio': debt_ratio,
                 'working_capital': working_capital,
                 'fund_balance': fund_balance,
                 'employee_advances': employee_advances,
-                'total_courses': Course.objects.filter(is_active=True).count(),
-                'total_students': SProfile.objects.filter(is_active=True).count(),
-                'active_enrollments': Studentenrollment.objects.filter(is_completed=False).count(),
+                'total_courses': _scope_queryset_to_current_year(Course.objects.filter(is_active=True), self.request).count(),
+                'total_students': _scope_queryset_to_current_year(SProfile.objects.filter(is_active=True), self.request).count(),
+                'active_enrollments': _scope_queryset_to_current_year(Studentenrollment.objects.filter(is_completed=False), self.request).count(),
                 'employee_cash_accounts': employee_cash_accounts,
             })
         except Exception as e:
@@ -582,7 +812,10 @@ class ChartOfAccountsView(LoginRequiredMixin, ListView):
             level = account.code.count('-') + 1
             
             # تحديث الإحصائيات المتقدمة
-            balance = account.get_net_balance()
+            if account.code.startswith('121-'):
+                balance = account.get_net_balance_all_years()
+            else:
+                balance = account.get_net_balance()
             total_balance += balance
             
             account_type = account.account_type
@@ -1141,8 +1374,13 @@ def _parse_trial_balance_settings(params):
     }
 
 
-def _calculate_trial_balance_amounts(account, start_date=None, end_date=None):
+def _calculate_trial_balance_amounts(account, start_date=None, end_date=None, academic_year=None):
+    if academic_year is None:
+        from academic_years.middleware import get_current_academic_year_thread
+        academic_year = get_current_academic_year_thread()
     transactions = account.transactions.all()
+    if academic_year:
+        transactions = transactions.filter(journal_entry__academic_year=academic_year)
     if start_date:
         transactions = transactions.filter(journal_entry__date__gte=start_date)
     if end_date:
@@ -1187,6 +1425,7 @@ def _build_trial_balance_dataset(
     account_type='',
     hierarchy_mode='all',
     sort_by='code',
+    academic_year=None,
 ):
     trial_balance_data = []
     total_debits = Decimal('0.00')
@@ -1205,7 +1444,7 @@ def _build_trial_balance_dataset(
     accounts = accounts.order_by(order_field, 'code').distinct()
 
     for account in accounts:
-        amounts = _calculate_trial_balance_amounts(account, start_date=start_date, end_date=end_date)
+        amounts = _calculate_trial_balance_amounts(account, start_date=start_date, end_date=end_date, academic_year=academic_year)
         debit_amount = amounts['debit_amount']
         credit_amount = amounts['credit_amount']
 
@@ -1240,6 +1479,7 @@ class TrialBalanceView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         settings = _parse_trial_balance_settings(self.request.GET)
+        academic_year = _current_academic_year(self.request)
         summary = _build_trial_balance_dataset(
             start_date=settings['start_date'],
             end_date=settings['end_date'],
@@ -1248,6 +1488,7 @@ class TrialBalanceView(LoginRequiredMixin, TemplateView):
             account_type=settings['account_type'],
             hierarchy_mode=settings['hierarchy_mode'],
             sort_by=settings['sort_by'],
+            academic_year=academic_year,
         )
 
         context.update(summary)
@@ -1280,6 +1521,7 @@ class IncomeStatementView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        academic_year = _current_academic_year(self.request)
         
         # Get revenue and expense accounts
         revenue_accounts = Account.objects.filter(
@@ -1289,8 +1531,8 @@ class IncomeStatementView(LoginRequiredMixin, TemplateView):
             account_type='EXPENSE', is_active=True
         ).order_by('code')
         
-        total_revenue = sum(acc.get_net_balance() for acc in revenue_accounts)
-        total_expenses = sum(acc.get_net_balance() for acc in expense_accounts)
+        total_revenue = sum(acc.get_net_balance(academic_year=academic_year) for acc in revenue_accounts)
+        total_expenses = sum(acc.get_net_balance(academic_year=academic_year) for acc in expense_accounts)
         net_income = total_revenue - total_expenses
         
         context.update({
@@ -1309,6 +1551,7 @@ class BalanceSheetView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        academic_year = _current_academic_year(self.request)
         
         # Get balance sheet accounts
         asset_accounts = Account.objects.filter(
@@ -1321,9 +1564,9 @@ class BalanceSheetView(LoginRequiredMixin, TemplateView):
             account_type='EQUITY', is_active=True
         ).order_by('code')
         
-        total_assets = sum(acc.get_net_balance() for acc in asset_accounts)
-        total_liabilities = sum(acc.get_net_balance() for acc in liability_accounts)
-        total_equity = sum(acc.get_net_balance() for acc in equity_accounts)
+        total_assets = sum(acc.get_net_balance(academic_year=academic_year) for acc in asset_accounts)
+        total_liabilities = sum(acc.get_net_balance(academic_year=academic_year) for acc in liability_accounts)
+        total_equity = sum(acc.get_net_balance(academic_year=academic_year) for acc in equity_accounts)
         
         context.update({
             'asset_accounts': asset_accounts,
@@ -1337,6 +1580,7 @@ class BalanceSheetView(LoginRequiredMixin, TemplateView):
         return context
 
 
+
 class LedgerView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/ledger.html'
     
@@ -1344,9 +1588,10 @@ class LedgerView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         account_id = kwargs.get('account_id')
         account = get_object_or_404(Account, id=account_id)
+        academic_year = _current_academic_year(self.request)
         
         # Get all transactions for this account and its descendants
-        transactions = account.transactions_with_descendants().select_related('journal_entry').order_by('journal_entry__date', 'journal_entry__created_at')
+        transactions = account.transactions_with_descendants(academic_year=academic_year).select_related('journal_entry').order_by('journal_entry__date', 'journal_entry__created_at')
         
         # Calculate running balance
         running_balance = Decimal('0.00')
@@ -1386,15 +1631,15 @@ class AccountStatementView(LoginRequiredMixin, TemplateView):
         is_natural_debit = acc_type in ['ASSET', 'EXPENSE']
         return transaction.amount if (transaction.is_debit and is_natural_debit) or (not transaction.is_debit and not is_natural_debit) else -transaction.amount
 
-    def _build_statement(self, account, start_date, end_date):
+    def _build_statement(self, account, start_date, end_date, academic_year=None):
         # Opening balance from all transactions before start_date (if provided)
-        prior_qs = account.transactions_with_descendants()
+        prior_qs = account.transactions_with_descendants(academic_year=academic_year)
         if start_date:
             prior_qs = prior_qs.filter(journal_entry__date__lt=start_date)
         opening_balance = sum(self._signed_amount(tx) for tx in prior_qs.select_related('journal_entry', 'account'))
 
         # Current period transactions
-        tx_qs = account.transactions_with_descendants().select_related('journal_entry', 'account').order_by('journal_entry__date', 'journal_entry__created_at', 'id')
+        tx_qs = account.transactions_with_descendants(academic_year=academic_year).select_related('journal_entry', 'account').order_by('journal_entry__date', 'journal_entry__created_at', 'id')
         if start_date:
             tx_qs = tx_qs.filter(journal_entry__date__gte=start_date)
         if end_date:
@@ -1431,6 +1676,7 @@ class AccountStatementView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         request = self.request
+        academic_year = _current_academic_year(request)
 
         account_code = request.GET.get('account_code') or ''
         start_date_str = request.GET.get('start_date') or ''
@@ -1445,7 +1691,8 @@ class AccountStatementView(LoginRequiredMixin, TemplateView):
         account_obj = None
         if account_code:
             account_obj = get_object_or_404(Account, code=account_code)
-            statement_data = self._build_statement(account_obj, start_date, end_date)
+            statement_data = self._build_statement(account_obj, start_date, end_date, academic_year=academic_year)
+
 
         context.update({
             'accounts_list': accounts_list,
@@ -1636,6 +1883,7 @@ class ReceiptsExpensesView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        academic_year = _current_academic_year(self.request)
         
         # Show the employee-linked cash account if it already exists.
         # If the employee does not have one yet, fall back to the main cash account
@@ -1654,21 +1902,23 @@ class ReceiptsExpensesView(LoginRequiredMixin, TemplateView):
                     'is_active': True,
                 }
             )
-        cash_balance = cash_account.get_net_balance() if cash_account else Decimal('0.00')
+        cash_balance = cash_account.get_net_balance(academic_year=academic_year) if cash_account else Decimal('0.00')
         
         # Get recent receipts and expenses
-        recent_receipts = StudentReceipt.objects.select_related('created_by')[:10]
-        recent_expenses = ExpenseEntry.objects.select_related('created_by').filter(entry_kind='EXPENSE')[:10]
-        recent_followup_revenues = ExpenseEntry.objects.select_related('created_by').filter(entry_kind='FOLLOWUP_REVENUE')[:10]
+        recent_receipts = _scope_queryset_to_current_year(StudentReceipt.objects.select_related('created_by'), self.request)[:10]
+        recent_expenses = _scope_queryset_to_current_year(ExpenseEntry.objects.select_related('created_by').filter(entry_kind='EXPENSE'), self.request)[:10]
+        recent_followup_revenues = _scope_queryset_to_current_year(ExpenseEntry.objects.select_related('created_by').filter(entry_kind='FOLLOWUP_REVENUE'), self.request)[:10]
         
         # Get today's totals
         today = timezone.now().date()
-        today_receipts_total = StudentReceipt.objects.filter(date=today).aggregate(
-            total=Sum('amount'))['total'] or Decimal('0.00')
-        today_expenses_total = ExpenseEntry.objects.filter(date=today, entry_kind='EXPENSE').aggregate(
-            total=Sum('amount'))['total'] or Decimal('0.00')
-        today_followup_revenue_total = ExpenseEntry.objects.filter(date=today, entry_kind='FOLLOWUP_REVENUE').aggregate(
-            total=Sum('amount'))['total'] or Decimal('0.00')
+        today_receipts = _scope_queryset_to_current_year(StudentReceipt.objects.filter(date=today), self.request)
+        today_receipts_total = today_receipts.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        
+        today_expenses = _scope_queryset_to_current_year(ExpenseEntry.objects.filter(date=today, entry_kind='EXPENSE'), self.request)
+        today_expenses_total = today_expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        
+        today_followup_revenue = _scope_queryset_to_current_year(ExpenseEntry.objects.filter(date=today, entry_kind='FOLLOWUP_REVENUE'), self.request)
+        today_followup_revenue_total = today_followup_revenue.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         
         context.update({
             'cash_account': cash_account,
@@ -1899,7 +2149,7 @@ class OutstandingCoursesView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        courses = Course.objects.filter(is_active=True).order_by('name')
+        courses = _scope_queryset_to_current_year(Course.objects.filter(is_active=True), self.request).order_by('name')
         course_data = []
         
         for course in courses:
@@ -1977,7 +2227,11 @@ class OutstandingCourseStudentsView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, course_id=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        course = get_object_or_404(Course, pk=course_id)
+        academic_year = _current_academic_year(self.request)
+        course_qs = Course.objects.filter(pk=course_id)
+        if academic_year:
+            course_qs = course_qs.filter(academic_year=academic_year)
+        course = get_object_or_404(course_qs)
         
         print(f"جلب الطلاب للدورة: {course.name} (ID: {course.id})")
         
@@ -2331,6 +2585,7 @@ class OutstandingStudentsByClassroomView(LoginRequiredMixin, TemplateView):
     def get_classroom_students_with_remaining(self, classroom):
         """جلب طلاب الشعبة الذين لديهم متبقي"""
         classroom_students = []
+        academic_year = _current_academic_year(self.request)
         
         print(f"  البحث في الشعبة: {classroom.name}")
         
@@ -2343,6 +2598,8 @@ class OutstandingStudentsByClassroomView(LoginRequiredMixin, TemplateView):
             for enrollment in classroom.enrollments.all():
                 student = self.get_student_from_enrollment(enrollment)
                 if student:
+                    if academic_year and student.academic_year != academic_year:
+                        continue
                     print(f"      - وجد طالب: {student.full_name}")
                     student_remaining = self.calculate_total_student_remaining(student)
                     print(f"        المتبقي: {student_remaining}")
@@ -2362,6 +2619,8 @@ class OutstandingStudentsByClassroomView(LoginRequiredMixin, TemplateView):
         elif hasattr(classroom, 'students'):
             print(f"    - استخدام علاقة students المباشرة")
             for student in classroom.students.all():
+                if academic_year and student.academic_year != academic_year:
+                    continue
                 print(f"      - طالب: {student.full_name}")
                 student_remaining = self.calculate_total_student_remaining(student)
                 print(f"        المتبقي: {student_remaining}")
@@ -2393,6 +2652,7 @@ class OutstandingStudentsByClassroomView(LoginRequiredMixin, TemplateView):
     def calculate_total_student_remaining(self, student):
         """حساب إجمالي المتبقي على الطالب من جميع الدورات"""
         total_remaining = Decimal('0')
+        academic_year = _current_academic_year(self.request)
         
         print(f"      حساب متبقي الطالب {student.full_name}")
         
@@ -2401,6 +2661,8 @@ class OutstandingStudentsByClassroomView(LoginRequiredMixin, TemplateView):
             student=student,
             is_completed=False
         ).select_related('course')
+        if academic_year:
+            enrollments = enrollments.filter(course__academic_year=academic_year)
         
         print(f"        عدد التسجيلات النشطة: {enrollments.count()}")
         
@@ -2685,13 +2947,16 @@ class WithdrawnStudentsView(LoginRequiredMixin, TemplateView):
         enrollments = Studentenrollment.objects.filter(
             is_completed=True
         ).select_related('student', 'course')
+        enrollments = _scope_queryset_to_current_year(enrollments, self.request)
         
         for enrollment in enrollments:
             # حساب المبلغ المسترد (المبلغ المدفوع)
-            refund_amount = StudentReceipt.objects.filter(
+            receipts = StudentReceipt.objects.filter(
                 student_profile=enrollment.student,
                 course=enrollment.course
-            ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+            )
+            receipts = _scope_queryset_to_current_year(receipts, self.request)
+            refund_amount = receipts.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
             
             withdrawn_students.append({
                 'student': enrollment.student,

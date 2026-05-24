@@ -273,41 +273,36 @@ class Student(models.Model):
         academic_year = self.get_academic_year()
         return academic_year.name if academic_year else "لم يتم تحديد الفصل"
    
-    def update_enrollment_discounts(self, user):
-        """تحديث جميع تسجيلات الطالب النشطة بناءً على الحسم الجديد"""
+    def update_enrollment_discount(self, enrollment, discount_percent, discount_amount, discount_reason, user):
+        """تحديث حسم دورة محددة بناءً على القيم الجديدة"""
         from accounts.models import Studentenrollment, JournalEntry, Transaction
-        
+
         with db_transaction.atomic():
-            active_enrollments = Studentenrollment.objects.filter(
-                student=self, 
-                is_completed=False
-            )
-            
-            for enrollment in active_enrollments:
-                # حفظ القيم القديمة للمقارنة
-                old_discount_percent = enrollment.discount_percent
-                old_discount_amount = enrollment.discount_amount
-                old_net_amount = enrollment.net_amount
-                
-                print(f"التسجيل: {enrollment.course.name}")
-                print(f"الخصم القديم: {old_discount_percent}% / {old_discount_amount}")
-                print(f"المبلغ الصافي القديم: {old_net_amount}")
-                
-                # تحديث قيم الحسم في التسجيل
-                enrollment.discount_percent = self.discount_percent
-                enrollment.discount_amount = self.discount_amount
-                enrollment.save()
-                
-                new_net_amount = enrollment.net_amount
-                print(f"الخصم الجديد: {enrollment.discount_percent}% / {enrollment.discount_amount}")
-                print(f"المبلغ الصافي الجديد: {new_net_amount}")
-                
-                # إذا تغير المبلغ الصافي، قم بتحديث القيد المحاسبي
-                if old_net_amount != new_net_amount and enrollment.enrollment_journal_entry:
-                    print(f"سيتم تعديل القيد: الفرق {new_net_amount - old_net_amount}")
-                    self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
-                else:
-                    print("لا يوجد فرق في المبلغ الصافي أو لا يوجد قيد")
+            # حفظ القيم القديمة للمقارنة
+            old_discount_percent = enrollment.discount_percent
+            old_discount_amount = enrollment.discount_amount
+            old_net_amount = enrollment.net_amount
+
+            print(f"التسجيل: {enrollment.course.name}")
+            print(f"الخصم القديم: {old_discount_percent}% / {old_discount_amount}")
+            print(f"المبلغ الصافي القديم: {old_net_amount}")
+
+            # تحديث قيم الحسم في التسجيل
+            enrollment.discount_percent = discount_percent
+            enrollment.discount_amount = discount_amount
+            enrollment.discount_reason = discount_reason
+            enrollment.save()
+
+            new_net_amount = enrollment.net_amount
+            print(f"الخصم الجديد: {enrollment.discount_percent}% / {enrollment.discount_amount}")
+            print(f"المبلغ الصافي الجديد: {new_net_amount}")
+
+            # إذا تغير المبلغ الصافي، قم بتحديث القيد المحاسبي
+            if old_net_amount != new_net_amount and enrollment.enrollment_journal_entry:
+                print(f"سيتم تعديل القيد: الفرق {new_net_amount - old_net_amount}")
+                self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
+            else:
+                print("لا يوجد فرق في المبلغ الصافي أو لا يوجد قيد")
     
     def _update_enrollment_journal_entry(self, enrollment, user, old_amount, new_amount):
         """تحديث قيد التسجيل المحاسبي بناءً على الفرق في المبلغ"""

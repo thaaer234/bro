@@ -32,6 +32,9 @@ class attendance(ListView):
     
     def get_queryset(self):
         queryset = Attendance.objects.select_related('classroom').order_by('-date')
+        current_year = getattr(self.request, 'current_academic_year', None)
+        if current_year:
+            queryset = queryset.filter(student__academic_year=current_year)
         branch = self.request.GET.get('branch') or ''
         classroom_id = self.request.GET.get('classroom') or ''
         search = (self.request.GET.get('q') or '').strip()
@@ -69,8 +72,15 @@ class attendance(ListView):
                                       .annotate(student_count=Count('id'), classroom_name=F('classroom__name'))
                                       .order_by('-date', 'classroom__name'))
         context['branches'] = Classroom.BranchChoices.choices
-        context['classrooms'] = Classroom.objects.filter(is_active=True).order_by('name')
-        context['months'] = Attendance.objects.dates('date', 'month', order='DESC')
+        classrooms = Classroom.objects.filter(is_active=True).order_by('name')
+        current_year = getattr(self.request, 'current_academic_year', None)
+        if current_year:
+            classrooms = classrooms.filter(enrollments__student__academic_year=current_year).distinct()
+        context['classrooms'] = classrooms
+        if current_year:
+            context['months'] = Attendance.objects.filter(student__academic_year=current_year).dates('date', 'month', order='DESC')
+        else:
+            context['months'] = Attendance.objects.dates('date', 'month', order='DESC')
         context['current_month'] = month_param
         context['filters'] = {
             'branch': branch,
@@ -84,9 +94,13 @@ class TakeAttendanceView(View):
     
     def get(self, request):
         form = AttendanceForm()
+        classrooms = Classroom.objects.all()
+        current_year = getattr(request, 'current_academic_year', None)
+        if current_year:
+            classrooms = classrooms.filter(enrollments__student__academic_year=current_year).distinct()
         return render(request, self.template_name, {
             'form': form,
-            'classrooms': Classroom.objects.all()
+            'classrooms': classrooms
         })
     
     def post(self, request):
@@ -104,9 +118,17 @@ class TakeAttendanceView(View):
             return redirect('attendance:take_attendance')
 
         classroom = get_object_or_404(Classroom, id=classroom_id)
+        current_year = getattr(request, 'current_academic_year', None)
+        if current_year:
+            if date_obj < current_year.start_date or (current_year.end_date and date_obj > current_year.end_date):
+                messages.error(request, f'التاريخ المحدد يقع خارج نطاق الفصل الدراسي النشط ({current_year.name})')
+                return redirect('attendance:take_attendance')
+                
         students = Student.objects.filter(
             classroom_enrollments__classroom=classroom
         ).distinct()
+        if current_year:
+            students = students.filter(academic_year=current_year)
         
         # التحقق من وجود سجلات قديمة لنفس التاريخ والشعبة
         existing_attendances = Attendance.objects.filter(
@@ -155,7 +177,11 @@ def get_students(request):
         # جلب الطلاب عبر علاقة التسجيل في الشعبة
         students = Student.objects.filter(
             classroom_enrollments__classroom_id=classroom_id
-        ).distinct().values('id', 'full_name')
+        ).distinct()
+        current_year = getattr(request, 'current_academic_year', None)
+        if current_year:
+            students = students.filter(academic_year=current_year)
+        students = students.values('id', 'full_name')
         
         if not students.exists():
             return JsonResponse({'error': 'لا يوجد طلاب في هذه الشعبة'}, status=404)
@@ -194,6 +220,9 @@ class UpdateAttendanceView(View):
             return redirect('attendance:attendance')
 
         attendances = Attendance.objects.filter(classroom=classroom, date=date_obj)
+        current_year = getattr(request, 'current_academic_year', None)
+        if current_year:
+            attendances = attendances.filter(student__academic_year=current_year)
 
         return render(request, self.template_name, {
             'classroom': classroom,
@@ -204,6 +233,9 @@ class UpdateAttendanceView(View):
     def post(self, request, classroom_id, date):
         classroom = get_object_or_404(Classroom, id=classroom_id)
         students = Student.objects.filter(classroom_enrollments__classroom=classroom)
+        current_year = getattr(request, 'current_academic_year', None)
+        if current_year:
+            students = students.filter(academic_year=current_year)
 
         try:
             original_date_obj = datetime.strptime(date, '%Y-%m-%d').date()
@@ -221,6 +253,11 @@ class UpdateAttendanceView(View):
         if target_date_obj > timezone.now().date():
             messages.error(request, 'Cannot update attendance for a future date.')
             return redirect('attendance:attendance_detail', classroom_id=classroom_id, date=date)
+
+        if current_year:
+            if target_date_obj < current_year.start_date or (current_year.end_date and target_date_obj > current_year.end_date):
+                messages.error(request, f'التاريخ الجديد يقع خارج نطاق الفصل الدراسي النشط ({current_year.name})')
+                return redirect('attendance:attendance_detail', classroom_id=classroom_id, date=date)
 
         date_changed = target_date_obj != original_date_obj
         if date_changed:
@@ -316,6 +353,11 @@ class TeacherAttendanceView(ListView):
     
     def get_queryset(self):
         queryset = TeacherAttendance.objects.select_related('teacher').order_by('-date')
+        current_year = getattr(self.request, 'current_academic_year', None)
+        if current_year:
+            queryset = queryset.filter(date__gte=current_year.start_date)
+            if current_year.end_date:
+                queryset = queryset.filter(date__lte=current_year.end_date)
         
         teacher_id = self.request.GET.get('teacher')
         if teacher_id:
@@ -452,6 +494,12 @@ class TakeTeacherAttendanceView(TemplateView):
             if date_obj > timezone.now().date():
                 messages.error(request, 'لا يمكن تسجيل حضور لتاريخ مستقبلي')
                 return redirect('attendance:take_teacher_attendance')
+                
+            current_year = getattr(self.request, 'current_academic_year', None)
+            if current_year:
+                if date_obj < current_year.start_date or (current_year.end_date and date_obj > current_year.end_date):
+                    messages.error(request, f'التاريخ المحدد يقع خارج نطاق الفصل الدراسي النشط ({current_year.name})')
+                    return redirect('attendance:take_teacher_attendance')
             
             success_count = 0
             error_messages = []
@@ -1115,9 +1163,17 @@ class TakeStudentsAttendanceView(View):
             return redirect('attendance:take_students_attendance')
 
         classroom = get_object_or_404(Classroom, id=classroom_id)
+        current_year = getattr(request, 'current_academic_year', None)
+        if current_year:
+            if date_obj < current_year.start_date or (current_year.end_date and date_obj > current_year.end_date):
+                messages.error(request, f'التاريخ المحدد يقع خارج نطاق الفصل الدراسي النشط ({current_year.name})')
+                return redirect('attendance:take_attendance')
+                
         students = Student.objects.filter(
             classroom_enrollments__classroom=classroom
         ).distinct()
+        if current_year:
+            students = students.filter(academic_year=current_year)
         
         # التحقق من وجود سجلات قديمة لنفس التاريخ والشعبة
         existing_attendances = Attendance.objects.filter(

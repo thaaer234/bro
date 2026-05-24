@@ -234,6 +234,9 @@ class AcademicYearTransferService:
                     source_receipt.journal_entry,
                     target_student=target_student,
                     target_course=target_course,
+                    is_receipt=True,
+                    source_student=source_enrollment.student,
+                    source_course=source_enrollment.course,
                 )
                 target_receipt.journal_entry = target_entry
                 target_receipt.save(update_fields=["journal_entry"])
@@ -255,17 +258,17 @@ class AcademicYearTransferService:
             target_enrollment.completion_journal_entry = target_entry
         target_enrollment.save(update_fields=["enrollment_journal_entry", "completion_journal_entry"])
 
-    def _clone_journal_entry(self, source_entry, *, target_student, target_course):
+    def _clone_journal_entry(self, source_entry, *, target_student, target_course, is_receipt=False, source_student=None, source_course=None):
         if source_entry.pk in self.entry_map:
             return self.entry_map[source_entry.pk]
 
         target_entry = JournalEntry.objects.create(
             date=source_entry.date,
-            description=f"{source_entry.description} [AYXFER #{self.batch.pk}]",
+            description=source_entry.description,
             entry_type=source_entry.entry_type,
             total_amount=source_entry.total_amount,
             academic_year=self.batch.target_academic_year,
-            created_by=self.actor,
+            created_by=source_entry.created_by or self.actor,
         )
 
         for source_tx in source_entry.transactions.select_related("account", "cost_center").all():
@@ -273,6 +276,9 @@ class AcademicYearTransferService:
                 source_tx.account,
                 target_student=target_student,
                 target_course=target_course,
+                is_receipt=is_receipt,
+                source_student=source_student,
+                source_course=source_course,
             )
             Transaction.objects.create(
                 journal_entry=target_entry,
@@ -284,21 +290,28 @@ class AcademicYearTransferService:
             )
 
         if source_entry.is_posted:
-            target_entry.post_entry(self.actor)
+            target_entry.post_entry(source_entry.posted_by or source_entry.created_by or self.actor)
 
         self.entry_map[source_entry.pk] = target_entry
         self.summary["journal_entries"] += 1
         return target_entry
 
-    def _resolve_target_account(self, source_account, *, target_student, target_course):
+    def _resolve_target_account(self, source_account, *, target_student, target_course, is_receipt=False, source_student=None, source_course=None):
         if not source_account:
             raise ValueError("Source account is required to clone transactions.")
 
+        # Preserve cash box accounts (e.g., codes starting with '121-') across academic year transfers
+        if getattr(source_account, 'code', '').startswith('121-'):
+            return source_account
+
+        # Accounts without an academic year are also preserved
         if source_account.academic_year_id is None:
             return source_account
 
         if source_account.is_student_account:
             if source_account.account_type == "ASSET":
+                if getattr(source_account, 'code', '').startswith('1252-'):
+                    return Account.get_or_create_quick_student_ar_account(target_student)
                 return Account.get_or_create_student_ar_account(target_student, target_course)
             if source_account.account_type == "REVENUE":
                 return Account.get_or_create_withdrawal_revenue_account(target_student, target_course)

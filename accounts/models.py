@@ -85,47 +85,79 @@ class Account(models.Model):
     def get_absolute_url(self):
         return reverse('accounts:account_detail', kwargs={'pk': self.pk})
 
-    def get_debit_balance(self):
+    def get_debit_balance(self, academic_year=None):
         """Get total debit amount for this account"""
-        return self.transactions.filter(is_debit=True).aggregate(
+        if academic_year is None:
+            from academic_years.middleware import get_current_academic_year_thread
+            academic_year = get_current_academic_year_thread()
+        queryset = self.transactions.filter(is_debit=True)
+        if academic_year is not None:
+            queryset = queryset.filter(journal_entry__academic_year=academic_year)
+        return queryset.aggregate(
             total=Sum('amount'))['total'] or Decimal('0.00')
 
-    def get_credit_balance(self):
+    def get_credit_balance(self, academic_year=None):
         """Get total credit amount for this account"""
-        return self.transactions.filter(is_debit=False).aggregate(
+        if academic_year is None:
+            from academic_years.middleware import get_current_academic_year_thread
+            academic_year = get_current_academic_year_thread()
+        queryset = self.transactions.filter(is_debit=False)
+        if academic_year is not None:
+            queryset = queryset.filter(journal_entry__academic_year=academic_year)
+        return queryset.aggregate(
             total=Sum('amount'))['total'] or Decimal('0.00')
 
-    def get_net_balance(self):
+    def get_net_balance(self, academic_year=None):
         """Calculate net balance based on account type"""
-        debit_total = self.get_debit_balance()
-        credit_total = self.get_credit_balance()
+        debit_total = self.get_debit_balance(academic_year=academic_year)
+        credit_total = self.get_credit_balance(academic_year=academic_year)
         
         if self.account_type in ['ASSET', 'EXPENSE']:
             return debit_total - credit_total
         else:  # LIABILITY, EQUITY, REVENUE
             return credit_total - debit_total
 
+    def get_net_balance_all_years(self):
+        """Calculate net balance across ALL academic years (no AY filter).
+        Used for physical cashbox accounts (121-xxx) that hold actual cash
+        spanning multiple academic years."""
+        debit_total = self.transactions.filter(is_debit=True).aggregate(
+            total=Sum('amount'))['total'] or Decimal('0.00')
+        credit_total = self.transactions.filter(is_debit=False).aggregate(
+            total=Sum('amount'))['total'] or Decimal('0.00')
+        if self.account_type in ['ASSET', 'EXPENSE']:
+            return debit_total - credit_total
+        else:
+            return credit_total - debit_total
+
     @property
     def rollup_balance(self):
         """Get balance including children accounts (with recursion protection)"""
-        return self._calculate_rollup_balance(set())
+        return self.get_rollup_balance()
+
+    def get_rollup_balance(self, academic_year=None):
+        """Get balance including children accounts (with recursion protection)"""
+        return self._calculate_rollup_balance(set(), academic_year=academic_year)
     
-    def _calculate_rollup_balance(self, visited_ids):
+    def _calculate_rollup_balance(self, visited_ids, academic_year=None):
         """Calculate rollup balance with recursion protection"""
         if self.id in visited_ids:
             return Decimal('0.00')  # Prevent infinite recursion
         
         visited_ids.add(self.id)
-        own_balance = self.get_net_balance()
+        own_balance = self.get_net_balance(academic_year=academic_year)
         children_balance = Decimal('0.00')
         
         for child in self.children.all():
-            children_balance += child._calculate_rollup_balance(visited_ids.copy())
+            children_balance += child._calculate_rollup_balance(visited_ids.copy(), academic_year=academic_year)
         
         return own_balance + children_balance
 
-    def transactions_with_descendants(self):
+    def transactions_with_descendants(self, academic_year=None):
         """Get all transactions for this account and its descendants"""
+        if academic_year is None:
+            from academic_years.middleware import get_current_academic_year_thread
+            academic_year = get_current_academic_year_thread()
         account_ids = [self.id]
         
         def collect_children(account):
@@ -134,7 +166,10 @@ class Account(models.Model):
                 collect_children(child)
         
         collect_children(self)
-        return Transaction.objects.filter(account_id__in=account_ids)
+        queryset = Transaction.objects.filter(account_id__in=account_ids)
+        if academic_year is not None:
+            queryset = queryset.filter(journal_entry__academic_year=academic_year)
+        return queryset
 
     def recalculate_tree_balances(self):
         """Recalculate balances for this account and all its children"""
@@ -392,9 +427,13 @@ class Account(models.Model):
                 'parent': ar_parent,
                 'is_student_account': True,
                 'student_name': student.full_name,
+                'academic_year': student.academic_year,
                 'is_active': True,
             }
         )
+        if not created and account.academic_year != student.academic_year:
+            account.academic_year = student.academic_year
+            account.save(update_fields=['academic_year'])
         return account
     
     @classmethod
@@ -422,9 +461,13 @@ class Account(models.Model):
                 'parent': deferred_parent,
                 'is_course_account': True,
                 'course_name': course.name,
+                'academic_year': course.academic_year,
                 'is_active': True,
             }
         )
+        if not created and account.academic_year != course.academic_year:
+            account.academic_year = course.academic_year
+            account.save(update_fields=['academic_year'])
         return account
     
     @classmethod
@@ -452,9 +495,13 @@ class Account(models.Model):
                 'parent': revenue_parent,
                 'is_course_account': True,
                 'course_name': course.name,
+                'academic_year': course.academic_year,
                 'is_active': True,
             }
         )
+        if not created and account.academic_year != course.academic_year:
+            account.academic_year = course.academic_year
+            account.save(update_fields=['academic_year'])
         return account
 
    
@@ -1766,6 +1813,7 @@ class Studentenrollment(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='المبلغ الإجمالي / Total Amount')
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name='نسبة الخصم % / Discount Percent')
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='قيمة الخصم / Discount Amount')
+    discount_reason = models.CharField(max_length=200, blank=True, verbose_name='سبب الحسم / Discount Reason')
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='CASH', verbose_name='طريقة الدفع / Payment Method')
     notes = models.TextField(blank=True, verbose_name='ملاحظات / Notes')
     is_completed = models.BooleanField(default=False, verbose_name='مكتمل / Completed')

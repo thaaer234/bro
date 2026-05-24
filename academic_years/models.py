@@ -251,3 +251,112 @@ class AcademicYearTransferLog(models.Model):
 
     def __str__(self):
         return f"{self.get_level_display()} - {self.batch_id}"
+
+
+class JournalEntryTransferBatch(models.Model):
+    """
+    نموذج لنقل القيود المحاسبية التي لا تملك فصل محدد (بدون فصول)
+    يتم نقل قيود التسجيل والدفع فقط للطالب
+    """
+    STATUS_DRAFT = "draft"
+    STATUS_VALIDATED = "validated"
+    STATUS_COMPLETED = "completed"
+    STATUS_FAILED = "failed"
+
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, "مسودة"),
+        (STATUS_VALIDATED, "تمت المعاينة"),
+        (STATUS_COMPLETED, "مكتمل"),
+        (STATUS_FAILED, "فشل"),
+    ]
+
+    target_academic_year = models.ForeignKey(
+        "quick.AcademicYear",
+        on_delete=models.PROTECT,
+        related_name="incoming_journal_entry_transfer_batches",
+        verbose_name="الفصل الهدف",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_journal_entry_transfer_batches",
+        verbose_name="أنشئ بواسطة",
+    )
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default=STATUS_DRAFT, 
+        verbose_name="الحالة"
+    )
+    notes = models.TextField(blank=True, verbose_name="ملاحظات")
+    summary_json = models.JSONField(default=dict, blank=True, verbose_name="ملخص التنفيذ")
+    executed_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت التنفيذ")
+    failure_reason = models.TextField(blank=True, verbose_name="سبب الفشل")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "دفعة نقل قيود"
+        verbose_name_plural = "دفعات نقل القيود"
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"نقل قيود → {self.target_academic_year} ({self.get_status_display()})"
+
+
+class JournalEntryTransferItem(models.Model):
+    """
+    عنصر في دفعة نقل القيود - يمثل قيد واحد من القيود المراد نقلها
+    """
+    STATUS_PENDING = "pending"
+    STATUS_PREVIEWED = "previewed"
+    STATUS_COMPLETED = "completed"
+    STATUS_SKIPPED = "skipped"
+    STATUS_FAILED = "failed"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "بانتظار التنفيذ"),
+        (STATUS_PREVIEWED, "تمت المعاينة"),
+        (STATUS_COMPLETED, "مكتمل"),
+        (STATUS_SKIPPED, "تم التخطي"),
+        (STATUS_FAILED, "فشل"),
+    ]
+
+    batch = models.ForeignKey(
+        JournalEntryTransferBatch,
+        on_delete=models.CASCADE,
+        related_name="journal_entry_items",
+        verbose_name="دفعة الترحيل",
+    )
+    source_journal_entry = models.ForeignKey(
+        "accounts.JournalEntry",
+        on_delete=models.PROTECT,
+        related_name="outgoing_transfer_items",
+        verbose_name="القيد المصدر",
+    )
+    target_journal_entry = models.ForeignKey(
+        "accounts.JournalEntry",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="incoming_transfer_items",
+        verbose_name="القيد الهدف",
+    )
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default=STATUS_PENDING, 
+        verbose_name="الحالة"
+    )
+    notes = models.TextField(blank=True, verbose_name="ملاحظات")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "عنصر قيد في الترحيل"
+        verbose_name_plural = "عناصر القيود في الترحيل"
+        unique_together = ("batch", "source_journal_entry")
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.batch_id} - {self.source_journal_entry.reference}"

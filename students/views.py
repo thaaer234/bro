@@ -52,6 +52,18 @@ import traceback
 from accounts.models import Course, CostCenter
 User = get_user_model()
 
+from academic_years.services.session import get_current_academic_year
+
+def _current_academic_year(request):
+    return getattr(request, "current_academic_year", None) or get_current_academic_year(request)
+
+def _scope_queryset_to_current_year(queryset, request, field_name="academic_year", include_null=False):
+    academic_year = _current_academic_year(request)
+    if not academic_year:
+        return queryset
+    if include_null:
+        return queryset.filter(Q(**{field_name: academic_year}) | Q(**{f"{field_name}__isnull": True}))
+    return queryset.filter(**{field_name: academic_year})
 
 def _parse_post_decimal(value, default='0'):
     if value is None:
@@ -652,6 +664,11 @@ class StudentListView(LoginRequiredMixin, TemplateView):
         # 🔍 البحث عن الطلاب إذا كان هناك معايير بحث
         search_query = (self.request.GET.get('q', '') or '').strip()
         academic_year_id = self.request.GET.get('academic_year')
+        current_year = getattr(self.request, 'current_academic_year', None)
+        if current_year:
+            academic_year_id = str(current_year.id)
+        elif academic_year_id is None:
+            academic_year_id = '0'
         branch_filter = self.request.GET.get('branch')
         type_filter = self.request.GET.get('type')
         show_all_students = search_query.lower() == 'all'
@@ -659,10 +676,10 @@ class StudentListView(LoginRequiredMixin, TemplateView):
         students_list = []
         
         # إذا كان هناك بحث، جلب النتائج
-        if show_all_students or search_query or academic_year_id or branch_filter or type_filter:
+        if show_all_students or search_query or (academic_year_id and academic_year_id != '0') or branch_filter or type_filter:
             normalized_search = '' if show_all_students else search_query
             # البحث في الطلاب النظاميين
-            regular_students = Student.objects.all().select_related('academic_year', 'added_by')
+            regular_students = _scope_queryset_to_current_year(Student.objects.all(), self.request).select_related('academic_year', 'added_by')
             
             # تطبيق الفلاتر
             if normalized_search:
@@ -704,7 +721,7 @@ class StudentListView(LoginRequiredMixin, TemplateView):
             if type_filter != 'regular':
                 try:
                     from quick.models import QuickStudent
-                    quick_students = QuickStudent.objects.filter(is_active=True).select_related('academic_year')
+                    quick_students = _scope_queryset_to_current_year(QuickStudent.objects.filter(is_active=True), self.request).select_related('academic_year')
                     
                     if normalized_search:
                         quick_students = quick_students.filter(
@@ -752,7 +769,10 @@ class StudentListView(LoginRequiredMixin, TemplateView):
         }
         
         # الإحصائيات الحالية (الكود الأصلي)
-        context['students_count'] = Student.objects.count()
+        if current_year:
+            context['students_count'] = Student.objects.filter(academic_year=current_year).count()
+        else:
+            context['students_count'] = Student.objects.count()
         
         try:
             from quick.models import AcademicYear, QuickStudent
@@ -833,12 +853,12 @@ class StudentCardsPrintView(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
             if classroom_id:
                 try:
                     selected_classroom = Classroom.objects.get(id=classroom_id)
-                    students = list(selected_classroom.students.order_by('full_name'))
+                    students = list(_scope_queryset_to_current_year(selected_classroom.students, self.request).order_by('full_name'))
                 except Classroom.DoesNotExist:
                     students = []
             else:
                 students = list(
-                    Student.objects.all().order_by('full_name')
+                    _scope_queryset_to_current_year(Student.objects.all(), self.request).order_by('full_name')
                 )
 
         per_page = 8
@@ -989,7 +1009,7 @@ def student_cards_print_pdf(request):
     students = []
 
     if should_generate:
-        students = list(Student.objects.all().order_by('full_name'))
+        students = list(_scope_queryset_to_current_year(Student.objects.all(), request).order_by('full_name'))
 
     per_page = 8
     pages = [students[i:i + per_page] for i in range(0, len(students), per_page)]
@@ -1040,7 +1060,7 @@ def student_cards_print_pdf_by_branch(request):
         return HttpResponseForbidden('Missing generate=1')
 
     branch_param = (request.GET.get('branch') or '').strip()
-    students_qs = Student.objects.all().order_by('branch', 'full_name')
+    students_qs = _scope_queryset_to_current_year(Student.objects.all(), request).order_by('branch', 'full_name')
 
     if branch_param:
         branch_choices = dict(Student.Academic_Track.choices)
@@ -1082,7 +1102,7 @@ def student_cards_print_pdf_by_classroom(request):
         return HttpResponseForbidden('Missing classroom')
 
     classroom = get_object_or_404(Classroom, id=classroom_id)
-    students = list(classroom.students.order_by('full_name'))
+    students = list(_scope_queryset_to_current_year(classroom.students, request).order_by('full_name'))
     if not students:
         return HttpResponseForbidden('No students found for classroom')
 
@@ -1104,6 +1124,9 @@ class BranchStudentsView(LoginRequiredMixin, ListView):
         
         # جلب الطلاب النظاميين للفرع المحدد
         queryset = Student.objects.all().select_related('academic_year', 'added_by')
+        
+        # عزل البيانات بالفصل الدراسي النشط
+        queryset = _scope_queryset_to_current_year(queryset, self.request)
         
         # فلترة حسب الفرع
         if branch_name and branch_name != '0':
@@ -1139,6 +1162,9 @@ class AllRegularStudentsView(LoginRequiredMixin, ListView):
         # جلب الطلاب النظاميين
         queryset = Student.objects.all().select_related('academic_year', 'added_by')
         
+        # عزل البيانات بالفصل الدراسي النشط
+        queryset = _scope_queryset_to_current_year(queryset, self.request)
+        
         # فلترة حسب الفصل الدراسي إذا كان محدداً
         if academic_year_id and str(academic_year_id) != '0':
             try:
@@ -1168,6 +1194,9 @@ class QuickStudentsAllView(LoginRequiredMixin, ListView):
             
             # جلب جميع الطلاب السريعين
             quick_students = QuickStudent.objects.filter(is_active=True).select_related('academic_year')
+            
+            # عزل البيانات بالفصل الدراسي النشط
+            quick_students = _scope_queryset_to_current_year(quick_students, self.request)
             
             # إضافة معلومات للعرض
             for student in quick_students:
@@ -1199,6 +1228,9 @@ class QuickStudentsView(LoginRequiredMixin, ListView):
             
             # جلب الطلاب السريعين
             quick_students = QuickStudent.objects.filter(is_active=True).select_related('academic_year')
+            
+            # عزل البيانات بالفصل الدراسي النشط
+            quick_students = _scope_queryset_to_current_year(quick_students, self.request)
             
             # فلترة حسب الفصل الدراسي
             if academic_year_id:
@@ -1254,6 +1286,11 @@ class StudentSearchView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         search_query = self.request.GET.get('q', '')
         academic_year_id = self.request.GET.get('academic_year')
+        current_year = getattr(self.request, 'current_academic_year', None)
+        if current_year:
+            academic_year_id = str(current_year.id)
+        elif academic_year_id is None:
+            academic_year_id = '0'
         
         students_list = []
         
@@ -1263,7 +1300,9 @@ class StudentSearchView(LoginRequiredMixin, ListView):
             from quick.models import AcademicYear
             try:
                 academic_year = AcademicYear.objects.get(id=academic_year_id)
-                regular_students = Student.objects.filter(academic_year=academic_year).select_related('added_by').order_by('full_name')
+                regular_students = _scope_queryset_to_current_year(Student.objects.all(), self.request).select_related('added_by').order_by('full_name')
+                if academic_year_id and academic_year_id != '0':
+                    regular_students = regular_students.filter(academic_year_id=academic_year_id)
                 
                 for student in regular_students:
                     student.is_quick = False
@@ -1279,7 +1318,7 @@ class StudentSearchView(LoginRequiredMixin, ListView):
         # البحث العادي إذا كان هناك search_query
         elif search_query.strip():
             # البحث في الطلاب النظاميين
-            regular_students = Student.objects.filter(
+            regular_students = _scope_queryset_to_current_year(Student.objects.all(), self.request).filter(
                 Q(full_name__icontains=search_query) |
                 Q(student_number__icontains=search_query) |
                 Q(phone__icontains=search_query) |
@@ -1288,7 +1327,7 @@ class StudentSearchView(LoginRequiredMixin, ListView):
             ).select_related('added_by').order_by('full_name')
             
             # فلترة حسب الفصل الدراسي إذا كان محدداً
-            if academic_year_id:
+            if academic_year_id and academic_year_id != '0':
                 regular_students = regular_students.filter(academic_year_id=academic_year_id)
             
             for student in regular_students:
@@ -1302,10 +1341,16 @@ class StudentSearchView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['search_query'] = self.request.GET.get('q', '')
-        context['academic_year_id'] = self.request.GET.get('academic_year')
+        academic_year_id = self.request.GET.get('academic_year')
+        current_year = getattr(self.request, 'current_academic_year', None)
+        if current_year:
+            academic_year_id = str(current_year.id)
+        elif academic_year_id is None:
+            academic_year_id = '0'
+        context['academic_year_id'] = academic_year_id
         
         # جلب معلومات الفصل الدراسي إذا كان محدداً
-        if context['academic_year_id']:
+        if context['academic_year_id'] and context['academic_year_id'] != '0':
             try:
                 from quick.models import AcademicYear
                 academic_year = AcademicYear.objects.get(id=context['academic_year_id'])
@@ -1346,8 +1391,10 @@ class CreateStudentView(LoginRequiredMixin, CreateView):
     
     def form_valid(self, form):
         form.instance.added_by = self.request.user
+        current_year = getattr(self.request, 'current_academic_year', None)
+        if current_year:
+            form.instance.academic_year = current_year
         
-        # لا تحدد academic_year هنا - سيتم تعيينه تلقائياً
         response = super().form_valid(form)
         
         # رسالة تأكيد مع اسم الفصل الدراسي
@@ -1582,116 +1629,65 @@ class UpdateStudentView(LoginRequiredMixin, UpdateView):
 
 @require_POST
 def update_student_discount(request, student_id):
-    """تحديث حسم الطالب وتعديل القيود المرتبطة"""
+    """تحديث حسم دورة محددة - اختيار الدورة ضروري"""
     if not request.user.is_authenticated:
         return JsonResponse({'success': False, 'error': 'يجب تسجيل الدخول'})
-    
-    student = get_object_or_404(Student, id=student_id)
-    
-    try:
-        discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
-        discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
-        discount_reason = request.POST.get('discount_reason', '')
-        
-        # حفظ القيم القديمة
-        old_discount_percent = student.discount_percent
-        old_discount_amount = student.discount_amount
-        
-        # تحديث الحسم
-        student.discount_percent = discount_percent
-        student.discount_amount = discount_amount
-        student.discount_reason = discount_reason
-        student.save()
-        
-        # تحديث القيود المحاسبية إذا تغير الحسم
-        if (old_discount_percent != discount_percent or 
-            old_discount_amount != discount_amount):
-            student.update_enrollment_discounts(request.user)
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'تم تحديث الحسم والقيود المحاسبية بنجاح'
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'حدث خطأ: {str(e)}'
-        })  
 
-@require_POST
-def update_student_discount(request, student_id):
-    """تحديث حسم الطالب وتعديل القيود المرتبطة - نسخة محسنة"""
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'يجب تسجيل الدخول'})
-    
     student = get_object_or_404(Student, id=student_id)
-    
+
     try:
         from decimal import Decimal
         from django.db import transaction as db_transaction
         from accounts.models import Studentenrollment
-        
+
+        enrollment_id = request.POST.get('enrollment_id')
         discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
         discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
         discount_reason = request.POST.get('discount_reason', '')
-        
-        print(f"بيانات التحديث: {discount_percent}% / {discount_amount} / {discount_reason}")
-        
-        # التحقق من وجود تسجيلات نشطة
-        active_enrollments = Studentenrollment.objects.filter(
-            student=student, 
-            is_completed=False
-        )
-        
-        if not active_enrollments.exists():
+
+        if not enrollment_id:
             return JsonResponse({
                 'success': False,
-                'error': 'لا توجد تسجيلات نشطة للطالب'
+                'error': 'يجب اختيار الدورة المراد تعديل حسمها'
             })
-        
-        with db_transaction.atomic():
-            # حفظ القيم القديمة
-            old_discount_percent = student.discount_percent
-            old_discount_amount = student.discount_amount
-            
-            print(f"الخصم القديم: {old_discount_percent}% / {old_discount_amount}")
-            print(f"الخصم الجديد: {discount_percent}% / {discount_amount}")
-            
-            # تحديث الطالب
-            student.discount_percent = discount_percent
-            student.discount_amount = discount_amount
-            student.discount_reason = discount_reason
-            student.save()
-            
-            # إذا تغير الخصم، قم بتحديث القيود
-            if (old_discount_percent != discount_percent or 
-                old_discount_amount != discount_amount):
-                
-                print("الخصم تغير، سيتم تحديث القيود")
-                student.update_enrollment_discounts(request.user)
-            else:
-                print("الخصم لم يتغير، لا حاجة لتحديث القيود")
-            
-            # تحديث التسجيلات النشطة بالخصم الجديد
-            updated_count = active_enrollments.update(
-                discount_percent=discount_percent,
-                discount_amount=discount_amount
-            )
-            
-            print(f"تم تحديث {updated_count} تسجيل")
-        
+
+        # التحقق من وجود التسجيل
+        enrollment = Studentenrollment.objects.filter(
+            id=enrollment_id,
+            student=student,
+            is_completed=False
+        ).first()
+
+        if not enrollment:
+            return JsonResponse({
+                'success': False,
+                'error': 'لم يتم العثور على التسجيل'
+            })
+
+        print(f"تحديث حسم الدورة: {enrollment.course.name}")
+        print(f"الحسم الجديد: {discount_percent}% / {discount_amount}")
+        print(f"السبب: {discount_reason}")
+
+        # تحديث حسم الدورة المحددة فقط
+        student.update_enrollment_discount(
+            enrollment,
+            discount_percent,
+            discount_amount,
+            discount_reason,
+            request.user
+        )
+
         return JsonResponse({
             'success': True,
-            'message': f'تم تحديث الحسم والقيود المحاسبية لـ {updated_count} تسجيل نشط'
+            'message': f'تم تحديث الحسم للدورة {enrollment.course.name} بنجاح'
         })
-        
+
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
         print(f"حدث خطأ في update_student_discount: {str(e)}")
         print(f"تفاصيل الخطأ: {error_details}")
-        
+
         return JsonResponse({
             'success': False,
             'error': f'حدث خطأ: {str(e)}'
@@ -1704,12 +1700,16 @@ class StudentNumbersView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         try:
-            context['students_count'] = Student.objects.count()
-            context['male_count'] = Student.objects.filter(gender='male').count()
-            context['female_count'] = Student.objects.filter(gender='female').count()
-            context['scientific_count'] = Student.objects.filter(branch='علمي').count()
-            context['literary_count'] = Student.objects.filter(branch='أدبي').count()
-            context['ninth_exams_count'] = Student.objects.filter(branch='تاسع').count()
+            current_year = getattr(self.request, 'current_academic_year', None)
+            qs = Student.objects.all()
+            if current_year:
+                qs = qs.filter(academic_year=current_year)
+            context['students_count'] = qs.count()
+            context['male_count'] = qs.filter(gender='male').count()
+            context['female_count'] = qs.filter(gender='female').count()
+            context['scientific_count'] = qs.filter(branch='علمي').count()
+            context['literary_count'] = qs.filter(branch='أدبي').count()
+            context['ninth_exams_count'] = qs.filter(branch='تاسع').count()
         except:
             context.update({
                 'students_count': 0,
@@ -1871,18 +1871,19 @@ def quick_receipt(request, student_id):
     })
 
 def register_course(request, student_id):
+    from accounts.models import Course, Studentenrollment
     if not request.user.is_authenticated:
         return redirect('login')
-        
+
     student = get_object_or_404(Student, pk=student_id)
 
     if request.method == 'POST':
         course_id = request.POST.get('course_id')
         enrollment_date_str = request.POST.get('enrollment_date')
-        
+        apply_discount = request.POST.get('apply_discount', 'false').lower() == 'true'
+
         if course_id:
             try:
-                from accounts.models import Course, Studentenrollment
                 course = get_object_or_404(Course, pk=course_id)
 
                 # معالجة تاريخ التسجيل
@@ -1903,21 +1904,49 @@ def register_course(request, student_id):
                 if existing_enrollment:
                     messages.warning(request, f'الطالب مسجل بالفعل في دورة {course.name}')
                 else:
+                    # Check if this is the first enrollment
+                    is_first_enrollment = not Studentenrollment.objects.filter(
+                        student=student,
+                        is_completed=False
+                    ).exists()
+
+                    # Determine discount values
+                    discount_percent = Decimal('0')
+                    discount_amount = Decimal('0')
+                    discount_reason = ''
+
+                    if apply_discount:
+                        if is_first_enrollment:
+                            # استخدام الحسم من الاستمارة للدورة الأولى
+                            discount_percent = student.discount_percent or Decimal('0')
+                            discount_amount = student.discount_amount or Decimal('0')
+                            discount_reason = student.discount_reason or 'حسم من الاستمارة'
+                        else:
+                            # للدورات الأخرى، استخدام الحسم المدخل من المستخدم
+                            discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
+                            discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
+                            discount_reason = request.POST.get('discount_reason', 'حسم مطبق عند التسجيل')
+
                     # Create new enrollment
                     enrollment = Studentenrollment.objects.create(
                         student=student,
                         course=course,
                         enrollment_date=enrollment_date,
                         total_amount=course.price,
-                        discount_percent=student.discount_percent or Decimal('0'),
-                        discount_amount=student.discount_amount or Decimal('0'),
+                        discount_percent=discount_percent,
+                        discount_amount=discount_amount,
+                        discount_reason=discount_reason,
                         payment_method='CASH'
                     )
 
                     # Create enrollment journal entry
                     try:
                         enrollment.create_accrual_enrollment_entry(request.user)
-                        messages.success(request, f'تم تسجيل الطالب في دورة {course.name} وإنشاء الحسابات بنجاح.')
+                        discount_msg = ''
+                        if apply_discount:
+                            if discount_percent > 0 or discount_amount > 0:
+                                discount_msg = f" مع حسم {discount_percent}% / {discount_amount}"
+                        messages.success(request, f'تم تسجيل الطالب في دورة {course.name}{discount_msg} وإنشاء الحسابات بنجاح.')
                     except Exception as e:
                         messages.warning(request, f'تم التسجيل ولكن فشل في إنشاء القيد المحاسبي: {str(e)}')
 
@@ -1929,12 +1958,20 @@ def register_course(request, student_id):
         return redirect('students:student_profile', student_id=student.id)
 
     # GET request - show registration form
-    from accounts.models import Course
-    available_courses = Course.objects.filter(is_active=True).order_by('name')
+    available_courses = _scope_queryset_to_current_year(Course.objects.filter(is_active=True), request).order_by('name')
+
+    # Check if this is first enrollment
+    is_first_enrollment = not Studentenrollment.objects.filter(
+        student=student,
+        is_completed=False
+    ).exists()
 
     return render(request, 'students/register_course.html', {
         'student': student,
-        'available_courses': available_courses
+        'available_courses': available_courses,
+        'is_first_enrollment': is_first_enrollment,
+        'student_discount_percent': student.discount_percent or Decimal('0'),
+        'student_discount_amount': student.discount_amount or Decimal('0'),
     })
 
 # في students/views.py - استبدل دالة withdraw_student بهذا الكود

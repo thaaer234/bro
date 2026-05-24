@@ -7,6 +7,8 @@ from .models import (
     AcademicYearTransferBatch,
     AcademicYearTransferCourseItem,
     AcademicYearTransferLog,
+    JournalEntryTransferBatch,
+    JournalEntryTransferItem,
 )
 
 
@@ -86,3 +88,45 @@ class AcademicYearTransferLogAdmin(admin.ModelAdmin):
     search_fields = ["message"]
     readonly_fields = ["created_at"]
     raw_id_fields = ["batch"]
+
+
+# ============================================
+# نقل القيود المحاسبية
+# ============================================
+
+
+class JournalEntryTransferItemInline(admin.TabularInline):
+    model = JournalEntryTransferItem
+    extra = 0
+    raw_id_fields = ["source_journal_entry", "target_journal_entry"]
+    readonly_fields = ["status"]
+
+
+@admin.register(JournalEntryTransferBatch)
+class JournalEntryTransferBatchAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "target_academic_year",
+        "status",
+        "created_by",
+        "executed_at",
+        "created_at",
+    ]
+    list_filter = ["status", "created_at", "executed_at"]
+    search_fields = [
+        "target_academic_year__name",
+        "target_academic_year__year",
+        "notes",
+    ]
+    readonly_fields = ["summary_json", "failure_reason", "executed_at", "created_at", "updated_at"]
+    raw_id_fields = ["target_academic_year", "created_by"]
+    inlines = [JournalEntryTransferItemInline]
+
+
+@admin.register(JournalEntryTransferItem)
+class JournalEntryTransferItemAdmin(admin.ModelAdmin):
+    list_display = ["batch", "source_journal_entry", "target_journal_entry", "status", "created_at"]
+    list_filter = ["status", "created_at"]
+    search_fields = ["source_journal_entry__reference", "source_journal_entry__description"]
+    readonly_fields = ["created_at", "updated_at"]
+    raw_id_fields = ["batch", "source_journal_entry", "target_journal_entry"]

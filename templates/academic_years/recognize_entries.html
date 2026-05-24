@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load l10n %}
+
+{% block title %}الاعتراف بالقيود بدون فصل دراسي{% endblock %}
+
+{% block content %}
+<section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <div>
+                <h1 class="h4 mb-1 text-primary">
+                    <i class="fas fa-check-double me-2"></i> الاعتراف بالقيود بدون فصل دراسي
+                </h1>
+                <p class="text-muted mb-0">قم بتعيين فصل دراسي للقيود التي لا تنتمي لأي فصل لتصحيح وضعها المالي والمحاسبي.</p>
+            </div>
+            <a href="{% url 'academic_years:transfer_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> العودة لقائمة الترحيل
+            </a>
+        </div>
+
+        <!-- فلترة القيود -->
+        <form method="get" class="row g-3 mb-4 bg-light p-3 rounded border">
+            <div class="col-md-5">
+                <label class="form-label font-weight-bold" for="searchInput">بحث في القيود</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="q" id="searchInput" class="form-control border-start-0" placeholder="ابحث بالمرجع أو الوصف..." value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label font-weight-bold" for="typeFilter">نوع القيد</label>
+                <select name="type" id="typeFilter" class="form-select">
+                    <option value="">كل أنواع القيود</option>
+                    {% for val, label in entry_types %}
+                        <option value="{{ val }}" {% if entry_type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-1"></i> تصفية
+                </button>
+                {% if search_query or entry_type %}
+                    <a href="{% url 'academic_years:recognize_entries' %}" class="btn btn-outline-danger">
+                        <i class="fas fa-times"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <form method="post" id="recognitionForm">
+            {% csrf_token %}
+            
+            <!-- لوحة اختيار الفصل الدراسي والاعتراف للقيود المحددة -->
+            <div class="p-3 mb-4 rounded border-success border bg-success bg-opacity-10 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 500px;">
+                    <label class="form-label mb-0 text-success fw-bold text-nowrap" for="academicYearSelect">
+                        <i class="fas fa-calendar-check me-1"></i> الفصل الدراسي المستهدف:
+                    </label>
+                    <select name="academic_year" id="academicYearSelect" class="form-select border-success" required>
+                        <option value="" disabled selected>-- اختر الفصل الدراسي لمنح الاعتماد له --</option>
+                        {% for year in academic_years %}
+                            <option value="{{ year.id|unlocalize }}">{{ year.name }} ({{ year.start_date|date:"Y-m-d" }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-success fw-bold px-4" id="submitBtn" disabled>
+                        <i class="fas fa-check-double me-1"></i> اعتماد الاعتراف للقيود المحددة
+                    </button>
+                </div>
+            </div>
+
+            <!-- جدول القيود -->
+            <div class="table-responsive border rounded bg-white">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="40" class="text-center">
+                                <div class="form-check d-inline-block">
+                                    <input class="form-check-input" type="checkbox" id="selectAll">
+                                </div>
+                            </th>
+                            <th>المرجع</th>
+                            <th>التاريخ</th>
+                            <th>نوع القيد</th>
+                            <th>الوصف</th>
+                            <th class="text-end">المبلغ الإجمالي</th>
+                            <th>بواسطة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in entries %}
+                        <tr>
+                            <td class="text-center">
+                                <div class="form-check d-inline-block">
+                                    <input class="form-check-input entry-checkbox" type="checkbox" name="entry_ids" value="{{ entry.id|unlocalize }}">
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary font-monospace">{{ entry.reference }}</span>
+                            </td>
+                            <td>{{ entry.date|date:"Y-m-d" }}</td>
+                            <td>
+                                {% if entry.entry_type == 'enrollment' %}
+                                    <span class="badge bg-info bg-opacity-20 text-info">تسجيل / enrollment</span>
+                                {% elif entry.entry_type == 'PAYMENT' %}
+                                    <span class="badge bg-success bg-opacity-20 text-success">دفع / Payment</span>
+                                {% elif entry.entry_type == 'MANUAL' %}
+                                    <span class="badge bg-primary bg-opacity-20 text-primary">يدوي / Manual</span>
+                                {% elif entry.entry_type == 'EXPENSE' %}
+                                    <span class="badge bg-danger bg-opacity-20 text-danger">مصروف / Expense</span>
+                                {% else %}
+                                    <span class="badge bg-dark bg-opacity-20 text-dark">{{ entry.get_entry_type_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="text-wrap" style="max-width: 350px;">{{ entry.description }}</div>
+                            </td>
+                            <td class="text-end fw-bold text-dark">
+                                {{ entry.total_amount }}
+                            </td>
+                            <td class="small text-muted">{{ entry.created_by.get_full_name|default:entry.created_by.username }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <div class="mb-2"><i class="fas fa-check-circle fa-2x text-success"></i></div>
+                                لا توجد قيود معلقة بدون فصول مطابقة لشروط البحث! كل شيء مكتمل تماماً.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-3 text-muted small">
+                <i class="fas fa-info-circle me-1"></i> يظهر في هذه الصفحة بحد أقصى 300 قيد محاسبي لا يحتوي على فصل دراسي.
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const entryCheckboxes = document.querySelectorAll('.entry-checkbox');
+    const submitBtn = document.getElementById('submitBtn');
+    const form = document.getElementById('recognitionForm');
+
+    function updateSubmitButtonState() {
+        const checkedCount = document.querySelectorAll('.entry-checkbox:checked').length;
+        submitBtn.disabled = checkedCount === 0;
+        if (checkedCount > 0) {
+            submitBtn.textContent = `اعتماد الاعتراف لـ (${checkedCount}) قيد محاسبي`;
+        } else {
+            submitBtn.textContent = 'اعتماد الاعتراف للقيود المحددة';
+        }
+    }
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            entryCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+            updateSubmitButtonState();
+        });
+    }
+
+    entryCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const allChecked = Array.from(entryCheckboxes).every(cb => cb.checked);
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = allChecked;
+            }
+            updateSubmitButtonState();
+        });
+    });
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const checkedCount = document.querySelectorAll('.entry-checkbox:checked').length;
+            const academicYearSelect = document.getElementById('academicYearSelect');
+            const selectedText = academicYearSelect.options[academicYearSelect.selectedIndex].text;
+
+            if (checkedCount === 0) {
+                e.preventDefault();
+                alert('الرجاء تحديد قيد محاسبي واحد على الأقل للاعتراف به.');
+                return;
+            }
+
+            if (!academicYearSelect.value) {
+                e.preventDefault();
+                alert('الرجاء اختيار الفصل الدراسي المستهدف أولاً.');
+                return;
+            }
+
+            const confirmMsg = `هل أنت متأكد من رغبتك بالاعتراف بـ (${checkedCount}) قيد محاسبي ونسبها إلى الفصل الدراسي "${selectedText}"؟ 
+هذه العملية ستقوم بتحديث هذه القيود مباشرة في قاعدة البيانات.`;
+            
+            if (!confirm(confirmMsg)) {
+                e.preventDefault();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

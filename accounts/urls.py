@@ -12,6 +12,7 @@ app_name = 'accounts'
 urlpatterns = [
     # Dashboard
     path('', require_employee_perm('accounting_dashboard')(views.DashboardView.as_view()), name='dashboard'),
+    path('zero-cashboxes/', views.ZeroCashboxesView.as_view(), name='zero_cashboxes'),
     
     # Chart of Accounts
     path('chart/', require_employee_perm('accounting_accounts')(views.ChartOfAccountsView.as_view()), name='chart_of_accounts'),

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل دفعة نقل القيود{% endblock %}
+
+{% block content %}
+<section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+            <div>
+                <h1 class="h4 mb-1">دفعة نقل قيود #{{ batch.id }}</h1>
+                <p class="text-muted mb-0">الفصل الهدف: {{ batch.target_academic_year }}</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="badge bg-primary-subtle text-primary px-3 py-2">{{ batch.get_status_display }}</span>
+                {% if batch.status != 'completed' %}
+                <form method="post" action="{% url 'academic_years:journal_entry_transfer_execute' batch.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success">تنفيذ النقل</button>
+                </form>
+                {% endif %}
+                <a href="{% url 'academic_years:journal_entry_transfer_list' %}" class="btn btn-outline-secondary">العودة</a>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="border rounded p-3">
+                    <strong>القيود</strong>
+                    <div class="h5">{{ batch.summary_json.journal_entries|default:0 }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded p-3">
+                    <strong>المعاملات</strong>
+                    <div class="h5">{{ batch.summary_json.transactions|default:0 }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded p-3">
+                    <strong>الإجمالي</strong>
+                    <div class="h5">{{ batch.summary_json.total_amount|default:0 }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded p-3">
+                    <strong>التاريخ</strong>
+                    <div class="small">{{ batch.created_at|date:"d/m/Y" }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if batch.failure_reason %}
+        <div class="alert alert-danger mt-3 mb-0">
+            <strong>سبب الفشل:</strong> {{ batch.failure_reason }}
+        </div>
+        {% endif %}
+
+        {% if batch.notes %}
+        <div class="alert alert-info mt-3 mb-0">
+            <strong>ملاحظات:</strong> {{ batch.notes }}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <h2 class="h5 mb-3">القيود المراد نقلها</h2>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>المرجع</th>
+                        <th>النوع</th>
+                        <th>التاريخ</th>
+                        <th>الوصف</th>
+                        <th>المبلغ</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in journal_entry_items %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.source_journal_entry.reference }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ item.source_journal_entry.get_entry_type_display }}</span>
+                        </td>
+                        <td>{{ item.source_journal_entry.date|date:"d/m/Y" }}</td>
+                        <td>{{ item.source_journal_entry.description|truncatewords:10 }}</td>
+                        <td>{{ item.source_journal_entry.total_amount }}</td>
+                        <td>
+                            {% if item.status == 'pending' %}
+                                <span class="badge bg-secondary">{{ item.get_status_display }}</span>
+                            {% elif item.status == 'previewed' %}
+                                <span class="badge bg-info">{{ item.get_status_display }}</span>
+                            {% elif item.status == 'completed' %}
+                                <span class="badge bg-success">{{ item.get_status_display }}</span>
+                            {% elif item.status == 'failed' %}
+                                <span class="badge bg-danger">{{ item.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">لا توجد قيود في هذه الدفعة.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section class="card shadow-sm border-0">
+    <div class="card-body">
+        <h2 class="h5 mb-3">سجل التنفيذ</h2>
+        <div class="list-group">
+            {% for log in logs %}
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between gap-3 align-items-start">
+                    <div>
+                        {% if log.level == 'info' %}
+                            <span class="badge bg-info">{{ log.get_level_display }}</span>
+                        {% elif log.level == 'warning' %}
+                            <span class="badge bg-warning">{{ log.get_level_display }}</span>
+                        {% elif log.level == 'error' %}
+                            <span class="badge bg-danger">{{ log.get_level_display }}</span>
+                        {% endif %}
+                        <strong>{{ log.message }}</strong>
+                    </div>
+                    <small class="text-muted">{{ log.created_at|date:"d/m/Y H:i" }}</small>
+                </div>
+                {% if log.payload %}
+                <pre class="mt-2 mb-0 small bg-light p-2 rounded text-wrap" style="max-width: 100%; word-break: break-word;">{{ log.payload|safe }}</pre>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="list-group-item text-muted">لا توجد سجلات بعد.</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

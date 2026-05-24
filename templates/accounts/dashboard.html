@@ -13,6 +13,12 @@
                 <p>ملخص تنفيذي سريع للحسابات والسيولة والنشاط اليومي داخل قسم المحاسبة.</p>
             </div>
             <div class="accounts-actions">
+                {% if request.user.is_superuser and request.user.username == 'thaaer' %}
+                <button type="button" id="zeroCashboxPreviewTrigger" class="btn btn-danger" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; border: none; font-weight: 600; box-shadow: 0 4px 6px rgba(231, 76, 60, 0.2); margin-left: 8px;">
+                    <i class="fas fa-exchange-alt"></i>
+                    مناقلة وتصفير الصناديق
+                </button>
+                {% endif %}
                 <a href="{% url 'accounts:journal_entry_create' %}" class="btn btn-primary" data-guide-key="accounts-journal-create">
                     <i class="fas fa-plus"></i>
                     قيد جديد
@@ -79,7 +85,7 @@
                 <p>ملخص سريع لكل صندوق تابع للموظفين.</p>
             </div>
         </div>
-        <div class="accounts-summary-grid">
+        <div class="cashboxes-grid">
             {% for account in employee_cash_accounts %}
             <article class="accounts-summary-card">
                 <span class="accounts-summary-card__icon"><i class="fas fa-vault"></i></span>
@@ -277,6 +283,87 @@
         <strong>نظام الاستحقاق المحاسبي:</strong>
         جميع العمليات تعمل على أساس الاستحقاق مع إعادة بناء أرصدة الحسابات المرتبطة تلقائياً.
     </div>
+
+    {% if request.user.is_superuser and request.user.username == 'thaaer' %}
+    <!-- Modal for zero cashbox confirmation and preview -->
+    <div id="zeroCashboxPreviewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 1100; justify-content: center; align-items: center; padding: 20px; transition: all 0.3s ease;">
+        <div style="background: var(--card-bg, #ffffff); border-radius: 12px; width: 100%; max-width: 750px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; display: flex; flex-direction: column; animation: modalFadeIn 0.3s ease-out; direction: rtl; text-align: right;">
+            
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-exchange-alt" style="font-size: 1.3rem;"></i>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: bold; color: white;">معاينة وتأكيد قيد تصفير الصناديق</h3>
+                </div>
+                <button type="button" id="closeZeroCashboxModalBtn" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1; transition: opacity 0.2s; opacity: 0.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">&times;</button>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 1.5rem; overflow-y: auto; max-height: 60vh;">
+                <div style="background: #fff3cd; border-right: 5px solid #ffc107; color: #856404; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.6;">
+                    <i class="fas fa-triangle-exclamation" style="margin-left: 8px;"></i>
+                    <strong>تنبيه مالي مهم:</strong> سيتم إجراء تسوية تلقائية وترحيل قيد يومية متوازن لتصفير أرصدة كافة صناديق الموظفين الفرعية وتحويل صافي رصيدها بالكامل إلى النقدية الرئيسية (121). يرجى مراجعة تفاصيل القيد المقترح أدناه قبل التأكيد.
+                </div>
+
+                <!-- Meta details -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: rgba(0,0,0,0.03); padding: 12px 15px; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(0,0,0,0.05);">
+                    <div>
+                        <span style="color: #666; font-size: 0.85rem; display: block; margin-bottom: 4px;">تاريخ القيد</span>
+                        <strong id="preview-entry-date" style="font-size: 1rem; color: var(--text-color, #333);">-</strong>
+                    </div>
+                    <div>
+                        <span style="color: #666; font-size: 0.85rem; display: block; margin-bottom: 4px;">وصف القيد المقترح</span>
+                        <strong id="preview-entry-desc" style="font-size: 1rem; color: var(--text-color, #333);">-</strong>
+                    </div>
+                </div>
+
+                <!-- Table of Transactions -->
+                <h4 style="margin: 0 0 10px 0; font-size: 1.1rem; color: var(--text-color, #333); border-bottom: 2px solid #eee; padding-bottom: 6px;"><i class="fas fa-list-ol" style="margin-left: 8px;"></i>تفاصيل أطراف القيد اليومي</h4>
+                
+                <div style="overflow-x: auto; margin-bottom: 1.5rem;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 0.95rem;">
+                        <thead>
+                            <tr style="background: rgba(0,0,0,0.05); border-bottom: 2px solid #ddd;">
+                                <th style="padding: 10px; border: 1px solid #ddd;">رمز الحساب</th>
+                                <th style="padding: 10px; border: 1px solid #ddd;">اسم الحساب</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">مدين (Debit)</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">دائن (Credit)</th>
+                                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">النوع</th>
+                            </tr>
+                        </thead>
+                        <tbody id="preview-transactions-tbody">
+                            <!-- Will be dynamically populated via Javascript -->
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: rgba(0,0,0,0.02); font-weight: bold; border-top: 2px solid #ddd; border-bottom: 2px solid #ddd;">
+                                <td colspan="2" style="padding: 12px 10px; border: 1px solid #ddd; text-align: right;">المجموع الإجمالي للقيد</td>
+                                <td id="preview-total-debits" style="padding: 12px 10px; border: 1px solid #ddd; text-align: left; color: #2ecc71;">0.00</td>
+                                <td id="preview-total-credits" style="padding: 12px 10px; border: 1px solid #ddd; text-align: left; color: #e74c3c;">0.00</td>
+                                <td style="padding: 12px 10px; border: 1px solid #ddd; text-align: center; color: #27ae60;">متوازن <i class="fas fa-check-circle"></i></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="background: rgba(0,0,0,0.02); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid rgba(0,0,0,0.08);">
+                <button type="button" id="cancelZeroCashboxBtn" class="btn btn-outline-secondary" style="padding: 0.6rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: bold;">إلغاء</button>
+                <form action="{% url 'accounts:zero_cashboxes' %}" method="post" id="confirmZeroCashboxForm" style="margin: 0; display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; padding: 0.6rem 1.8rem; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.2);">تأكيد وتنفيذ الترحيل</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    @keyframes modalFadeIn {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    </style>
+    {% endif %}
 </section>
 {% endblock %}
 
@@ -284,6 +371,40 @@
 <script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Dynamic font sizing for large numbers to prevent overflow
+    function autoScaleNumbers() {
+        const elements = document.querySelectorAll('.accounts-summary-card__value, .accounts-kpi-card__value, .accounts-balance-banner__value');
+        elements.forEach(el => {
+            const text = el.textContent.trim();
+            const len = text.length;
+            if (len > 20) {
+                el.style.fontSize = '0.95rem';
+            } else if (len > 15) {
+                el.style.fontSize = '1.05rem';
+            } else if (len > 12) {
+                el.style.fontSize = '1.2rem';
+            } else if (len > 10) {
+                el.style.fontSize = '1.4rem';
+            } else if (len > 8) {
+                el.style.fontSize = '1.6rem';
+            } else {
+                el.style.fontSize = '';
+            }
+        });
+    }
+
+    // Run initially
+    autoScaleNumbers();
+
+    // Set up MutationObserver to handle animated metric-value elements
+    const scaleObserver = new MutationObserver(function(mutations) {
+        autoScaleNumbers();
+    });
+
+    document.querySelectorAll('.accounts-summary-card__value, .accounts-kpi-card__value, .accounts-balance-banner__value').forEach(el => {
+        scaleObserver.observe(el, { childList: true, characterData: true, subtree: true });
+    });
+
     document.querySelectorAll('.metric-value').forEach(function(element) {
         const target = parseFloat(element.dataset.value || '0');
         const duration = 1100;
@@ -315,43 +436,202 @@ document.addEventListener('DOMContentLoaded', function() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', rtl: true } },
-                cutout: '68%'
             }
         });
     }
+});
 
-    const revenueCtx = document.getElementById('revenueExpenseChart');
-    if (revenueCtx) {
-        new Chart(revenueCtx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: ['هذا الشهر', 'الشهر الماضي'],
-                datasets: [
-                    {
-                        label: 'الإيرادات',
-                        data: [{{ current_month_revenue|default:0 }}, {{ last_month_revenue|default:0 }}],
-                        backgroundColor: '#2f6bff',
-                        borderRadius: 10
-                    },
-                    {
-                        label: 'المصروفات',
-                        data: [{{ current_month_expenses|default:0 }}, {{ last_month_expenses|default:0 }}],
-                        backgroundColor: '#ff6b7d',
-                        borderRadius: 10
+// Global helper - must be outside DOMContentLoaded so other scripts can call it
+function autoScaleModalNumbers() {
+    const cells = document.querySelectorAll('#zeroCashboxPreviewModal td');
+    cells.forEach(function(el) {
+        const text = el.textContent.trim();
+        const len = text.length;
+        if (len > 20) {
+            el.style.fontSize = '0.85rem';
+        } else if (len > 15) {
+            el.style.fontSize = '0.95rem';
+        } else if (len > 12) {
+            el.style.fontSize = '1.05rem';
+        } else if (len > 10) {
+            el.style.fontSize = '1.15rem';
+        } else {
+            el.style.fontSize = '';
+        }
+    });
+}
+</script>
+
+{% if request.user.is_superuser and request.user.username == 'thaaer' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Zero Cashbox Modal Logic
+    const triggerBtn = document.getElementById('zeroCashboxPreviewTrigger');
+    const modal = document.getElementById('zeroCashboxPreviewModal');
+    
+    if (triggerBtn && modal) {
+        const closeBtn = document.getElementById('closeZeroCashboxModalBtn');
+        const cancelBtn = document.getElementById('cancelZeroCashboxBtn');
+        const previewDate = document.getElementById('preview-entry-date');
+        const previewDesc = document.getElementById('preview-entry-desc');
+        const tbody = document.getElementById('preview-transactions-tbody');
+        const totalDebitsEl = document.getElementById('preview-total-debits');
+        const totalCreditsEl = document.getElementById('preview-total-credits');
+        
+        function formatCurrency(val) {
+            const parts = parseFloat(val).toFixed(2).split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            return parts.join(',');
+        }
+        
+        triggerBtn.addEventListener('click', function() {
+            // Show loading state on button
+            const originalHTML = triggerBtn.innerHTML;
+            triggerBtn.disabled = true;
+            triggerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري جلب البيانات...';
+            
+            fetch("{% url 'accounts:zero_cashboxes' %}")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('حدث خطأ أثناء جلب معاينة القيد.');
                     }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, grid: { drawBorder: false } },
-                    x: { grid: { display: false } }
-                }
+                    return response.json();
+                })
+                .then(data => {
+                    triggerBtn.innerHTML = originalHTML;
+                    triggerBtn.disabled = false;
+                    
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+                    
+                    if (data.empty) {
+                        alert(data.message);
+                        return;
+                    }
+                    
+                    // Populate modal fields
+                    previewDate.textContent = data.date;
+                    previewDesc.textContent = data.description;
+                    
+                    // Clear and populate table
+                    tbody.innerHTML = '';
+                    
+                    // Sort/group: display debits first, then credits
+                    const allItems = [...data.debits, ...data.credits];
+                    
+                    allItems.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.style.borderBottom = '1px solid #eee';
+                        
+                        // Account Code
+                        const tdCode = document.createElement('td');
+                        tdCode.style.padding = '10px';
+                        tdCode.style.border = '1px solid #ddd';
+                        tdCode.textContent = item.code;
+                        tr.appendChild(tdCode);
+                        
+                        // Account Name
+                        const tdName = document.createElement('td');
+                        tdName.style.padding = '10px';
+                        tdName.style.border = '1px solid #ddd';
+                        tdName.textContent = item.name;
+                        tr.appendChild(tdName);
+                        
+                        // Debit Amount
+                        const tdDebit = document.createElement('td');
+                        tdDebit.style.padding = '10px';
+                        tdDebit.style.border = '1px solid #ddd';
+                        tdDebit.style.textAlign = 'left';
+                        tdDebit.style.fontWeight = '600';
+                        if (item.side === 'debit') {
+                            tdDebit.textContent = formatCurrency(item.amount);
+                            tdDebit.style.color = '#27ae60';
+                        } else {
+                            tdDebit.textContent = '-';
+                            tdDebit.style.color = '#ccc';
+                        }
+                        tr.appendChild(tdDebit);
+                        
+                        // Credit Amount
+                        const tdCredit = document.createElement('td');
+                        tdCredit.style.padding = '10px';
+                        tdCredit.style.border = '1px solid #ddd';
+                        tdCredit.style.textAlign = 'left';
+                        tdCredit.style.fontWeight = '600';
+                        if (item.side === 'credit') {
+                            tdCredit.textContent = formatCurrency(item.amount);
+                            tdCredit.style.color = '#c0392b';
+                        } else {
+                            tdCredit.textContent = '-';
+                            tdCredit.style.color = '#ccc';
+                        }
+                        tr.appendChild(tdCredit);
+                        
+                        // Side / Type (النوع)
+                        const tdSide = document.createElement('td');
+                        tdSide.style.padding = '10px';
+                        tdSide.style.border = '1px solid #ddd';
+                        tdSide.style.textAlign = 'center';
+                        tdSide.style.fontSize = '0.85rem';
+                        tdSide.style.fontWeight = 'bold';
+                        
+                        const badge = document.createElement('span');
+                        badge.style.padding = '4px 8px';
+                        badge.style.borderRadius = '4px';
+                        badge.textContent = item.side_ar;
+                        
+                        if (item.side === 'debit') {
+                            badge.style.background = '#e8f8f5';
+                            badge.style.color = '#27ae60';
+                        } else {
+                            badge.style.background = '#fdebd0';
+                            badge.style.color = '#e67e22';
+                        }
+                        
+                        tdSide.appendChild(badge);
+                        tr.appendChild(tdSide);
+                        
+                        tbody.appendChild(tr);
+                    });
+                    
+                    // Set totals
+                    totalDebitsEl.textContent = formatCurrency(data.total_debits);
+                    totalCreditsEl.textContent = formatCurrency(data.total_credits);
+                    // Show modal
+                    autoScaleModalNumbers();
+                    modal.style.display = 'flex';
+                })
+                .catch(err => {
+                    triggerBtn.innerHTML = originalHTML;
+                    triggerBtn.disabled = false;
+                    alert(err.message || 'حدث خطأ غير متوقع.');
+                });
+        });
+        
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+        
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                closeModal();
+            }
+        });
+        
+        // Close on clicking backdrop
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
             }
         });
     }
 });
 </script>
+{% endif %}
 {% endblock %}

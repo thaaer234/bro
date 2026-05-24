@@ -12,12 +12,15 @@ from .forms import (
     AcademicYearSelectionForm,
     AcademicYearTransferBatchForm,
     AcademicYearUnlockForm,
+    JournalEntryTransferBatchForm,
 )
 from .models import (
     AcademicYearStateLog,
     AcademicYearSystemState,
     AcademicYearTransferBatch,
     AcademicYearTransferCourseItem,
+    JournalEntryTransferBatch,
+    JournalEntryTransferItem,
 )
 from .services.session import (
     academic_year_requires_unlock,
@@ -28,6 +31,7 @@ from .services.session import (
     unlock_academic_year,
 )
 from .services.transfers import AcademicYearTransferService
+from .services.journal_entry_transfers import JournalEntryTransferService
 
 
 class SuperuserRequiredMixin(UserPassesTestMixin):
@@ -328,3 +332,306 @@ class AcademicYearTransferBatchExecuteView(LoginRequiredMixin, SuperuserRequired
             ),
         )
         return redirect("academic_years:transfer_detail", pk=batch.pk)
+
+
+# ============================================
+# نقل القيود المحاسبية بدون فصول
+# ============================================
+
+
+class JournalEntryTransferBatchListView(LoginRequiredMixin, SuperuserRequiredMixin, ListView):
+    """عرض قائمة دفعات نقل القيود"""
+    model = JournalEntryTransferBatch
+    template_name = "academic_years/journal_entry_transfer_list.html"
+    context_object_name = "batches"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return (
+            JournalEntryTransferBatch.objects
+            .select_related(
+                "target_academic_year",
+                "created_by",
+            )
+            .prefetch_related("journal_entry_items")
+            .order_by("-created_at", "-id")
+        )
+
+
+class JournalEntryTransferBatchCreateView(LoginRequiredMixin, SuperuserRequiredMixin, FormView):
+    """إنشاء دفعة جديدة لنقل القيود"""
+    template_name = "academic_years/journal_entry_transfer_create.html"
+    form_class = JournalEntryTransferBatchForm
+    success_url = reverse_lazy("academic_years:journal_entry_transfer_list")
+
+    def form_valid(self, form):
+        batch = form.save(commit=False)
+        batch.created_by = self.request.user
+        batch.status = JournalEntryTransferBatch.STATUS_DRAFT
+        batch.save()
+        
+        # إضافة القيود المختارة إلى الدفعة
+        for source_entry in form.cleaned_data["source_journal_entries"]:
+            JournalEntryTransferItem.objects.create(
+                batch=batch,
+                source_journal_entry=source_entry,
+            )
+
+        # بناء معاينة
+        service = JournalEntryTransferService(batch=batch, actor=self.request.user)
+        preview = service.build_preview()
+        
+        messages.success(
+            self.request, 
+            f"تم إنشاء دفعة نقل القيود ومعاينتها. عدد القيود: {preview['journal_entries']}"
+        )
+        return redirect("academic_years:journal_entry_transfer_detail", pk=batch.pk)
+
+
+class JournalEntryTransferBatchDetailView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    """عرض تفاصيل دفعة نقل القيود"""
+    template_name = "academic_years/journal_entry_transfer_detail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.batch = get_object_or_404(
+            JournalEntryTransferBatch.objects.select_related(
+                "target_academic_year",
+                "created_by",
+            ),
+            pk=kwargs["pk"],
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["batch"] = self.batch
+        context["journal_entry_items"] = (
+            self.batch.journal_entry_items
+            .select_related("source_journal_entry", "target_journal_entry")
+            .order_by("id")
+        )
+        context["logs"] = self.batch.logs.order_by("-created_at", "-id")[:100]
+        return context
+
+
+class JournalEntryTransferBatchExecuteView(LoginRequiredMixin, SuperuserRequiredMixin, View):
+    """تنفيذ نقل القيود"""
+    def post(self, request, *args, **kwargs):
+        batch = get_object_or_404(JournalEntryTransferBatch, pk=kwargs["pk"])
+        
+        if batch.status == JournalEntryTransferBatch.STATUS_COMPLETED:
+            messages.info(request, "تم تنفيذ هذه الدفعة سابقًا.")
+            return redirect("academic_years:journal_entry_transfer_detail", pk=batch.pk)
+
+        service = JournalEntryTransferService(batch=batch, actor=request.user)
+        try:
+            summary = service.execute()
+        except Exception as exc:
+            batch.status = JournalEntryTransferBatch.STATUS_FAILED
+            batch.failure_reason = str(exc)
+            batch.save(update_fields=["status", "failure_reason", "updated_at"])
+            messages.error(request, f"فشل نقل القيود: {exc}")
+            return redirect("academic_years:journal_entry_transfer_detail", pk=batch.pk)
+
+        messages.success(
+            request,
+            (
+                f"اكتمل نقل القيود بنجاح. "
+                f"قيود: {summary.get('journal_entries', 0)}، "
+                f"معاملات: {summary.get('transactions', 0)}"
+            ),
+        )
+        return redirect("academic_years:journal_entry_transfer_detail", pk=batch.pk)
+
+
+class JournalEntryRecognitionView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    """الاعتراف بالقيود التي لا تحمل فصل دراسي"""
+    template_name = "academic_years/recognize_entries.html"
+
+    def get(self, request, *args, **kwargs):
+        from django.db.models import Q
+        from accounts.models import JournalEntry
+        from quick.models import AcademicYear
+        
+        search_query = request.GET.get("q", "")
+        entry_type = request.GET.get("type", "")
+        
+        # Base query for unassigned entries
+        queryset = JournalEntry.objects.filter(academic_year__isnull=True).select_related("created_by")
+        
+        if search_query:
+            queryset = queryset.filter(
+                Q(reference__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+            
+        if entry_type:
+            queryset = queryset.filter(entry_type=entry_type)
+            
+        entries = queryset.order_by("-date", "-id")[:5000]
+        
+        academic_years = AcademicYear.objects.order_by("-start_date", "-id")
+        entry_types = JournalEntry.ENTRY_TYPE_CHOICES
+        
+        context = self.get_context_data(**kwargs)
+        context.update({
+            "entries": entries,
+            "academic_years": academic_years,
+            "search_query": search_query,
+            "entry_type": entry_type,
+            "entry_types": entry_types,
+        })
+        return self.render_to_response(context)
+
+    def post(self, request, *args, **kwargs):
+        from django.db import transaction
+        from accounts.models import JournalEntry
+        from quick.models import AcademicYear
+        
+        raw_entry_ids = request.POST.getlist("entry_ids")
+        raw_academic_year_id = request.POST.get("academic_year")
+        
+        def clean_id_to_int(val):
+            if not val:
+                return None
+            # Remove localized thousands separators (dots/commas)
+            cleaned = str(val).replace(".", "").replace(",", "").strip()
+            try:
+                return int(cleaned)
+            except ValueError:
+                return None
+                
+        entry_ids = [clean_id_to_int(eid) for eid in raw_entry_ids if clean_id_to_int(eid) is not None]
+        academic_year_id = clean_id_to_int(raw_academic_year_id)
+        
+        if not entry_ids:
+            messages.error(request, "لم تقم بتحديد أي قيود للاعتراف بها. يرجى تحديد قيد واحد على الأقل.")
+            return redirect("academic_years:recognize_entries")
+            
+        if not academic_year_id:
+            messages.error(request, "يرجى تحديد الفصل الدراسي الهدف.")
+            return redirect("academic_years:recognize_entries")
+            
+        try:
+            with transaction.atomic():
+                academic_year = get_object_or_404(AcademicYear, pk=academic_year_id)
+                updated_count = JournalEntry.objects.filter(
+                    id__in=entry_ids,
+                    academic_year__isnull=True
+                ).update(academic_year=academic_year)
+                
+                messages.success(
+                    request,
+                    f"تم بنجاح الاعتراف بـ {updated_count} قيد/قيود ونسبتها إلى الفصل: {academic_year.name}."
+                )
+        except Exception as e:
+            messages.error(request, f"حدث خطأ أثناء عملية الاعتراف: {str(e)}")
+            
+        return redirect("academic_years:transfer_list")
+
+
+class AccountRecognitionView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    """الاعتراف بالحسابات وتعيين الفصول أو جعلها مشتركة بكل الفصول"""
+    template_name = "academic_years/recognize_accounts.html"
+
+    def get(self, request, *args, **kwargs):
+        from django.db.models import Q
+        from accounts.models import Account
+        from quick.models import AcademicYear
+        
+        search_query = request.GET.get("q", "")
+        account_type = request.GET.get("type", "")
+        academic_year_filter = request.GET.get("academic_year_filter", "shared")
+        
+        # Determine the base query based on filter
+        if academic_year_filter == "shared":
+            queryset = Account.objects.filter(academic_year__isnull=True)
+        elif academic_year_filter == "all":
+            queryset = Account.objects.all()
+        else:
+            try:
+                ay_id = int(academic_year_filter)
+                queryset = Account.objects.filter(academic_year_id=ay_id)
+            except ValueError:
+                queryset = Account.objects.filter(academic_year__isnull=True)
+        
+        if search_query:
+            queryset = queryset.filter(
+                Q(code__icontains=search_query) |
+                Q(name__icontains=search_query) |
+                Q(name_ar__icontains=search_query)
+            )
+            
+        if account_type:
+            queryset = queryset.filter(account_type=account_type)
+            
+        accounts = queryset.order_by("code")[:2000]
+        
+        academic_years = AcademicYear.objects.order_by("-start_date", "-id")
+        account_types = Account.ACCOUNT_TYPE_CHOICES
+        
+        context = self.get_context_data(**kwargs)
+        context.update({
+            "accounts": accounts,
+            "academic_years": academic_years,
+            "search_query": search_query,
+            "account_type": account_type,
+            "academic_year_filter": academic_year_filter,
+            "account_types": account_types,
+        })
+        return self.render_to_response(context)
+
+    def post(self, request, *args, **kwargs):
+        from django.db import transaction
+        from accounts.models import Account
+        from quick.models import AcademicYear
+        
+        raw_account_ids = request.POST.getlist("account_ids")
+        action = request.POST.get("action", "assign")
+        raw_academic_year_id = request.POST.get("academic_year")
+        
+        def clean_id_to_int(val):
+            if not val:
+                return None
+            cleaned = str(val).replace(".", "").replace(",", "").strip()
+            try:
+                return int(cleaned)
+            except ValueError:
+                return None
+                
+        account_ids = [clean_id_to_int(aid) for aid in raw_account_ids if clean_id_to_int(aid) is not None]
+        
+        if not account_ids:
+            messages.error(request, "لم تقم بتحديد أي حسابات لتعديلها. يرجى تحديد حساب واحد على الأقل.")
+            return redirect("academic_years:recognize_accounts")
+            
+        if action == "make_shared":
+            try:
+                with transaction.atomic():
+                    updated_count = Account.objects.filter(id__in=account_ids).update(academic_year=None)
+                    messages.success(
+                        request,
+                        f"تم بنجاح جعل {updated_count} حساب/حسابات مشتركة بكل الفصول الدراسية (تصفير ربط الفصل) ✅."
+                    )
+            except Exception as e:
+                messages.error(request, f"حدث خطأ أثناء جعل الحسابات مشتركة: {str(e)}")
+        else: # assign
+            academic_year_id = clean_id_to_int(raw_academic_year_id)
+            if not academic_year_id:
+                messages.error(request, "يرجى تحديد الفصل الدراسي الهدف للاعتراف بالحسابات ونسبها إليه.")
+                return redirect("academic_years:recognize_accounts")
+                
+            try:
+                with transaction.atomic():
+                    academic_year = get_object_or_404(AcademicYear, pk=academic_year_id)
+                    updated_count = Account.objects.filter(id__in=account_ids).update(academic_year=academic_year)
+                    messages.success(
+                        request,
+                        f"تم بنجاح الاعتراف بـ {updated_count} حساب/حسابات ونسبتها إلى الفصل: {academic_year.name}."
+                    )
+            except Exception as e:
+                messages.error(request, f"حدث خطأ أثناء عملية الاعتراف: {str(e)}")
+                
+        return redirect("academic_years:recognize_accounts")
+
+

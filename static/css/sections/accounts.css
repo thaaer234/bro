@@ -62,6 +62,19 @@ body.app-accounts label {
     gap: 1rem;
 }
 
+/* Cashboxes grid: max 3 columns, flexbox, responsive */
+.cashboxes-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.cashboxes-grid .accounts-summary-card {
+    flex: 1 1 calc(33.333% - 1rem);
+    min-width: 220px;
+    max-width: calc(33.333% - 1rem);
+}
+
 .accounts-kpi-card,
 .accounts-report-card,
 .accounts-quick-card,
@@ -143,12 +156,22 @@ body.app-accounts label {
 }
 
 .accounts-kpi-card__value,
-.accounts-summary-card__value {
-    margin: 0;
-    color: var(--text-1);
-    font-size: clamp(1.55rem, 2vw, 2.35rem);
-    font-weight: 800;
-    line-height: 1.05;
+.accounts-summary-card__value,
+.accounts-balance-banner__value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+/* Modal table number styling */
+#zeroCashboxPreviewModal td {
+    font-size: clamp(0.85rem, 1vw, 1.2rem);
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 150px;
 }
 
 .accounts-kpi-card__meta,
@@ -189,6 +212,13 @@ body.app-accounts label {
     display: flex;
     align-items: center;
     gap: 1rem;
+    min-width: 0;
+}
+
+.accounts-summary-card > div {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .accounts-summary-card__icon {
@@ -485,5 +515,18 @@ body.app-accounts label {
     .accounts-summary-grid,
     .accounts-metric-band {
         grid-template-columns: 1fr;
+    }
+
+    /* Cashboxes: 2 cols on tablet, 1 col on mobile */
+    .cashboxes-grid .accounts-summary-card {
+        flex: 1 1 calc(50% - 0.5rem);
+        max-width: calc(50% - 0.5rem);
+    }
+}
+
+@media (max-width: 480px) {
+    .cashboxes-grid .accounts-summary-card {
+        flex: 1 1 100%;
+        max-width: 100%;
     }
 }

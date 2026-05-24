@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% load l10n %}
+
+{% block title %}إدارة الحسابات المشتركة والاعتراف بالفصول{% endblock %}
+
+{% block content %}
+<section class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+            <div>
+                <h1 class="h4 mb-1 text-primary">
+                    <i class="fas fa-network-wired me-2"></i> إدارة الحسابات المشتركة والاعتراف
+                </h1>
+                <p class="text-muted mb-0">يمكنك جعل الحسابات مشتركة بكافة الفصول الدراسية (مثل الصناديق والمصاريف العامة) أو تخصيصها والاعتراف بها لفصل دراسي محدد.</p>
+            </div>
+            <a href="{% url 'academic_years:transfer_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> العودة لقائمة الترحيل
+            </a>
+        </div>
+
+        <!-- لوحة فلترة الحسابات -->
+        <form method="get" class="row g-3 mb-4 bg-light p-3 rounded border">
+            <div class="col-md-4">
+                <label class="form-label font-weight-bold fw-bold text-dark" for="searchQuery">بحث في دليل الحسابات</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="q" id="searchQuery" class="form-control border-start-0" placeholder="ابحث برقم الحساب أو الاسم..." value="{{ search_query }}">
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label font-weight-bold fw-bold text-dark" for="yearFilter">تصفية حسب الفصل الدراسي</label>
+                <select name="academic_year_filter" id="yearFilter" class="form-select">
+                    <option value="shared" {% if academic_year_filter == 'shared' %}selected{% endif %}>🔗 الحسابات المشتركة بكل الفصول (بدون فصل)</option>
+                    <option value="all" {% if academic_year_filter == 'all' %}selected{% endif %}>📂 كل الحسابات (مشتركة ومنسوبة)</option>
+                    <option value="" disabled>--------- الفصول الدراسية ---------</option>
+                    {% for year in academic_years %}
+                        <option value="{{ year.id|unlocalize }}" {% if academic_year_filter == year.id|stringformat:"i" %}selected{% endif %}>{{ year.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label font-weight-bold fw-bold text-dark" for="typeFilter">نوع الحساب</label>
+                <select name="type" id="typeFilter" class="form-select">
+                    <option value="">كل أنواع الحسابات</option>
+                    {% for val, label in account_types %}
+                        <option value="{{ val }}" {% if account_type == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-1"></i> تصفية
+                </button>
+                {% if search_query or account_type or academic_year_filter != 'shared' %}
+                    <a href="{% url 'academic_years:recognize_accounts' %}" class="btn btn-outline-danger" title="إعادة تعيين">
+                        <i class="fas fa-times"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <form method="post" id="accountsForm">
+            {% csrf_token %}
+            
+            <!-- لوحة التحكم بالعمليات الجماعية (قوة فائقة) -->
+            <div class="card border-info mb-4 bg-info bg-opacity-10 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-info h6 mb-3">
+                        <i class="fas fa-tools me-1"></i> العمليات الجماعية للحسابات المحددة
+                    </h5>
+                    
+                    <div class="row g-3 align-items-center">
+                        <!-- الخيار الأول: الاعتراف والنسب لفصل دراسي -->
+                        <div class="col-lg-6 border-end pe-lg-4">
+                            <div class="d-flex flex-column gap-2">
+                                <label class="form-label mb-0 text-success fw-bold" for="academicYearTarget">
+                                    <i class="fas fa-calendar-check me-1"></i> 1. الاعتراف ونسب الحسابات لفصل محدد:
+                                </label>
+                                <div class="input-group">
+                                    <select name="academic_year" id="academicYearTarget" class="form-select border-success">
+                                        <option value="" disabled selected>-- اختر الفصل الدراسي المستهدف --</option>
+                                        {% for year in academic_years %}
+                                            <option value="{{ year.id|unlocalize }}">{{ year.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" name="action" value="assign" class="btn btn-success fw-bold action-btn" disabled id="assignBtn">
+                                        <i class="fas fa-check-double me-1"></i> اعتماد الفصل للحسابات
+                                    </button>
+                                </div>
+                                <span class="small text-muted">سيتم ربط الحسابات المحددة بالفصل المختار ولن تظهر في فصول أخرى.</span>
+                            </div>
+                        </div>
+                        
+                        <!-- الخيار الثاني: جعل الحسابات مشتركة بكل الفصول -->
+                        <div class="col-lg-6 ps-lg-4">
+                            <div class="d-flex flex-column gap-2 justify-content-center h-100">
+                                <label class="form-label mb-0 text-danger fw-bold">
+                                    <i class="fas fa-share-alt me-1"></i> 2. جعلها حسابات مشتركة بكل الفصول:
+                                </label>
+                                <div>
+                                    <button type="submit" name="action" value="make_shared" class="btn btn-danger fw-bold w-100 action-btn" disabled id="shareBtn">
+                                        <i class="fas fa-link me-1"></i> جعلها حسابات مشتركة بكل الفصول (إلغاء ربط الفصل)
+                                    </button>
+                                </div>
+                                <span class="small text-muted">سيتم تصفير الفصل لهذه الحسابات (NULL) لتصبح مشتركة وعامة تخدم كافة السنوات الدراسية.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول الحسابات -->
+            <div class="table-responsive border rounded bg-white shadow-sm">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="40" class="text-center">
+                                <div class="form-check d-inline-block">
+                                    <input class="form-check-input" type="checkbox" id="selectAll">
+                                </div>
+                            </th>
+                            <th>رمز الحساب</th>
+                            <th>اسم الحساب</th>
+                            <th>نوع الحساب</th>
+                            <th>الحالة والتبعية</th>
+                            <th class="text-end">الرصيد الكلي</th>
+                            <th>تصنيف الحساب</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in accounts %}
+                        <tr class="{% if not account.academic_year %}table-warning table-opacity-10{% endif %}">
+                            <td class="text-center">
+                                <div class="form-check d-inline-block">
+                                    <input class="form-check-input account-checkbox" type="checkbox" name="account_ids" value="{{ account.id|unlocalize }}">
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary font-monospace">{{ account.code }}</span>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark">{{ account.name_ar|default:account.name }}</div>
+                                {% if account.name_ar %}
+                                    <div class="text-muted small font-monospace">{{ account.name }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if account.account_type == 'ASSET' %}
+                                    <span class="badge bg-success bg-opacity-20 text-success">أصول / Asset</span>
+                                {% elif account.account_type == 'LIABILITY' %}
+                                    <span class="badge bg-danger bg-opacity-20 text-danger">خصوم / Liability</span>
+                                {% elif account.account_type == 'REVENUE' %}
+                                    <span class="badge bg-primary bg-opacity-20 text-primary">إيرادات / Revenue</span>
+                                {% elif account.account_type == 'EXPENSE' %}
+                                    <span class="badge bg-warning text-dark bg-opacity-20">مصاريف / Expense</span>
+                                {% else %}
+                                    <span class="badge bg-secondary bg-opacity-20 text-secondary">{{ account.get_account_type_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if account.academic_year %}
+                                    <span class="badge bg-info bg-opacity-10 text-info">
+                                        <i class="fas fa-calendar-alt me-1"></i> {{ account.academic_year.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-dark bg-opacity-10 text-dark">
+                                        <i class="fas fa-link me-1"></i> حساب مشترك بكل الفصول
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-bold text-dark font-monospace">
+                                {{ account.rollup_balance|default:"0" }}
+                            </td>
+                            <td>
+                                {% if account.is_student_account %}
+                                    <span class="badge bg-light text-dark border">حساب طالب</span>
+                                {% elif account.is_course_account %}
+                                    <span class="badge bg-light text-dark border">حساب شعبة/دورة</span>
+                                {% else %}
+                                    <span class="badge bg-light text-muted border">حساب عام</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <div class="mb-2"><i class="fas fa-info-circle fa-2x text-primary"></i></div>
+                                لا توجد حسابات مطابقة لشروط الفرز الحالية.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-3 text-muted small d-flex justify-content-between">
+                <div>
+                    <i class="fas fa-info-circle me-1"></i> يظهر في هذه الصفحة بحد أقصى 2,000 حساب مالي لتسريع الأداء والاستجابة.
+                </div>
+                <div class="fw-bold">
+                    إجمالي الحسابات المعروضة: {{ accounts|length }} حساب
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.account-checkbox');
+    const actionButtons = document.querySelectorAll('.action-btn');
+    const assignBtn = document.getElementById('assignBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const form = document.getElementById('accountsForm');
+
+    function updateButtonsState() {
+        const checkedCount = document.querySelectorAll('.account-checkbox:checked').length;
+        actionButtons.forEach(btn => {
+            btn.disabled = checkedCount === 0;
+        });
+
+        if (checkedCount > 0) {
+            assignBtn.innerHTML = `<i class="fas fa-check-double me-1"></i> اعتماد الفصل لـ (${checkedCount}) حساب`;
+            shareBtn.innerHTML = `<i class="fas fa-link me-1"></i> جعل (${checkedCount}) حساب مشترك بكل الفصول`;
+        } else {
+            assignBtn.innerHTML = `<i class="fas fa-check-double me-1"></i> اعتماد الفصل للحسابات`;
+            shareBtn.innerHTML = `<i class="fas fa-link me-1"></i> جعلها حسابات مشتركة بكل الفصول (إلغاء ربط الفصل)`;
+        }
+    }
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            checkboxes.forEach(cb => {
+                cb.checked = selectAllCheckbox.checked;
+            });
+            updateButtonsState();
+        });
+    }
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            const allChecked = Array.from(checkboxes).every(c => c.checked);
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = allChecked;
+            }
+            updateButtonsState();
+        });
+    });
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const clickedButton = document.activeElement;
+            if (!clickedButton || !clickedButton.name) {
+                // If submitted via enter key or other means, default to first enabled action
+                return;
+            }
+            
+            const action = clickedButton.value;
+            const checkedCount = document.querySelectorAll('.account-checkbox:checked').length;
+            
+            if (checkedCount === 0) {
+                e.preventDefault();
+                alert('يرجى تحديد حساب واحد على الأقل لتطبيق العملية.');
+                return;
+            }
+
+            if (action === 'assign') {
+                const yearSelect = document.getElementById('academicYearTarget');
+                if (!yearSelect.value) {
+                    e.preventDefault();
+                    alert('يرجى اختيار الفصل الدراسي المستهدف.');
+                    return;
+                }
+                const selectedText = yearSelect.options[yearSelect.selectedIndex].text;
+                const confirmMsg = `هل أنت متأكد من رغبتك بالاعتراف بـ (${checkedCount}) حساب ونسبها حصرياً إلى الفصل الدراسي "${selectedText}"؟`;
+                if (!confirm(confirmMsg)) {
+                    e.preventDefault();
+                }
+            } else if (action === 'make_shared') {
+                const confirmMsg = `⚠️ تحذير: هل أنت متأكد من رغبتك بجعل (${checkedCount}) حساب مشتركاً بكافة الفصول الدراسية؟ 
+هذا الإجراء سيمسح ربط الفصل الدراسي لهذه الحسابات لتظهر مشتركة وعامة في كافة السنوات الدراسية.`;
+                if (!confirm(confirmMsg)) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
