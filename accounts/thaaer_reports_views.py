@@ -18,8 +18,16 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from datetime import datetime, timedelta
 from django.utils import timezone
-from .models import CostCenter, Transaction
+from .models import CostCenter, Transaction, Course, Studentenrollment, Account, TeacherAdvance, EmployeeAdvance
+try:
+    from employ.models import Employee, Teacher
+except ImportError:
+    Employee = None
+    Teacher = None
+
 from .excel_utils import FinancialReportExporter, create_excel_response
+
+
 
 
 def superuser_required(user):
@@ -369,3 +377,443 @@ class ThaaerComprehensiveReportView(ThaaerReportsMixin, View):
         )
         filename = f"comprehensive_report_{start}_{end}.xlsx"
         return create_excel_response(workbook, filename)
+
+
+@method_decorator([login_required, user_passes_test(superuser_required)], name="dispatch")
+class ThaaerStrategicDecisionView(ThaaerReportsMixin, View):
+    template_name = "accounts/reports/thaaer/strategic_decision.html"
+
+    def get(self, request):
+        start, end = self.get_date_range(request)
+        
+        # 1. Outstanding Student Debt (Current Asset Component)
+        total_outstanding = Decimal('0.00')
+        cost_centers = CostCenter.objects.filter(is_active=True)
+        
+        # Calculate overall student debt first
+        for cc in cost_centers:
+            for crs in cc.courses.all():
+                for enrollment in crs.enrollments.all():
+                    total_outstanding += enrollment.balance_due
+
+        # 2. Profitability & Smart Analysis per Cost Center
+        cc_analysis = []
+        for cc in cost_centers:
+            # Teacher salaries (501) under this cost center
+            t_debits = Transaction.objects.filter(
+                cost_center=cc,
+                is_debit=True,
+                account__code__startswith='501',
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            t_credits = Transaction.objects.filter(
+                cost_center=cc,
+                is_debit=False,
+                account__code__startswith='501',
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            teacher_salaries_val = t_debits - t_credits
+
+            # Employee salaries (502) under this cost center
+            e_debits = Transaction.objects.filter(
+                cost_center=cc,
+                is_debit=True,
+                account__code__startswith='502',
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            e_credits = Transaction.objects.filter(
+                cost_center=cc,
+                is_debit=False,
+                account__code__startswith='502',
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            employee_salaries_val = e_debits - e_credits
+
+            # Operational/Other expenses
+            op_debits = Transaction.objects.filter(
+                cost_center=cc,
+                is_debit=True,
+                account__account_type='EXPENSE',
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).exclude(
+                account__code__startswith='501'
+            ).exclude(
+                account__code__startswith='502'
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            op_credits = Transaction.objects.filter(
+                cost_center=cc,
+                is_debit=False,
+                account__account_type='EXPENSE',
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).exclude(
+                account__code__startswith='501'
+            ).exclude(
+                account__code__startswith='502'
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            operational_val = op_debits - op_credits
+
+            expenses = teacher_salaries_val + employee_salaries_val + operational_val
+            revenue = cc.get_total_revenue(start, end) or Decimal('0.00')
+            profit = revenue - expenses
+            margin = (profit / revenue * 100) if revenue else Decimal('0.00')
+            
+            # Sum outstanding student debt specifically for this cost center
+            cc_outstanding = Decimal('0.00')
+            for crs in cc.courses.all():
+                for enrollment in crs.enrollments.all():
+                    cc_outstanding += enrollment.balance_due
+            
+            target_margin = getattr(cc, 'target_profit_margin', Decimal('0.00')) or Decimal('0.00')
+
+            # Smart Cost Center Relationships:
+            # A) Linked Sub-Accounts explicitly configured with this cost center
+            cc_sub_accounts = []
+            for acc in cc.accounts.filter(is_active=True):
+                cc_sub_accounts.append({
+                    "code": acc.code,
+                    "name": acc.name_ar if acc.name_ar else acc.name,
+                    "type": acc.get_account_type_display(),
+                    "balance": acc.get_net_balance(),
+                })
+
+            # B) Linked Teachers (teachers assigned to courses under this CC)
+            cc_teachers = []
+            for t_data in cc.get_teacher_data():
+                cc_teachers.append({
+                    "name": getattr(t_data['teacher'], 'full_name', None) or getattr(t_data['teacher'], 'name', '') or str(t_data['teacher']),
+                    "salary": t_data['salary'],
+                    "courses_count": t_data['courses_count'],
+                })
+
+            # C) Linked Employees (dynamically identified from salary postings starting with 502 in this CC)
+            cc_emp_tx = Transaction.objects.filter(
+                cost_center=cc,
+                account__code__startswith='502',
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).values('account__code', 'account__name', 'account__name_ar').distinct()
+
+            cc_employees = []
+            for tx in cc_emp_tx:
+                code = tx['account__code']
+                emp_name = tx['account__name_ar'] or tx['account__name']
+                job_title = "موظف"
+                
+                try:
+                    emp_id = int(code.split('-')[1])
+                    if Employee:
+                        emp = Employee.objects.filter(id=emp_id).first()
+                        if emp:
+                            emp_name = emp.full_name
+                            job_title = emp.job_title.name if emp.job_title else emp.get_position_display()
+                except Exception:
+                    pass
+
+                cc_emp_debits = Transaction.objects.filter(
+                    cost_center=cc,
+                    account__code=code,
+                    is_debit=True,
+                    journal_entry__date__gte=start,
+                    journal_entry__date__lte=end
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                cc_emp_credits = Transaction.objects.filter(
+                    cost_center=cc,
+                    account__code=code,
+                    is_debit=False,
+                    journal_entry__date__gte=start,
+                    journal_entry__date__lte=end
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                net_paid = cc_emp_debits - cc_emp_credits
+
+                cc_employees.append({
+                    "name": emp_name,
+                    "job_title": job_title,
+                    "net_paid": net_paid
+                })
+
+            # D) Courses linked to this cost center
+            cc_courses = []
+            for crs in cc.courses.filter(is_active=True):
+                cc_courses.append({
+                    "name": crs.name_ar if crs.name_ar else crs.name,
+                    "price": crs.price,
+                    "students_count": crs.get_enrollment_count(start, end),
+                    "revenue": crs.get_total_revenue(start, end) or Decimal('0.00'),
+                })
+            
+            cc_analysis.append({
+                "code": cc.code,
+                "name": cc.name_ar if cc.name_ar else cc.name,
+                "revenue": revenue,
+                "expenses": expenses,
+                "teacher_salaries": teacher_salaries_val,
+                "employee_salaries": employee_salaries_val,
+                "operational_expenses": operational_val,
+                "profit": profit,
+                "margin": margin,
+                "target_margin": target_margin,
+                "margin_variance": margin - target_margin,
+                "outstanding_debt": cc_outstanding,
+                "teachers": cc_teachers,
+                "employees": cc_employees,
+                "sub_accounts": cc_sub_accounts,
+                "courses": cc_courses,
+            })
+            
+        # 3. Teacher Salaries Detailed Register with ROI & Advances
+        detailed_teachers = []
+        if Teacher:
+            teachers_qs = Teacher.objects.filter(is_active=True) if hasattr(Teacher.objects.first(), 'is_active') else Teacher.objects.all()
+            for teacher in teachers_qs:
+                # Total courses taught
+                t_courses_qs = teacher.assigned_courses.filter(is_active=True)
+                courses_count = t_courses_qs.count()
+                
+                # Student count & revenue generated
+                students_count = 0
+                revenue_generated = Decimal('0.00')
+                for crs in t_courses_qs:
+                    students_count += crs.get_enrollment_count(start, end)
+                    revenue_generated += crs.get_total_revenue(start, end) or Decimal('0.00')
+                
+                # Actual salary paid (from transactions on 501-{teacher.id:03d})
+                t_code = f"501-{teacher.id:03d}"
+                t_debits = Transaction.objects.filter(
+                    account__code=t_code,
+                    is_debit=True,
+                    journal_entry__date__gte=start,
+                    journal_entry__date__lte=end
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                t_credits = Transaction.objects.filter(
+                    account__code=t_code,
+                    is_debit=False,
+                    journal_entry__date__gte=start,
+                    journal_entry__date__lte=end
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                salary_paid = t_debits - t_credits
+                
+                # Advances in the period
+                advances_sum = TeacherAdvance.objects.filter(
+                    teacher=teacher,
+                    date__gte=start,
+                    date__lte=end
+                ).aggregate(
+                    total=Sum('amount'),
+                    repaid=Sum('repaid_amount')
+                )
+                adv_amt = advances_sum['total'] or Decimal('0.00')
+                adv_repaid = advances_sum['repaid'] or Decimal('0.00')
+                adv_outstanding = adv_amt - adv_repaid
+                
+                # ROI margin
+                roi = ((revenue_generated - salary_paid) / revenue_generated * 100) if revenue_generated else Decimal('0.00')
+                
+                detailed_teachers.append({
+                    "name": getattr(teacher, 'full_name', '') or getattr(teacher, 'name', '') or str(teacher),
+                    "courses_count": courses_count,
+                    "students_count": students_count,
+                    "revenue": revenue_generated,
+                    "salary_paid": salary_paid,
+                    "advances_total": adv_amt,
+                    "advances_outstanding": adv_outstanding,
+                    "roi": roi
+                })
+
+        # 4. Employee Salaries Detailed Register
+        detailed_employees = []
+        if Employee:
+            employees_qs = Employee.objects.filter(employment_status='active') if hasattr(Employee.objects.first(), 'employment_status') else Employee.objects.all()
+            for emp in employees_qs:
+                dept_name = emp.department.name if emp.department else "غير محدد"
+                job_title_name = emp.job_title.name if emp.job_title else emp.get_position_display()
+                
+                # Base contract salary
+                contract_salary = emp.salary or Decimal('0.00')
+                
+                # Actual salary paid (from transactions on 502-{employee.id:03d})
+                e_code = f"502-{emp.id:03d}"
+                e_debits = Transaction.objects.filter(
+                    account__code=e_code,
+                    is_debit=True,
+                    journal_entry__date__gte=start,
+                    journal_entry__date__lte=end
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                e_credits = Transaction.objects.filter(
+                    account__code=e_code,
+                    is_debit=False,
+                    journal_entry__date__gte=start,
+                    journal_entry__date__lte=end
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                salary_paid = e_debits - e_credits
+                
+                # Advances in the period
+                advances_sum = EmployeeAdvance.objects.filter(
+                    employee=emp,
+                    date__gte=start,
+                    date__lte=end
+                ).aggregate(
+                    total=Sum('amount'),
+                    repaid=Sum('repaid_amount')
+                )
+                adv_amt = advances_sum['total'] or Decimal('0.00')
+                adv_repaid = advances_sum['repaid'] or Decimal('0.00')
+                adv_outstanding = adv_amt - adv_repaid
+                
+                detailed_employees.append({
+                    "name": emp.full_name,
+                    "employee_code": emp.employee_code or f"EMP-{emp.pk:04d}",
+                    "department": dept_name,
+                    "job_title": job_title_name,
+                    "contract_salary": contract_salary,
+                    "salary_paid": salary_paid,
+                    "advances_total": adv_amt,
+                    "advances_outstanding": adv_outstanding,
+                    "payroll_method": emp.get_payroll_method_display() if hasattr(emp, 'get_payroll_method_display') else emp.payroll_method,
+                    "contract_type": emp.get_contract_type_display() if hasattr(emp, 'get_contract_type_display') else emp.contract_type,
+                })
+
+        # 5. Course Feasibility and ROI Analysis
+        all_courses = Course.objects.filter(is_active=True)
+        course_roi = []
+        for crs in all_courses:
+            revenue = crs.get_total_revenue(start, end) or Decimal('0.00')
+            teacher_cost = crs.get_total_teacher_salaries(start, end) or Decimal('0.00')
+            profit = revenue - teacher_cost
+            margin = (profit / revenue * 100) if revenue else Decimal('0.00')
+            enrollments = crs.get_enrollment_count(start, end)
+            
+            course_roi.append({
+                "name": crs.name_ar if crs.name_ar else crs.name,
+                "cost_center": crs.cost_center.name_ar if crs.cost_center else "غير محدد",
+                "enrollments": enrollments,
+                "revenue": revenue,
+                "teacher_cost": teacher_cost,
+                "profit": profit,
+                "margin": margin,
+            })
+            
+        course_roi = sorted(course_roi, key=lambda x: x['profit'], reverse=True)
+
+        # 6. Monthly Financial Trend Analysis (Last 6 Months)
+        monthly_trends = []
+        today = timezone.now().date()
+        for i in range(6):
+            month_date = today.replace(day=1) - timedelta(days=30 * i)
+            m_start = month_date.replace(day=1)
+            next_m = (m_start + timedelta(days=32)).replace(day=1)
+            m_end = next_m - timedelta(days=1)
+            
+            expense_debits = Transaction.objects.filter(
+                journal_entry__date__gte=m_start,
+                journal_entry__date__lte=m_end,
+                is_debit=True,
+                account__account_type="EXPENSE",
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+            expense_credits = Transaction.objects.filter(
+                journal_entry__date__gte=m_start,
+                journal_entry__date__lte=m_end,
+                is_debit=False,
+                account__account_type="EXPENSE",
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+            m_expenses = expense_debits - expense_credits
+
+            revenue_credits = Transaction.objects.filter(
+                journal_entry__date__gte=m_start,
+                journal_entry__date__lte=m_end,
+                is_debit=False,
+                account__account_type="REVENUE",
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+            revenue_debits = Transaction.objects.filter(
+                journal_entry__date__gte=m_start,
+                journal_entry__date__lte=m_end,
+                is_debit=True,
+                account__account_type="REVENUE",
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+            m_revenue = revenue_credits - revenue_debits
+            
+            monthly_trends.append({
+                "month": m_start.strftime("%Y/%m"),
+                "revenue": m_revenue,
+                "expenses": m_expenses,
+                "profit": m_revenue - m_expenses,
+            })
+
+        # 7. Split Assets & Properties (فصلي الاصول والموجودات)
+        asset_accounts = Account.objects.filter(
+            account_type='ASSET',
+            is_active=True
+        ).order_by('code')
+        
+        current_assets = []
+        fixed_assets = []
+        total_current_assets = Decimal('0.00')
+        total_fixed_assets = Decimal('0.00')
+        
+        # Categorize active asset accounts
+        for acc in asset_accounts:
+            balance = acc.get_net_balance()
+            if balance == 0:
+                continue
+                
+            name = (acc.name_ar or acc.name).lower()
+            code = acc.code
+            
+            # Check if it meets criteria for fixed asset/property
+            is_fixed = False
+            fixed_keywords = ['ثابت', 'عقار', 'ممتلك', 'موجودات', 'سيار', 'أثاث', 'أجهزة', 'كمبيوتر', 'معدات', 'أرض', 'أراضي', 'مباني', 'آلات']
+            if any(keyword in name for keyword in fixed_keywords) or code.startswith('11'):
+                is_fixed = True
+                
+            asset_data = {
+                "code": acc.code,
+                "name": acc.name_ar if acc.name_ar else acc.name,
+                "parent": acc.parent.display_name if acc.parent else "حساب رئيسي",
+                "balance": balance,
+            }
+            
+            if is_fixed:
+                fixed_assets.append(asset_data)
+                total_fixed_assets += balance
+            else:
+                current_assets.append(asset_data)
+                total_current_assets += balance
+
+        # Explicitly append Student Tuition Outstanding as a Current Asset (Receivable)
+        if total_outstanding > 0:
+            current_assets.append({
+                "code": "REC-STUD",
+                "name": "الذمم المستحقة على الطلاب (رسوم معلقة)",
+                "parent": "حسابات مدينين",
+                "balance": total_outstanding,
+            })
+            total_current_assets += total_outstanding
+            
+        total_assets_val = total_current_assets + total_fixed_assets
+            
+        context = {
+            "start_date": start,
+            "end_date": end,
+            "cc_analysis": cc_analysis,
+            "detailed_teachers": detailed_teachers,
+            "detailed_employees": detailed_employees,
+            "course_roi": course_roi,
+            "monthly_trends": monthly_trends,
+            "total_outstanding": total_outstanding,
+            "current_assets": current_assets,
+            "fixed_assets": fixed_assets,
+            "total_current_assets": total_current_assets,
+            "total_fixed_assets": total_fixed_assets,
+            "total_assets_val": total_assets_val,
+        }
+        return render(request, self.template_name, context)
+

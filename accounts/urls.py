@@ -127,6 +127,7 @@ urlpatterns = [
     path('reports/thaaer/annual/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerAnnualBudgetReportView.as_view()), name='thaaer_annual_budget'),
     path('reports/thaaer/semester/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerSemesterBudgetReportView.as_view()), name='thaaer_semester_budget'),
     path('reports/thaaer/comprehensive/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerComprehensiveReportView.as_view()), name='thaaer_comprehensive'),
+    path('reports/thaaer/strategic/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerStrategicDecisionView.as_view()), name='thaaer_strategic'),
     path('reports/cost-center/<int:cost_center_id>/', require_employee_perm('accounting_reports')(financial_reports_views.cost_center_detail_report), name='cost_center_detail'),
     
     # AJAX endpoints for financial reports

@@ -1,0 +1,660 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}لوحة اتخاذ القرار الاستراتيجي - تقارير Thaaer{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Ultra-Premium Glassmorphism & Gradient Theme */
+    .premium-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .premium-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    }
+    .gradient-header {
+        background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        padding: 24px;
+    }
+    .metric-card {
+        border-radius: 12px;
+        padding: 20px;
+        transition: transform 0.2s;
+        border: none;
+        color: white;
+    }
+    .metric-card:hover {
+        transform: scale(1.02);
+    }
+    .metric-title {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        font-weight: 600;
+    }
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-top: 8px;
+    }
+    .btn-action {
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .table-premium {
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    .table-premium tr {
+        background-color: #f8fafc;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+    }
+    .table-premium tr:hover {
+        background-color: #f1f5f9;
+    }
+    .table-premium th {
+        border: none !important;
+        background-color: transparent !important;
+        color: #475569;
+        font-weight: 700;
+    }
+    .table-premium td {
+        border: none !important;
+        padding: 16px !important;
+    }
+    .table-premium td:first-child, .table-premium th:first-child {
+        border-radius: 8px 0 0 8px;
+    }
+    .table-premium td:last-child, .table-premium th:last-child {
+        border-radius: 0 8px 8px 0;
+    }
+    .insights-box {
+        background: #f8fafc;
+        border-right: 4px solid #4f46e5;
+        border-radius: 8px;
+        padding: 16px;
+    }
+    .nested-details-card {
+        background: #ffffff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        margin-top: 10px;
+        padding: 15px;
+    }
+
+    /* Print Optimization CSS */
+    @media print {
+        body {
+            background: white !important;
+            color: black !important;
+            font-size: 12pt !important;
+        }
+        .sidebar, .navbar, .mobile-menu-toggle, .btn-action, .card-tools, form, footer, .sidebar-shortcuts {
+            display: none !important;
+        }
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        .container-fluid {
+            width: 100% !important;
+            padding: 0 !important;
+        }
+        .premium-card {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+        }
+        .gradient-header {
+            background: none !important;
+            color: black !important;
+            border-bottom: 2px solid #000 !important;
+            padding: 10px 0 !important;
+        }
+        .gradient-header h3 {
+            color: black !important;
+        }
+        .table-premium tr {
+            background: transparent !important;
+            page-break-inside: avoid;
+        }
+        .table-premium td, .table-premium th {
+            border: 1px solid #ddd !important;
+            color: black !important;
+            padding: 8px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card premium-card">
+                <div class="gradient-header d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h3 class="mb-1 font-weight-bold">
+                            <i class="fas fa-brain mr-2 text-warning"></i>
+                            لوحة اتخاذ القرار الاستراتيجي - تقارير Thaaer
+                        </h3>
+                        <p class="mb-0 text-white-50">رؤى مالية متقدمة وتأصيل دقيق للأصول ورواتب المدرسين والموظفين والمصاريف التشغيلية</p>
+                    </div>
+                    <div class="card-tools d-flex gap-2">
+                        <button onclick="window.print();" class="btn btn-light btn-action text-indigo shadow-sm" style="color: #4f46e5;">
+                            <i class="fas fa-print"></i> طباعة التقرير الاستراتيجي
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Period Filter Form -->
+                    <div class="row mb-4 align-items-end d-print-none">
+                        <div class="col-md-8">
+                            <form method="get" class="form-inline bg-light p-3 rounded-lg d-flex gap-3 align-items-end w-100 flex-wrap">
+                                <div class="form-group mb-0">
+                                    <label for="start_date" class="mr-2 mb-1 text-muted font-weight-bold d-block">من تاريخ:</label>
+                                    <input type="date" class="form-control rounded-pill border-gray-300" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="end_date" class="mr-2 mb-1 text-muted font-weight-bold d-block">إلى تاريخ:</label>
+                                    <input type="date" class="form-control rounded-pill border-gray-300" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+                                </div>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 btn-action">
+                                    <i class="fas fa-filter"></i> تصفية الفترات
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Strategic Insights Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">مؤشر الأصول والموجودات</div>
+                                        <div class="metric-value">{{ total_assets_val|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-vault fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">الديون والذمم المعلقة</div>
+                                        <div class="metric-value">{{ total_outstanding|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-hand-holding-dollar fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card bg-success" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">أعلى دورة ربحية</div>
+                                        {% if course_roi %}
+                                        <div class="metric-value" style="font-size: 1.1rem; margin-top: 15px;">
+                                            {{ course_roi.0.name }}
+                                        </div>
+                                        {% else %}
+                                        <div class="metric-value">لا توجد دورات</div>
+                                        {% endif %}
+                                    </div>
+                                    <i class="fas fa-star fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card bg-warning" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">مراكز التكلفة النشطة</div>
+                                        <div class="metric-value">{{ cc_analysis|length }} مرا                    <!-- Section 1: Detailed Cost Center Breakdown -->
+                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center mt-4">
+                        <i class="fas fa-layer-group mr-2 text-indigo"></i> 1. تحليل تفصيلي وذكي لمراكز التكلفة (كل مركز بمفرده مع كامل ارتباطاته)
+                    </h4>
+                    
+                    {% for item in cc_analysis %}
+                    <div class="card shadow-sm border-0 mb-4 rounded-xl overflow-hidden" style="background: #ffffff; border: 1px solid #e2e8f0 !important;">
+                        <div class="card-header border-0 d-flex justify-content-between align-items-center py-3 flex-wrap" style="background: #f8fafc; border-bottom: 1px solid #edf2f7 !important;">
+                            <div>
+                                <h5 class="mb-1 font-weight-bold text-primary">
+                                    <i class="fas fa-folder-open mr-2"></i> مركز التكلفة: {{ item.name }} ({{ item.code }})
+                                </h5>
+                                <small class="text-muted">ارتباطات ذكية: دليل الحسابات الفرعي | الكادر التدريسي | الكادر الإداري | الدورات والشعب</small>
+                            </div>
+                            <div class="d-flex gap-2 align-items-center">
+                                <span class="badge bg-light text-muted border px-2 py-1 rounded-pill mr-2 font-weight-bold">الذمم المعلقة للمركز: {{ item.outstanding_debt|floatformat:2|intcomma }}</span>
+                                <span class="badge bg-indigo text-white px-3 py-2 rounded-pill font-weight-bold">صافي الدخل: {{ item.profit|floatformat:2|intcomma }}</span>
+                                <span class="badge {% if item.margin >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white px-3 py-2 rounded-pill font-weight-bold">الهامش الفعلي: {{ item.margin|floatformat:2 }}%</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Col 1: Detailed cost parameters -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="bg-light p-3 rounded-lg border h-100 shadow-xs">
+                                        <h6 class="font-weight-bold text-muted border-bottom pb-2 mb-3"><i class="fas fa-money-bill mr-1 text-danger"></i> الهيكل المالي للمركز</h6>
+                                        <ul class="list-unstyled mb-0 pr-0" style="line-height: 2; font-size: 0.9rem;">
+                                            <li class="d-flex justify-content-between">
+                                                <span>رواتب المدرسين:</span>
+                                                <strong class="text-danger">{{ item.teacher_salaries|floatformat:2|intcomma }}</strong>
+                                            </li>
+                                            <li class="d-flex justify-content-between">
+                                                <span>رواتب الموظفين (إداري):</span>
+                                                <strong class="text-danger">{{ item.employee_salaries|floatformat:2|intcomma }}</strong>
+                                            </li>
+                                            <li class="d-flex justify-content-between">
+                                                <span>مصاريف تشغيلية أخرى:</span>
+                                                <strong class="text-danger">{{ item.operational_expenses|floatformat:2|intcomma }}</strong>
+                                            </li>
+                                            <li class="d-flex justify-content-between border-top pt-2 mt-2 font-weight-bold">
+                                                <span>إجمالي التكلفة:</span>
+                                                <strong class="text-danger">{{ item.expenses|floatformat:2|intcomma }}</strong>
+                                            </li>
+                                            <li class="d-flex justify-content-between border-top pt-2 mt-2 font-weight-bold text-success" style="background: rgba(16, 185, 129, 0.05); padding: 4px 8px; border-radius: 4px;">
+                                                <span>إجمالي الإيراد الفعلي:</span>
+                                                <strong>{{ item.revenue|floatformat:2|intcomma }}</strong>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Col 2: Connected Teachers & Salaries -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="bg-light p-3 rounded-lg border h-100 shadow-xs">
+                                        <h6 class="font-weight-bold text-muted border-bottom pb-2 mb-3"><i class="fas fa-user-tie mr-1 text-warning"></i> المدرسون المرتبطون</h6>
+                                        <div style="max-height: 200px; overflow-y: auto;">
+                                            <table class="table table-sm table-borderless mb-0" style="font-size: 0.85rem;">
+                                                <thead>
+                                                    <tr class="text-muted">
+                                                        <th>الاسم</th>
+                                                        <th class="text-center">الدورات</th>
+                                                        <th class="text-left">الأجر المدفوع</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for teacher in item.teachers %}
+                                                    <tr>
+                                                        <td><strong>{{ teacher.name }}</strong></td>
+                                                        <td class="text-center"><span class="badge bg-white text-dark border">{{ teacher.courses_count }}</span></td>
+                                                        <td class="text-left text-danger font-weight-bold">{{ teacher.salary|floatformat:2|intcomma }}</td>
+                                                    </tr>
+                                                    {% empty %}
+                                                    <tr>
+                                                        <td colspan="3" class="text-center text-muted py-3">لا يوجد مدرسون معينون.</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Col 3: Connected Employees (Administrative Staff) -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="bg-light p-3 rounded-lg border h-100 shadow-xs">
+                                        <h6 class="font-weight-bold text-muted border-bottom pb-2 mb-3"><i class="fas fa-user-shield mr-1 text-indigo"></i> الكادر الإداري المرتبط</h6>
+                                        <div style="max-height: 200px; overflow-y: auto;">
+                                            <table class="table table-sm table-borderless mb-0" style="font-size: 0.85rem;">
+                                                <thead>
+                                                    <tr class="text-muted">
+                                                        <th>اسم الموظف</th>
+                                                        <th>المسمى</th>
+                                                        <th class="text-left">المدفوع له</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for emp in item.employees %}
+                                                    <tr>
+                                                        <td><strong>{{ emp.name }}</strong></td>
+                                                        <td><small class="text-muted">{{ emp.job_title }}</small></td>
+                                                        <td class="text-left text-danger font-weight-bold">{{ emp.net_paid|floatformat:2|intcomma }}</td>
+                                                    </tr>
+                                                    {% empty %}
+                                                    <tr>
+                                                        <td colspan="3" class="text-center text-muted py-3">لا يوجد إداريون محملون على المركز.</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Col 4: Sub-Accounts & Courses -->
+                                <div class="col-md-3 mb-3">
+                                    <div class="bg-light p-3 rounded-lg border h-100 shadow-xs d-flex flex-column gap-3">
+                                        <div>
+                                            <h6 class="font-weight-bold text-muted border-bottom pb-1 mb-2"><i class="fas fa-list-ol mr-1 text-primary"></i> الحسابات التابعة</h6>
+                                            <div style="max-height: 90px; overflow-y: auto; font-size: 0.8rem;">
+                                                <ul class="list-unstyled mb-0 pr-0">
+                                                    {% for acc in item.sub_accounts %}
+                                                    <li class="d-flex justify-content-between mb-1">
+                                                        <span class="text-truncate" style="max-width: 140px;" title="{{ acc.name }}">{{ acc.code }} - {{ acc.name }}</span>
+                                                        <strong class="{% if acc.balance >= 0 %}text-success{% else %}text-danger{% endif %}">{{ acc.balance|floatformat:2 }}</strong>
+                                                    </li>
+                                                    {% empty %}
+                                                    <li class="text-muted text-center py-2">لا توجد حسابات مخصصة.</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h6 class="font-weight-bold text-muted border-bottom pb-1 mb-2"><i class="fas fa-graduation-cap mr-1 text-success"></i> دورات المركز النشطة</h6>
+                                            <div style="max-height: 90px; overflow-y: auto; font-size: 0.8rem;">
+                                                <ul class="list-unstyled mb-0 pr-0">
+                                                    {% for crs in item.courses %}
+                                                    <li class="d-flex justify-content-between mb-1">
+                                                        <span class="text-truncate" style="max-width: 140px;">{{ crs.name }}</span>
+                                                        <span class="text-muted">({{ crs.students_count }} طلاب)</span>
+                                                        <strong class="text-success">{{ crs.revenue|floatformat:2|intcomma }}</strong>
+                                                    </li>
+                                                    {% empty %}
+                                                    <li class="text-muted text-center py-2">لا توجد دورات نشطة.</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <!-- Section 2: Detailed Assets and Property Split -->
+                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center mt-5">
+                        <i class="fas fa-vault mr-2 text-indigo"></i> 2. هيكلة الأصول والموجودات والمركز المالي للمعهد (Current vs. Fixed Assets)
+                    </h4>
+                    <div class="row mb-5">
+                        <!-- Col 2A: Current Assets -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card premium-card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #e0e7ff !important;">
+                                    <h5 class="mb-0 font-weight-bold text-indigo"><i class="fas fa-coins text-warning mr-1"></i> الأصول المتداولة والسيولة (Current Assets)</h5>
+                                    <span class="badge bg-indigo text-white px-3 py-2 rounded-pill font-weight-bold" style="font-size: 0.95rem;">الإجمالي: {{ total_current_assets|floatformat:2|intcomma }}</span>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted mb-3"><i class="fas fa-info-circle"></i> تشمل النقدية المتوفرة بالصناديق، الحسابات البنكية، والذمم الدراسية المستحقة والجاهزة للتحصيل.</p>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-premium mb-0" style="font-size: 0.9rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>رمز الحساب</th>
+                                                    <th>اسم الحساب</th>
+                                                    <th class="text-left">الرصيد الحالي</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for asset in current_assets %}
+                                                <tr>
+                                                    <td><strong>{{ asset.code }}</strong></td>
+                                                    <td>{{ asset.name }}</td>
+                                                    <td class="text-left font-weight-bold text-success">{{ asset.balance|floatformat:2|intcomma }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">لا توجد أصول متداولة.</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Col 2B: Fixed Assets -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card premium-card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #f1f5f9 !important;">
+                                    <h5 class="mb-0 font-weight-bold text-slate" style="color: #475569;"><i class="fas fa-city text-primary mr-1"></i> الأصول الثابتة والموجودات العقارية والتشغيلية (Fixed Assets)</h5>
+                                    <span class="badge bg-secondary text-white px-3 py-2 rounded-pill font-weight-bold" style="font-size: 0.95rem;">الإجمالي: {{ total_fixed_assets|floatformat:2|intcomma }}</span>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted mb-3"><i class="fas fa-info-circle"></i> تشمل البنية التحتية، العقارات، الأثاث المكتبي، وأجهزة الكمبيوتر والمعدات التقنية للمعهد.</p>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-premium mb-0" style="font-size: 0.9rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>رمز الحساب</th>
+                                                    <th>اسم الأصل / الموجودات</th>
+                                                    <th class="text-left">القيمة الدفترية</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for asset in fixed_assets %}
+                                                <tr>
+                                                    <td><strong>{{ asset.code }}</strong></td>
+                                                    <td>{{ asset.name }}</td>
+                                                    <td class="text-left font-weight-bold text-primary">{{ asset.balance|floatformat:2|intcomma }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">لا توجد أصول ثابتة أو عقارات مسجلة.</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- New Section: Detailed Teacher Salaries & ROI Registry -->
+                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center mt-5">
+                        <i class="fas fa-chalkboard-teacher mr-2 text-indigo"></i> 3. السجل التفصيلي لرواتب المدرسين والسلف وعائد الجدوى (Teacher Salaries & ROI Registry)
+                    </h4>
+                    <div class="card premium-card border-0 mb-5 shadow-sm">
+                        <div class="card-body">
+                            <p class="text-muted mb-4"><i class="fas fa-info-circle"></i> يوضح هذا السجل الذكي المبالغ المدفوعة لكل مدرس، والسلف القائمة، والطلاب المسجلين مع عائد جدوى الاستثمار الفعلي (ROI) من كادر التدريس.</p>
+                            <div class="table-responsive">
+                                <table class="table table-premium">
+                                    <thead>
+                                        <tr>
+                                            <th>اسم المدرس</th>
+                                            <th class="text-center">الدورات النشطة</th>
+                                            <th class="text-center">إجمالي الطلاب</th>
+                                            <th>إجمالي إيراد المدرس</th>
+                                            <th>الراتب الفعلي المدفوع</th>
+                                            <th>السلف المدفوعة</th>
+                                            <th>السلف المعلقة (متبقية)</th>
+                                            <th>صافي العائد للمعهد (ROI %)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for t in detailed_teachers %}
+                                        <tr>
+                                            <td><strong>{{ t.name }}</strong></td>
+                                            <td class="text-center"><span class="badge bg-light text-dark border">{{ t.courses_count }}</span></td>
+                                            <td class="text-center"><span class="badge bg-light text-dark border">{{ t.students_count }}</span></td>
+                                            <td class="text-success font-weight-bold">{{ t.revenue|floatformat:2|intcomma }}</td>
+                                            <td class="text-danger font-weight-bold">{{ t.salary_paid|floatformat:2|intcomma }}</td>
+                                            <td class="text-muted">{{ t.advances_total|floatformat:2|intcomma }}</td>
+                                            <td class="text-warning font-weight-bold">{{ t.advances_outstanding|floatformat:2|intcomma }}</td>
+                                            <td>
+                                                <span class="badge {% if t.roi >= 50 %}bg-success{% elif t.roi >= 20 %}bg-primary{% elif t.roi > 0 %}bg-warning{% else %}bg-danger{% endif %} text-white font-weight-bold px-3 py-1">
+                                                    {{ t.roi|floatformat:2 }}%
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted">لا توجد بيانات مدرسين نشطة حالياً.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- New Section: Detailed Employee Salaries & Contracts Registry -->
+                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center mt-5">
+                        <i class="fas fa-users-cog mr-2 text-indigo"></i> 4. السجل التفصيلي لرواتب الموظفين (إداري وتشغيلي) والسلف والعقود
+                    </h4>
+                    <div class="card premium-card border-0 mb-5 shadow-sm">
+                        <div class="card-body">
+                            <p class="text-muted mb-4"><i class="fas fa-info-circle"></i> يوضح هذا السجل كافة البيانات المتعلقة بالكادر الإداري والتشغيلي بالمعهد، وطريقة حساب الأجور، والراتب المعتمد بالعمل التعاقدي مقابل الأجور الفعلية المصروفة.</p>
+                            <div class="table-responsive">
+                                <table class="table table-premium">
+                                    <thead>
+                                        <tr>
+                                            <th>الرقم الوظيفي</th>
+                                            <th>اسم الموظف</th>
+                                            <th>القسم الدراسي/الإداري</th>
+                                            <th>المسمى الوظيفي</th>
+                                            <th>طريقة الاحتساب</th>
+                                            <th>الراتب التعاقدي المعتمد</th>
+                                            <th>الأجور الفعلية المدفوعة</th>
+                                            <th>السلف المنصرفة</th>
+                                            <th>سلف متبقية بذمته</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for emp in detailed_employees %}
+                                        <tr>
+                                            <td><strong>{{ emp.employee_code }}</strong></td>
+                                            <td><strong>{{ emp.name }}</strong></td>
+                                            <td><span class="badge bg-light text-dark border">{{ emp.department }}</span></td>
+                                            <td><small class="text-muted">{{ emp.job_title }}</small></td>
+                                            <td><small class="text-muted">{{ emp.payroll_method }}</small></td>
+                                            <td class="text-indigo font-weight-bold">{{ emp.contract_salary|floatformat:2|intcomma }}</td>
+                                            <td class="text-danger font-weight-bold">{{ emp.salary_paid|floatformat:2|intcomma }}</td>
+                                            <td class="text-muted">{{ emp.advances_total|floatformat:2|intcomma }}</td>
+                                            <td class="text-warning font-weight-bold">{{ emp.advances_outstanding|floatformat:2|intcomma }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted">لا توجد بيانات موظفين مسجلة حالياً.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Course Feasibility & Feasibility Study (ROI) -->
+                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center mt-5">
+                        <i class="fas fa-rocket mr-2 text-indigo"></i> 5. تقييم كفاءة وتكلفة الدورات التعليمية (ROI & Profitability)
+                    </h4>
+                    <div class="table-responsive mb-5">
+                        <table class="table table-premium">
+                            <thead>
+                                <tr>
+                                    <th>اسم الدورة</th>
+                                    <th>مركز التكلفة</th>
+                                    <th>عدد الطلاب</th>
+                                    <th>إجمالي الإيرادات</th>
+                                    <th>أجور الكادر التدريسي</th>
+                                    <th>صافي ربح الدورة</th>
+                                    <th>عائد الجدوى (Margin %)</th>
+                                    <th>توصية اتخاذ القرار</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in course_roi %}
+                                <tr>
+                                    <td><strong>{{ item.name }}</strong></td>
+                                    <td>{{ item.cost_center }}</td>
+                                    <td class="text-center"><span class="badge bg-primary text-white">{{ item.enrollments }} طالب</span></td>
+                                    <td class="text-success font-weight-bold">{{ item.revenue|floatformat:2|intcomma }}</td>
+                                    <td class="text-danger">{{ item.teacher_cost|floatformat:2|intcomma }}</td>
+                                    <td class="font-weight-bold {% if item.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ item.profit|floatformat:2|intcomma }}
+                                    </td>
+                                    <td class="font-weight-bold text-indigo">{{ item.margin|floatformat:2 }}%</td>
+                                    <td>
+                                        {% if item.margin >= 50 %}
+                                        <span class="badge bg-success text-white px-3">ربحية ممتازة - توسع وتطوير</span>
+                                        {% elif item.margin >= 20 %}
+                                        <span class="badge bg-primary text-white px-3">مستقرة - الحفاظ على الأداء</span>
+                                        {% elif item.margin > 0 %}
+                                        <span class="badge bg-warning text-white px-3">ربحية منخفضة - مراجعة الأسعار</span>
+                                        {% else %}
+                                        <span class="badge bg-danger text-white px-3">خسارة تشغيلية - إعادة هيكلة</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Section 6: Monthly Income Trend -->
+                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center">
+                        <i class="fas fa-chart-line mr-2 text-indigo"></i> 6. منحنى الأداء والاتجاه المالي للأشخاص/الأشهر الستة الأخيرة (Trend Analysis)
+                    </h4>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-premium">
+                            <thead>
+                                <tr>
+                                    <th>الشهر الدراسي</th>
+                                    <th>إجمالي الإيرادات</th>
+                                    <th>إجمالي المصروفات</th>
+                                    <th>صافي التدفق المالي</th>
+                                    <th>الحالة والتقييم</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in monthly_trends %}
+                                <tr>
+                                    <td><strong>{{ item.month }}</strong></td>
+                                    <td class="text-success font-weight-bold">{{ item.revenue|floatformat:2|intcomma }}</td>
+                                    <td class="text-danger font-weight-bold">{{ item.expenses|floatformat:2|intcomma }}</td>
+                                    <td class="font-weight-bold {% if item.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ item.profit|floatformat:2|intcomma }}
+                                    </td>
+                                    <td>
+                                        {% if item.profit > 0 %}
+                                        <span class="badge bg-success text-white px-3"><i class="fas fa-trending-up"></i> فائض مالي إيجابي</span>
+                                        {% elif item.profit < 0 %}
+                                        <span class="badge bg-danger text-white px-3"><i class="fas fa-trending-down"></i> عجز وتدفق سالب</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary text-white px-3">نقطة تعادل مالي</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Strategic Recommendations Box -->
+                    <div class="insights-box mt-4 mb-3 d-print-block">
+                        <h5 class="font-weight-bold text-indigo mb-2">
+                            <i class="fas fa-lightbulb"></i> توصيات ذكاء الأعمال لدعم اتخاذ القرار (Strategic Recommendations)
+                        </h5>
+                        <ul class="mb-0 pr-3" style="line-height: 1.8;">
+                            <li><strong>هيكلة الأصول والموجودات:</strong> يبلغ إجمالي قيمة ممتلكات المعهد وأصوله <span class="text-success font-weight-bold">{{ total_assets_val|floatformat:2|intcomma }}</span>. تشكّل الأصول المتداولة والسيولة النقدية <span class="text-indigo font-weight-bold">{{ total_current_assets|floatformat:2|intcomma }}</span> (وتتضمن الذمم الطلابية المعلقة)، بينما تشكّل الأصول الثابتة والموجودات العقارية والتشغيلية <span class="text-primary font-weight-bold">{{ total_fixed_assets|floatformat:2|intcomma }}</span>.</li>
+                            <li><strong>تحصيل الذمم المعلقة:</strong> هناك رسوم دراسية غير محصلة مستحقة على الطلاب بقيمة <span class="text-danger font-weight-bold">{{ total_outstanding|floatformat:2|intcomma }}</span>. تحصيل هذه الذمم سيرفع السيولة النقدية للأصول المتداولة بشكل مباشر دون أي مصروف إضافي.</li>
+                            <li><strong>الكفاءة والجدوى للكادر (ROI):</strong> يُرجى متابعة المدرسين أو الموظفين ذوي العوائد المنخفضة أو السلب المعلقة المرتفعة لضمان توازن السلف مع المدفوعات والإنتاجية الصفية.</li>
+                            <li><strong>توجيه الموارد لمراكز الكلفة الذاتية:</strong> مراكز التكلفة التي تحقق هوامش ربحية ممتازة ينبغي تعزيزها بالمزيد من الدورات التعليمية والاستثمار التسويقي لتوسيع رقعتها الربحية.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
