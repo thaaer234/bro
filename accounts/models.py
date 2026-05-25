@@ -568,8 +568,8 @@ class CostCenter(models.Model):
         return self.opening_balance or Decimal('0.00')
 
     def get_cash_inflow(self, start_date, end_date):
-        """حساب التدفقات النقدية الداخلة للمركز (إيصالات الطلاب + حركات الصندوق المباشرة)"""
-        from django.db.models import Sum
+        """حساب التدفقات النقدية الداخلة للمركز (إيصالات الطلاب + حركات الصندوق المباشرة مع تصنيف تلقائي ذكي)"""
+        from django.db.models import Sum, Q
         try:
             # 1. إيصالات الطلاب المرتبطة بدورات مركز التكلفة
             receipts_sum = StudentReceipt.objects.filter(
@@ -577,11 +577,34 @@ class CostCenter(models.Model):
                 date__range=[start_date, end_date]
             ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
             
-            # 2. حركات الصندوق المدين المباشرة لمركز التكلفة
-            direct_sum = Transaction.objects.filter(
-                cost_center=self,
+            # 2. حركات الصندوق المباشرة (Subquery optimized to prevent N+1)
+            direct_cc_je_ids = Transaction.objects.filter(
                 account__code__startswith='121',
                 is_debit=True,
+                cost_center=self,
+                journal_entry__date__range=[start_date, end_date]
+            ).values_list('journal_entry_id', flat=True)
+            
+            cleaned_cc_code = self.code.lstrip('0') if self.code.isdigit() else self.code
+            cc_suffix_1 = f"-{self.code}"
+            cc_suffix_2 = f"-{cleaned_cc_code}"
+            
+            revenue_je_ids = Transaction.objects.filter(
+                account__account_type='REVENUE',
+                is_debit=False,
+                journal_entry__date__range=[start_date, end_date]
+            ).filter(
+                Q(cost_center=self) |
+                Q(account__code__endswith=cc_suffix_1) |
+                Q(account__code__endswith=cc_suffix_2)
+            ).values_list('journal_entry_id', flat=True)
+            
+            je_ids = set(direct_cc_je_ids) | set(revenue_je_ids)
+            
+            direct_sum = Transaction.objects.filter(
+                account__code__startswith='121',
+                is_debit=True,
+                journal_entry_id__in=je_ids,
                 journal_entry__date__range=[start_date, end_date]
             ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
             
@@ -591,16 +614,60 @@ class CostCenter(models.Model):
             return Decimal('0.00')
 
     def get_cash_outflow(self, start_date, end_date):
-        """حساب التدفقات النقدية الخارجة للمركز (حركات الصندوق الدائن المباشرة)"""
+        """حساب التدفقات النقدية الخارجة للمركز (حركات الصندوق الدائن المباشرة مع تصنيف تلقائي ذكي)"""
         from django.db.models import Sum
         try:
-            direct_sum = Transaction.objects.filter(
-                cost_center=self,
+            total_outflow = Decimal('0.00')
+            tx_qs = Transaction.objects.filter(
                 account__code__startswith='121',
                 is_debit=False,
                 journal_entry__date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            return direct_sum
+            ).select_related('journal_entry', 'cost_center').prefetch_related('journal_entry__transactions__account')
+            
+            cleaned_cc_code = self.code.lstrip('0') if self.code.isdigit() else self.code
+            
+            # Pre-fetch teachers to avoid queries in the loop
+            from employ.models import Teacher
+            teachers_by_id = {t.id: t for t in Teacher.objects.all().prefetch_related('assigned_courses')}
+            
+            for tx in tx_qs:
+                if tx.cost_center:
+                    if tx.cost_center == self:
+                        total_outflow += tx.amount
+                else:
+                    je = tx.journal_entry
+                    debit_txs = [t for t in je.transactions.all() if t.is_debit]
+                    for deb_tx in debit_txs:
+                        if deb_tx.account.account_type == 'EXPENSE':
+                            code = deb_tx.account.code
+                            suffix = code.split('-')[-1].strip() if '-' in code else ''
+                            
+                            # Case 1: Suffix match
+                            if suffix:
+                                cleaned_suffix = suffix.lstrip('0') if suffix.isdigit() else suffix
+                                if cleaned_suffix == cleaned_cc_code or suffix == self.code:
+                                    total_outflow += deb_tx.amount
+                                    break
+                            
+                            # Case 2: Teacher salary
+                            if code.startswith('501') and suffix.isdigit() and len(suffix) >= 2:
+                                try:
+                                    teacher_id = int(suffix)
+                                    teacher = teachers_by_id.get(teacher_id)
+                                    if teacher:
+                                        t_courses = [c for c in teacher.assigned_courses.all() if c.is_active]
+                                        cc_ids = set(c.cost_center_id for c in t_courses)
+                                        if self.id in cc_ids:
+                                            total_outflow += deb_tx.amount / Decimal(str(max(1, len(cc_ids))))
+                                            break
+                                except Exception:
+                                    pass
+                                    
+                            # Case 3: Admin fallback
+                            if self.code == '4' or 'إدارة' in (self.name_ar or self.name):
+                                total_outflow += deb_tx.amount
+                                break
+            return total_outflow
         except Exception as e:
             print(f"Error in get_cash_outflow: {e}")
             return Decimal('0.00')
@@ -615,15 +682,6 @@ class CostCenter(models.Model):
         except Exception as e:
             print(f"Error in get_closing_balance: {e}")
             return Decimal('0.00')
-
- 
-
-    def get_total_expenses(self, start_date, end_date):
-        """إجمالي المصاريف"""
-        salary = self.get_salary_expenses(start_date, end_date)
-        operational = self.get_operational_expenses(start_date, end_date)
-        other = self.get_other_expenses(start_date, end_date)
-        return salary + operational + other
 
     def get_net_income(self, start_date, end_date):
         """صافي الدخل"""
@@ -681,7 +739,7 @@ class CostCenter(models.Model):
             return Decimal('0.00')
 
     def get_teacher_salaries(self, start_date=None, end_date=None):
-        """رواتب مدرسي مركز التكلفة (موزعة على الدورات أو مسجلة مباشرة)"""
+        """رواتب مدرسي مركز التكلفة (موزعة على الدورات أو مسجلة مباشرة مع تصنيف تلقائي ذكي)"""
         from django.db.models import Sum
         try:
             # 1. رواتب المدرسين من تعيينات الدورات
@@ -689,19 +747,47 @@ class CostCenter(models.Model):
             for course in self.courses.all():
                 course_salaries += course.get_total_teacher_salaries(start_date, end_date)
             
-            # 2. أي قيود مباشرة على حسابات الرواتب 501 الخاصة بهذا المركز
+            # 2. أي قيود مباشرة على حسابات الرواتب 501 الخاصة بهذا المركز (أو تصنيف ذكي)
             direct_salaries = Decimal('0.00')
-            direct_tx = Transaction.objects.filter(
-                cost_center=self,
+            tx_qs = Transaction.objects.filter(
                 account__code__startswith='501',
                 is_debit=True
-            )
+            ).select_related('journal_entry', 'cost_center')
+            
             if start_date:
-                direct_tx = direct_tx.filter(journal_entry__date__gte=start_date)
+                tx_qs = tx_qs.filter(journal_entry__date__gte=start_date)
             if end_date:
-                direct_tx = direct_tx.filter(journal_entry__date__lte=end_date)
+                tx_qs = tx_qs.filter(journal_entry__date__lte=end_date)
                 
-            direct_salaries = direct_tx.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            from employ.models import Teacher
+            teachers_by_id = {t.id: t for t in Teacher.objects.all().prefetch_related('assigned_courses')}
+            cleaned_cc_code = self.code.lstrip('0') if self.code.isdigit() else self.code
+
+            for tx in tx_qs:
+                if tx.cost_center:
+                    if tx.cost_center == self:
+                        direct_salaries += tx.amount
+                else:
+                    code = tx.account.code
+                    suffix = code.split('-')[-1].strip() if '-' in code else ''
+                    if suffix:
+                        cleaned_suffix = suffix.lstrip('0') if suffix.isdigit() else suffix
+                        if cleaned_suffix == cleaned_cc_code or suffix == self.code:
+                            direct_salaries += tx.amount
+                            continue
+                            
+                    # Case B: Teacher salary account (e.g. 501-016)
+                    if suffix and suffix.isdigit() and len(suffix) >= 2:
+                        try:
+                            teacher_id = int(suffix)
+                            teacher = teachers_by_id.get(teacher_id)
+                            if teacher:
+                                t_courses = [c for c in teacher.assigned_courses.all() if c.is_active]
+                                cc_ids = set(c.cost_center_id for c in t_courses)
+                                if self.id in cc_ids:
+                                    direct_salaries += tx.amount / Decimal(str(max(1, len(cc_ids))))
+                        except Exception:
+                            pass
             
             return course_salaries + direct_salaries
         except Exception as e:
@@ -709,48 +795,99 @@ class CostCenter(models.Model):
             return Decimal('0.00')
 
     def get_salary_expenses(self, start_date=None, end_date=None):
-        """مصاريف رواتب الموظفين (502) لمركز التكلفة"""
+        """مصاريف رواتب الموظفين (502) لمركز التكلفة (مع تصنيف تلقائي ذكي)"""
         from django.db.models import Sum
         try:
-            tx = Transaction.objects.filter(
-                cost_center=self,
+            total_emp = Decimal('0.00')
+            tx_qs = Transaction.objects.filter(
                 is_debit=True,
                 account__code__startswith='502'
-            )
+            ).select_related('journal_entry', 'cost_center')
+            
             if start_date:
-                tx = tx.filter(journal_entry__date__gte=start_date)
+                tx_qs = tx_qs.filter(journal_entry__date__gte=start_date)
             if end_date:
-                tx = tx.filter(journal_entry__date__lte=end_date)
-            return tx.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                tx_qs = tx_qs.filter(journal_entry__date__lte=end_date)
+                
+            cleaned_cc_code = self.code.lstrip('0') if self.code.isdigit() else self.code
+            
+            for tx in tx_qs:
+                if tx.cost_center:
+                    if tx.cost_center == self:
+                        total_emp += tx.amount
+                else:
+                    code = tx.account.code
+                    suffix = code.split('-')[-1].strip() if '-' in code else ''
+                    if suffix:
+                        cleaned_suffix = suffix.lstrip('0') if suffix.isdigit() else suffix
+                        if cleaned_suffix == cleaned_cc_code or suffix == self.code:
+                            total_emp += tx.amount
+                            continue
+                            
+                    # General administrative salaries default to 'الإدارة' (code '4')
+                    if self.code == '4' or 'إدارة' in (self.name_ar or self.name):
+                        total_emp += tx.amount
+            return total_emp
         except Exception as e:
             print(f"Error in get_salary_expenses: {e}")
             return Decimal('0.00')
 
     def get_operational_expenses(self, start_date=None, end_date=None):
-        """المصاريف التشغيلية لمركز التكلفة (باستثناء رواتب 501 و 502)"""
+        """المصاريف التشغيلية لمركز التكلفة باستثناء رواتب 501 و 502 (مع تصنيف تلقائي ذكي)"""
         from django.db.models import Sum
         try:
+            total_op = Decimal('0.00')
             expenses = Transaction.objects.filter(
-                cost_center=self,
                 is_debit=True,
                 account__account_type='EXPENSE'
             ).exclude(
                 account__code__startswith='501'
             ).exclude(
                 account__code__startswith='502'
-            )
+            ).select_related('journal_entry', 'cost_center')
+            
             if start_date:
                 expenses = expenses.filter(journal_entry__date__gte=start_date)
             if end_date:
                 expenses = expenses.filter(journal_entry__date__lte=end_date)
-            return expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                
+            cleaned_cc_code = self.code.lstrip('0') if self.code.isdigit() else self.code
+            
+            for tx in expenses:
+                if tx.cost_center:
+                    if tx.cost_center == self:
+                        total_op += tx.amount
+                else:
+                    code = tx.account.code
+                    suffix = code.split('-')[-1].strip() if '-' in code else ''
+                    if suffix:
+                        cleaned_suffix = suffix.lstrip('0') if suffix.isdigit() else suffix
+                        if cleaned_suffix == cleaned_cc_code or suffix == self.code:
+                            total_op += tx.amount
+                            continue
+                            
+                    # Check description keywords
+                    desc = (tx.description or tx.journal_entry.description or '').lower()
+                    cc_name = (self.name_ar or self.name or '').lower()
+                    if cc_name and cc_name in desc:
+                        total_op += tx.amount
+                        continue
+                        
+                    # Default general expenses to Administration ('4')
+                    if self.code == '4' or 'إدارة' in (self.name_ar or self.name):
+                        total_op += tx.amount
+            return total_op
         except Exception as e:
             print(f"Error in get_operational_expenses: {e}")
             return Decimal('0.00')
 
     def get_other_expenses(self, start_date=None, end_date=None):
-        """المصاريف الأخرى لمركز التكلفة"""
-        return Decimal('0.00')
+        """المصاريف الأخرى لمركز التكلفة (إجمالي المصاريف - رواتب المدرسين - رواتب الموظفين)"""
+        total = self.get_total_expenses(start_date, end_date)
+        teacher_salaries = self.get_teacher_salaries(start_date, end_date)
+        employee_salaries = self.get_salary_expenses(start_date, end_date) if hasattr(self, 'get_salary_expenses') else Decimal('0.00')
+        other = total - teacher_salaries - employee_salaries
+        return max(other, Decimal('0.00'))
 
     def get_teacher_count(self):
         """عدد المدرسين في مركز التكلفة"""

@@ -492,7 +492,7 @@ class ThaaerComprehensiveReportView(ThaaerReportsMixin, View):
                 "name": cc.name_ar if cc.name_ar else cc.name,
                 "total_expenses": expenses,
                 "teacher_salaries": cc.get_teacher_salaries(start, end) or 0,
-                "other_expenses": cc.get_other_expenses(start, end) or 0,
+                "other_expenses": cc.get_operational_expenses(start, end) or 0,
                 "total_revenue": revenue,
                 "course_count": cc.get_course_count(),
                 "profit_loss": profit_loss,
@@ -539,66 +539,12 @@ class ThaaerStrategicDecisionView(ThaaerReportsMixin, View):
         # 2. Profitability & Smart Analysis per Cost Center
         cc_analysis = []
         for cc in cost_centers:
-            # Teacher salaries (501) under this cost center
-            t_debits = Transaction.objects.filter(
-                cost_center=cc,
-                is_debit=True,
-                account__code__startswith='501',
-                journal_entry__date__gte=start,
-                journal_entry__date__lte=end
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            t_credits = Transaction.objects.filter(
-                cost_center=cc,
-                is_debit=False,
-                account__code__startswith='501',
-                journal_entry__date__gte=start,
-                journal_entry__date__lte=end
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            teacher_salaries_val = t_debits - t_credits
+            # Use model methods that do smart account-code-suffix matching
+            teacher_salaries_val = cc.get_teacher_salaries(start, end) or Decimal('0.00')
+            employee_salaries_val = cc.get_salary_expenses(start, end) or Decimal('0.00')
+            operational_val = cc.get_operational_expenses(start, end) or Decimal('0.00')
 
-            # Employee salaries (502) under this cost center
-            e_debits = Transaction.objects.filter(
-                cost_center=cc,
-                is_debit=True,
-                account__code__startswith='502',
-                journal_entry__date__gte=start,
-                journal_entry__date__lte=end
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            e_credits = Transaction.objects.filter(
-                cost_center=cc,
-                is_debit=False,
-                account__code__startswith='502',
-                journal_entry__date__gte=start,
-                journal_entry__date__lte=end
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            employee_salaries_val = e_debits - e_credits
-
-            # Operational/Other expenses
-            op_debits = Transaction.objects.filter(
-                cost_center=cc,
-                is_debit=True,
-                account__account_type='EXPENSE',
-                journal_entry__date__gte=start,
-                journal_entry__date__lte=end
-            ).exclude(
-                account__code__startswith='501'
-            ).exclude(
-                account__code__startswith='502'
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            op_credits = Transaction.objects.filter(
-                cost_center=cc,
-                is_debit=False,
-                account__account_type='EXPENSE',
-                journal_entry__date__gte=start,
-                journal_entry__date__lte=end
-            ).exclude(
-                account__code__startswith='501'
-            ).exclude(
-                account__code__startswith='502'
-            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            operational_val = op_debits - op_credits
-
-            expenses = teacher_salaries_val + employee_salaries_val + operational_val
+            expenses = cc.get_total_expenses(start, end) or Decimal('0.00')
             revenue = cc.get_total_revenue(start, end) or Decimal('0.00')
             profit = revenue - expenses
             margin = (profit / revenue * 100) if revenue else Decimal('0.00')
@@ -631,22 +577,31 @@ class ThaaerStrategicDecisionView(ThaaerReportsMixin, View):
                     "courses_count": t_data['courses_count'],
                 })
 
-            # C) Linked Employees (dynamically identified from salary postings starting with 502 in this CC)
-            cc_emp_tx = Transaction.objects.filter(
-                cost_center=cc,
-                account__code__startswith='502',
-                journal_entry__date__gte=start,
-                journal_entry__date__lte=end
-            ).values('account__code', 'account__name', 'account__name_ar').distinct()
-
+            # C) Linked Employees (dynamically identified from salary postings matching CC code suffix)
+            cleaned_cc_code = cc.code.lstrip('0') if cc.code.isdigit() else cc.code
+            
+            # Find 502-xxx accounts where suffix matches this CC code
+            emp_accounts = Account.objects.filter(
+                code__startswith='502',
+                is_active=True
+            )
+            
             cc_employees = []
-            for tx in cc_emp_tx:
-                code = tx['account__code']
-                emp_name = tx['account__name_ar'] or tx['account__name']
+            for emp_acc in emp_accounts:
+                code = emp_acc.code
+                suffix = code.split('-')[-1].strip() if '-' in code else ''
+                if not suffix:
+                    continue
+                
+                cleaned_suffix = suffix.lstrip('0') if suffix.isdigit() else suffix
+                if cleaned_suffix != cleaned_cc_code and suffix != cc.code:
+                    continue
+                
+                emp_name = emp_acc.name_ar or emp_acc.name
                 job_title = "موظف"
                 
                 try:
-                    emp_id = int(code.split('-')[1])
+                    emp_id = int(suffix)
                     if Employee:
                         emp = Employee.objects.filter(id=emp_id).first()
                         if emp:
@@ -656,14 +611,12 @@ class ThaaerStrategicDecisionView(ThaaerReportsMixin, View):
                     pass
 
                 cc_emp_debits = Transaction.objects.filter(
-                    cost_center=cc,
                     account__code=code,
                     is_debit=True,
                     journal_entry__date__gte=start,
                     journal_entry__date__lte=end
                 ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
                 cc_emp_credits = Transaction.objects.filter(
-                    cost_center=cc,
                     account__code=code,
                     is_debit=False,
                     journal_entry__date__gte=start,
@@ -671,11 +624,12 @@ class ThaaerStrategicDecisionView(ThaaerReportsMixin, View):
                 ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
                 net_paid = cc_emp_debits - cc_emp_credits
 
-                cc_employees.append({
-                    "name": emp_name,
-                    "job_title": job_title,
-                    "net_paid": net_paid
-                })
+                if net_paid != 0:
+                    cc_employees.append({
+                        "name": emp_name,
+                        "job_title": job_title,
+                        "net_paid": net_paid
+                    })
 
             # D) Courses linked to this cost center
             cc_courses = []
