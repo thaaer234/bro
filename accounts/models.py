@@ -1383,6 +1383,11 @@ class JournalEntry(models.Model):
     def save(self, *args, **kwargs):
         if not self.reference:
             self.reference = f"JE-{NumberSequence.next_value('journal_entry'):06d}"
+        if not self.academic_year:
+            from academic_years.middleware import get_current_academic_year_thread
+            current_ay = get_current_academic_year_thread()
+            if current_ay:
+                self.academic_year = current_ay
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -1843,6 +1848,11 @@ class Studentenrollment(models.Model):
     def save(self, *args, **kwargs):
         if self.course_id and not self.academic_year_id:
             self.academic_year = self.course.academic_year
+        if not self.academic_year:
+            from academic_years.middleware import get_current_academic_year_thread
+            current_ay = get_current_academic_year_thread()
+            if current_ay:
+                self.academic_year = current_ay
         self.full_clean()
         super().save(*args, **kwargs)
 
@@ -1974,6 +1984,12 @@ class StudentReceipt(models.Model):
             self.academic_year = self.course.academic_year
         elif self.student_profile_id and not self.academic_year_id:
             self.academic_year = self.student_profile.academic_year
+        
+        if not self.academic_year:
+            from academic_years.middleware import get_current_academic_year_thread
+            current_ay = get_current_academic_year_thread()
+            if current_ay:
+                self.academic_year = current_ay
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -2153,6 +2169,11 @@ class ExpenseEntry(models.Model):
             sequence_key = 'expense' if self.entry_kind == 'EXPENSE' else 'followup_revenue'
             prefix = 'EX' if self.entry_kind == 'EXPENSE' else 'FR'
             self.reference = f"{prefix}-{NumberSequence.next_value(sequence_key):06d}"
+        if not self.academic_year:
+            from academic_years.middleware import get_current_academic_year_thread
+            current_ay = get_current_academic_year_thread()
+            if current_ay:
+                self.academic_year = current_ay
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -2301,6 +2322,11 @@ class EmployeeAdvance(models.Model):
     def save(self, *args, **kwargs):
         if not self.reference:
             self.reference = f"ADV-{NumberSequence.next_value('advance'):06d}"
+        if not self.academic_year:
+            from academic_years.middleware import get_current_academic_year_thread
+            current_ay = get_current_academic_year_thread()
+            if current_ay:
+                self.academic_year = current_ay
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):

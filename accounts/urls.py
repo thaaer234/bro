@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import api_views
+from . import thaaer_reports_views
 from . import views
 from . import financial_reports_views
 from . import site_export_views
@@ -122,6 +123,10 @@ urlpatterns = [
     path('reports/cost-center-analysis/', require_employee_perm('accounting_reports')(financial_reports_views.CostCenterAnalysisReportView.as_view()), name='cost_center_analysis'),
     path('reports/cost-center-cash-flow/', require_employee_perm('accounting_reports')(financial_reports_views.CostCenterCashFlowReportView.as_view()), name='cost_center_cash_flow'),
     path('reports/comprehensive/', require_employee_perm('accounting_reports')(financial_reports_views.ComprehensiveFinancialReportView.as_view()), name='comprehensive_financial'),
+    # Thaaer Reports (superuser only)
+    path('reports/thaaer/annual/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerAnnualBudgetReportView.as_view()), name='thaaer_annual_budget'),
+    path('reports/thaaer/semester/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerSemesterBudgetReportView.as_view()), name='thaaer_semester_budget'),
+    path('reports/thaaer/comprehensive/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerComprehensiveReportView.as_view()), name='thaaer_comprehensive'),
     path('reports/cost-center/<int:cost_center_id>/', require_employee_perm('accounting_reports')(financial_reports_views.cost_center_detail_report), name='cost_center_detail'),
     
     # AJAX endpoints for financial reports

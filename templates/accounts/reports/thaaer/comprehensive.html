@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}التقرير المالي الشامل - تقارير Thaaer{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Premium Modern Styling */
+    .premium-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .premium-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    }
+    .gradient-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        padding: 24px;
+    }
+    .btn-action {
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .table-premium {
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    .table-premium tr {
+        background-color: #f8fafc;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+    }
+    .table-premium tr:hover {
+        background-color: #f1f5f9;
+    }
+    .table-premium th {
+        border: none !important;
+        background-color: transparent !important;
+        color: #475569;
+        font-weight: 700;
+    }
+    .table-premium td {
+        border: none !important;
+        padding: 16px !important;
+    }
+    .table-premium td:first-child, .table-premium th:first-child {
+        border-radius: 8px 0 0 8px;
+    }
+    .table-premium td:last-child, .table-premium th:last-child {
+        border-radius: 0 8px 8px 0;
+    }
+
+    /* Print Optimization CSS */
+    @media print {
+        body {
+            background: white !important;
+            color: black !important;
+            font-size: 12pt !important;
+        }
+        .sidebar, .navbar, .mobile-menu-toggle, .btn-action, .card-tools, form, footer, .sidebar-shortcuts {
+            display: none !important;
+        }
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        .container-fluid {
+            width: 100% !important;
+            padding: 0 !important;
+        }
+        .premium-card {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+        }
+        .gradient-header {
+            background: none !important;
+            color: black !important;
+            border-bottom: 2px solid #000 !important;
+            padding: 10px 0 !important;
+        }
+        .gradient-header h3 {
+            color: black !important;
+        }
+        .table-premium tr {
+            background: transparent !important;
+            page-break-inside: avoid;
+        }
+        .table-premium td, .table-premium th {
+            border: 1px solid #ddd !important;
+            color: black !important;
+            padding: 8px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card premium-card">
+                <div class="gradient-header d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h3 class="mb-1 font-weight-bold">
+                            <i class="fas fa-file-invoice-dollar mr-2"></i>
+                            التقرير المالي الشامل لمراكز التكلفة - تقارير Thaaer
+                        </h3>
+                        <p class="mb-0 text-white-50">تحليل مراكز التكلفة والتدفقات النقدية مع إمكانية التصدير والطباعة</p>
+                    </div>
+                    <div class="card-tools d-flex gap-2">
+                        <button onclick="window.print();" class="btn btn-light btn-action text-indigo shadow-sm" style="color: #4f46e5;">
+                            <i class="fas fa-print"></i> طباعة التقرير
+                        </button>
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                            <input type="hidden" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+                            <button type="submit" class="btn btn-success btn-action shadow-sm">
+                                <i class="fas fa-file-excel"></i> تصدير Excel
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Period Filter Form -->
+                    <div class="row mb-4 align-items-end d-print-none">
+                        <div class="col-md-8">
+                            <form method="get" class="form-inline bg-light p-3 rounded-lg d-flex gap-3 align-items-end w-100 flex-wrap">
+                                <div class="form-group mb-0">
+                                    <label for="start_date" class="mr-2 mb-1 text-muted font-weight-bold d-block">من تاريخ:</label>
+                                    <input type="date" class="form-control rounded-pill border-gray-300" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="end_date" class="mr-2 mb-1 text-muted font-weight-bold d-block">إلى تاريخ:</label>
+                                    <input type="date" class="form-control rounded-pill border-gray-300" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+                                </div>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 btn-action">
+                                    <i class="fas fa-filter"></i> تصفية
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Period Info Display -->
+                    <div class="alert alert-indigo bg-indigo-light border-0 d-flex align-items-center mb-4 rounded-xl" style="background-color: #eef2ff; color: #4f46e5;">
+                        <i class="fas fa-calendar-alt text-indigo fa-lg mr-3"></i>
+                        <div>
+                            <strong>الفترة المحددة للتقرير:</strong>
+                            <span class="font-weight-bold">من {{ start_date|date:"Y-m-d" }} إلى {{ end_date|date:"Y-m-d" }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Tabs/Sections for Analysis & Cash Flow -->
+                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center">
+                        <i class="fas fa-chart-pie mr-2 text-indigo"></i> تحليل مراكز التكلفة (Cost Centers Analysis)
+                    </h4>
+                    <div class="table-responsive mb-5">
+                        <table class="table table-premium">
+                            <thead>
+                                <tr>
+                                    <th>رمز المركز</th>
+                                    <th>اسم مركز التكلفة</th>
+                                    <th>إجمالي المصروفات</th>
+                                    <th>رواتب المدرسين</th>
+                                    <th>مصروفات أخرى</th>
+                                    <th>إجمالي الإيرادات</th>
+                                    <th>صافي الربح / الخسارة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in analysis_data %}
+                                <tr>
+                                    <td><strong>{{ item.code }}</strong></td>
+                                    <td>{{ item.name }}</td>
+                                    <td class="text-danger font-weight-bold">{{ item.total_expenses|floatformat:2|intcomma }}</td>
+                                    <td class="text-warning">{{ item.teacher_salaries|floatformat:2|intcomma }}</td>
+                                    <td class="text-danger">{{ item.other_expenses|floatformat:2|intcomma }}</td>
+                                    <td class="text-success font-weight-bold">{{ item.total_revenue|floatformat:2|intcomma }}</td>
+                                    <td class="font-weight-bold {% if item.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ item.profit_loss|floatformat:2|intcomma }}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">لا توجد بيانات متاحة لفترة التصفية المحددة.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center">
+                        <i class="fas fa-wallet mr-2 text-indigo"></i> حركة التدفقات النقدية (Cash Flow Statement)
+                    </h4>
+                    <div class="table-responsive">
+                        <table class="table table-premium">
+                            <thead>
+                                <tr>
+                                    <th>رمز المركز</th>
+                                    <th>اسم مركز التكلفة</th>
+                                    <th>التدفق الداخل (Inflow)</th>
+                                    <th>التدفق الخارج (Outflow)</th>
+                                    <th>الرصيد الافتتاحي</th>
+                                    <th>الرصيد الختامي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cash_flow_data %}
+                                <tr>
+                                    <td><strong>{{ item.code }}</strong></td>
+                                    <td>{{ item.name }}</td>
+                                    <td class="text-success font-weight-bold">{{ item.inflow|floatformat:2|intcomma }}</td>
+                                    <td class="text-danger font-weight-bold">{{ item.outflow|floatformat:2|intcomma }}</td>
+                                    <td>{{ item.opening_balance|floatformat:2|intcomma }}</td>
+                                    <td class="font-weight-bold text-primary">
+                                        {{ item.closing_balance|floatformat:2|intcomma }}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">لا توجد بيانات متاحة لحركة التدفقات النقدية.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

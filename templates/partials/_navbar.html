@@ -192,10 +192,34 @@
         {% endif %}
 
         {% if user.is_superuser or 'accounting_dashboard' in emp_perms or 'accounting_view' in emp_perms %}
-        <a href="{% url 'accounts:dashboard' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'accounts' %}active{% endif %}">
+        <a href="{% url 'accounts:dashboard' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'accounts' and 'thaaer' not in request.resolver_match.url_name %}active{% endif %}">
             <i class="fas fa-file-invoice-dollar"></i>
             <span>المحاسبة</span>
         </a>
+        {% endif %}
+
+        {% if user.is_superuser %}
+        <div class="menu-group">
+            <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="thaaer-reports-submenu">
+                <i class="fas fa-chart-line text-warning"></i>
+                <span class="text-warning">تقارير thaaer</span>
+                <i class="fas fa-chevron-down group-arrow"></i>
+            </button>
+            <div id="thaaer-reports-submenu" class="sub-menu">
+                <a href="{% url 'accounts:thaaer_annual_budget' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_annual_budget' %}active{% endif %}">
+                    <i class="fas fa-calendar"></i>
+                    <span>الميزانية السنوية</span>
+                </a>
+                <a href="{% url 'accounts:thaaer_semester_budget' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_semester_budget' %}active{% endif %}">
+                    <i class="fas fa-calendar-minus"></i>
+                    <span>ميزانية الفصل</span>
+                </a>
+                <a href="{% url 'accounts:thaaer_comprehensive' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_comprehensive' %}active{% endif %}">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>التقرير الشامل</span>
+                </a>
+            </div>
+        </div>
         {% endif %}
 
         {% if user.is_superuser or 'attendance_view' in emp_perms or 'attendance_teacher_view' in emp_perms %}
