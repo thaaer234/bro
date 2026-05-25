@@ -26,6 +26,14 @@ except ImportError:
     Teacher = None
 
 from .excel_utils import FinancialReportExporter, create_excel_response
+from django.utils.dateparse import parse_date
+from datetime import date
+from django.shortcuts import get_object_or_404
+from academic_years.services.session import get_current_academic_year
+
+def _current_academic_year(request):
+    return getattr(request, "current_academic_year", None) or get_current_academic_year(request)
+
 
 
 
@@ -948,4 +956,365 @@ class ThaaerStrategicDecisionView(ThaaerReportsMixin, View):
             "total_assets_val": total_assets_val,
         }
         return render(request, self.template_name, context)
+
+
+@method_decorator([login_required, user_passes_test(superuser_required)], name="dispatch")
+class ThaaerTrialBalanceReportView(ThaaerReportsMixin, View):
+    template_name = "accounts/reports/thaaer/trial_balance.html"
+
+    def get(self, request):
+        start, end = self.get_date_range(request)
+        academic_year = _current_academic_year(request)
+
+        # Get settings from request
+        account_type = (request.GET.get('account_type') or '').strip().upper()
+        hierarchy_mode = (request.GET.get('hierarchy_mode') or 'all').strip().lower()
+        sort_by = (request.GET.get('sort_by') or 'code').strip().lower()
+        show_zero_balances = request.GET.get('show_zero') in {'1', 'true', 'yes', 'on'}
+        full_report = request.GET.get('full_report') in {'1', 'true', 'yes', 'on'}
+
+        if full_report:
+            start = None
+            end = None
+            show_zero_balances = True
+
+        trial_balance_data = []
+        total_debits = Decimal('0.00')
+        total_credits = Decimal('0.00')
+
+        accounts = Account.objects.filter(is_active=True)
+        if account_type:
+            accounts = accounts.filter(account_type=account_type)
+
+        if hierarchy_mode == 'main_only':
+            accounts = accounts.filter(parent__isnull=True)
+        elif hierarchy_mode == 'leaf_only':
+            accounts = accounts.filter(children__isnull=True)
+
+        order_field = 'code' if sort_by == 'code' else 'name_ar'
+        accounts = accounts.order_by(order_field, 'code').distinct()
+
+        for account in accounts:
+            transactions = account.transactions.all()
+            if academic_year:
+                transactions = transactions.filter(journal_entry__academic_year=academic_year)
+            if start:
+                transactions = transactions.filter(journal_entry__date__gte=start)
+            if end:
+                transactions = transactions.filter(journal_entry__date__lte=end)
+
+            debit_total = transactions.filter(is_debit=True).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            credit_total = transactions.filter(is_debit=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+            if account.account_type in ['ASSET', 'EXPENSE']:
+                net_balance = debit_total - credit_total
+            else:
+                net_balance = credit_total - debit_total
+
+            debit_amount = Decimal('0.00')
+            credit_amount = Decimal('0.00')
+
+            if net_balance > 0:
+                if account.account_type in ['ASSET', 'EXPENSE']:
+                    debit_amount = net_balance
+                else:
+                    credit_amount = net_balance
+            elif net_balance < 0:
+                if account.account_type in ['ASSET', 'EXPENSE']:
+                    credit_amount = abs(net_balance)
+                else:
+                    debit_amount = abs(net_balance)
+
+            include_account = full_report or show_zero_balances or debit_amount > 0 or credit_amount > 0
+            if not include_account:
+                continue
+
+            trial_balance_data.append({
+                'account': account,
+                'debit_amount': debit_amount,
+                'credit_amount': credit_amount,
+                'net_balance': net_balance,
+                'debit_total': debit_total,
+                'credit_total': credit_total,
+            })
+            total_debits += debit_amount
+            total_credits += credit_amount
+
+        difference = total_debits - total_credits
+        is_balanced = total_debits == total_credits
+
+        context = {
+            'report_generated_at': timezone.now(),
+            'start_date': start,
+            'end_date': end,
+            'account_type': account_type,
+            'hierarchy_mode': hierarchy_mode,
+            'sort_by': sort_by,
+            'show_zero_balances': show_zero_balances,
+            'full_report': full_report,
+            'trial_balance_data': trial_balance_data,
+            'total_debits': total_debits,
+            'total_credits': total_credits,
+            'difference': difference,
+            'is_balanced': is_balanced,
+            'account_count': len(trial_balance_data),
+            'trial_account_type_options': [
+                ('', 'كل الأنواع'),
+                ('ASSET', 'الأصول'),
+                ('LIABILITY', 'الالتزامات'),
+                ('EQUITY', 'حقوق الملكية'),
+                ('REVENUE', 'الإيرادات'),
+                ('EXPENSE', 'المصاريف'),
+            ],
+        }
+        return render(request, self.template_name, context)
+
+
+@method_decorator([login_required, user_passes_test(superuser_required)], name="dispatch")
+class ThaaerIncomeStatementReportView(ThaaerReportsMixin, View):
+    template_name = "accounts/reports/thaaer/income_statement.html"
+
+    def get(self, request):
+        start, end = self.get_date_range(request)
+        academic_year = _current_academic_year(request)
+
+        # Get revenue and expense accounts
+        revenue_accounts_qs = Account.objects.filter(account_type='REVENUE', is_active=True).order_by('code')
+        expense_accounts_qs = Account.objects.filter(account_type='EXPENSE', is_active=True).order_by('code')
+
+        revenue_accounts = []
+        expense_accounts = []
+        total_revenue = Decimal('0.00')
+        total_expenses = Decimal('0.00')
+
+        # Dynamically calculate net balance within selected dates
+        for acc in revenue_accounts_qs:
+            tx = acc.transactions.all()
+            if academic_year:
+                tx = tx.filter(journal_entry__academic_year=academic_year)
+            if start:
+                tx = tx.filter(journal_entry__date__gte=start)
+            if end:
+                tx = tx.filter(journal_entry__date__lte=end)
+
+            debits = tx.filter(is_debit=True).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            credits = tx.filter(is_debit=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            net = credits - debits # Natural credit balance for Revenue
+            if net != 0:
+                revenue_accounts.append({
+                    'code': acc.code,
+                    'name': acc.name_ar if acc.name_ar else acc.name,
+                    'balance': net
+                })
+                total_revenue += net
+
+        for acc in expense_accounts_qs:
+            tx = acc.transactions.all()
+            if academic_year:
+                tx = tx.filter(journal_entry__academic_year=academic_year)
+            if start:
+                tx = tx.filter(journal_entry__date__gte=start)
+            if end:
+                tx = tx.filter(journal_entry__date__lte=end)
+
+            debits = tx.filter(is_debit=True).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            credits = tx.filter(is_debit=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            net = debits - credits # Natural debit balance for Expense
+            if net != 0:
+                expense_accounts.append({
+                    'code': acc.code,
+                    'name': acc.name_ar if acc.name_ar else acc.name,
+                    'balance': net
+                })
+                total_expenses += net
+
+        net_income = total_revenue - total_expenses
+        margin = (net_income / total_revenue * 100) if total_revenue else Decimal('0.00')
+
+        context = {
+            'start_date': start,
+            'end_date': end,
+            'revenue_accounts': revenue_accounts,
+            'expense_accounts': expense_accounts,
+            'total_revenue': total_revenue,
+            'total_expenses': total_expenses,
+            'net_income': net_income,
+            'margin': margin,
+        }
+        return render(request, self.template_name, context)
+
+
+@method_decorator([login_required, user_passes_test(superuser_required)], name="dispatch")
+class ThaaerBalanceSheetReportView(ThaaerReportsMixin, View):
+    template_name = "accounts/reports/thaaer/balance_sheet.html"
+
+    def get(self, request):
+        start, end = self.get_date_range(request)
+        academic_year = _current_academic_year(request)
+
+        asset_accounts_qs = Account.objects.filter(account_type='ASSET', is_active=True).order_by('code')
+        liability_accounts_qs = Account.objects.filter(account_type='LIABILITY', is_active=True).order_by('code')
+        equity_accounts_qs = Account.objects.filter(account_type='EQUITY', is_active=True).order_by('code')
+
+        asset_accounts = []
+        liability_accounts = []
+        equity_accounts = []
+
+        total_assets = Decimal('0.00')
+        total_liabilities = Decimal('0.00')
+        total_equity = Decimal('0.00')
+
+        # Helper method for dynamic net balance
+        def get_acc_balance(acc, start_date, end_date, ac_year):
+            tx = acc.transactions.all()
+            if ac_year:
+                tx = tx.filter(journal_entry__academic_year=ac_year)
+            # Balance sheet is cumulative: filter up to end_date
+            if end_date:
+                tx = tx.filter(journal_entry__date__lte=end_date)
+            
+            debits = tx.filter(is_debit=True).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            credits = tx.filter(is_debit=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            
+            if acc.account_type in ['ASSET', 'EXPENSE']:
+                return debits - credits
+            else:
+                return credits - debits
+
+        for acc in asset_accounts_qs:
+            bal = get_acc_balance(acc, start, end, academic_year)
+            if bal != 0:
+                asset_accounts.append({
+                    'code': acc.code,
+                    'name': acc.name_ar if acc.name_ar else acc.name,
+                    'balance': bal
+                })
+                total_assets += bal
+
+        for acc in liability_accounts_qs:
+            bal = get_acc_balance(acc, start, end, academic_year)
+            if bal != 0:
+                liability_accounts.append({
+                    'code': acc.code,
+                    'name': acc.name_ar if acc.name_ar else acc.name,
+                    'balance': bal
+                })
+                total_liabilities += bal
+
+        for acc in equity_accounts_qs:
+            bal = get_acc_balance(acc, start, end, academic_year)
+            if bal != 0:
+                equity_accounts.append({
+                    'code': acc.code,
+                    'name': acc.name_ar if acc.name_ar else acc.name,
+                    'balance': bal
+                })
+                total_equity += bal
+
+        # Inject dynamic Student outstanding debt to current assets
+        total_outstanding = Decimal('0.00')
+        cost_centers = CostCenter.objects.filter(is_active=True)
+        for cc in cost_centers:
+            for crs in cc.courses.all():
+                for enrollment in crs.enrollments.all():
+                    total_outstanding += enrollment.balance_due
+
+        if total_outstanding > 0:
+            asset_accounts.append({
+                'code': 'REC-STUD',
+                'name': 'الذمم المستحقة على الطلاب (رسوم معلقة)',
+                'balance': total_outstanding
+            })
+            total_assets += total_outstanding
+
+        difference = total_assets - (total_liabilities + total_equity)
+        is_balanced = (difference == 0)
+
+        context = {
+            'start_date': start,
+            'end_date': end,
+            'asset_accounts': asset_accounts,
+            'liability_accounts': liability_accounts,
+            'equity_accounts': equity_accounts,
+            'total_assets': total_assets,
+            'total_liabilities': total_liabilities,
+            'total_equity': total_equity,
+            'difference': difference,
+            'is_balanced': is_balanced,
+            'total_outstanding_student': total_outstanding
+        }
+        return render(request, self.template_name, context)
+
+
+@method_decorator([login_required, user_passes_test(superuser_required)], name="dispatch")
+class ThaaerLedgerReportView(ThaaerReportsMixin, View):
+    template_name = "accounts/reports/thaaer/ledger.html"
+
+    def _signed_amount(self, transaction):
+        acc_type = transaction.account.account_type
+        is_natural_debit = acc_type in ['ASSET', 'EXPENSE']
+        return transaction.amount if (transaction.is_debit and is_natural_debit) or (not transaction.is_debit and not is_natural_debit) else -transaction.amount
+
+    def get(self, request):
+        start, end = self.get_date_range(request)
+        academic_year = _current_academic_year(request)
+        account_code = request.GET.get('account_code') or ''
+
+        accounts_list = Account.objects.filter(is_active=True).order_by('code')
+        statement_data = None
+        account_obj = None
+
+        if account_code:
+            account_obj = get_object_or_404(Account, code=account_code)
+            
+            # Opening balance from all transactions before start (if provided)
+            prior_qs = account_obj.transactions_with_descendants(academic_year=academic_year)
+            if start:
+                prior_qs = prior_qs.filter(journal_entry__date__lt=start)
+            opening_balance = sum(self._signed_amount(tx) for tx in prior_qs.select_related('journal_entry', 'account'))
+
+            # Current period transactions
+            tx_qs = account_obj.transactions_with_descendants(academic_year=academic_year).select_related('journal_entry', 'account').order_by('journal_entry__date', 'journal_entry__created_at', 'id')
+            if start:
+                tx_qs = tx_qs.filter(journal_entry__date__gte=start)
+            if end:
+                tx_qs = tx_qs.filter(journal_entry__date__lte=end)
+
+            running_balance = opening_balance
+            rows = []
+            total_debit = Decimal('0.00')
+            total_credit = Decimal('0.00')
+
+            for tx in tx_qs:
+                signed = self._signed_amount(tx)
+                running_balance += signed
+                if tx.is_debit:
+                    total_debit += tx.amount
+                else:
+                    total_credit += tx.amount
+                rows.append({
+                    'transaction': tx,
+                    'running_balance': running_balance,
+                    'account_code': tx.account.code,
+                    'account_name': tx.account.display_name,
+                })
+
+            statement_data = {
+                'opening_balance': opening_balance,
+                'closing_balance': running_balance,
+                'total_debit': total_debit,
+                'total_credit': total_credit,
+                'rows': rows,
+            }
+
+        context = {
+            'accounts_list': accounts_list,
+            'account_code': account_code,
+            'account_obj': account_obj,
+            'start_date': start,
+            'end_date': end,
+            'statement_data': statement_data,
+        }
+        return render(request, self.template_name, context)
+
 

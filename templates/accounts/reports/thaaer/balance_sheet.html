@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}الميزانية العمومية والمركز المالي - تقارير Thaaer{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Ultra-Premium Glassmorphism & Gradient Theme */
+    .premium-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .premium-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    }
+    .gradient-header {
+        background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        padding: 24px;
+    }
+    .metric-card {
+        border-radius: 12px;
+        padding: 20px;
+        transition: transform 0.2s;
+        border: none;
+        color: white;
+    }
+    .metric-card:hover {
+        transform: scale(1.02);
+    }
+    .metric-title {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        font-weight: 600;
+    }
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-top: 8px;
+    }
+    .btn-action {
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .table-premium {
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    .table-premium tr {
+        background-color: #f8fafc;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+    }
+    .table-premium tr:hover {
+        background-color: #f1f5f9;
+    }
+    .table-premium th {
+        border: none !important;
+        background-color: transparent !important;
+        color: #475569;
+        font-weight: 700;
+    }
+    .table-premium td {
+        border: none !important;
+        padding: 14px !important;
+    }
+    .table-premium td:first-child, .table-premium th:first-child {
+        border-radius: 8px 0 0 8px;
+    }
+    .table-premium td:last-child, .table-premium th:last-child {
+        border-radius: 0 8px 8px 0;
+    }
+
+    /* Print Optimization CSS */
+    @media print {
+        body {
+            background: white !important;
+            color: black !important;
+            font-size: 12pt !important;
+        }
+        .sidebar, .navbar, .mobile-menu-toggle, .btn-action, .card-tools, form, footer, .d-print-none {
+            display: none !important;
+        }
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        .container-fluid {
+            width: 100% !important;
+            padding: 0 !important;
+        }
+        .premium-card {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+        }
+        .gradient-header {
+            background: none !important;
+            color: black !important;
+            border-bottom: 2px solid #000 !important;
+            padding: 10px 0 !important;
+        }
+        .gradient-header h3 {
+            color: black !important;
+        }
+        .table-premium tr {
+            background: transparent !important;
+            page-break-inside: avoid;
+        }
+        .table-premium td, .table-premium th {
+            border: 1px solid #ddd !important;
+            color: black !important;
+            padding: 8px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Thaaer Reports Unified Navigation Tab bar -->
+    <div class="row mb-4 d-print-none">
+        <div class="col-12">
+            <div class="card premium-card p-2 shadow-xs rounded-xl border" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);">
+                <div class="d-flex justify-content-center gap-2 flex-wrap align-items-center">
+                    <a href="{% url 'accounts:thaaer_strategic' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-brain mr-1"></i> لوحة القرار الاستراتيجي
+                    </a>
+                    <a href="{% url 'accounts:thaaer_comprehensive' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-file-invoice-dollar mr-1"></i> التقرير المالي الشامل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_annual_budget' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-calendar mr-1"></i> الميزانية السنوية
+                    </a>
+                    <a href="{% url 'accounts:thaaer_semester_budget' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-calendar-minus mr-1"></i> ميزانية الفصل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_trial_balance' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-scale-balanced mr-1"></i> ميزان المراجعة الشامل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_income_statement' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-chart-line mr-1"></i> قائمة الدخل والأرباح
+                    </a>
+                    <a href="{% url 'accounts:thaaer_balance_sheet' %}" class="btn btn-action btn-indigo text-white rounded-pill shadow-xs">
+                        <i class="fas fa-building-columns mr-1 text-warning"></i> الميزانية والمركز المالي
+                    </a>
+                    <a href="{% url 'accounts:thaaer_ledger' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-book mr-1"></i> الأستاذ العام وكشف الحساب
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card premium-card">
+                <div class="gradient-header d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h3 class="mb-1 font-weight-bold">
+                            <i class="fas fa-building-columns mr-2 text-warning"></i>
+                            الميزانية العمومية والمركز المالي - تقارير Thaaer
+                        </h3>
+                        <p class="mb-0 text-white-50">بيان تفصيلي بالموجودات (الأصول) والمطلوبات (الالتزامات وحقوق الملكية) للوقوف على الملاءة المالية للمعهد</p>
+                    </div>
+                    <div class="card-tools d-flex gap-2">
+                        <button onclick="window.print();" class="btn btn-light btn-action text-indigo shadow-sm" style="color: #4f46e5;">
+                            <i class="fas fa-print"></i> طباعة الميزانية العمومية
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Period Filter Form -->
+                    <div class="row mb-4 align-items-end d-print-none">
+                        <div class="col-md-8">
+                            <form method="get" class="form-inline bg-light p-3 rounded-lg d-flex gap-3 align-items-end w-100 flex-wrap">
+                                <div class="form-group mb-0">
+                                    <label for="end_date" class="mr-2 mb-1 text-muted font-weight-bold d-block">حتى تاريخ:</label>
+                                    <input type="date" class="form-control rounded-pill border-gray-300" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+                                </div>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 btn-action">
+                                    <i class="fas fa-filter"></i> تطبيق التصفية
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Balance Sheet Metrics Grid -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">إجمالي الأصول (Assets)</div>
+                                        <div class="metric-value">{{ total_assets|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-vault fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">إجمالي الالتزامات (Liabilities)</div>
+                                        <div class="metric-value">{{ total_liabilities|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-hand-holding-dollar fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">حقوق الملكية (Equity)</div>
+                                        <div class="metric-value">{{ total_equity|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-scale-balanced fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card {% if is_balanced %}bg-success{% else %}bg-danger{% endif %}" style="background: {% if is_balanced %}linear-gradient(135deg, #059669 0%, #10b981 100%){% else %}linear-gradient(135deg, #dc2626 0%, #f87171 100%){% endif %};">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">توازن الميزانية</div>
+                                        <div class="metric-value" style="font-size: 1.25rem; margin-top: 15px;">
+                                            {% if is_balanced %}
+                                            <i class="fas fa-check-circle mr-1"></i> الميزانية متوازنة
+                                            {% else %}
+                                            <i class="fas fa-warning mr-1"></i> فرق: {{ difference|floatformat:2|intcomma }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-scale-balanced fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Graphical Charts Row -->
+                    <div class="row mb-5 d-print-none">
+                        <!-- Col 1: Assets breakdown (Current vs Fixed) -->
+                        <div class="col-md-6 mb-4">
+                            <div class="bg-white p-4 rounded-xl border shadow-xs h-100">
+                                <h5 class="mb-3 font-weight-bold text-muted text-right">
+                                    <i class="fas fa-chart-pie text-indigo mr-1"></i> توزيع وهيكلة أصول المعهد (ثابتة ومتداولة)
+                                </h5>
+                                <div style="width: 100%; height: 280px; position: relative;">
+                                    <canvas id="assetsSplitChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Col 2: Obligations Balance -->
+                        <div class="col-md-6 mb-4">
+                            <div class="bg-white p-4 rounded-xl border shadow-xs h-100">
+                                <h5 class="mb-3 font-weight-bold text-muted text-right">
+                                    <i class="fas fa-chart-bar text-warning mr-1"></i> مقارنة إجمالي الأصول مع الخصوم وحقوق الملكية
+                                </h5>
+                                <div style="width: 100%; height: 280px; position: relative;">
+                                    <canvas id="obligationsCompareChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Balance Sheet Ledger Tables -->
+                    <div class="row">
+                        <!-- Assets Left Column -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card premium-card border shadow-xs h-100">
+                                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #10b981 !important;">
+                                    <h5 class="mb-0 font-weight-bold text-success"><i class="fas fa-circle-plus mr-1"></i> الموجودات والأصول (Assets)</h5>
+                                    <span class="badge bg-success text-white px-3 py-2 rounded-pill font-weight-bold">الإجمالي: {{ total_assets|floatformat:2|intcomma }}</span>
+                                </div>
+                                <div class="card-body">
+                                    <input type="text" id="assetsSearchInput" class="form-control rounded-pill border-gray-300 mb-3 text-right d-print-none" placeholder="فلترة الأصول...">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-premium mb-0" id="assetsTable" style="font-size: 0.9rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>رمز الحساب</th>
+                                                    <th>اسم الأصل / الحساب</th>
+                                                    <th class="text-left">القيمة الدفترية</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for asset in asset_accounts %}
+                                                <tr class="asset-row" data-name="{{ asset.name }}" data-code="{{ asset.code }}">
+                                                    <td><strong>{{ asset.code }}</strong></td>
+                                                    <td>{{ asset.name }}</td>
+                                                    <td class="text-left font-weight-bold text-success">{{ asset.balance|floatformat:2|intcomma }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">لا توجد أصول مسجلة.</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Liabilities & Equity Right Column -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card premium-card border shadow-xs mb-4">
+                                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #f59e0b !important;">
+                                    <h5 class="mb-0 font-weight-bold text-warning"><i class="fas fa-circle-minus mr-1"></i> الالتزامات والخصوم (Liabilities)</h5>
+                                    <span class="badge bg-warning text-white px-3 py-2 rounded-pill font-weight-bold">الإجمالي: {{ total_liabilities|floatformat:2|intcomma }}</span>
+                                </div>
+                                <div class="card-body">
+                                    <input type="text" id="liabilitiesSearchInput" class="form-control rounded-pill border-gray-300 mb-3 text-right d-print-none" placeholder="فلترة الالتزامات...">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-premium mb-0" id="liabilitiesTable" style="font-size: 0.9rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>رمز الحساب</th>
+                                                    <th>اسم الالتزام / الحساب</th>
+                                                    <th class="text-left">القيمة المستحقة</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for liab in liability_accounts %}
+                                                <tr class="liab-row" data-name="{{ liab.name }}" data-code="{{ liab.code }}">
+                                                    <td><strong>{{ liab.code }}</strong></td>
+                                                    <td>{{ liab.name }}</td>
+                                                    <td class="text-left font-weight-bold text-warning">{{ liab.balance|floatformat:2|intcomma }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">لا توجد التزامات مسجلة.</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card premium-card border shadow-xs">
+                                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #4f46e5 !important;">
+                                    <h5 class="mb-0 font-weight-bold text-indigo"><i class="fas fa-scale-balanced mr-1"></i> حقوق الملكية ورأس المال (Equity)</h5>
+                                    <span class="badge bg-indigo text-white px-3 py-2 rounded-pill font-weight-bold">إجمالي: {{ total_equity|floatformat:2|intcomma }}</span>
+                                </div>
+                                <div class="card-body">
+                                    <input type="text" id="equitySearchInput" class="form-control rounded-pill border-gray-300 mb-3 text-right d-print-none" placeholder="فلترة حقوق الملكية...">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-premium mb-0" id="equityTable" style="font-size: 0.9rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>رمز الحساب</th>
+                                                    <th>اسم بند الملكية / الحساب</th>
+                                                    <th class="text-left">الرصيد الدفتري</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for eq in equity_accounts %}
+                                                <tr class="equity-row" data-name="{{ eq.name }}" data-code="{{ eq.code }}">
+                                                    <td><strong>{{ eq.code }}</strong></td>
+                                                    <td>{{ eq.name }}</td>
+                                                    <td class="text-left font-weight-bold text-indigo">{{ eq.balance|floatformat:2|intcomma }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">لا توجد حسابات حقوق ملكية.</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Live Filter Inputs
+        function setupFilter(inputId, rowClass) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener("keyup", function(e) {
+                    const term = e.target.value.toLowerCase().trim();
+                    document.querySelectorAll("." + rowClass).forEach(row => {
+                        const name = row.getAttribute("data-name").toLowerCase();
+                        const code = row.getAttribute("data-code").toLowerCase();
+                        if (name.includes(term) || code.includes(term)) {
+                            row.style.display = "";
+                        } else {
+                            row.style.display = "none";
+                        }
+                    });
+                });
+            }
+        }
+        setupFilter("assetsSearchInput", "asset-row");
+        setupFilter("liabilitiesSearchInput", "liab-row");
+        setupFilter("equitySearchInput", "equity-row");
+
+        // 2. Chart.js Asset Split Doughnut
+        const ctx1 = document.getElementById("assetsSplitChart");
+        if (ctx1) {
+            // Group fixed vs current assets
+            let fixedSum = 0;
+            let currentSum = 0;
+
+            {% for asset in asset_accounts %}
+                var code = "{{ asset.code }}";
+                var bal = parseFloat("{{ asset.balance }}");
+                if (code.startsWith('11') || code.includes('ثابت') || code.includes('عقار')) {
+                    fixedSum += bal;
+                } else {
+                    currentSum += bal;
+                }
+            {% endfor %}
+
+            new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['الأصول المتداولة والسيولة', 'الأصول الثابتة والموجودات العقارية'],
+                    datasets: [{
+                        data: [currentSum, fixedSum],
+                        backgroundColor: ['rgba(16, 185, 129, 0.85)', 'rgba(79, 70, 229, 0.85)'],
+                        borderColor: '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    rtl: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Inter, Outfit, sans-serif' }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 3. Obligations Compare Bar Chart
+        const ctx2 = document.getElementById("obligationsCompareChart");
+        if (ctx2) {
+            const totalAssets = parseFloat("{{ total_assets }}");
+            const totalLiabilities = parseFloat("{{ total_liabilities }}");
+            const totalEquity = parseFloat("{{ total_equity }}");
+
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['إجمالي الأصول (الموجودات)', 'الخصوم وحقوق الملكية (المطلوبات)'],
+                    datasets: [
+                        {
+                            label: 'قيمة الميزانية العامة',
+                            data: [totalAssets, (totalLiabilities + totalEquity)],
+                            backgroundColor: ['rgba(16, 185, 129, 0.85)', 'rgba(245, 158, 11, 0.85)'],
+                            borderColor: ['#10b981', '#f59e0b'],
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    rtl: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            position: 'right'
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

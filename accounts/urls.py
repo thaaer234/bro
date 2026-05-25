@@ -128,6 +128,10 @@ urlpatterns = [
     path('reports/thaaer/semester/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerSemesterBudgetReportView.as_view()), name='thaaer_semester_budget'),
     path('reports/thaaer/comprehensive/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerComprehensiveReportView.as_view()), name='thaaer_comprehensive'),
     path('reports/thaaer/strategic/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerStrategicDecisionView.as_view()), name='thaaer_strategic'),
+    path('reports/thaaer/trial-balance/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerTrialBalanceReportView.as_view()), name='thaaer_trial_balance'),
+    path('reports/thaaer/income-statement/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerIncomeStatementReportView.as_view()), name='thaaer_income_statement'),
+    path('reports/thaaer/balance-sheet/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerBalanceSheetReportView.as_view()), name='thaaer_balance_sheet'),
+    path('reports/thaaer/ledger/', require_employee_perm('accounting_reports')(thaaer_reports_views.ThaaerLedgerReportView.as_view()), name='thaaer_ledger'),
     path('reports/cost-center/<int:cost_center_id>/', require_employee_perm('accounting_reports')(financial_reports_views.cost_center_detail_report), name='cost_center_detail'),
     
     # AJAX endpoints for financial reports

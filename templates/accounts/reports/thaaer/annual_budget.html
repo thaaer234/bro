@@ -135,19 +135,31 @@
     <!-- Thaaer Reports Unified Navigation Tab bar -->
     <div class="row mb-4 d-print-none">
         <div class="col-12">
-            <div class="card premium-card p-2 shadow-xs rounded-xl border">
-                <div class="d-flex justify-content-center gap-3 flex-wrap align-items-center" style="gap: 15px;">
-                    <a href="{% url 'accounts:thaaer_strategic' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
-                        <i class="fas fa-brain mr-1 text-warning"></i> لوحة اتخاذ القرار الاستراتيجي
+            <div class="card premium-card p-2 shadow-xs rounded-xl border" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);">
+                <div class="d-flex justify-content-center gap-2 flex-wrap align-items-center">
+                    <a href="{% url 'accounts:thaaer_strategic' %}" class="btn btn-action {% if request.resolver_match.url_name == 'thaaer_strategic' %}btn-indigo text-white{% else %}btn-light text-indigo{% endif %} rounded-pill shadow-xs">
+                        <i class="fas fa-brain mr-1 {% if request.resolver_match.url_name == 'thaaer_strategic' %}text-warning{% endif %}"></i> لوحة القرار الاستراتيجي
                     </a>
-                    <a href="{% url 'accounts:thaaer_comprehensive' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                    <a href="{% url 'accounts:thaaer_comprehensive' %}" class="btn btn-action {% if request.resolver_match.url_name == 'thaaer_comprehensive' %}btn-indigo text-white{% else %}btn-light text-indigo{% endif %} rounded-pill shadow-xs">
                         <i class="fas fa-file-invoice-dollar mr-1"></i> التقرير المالي الشامل
                     </a>
-                    <a href="{% url 'accounts:thaaer_annual_budget' %}" class="btn btn-action btn-indigo text-white rounded-pill shadow-xs">
+                    <a href="{% url 'accounts:thaaer_annual_budget' %}" class="btn btn-action {% if request.resolver_match.url_name == 'thaaer_annual_budget' %}btn-indigo text-white{% else %}btn-light text-indigo{% endif %} rounded-pill shadow-xs">
                         <i class="fas fa-calendar mr-1"></i> الميزانية السنوية
                     </a>
-                    <a href="{% url 'accounts:thaaer_semester_budget' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                    <a href="{% url 'accounts:thaaer_semester_budget' %}" class="btn btn-action {% if request.resolver_match.url_name == 'thaaer_semester_budget' %}btn-indigo text-white{% else %}btn-light text-indigo{% endif %} rounded-pill shadow-xs">
                         <i class="fas fa-calendar-minus mr-1"></i> ميزانية الفصل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_trial_balance' %}" class="btn btn-action {% if request.resolver_match.url_name == 'thaaer_trial_balance' %}btn-indigo text-white{% else %}btn-light text-indigo{% endif %} rounded-pill shadow-xs">
+                        <i class="fas fa-scale-balanced mr-1"></i> ميزان المراجعة الشامل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_income_statement' %}" class="btn btn-action {% if request.resolver_match.url_name == 'thaaer_income_statement' %}btn-indigo text-white{% else %}btn-light text-indigo{% endif %} rounded-pill shadow-xs">
+                        <i class="fas fa-chart-line mr-1"></i> قائمة الدخل والأرباح
+                    </a>
+                    <a href="{% url 'accounts:thaaer_balance_sheet' %}" class="btn btn-action {% if request.resolver_match.url_name == 'thaaer_balance_sheet' %}btn-indigo text-white{% else %}btn-light text-indigo{% endif %} rounded-pill shadow-xs">
+                        <i class="fas fa-building-columns mr-1"></i> الميزانية والمركز المالي
+                    </a>
+                    <a href="{% url 'accounts:thaaer_ledger' %}" class="btn btn-action {% if request.resolver_match.url_name == 'thaaer_ledger' %}btn-indigo text-white{% else %}btn-light text-indigo{% endif %} rounded-pill shadow-xs">
+                        <i class="fas fa-book mr-1"></i> الأستاذ العام وكشف الحساب
                     </a>
                 </div>
             </div>

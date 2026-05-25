@@ -1,0 +1,489 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}ميزان المراجعة الشامل - تقارير Thaaer{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Ultra-Premium Glassmorphism & Gradient Theme */
+    .premium-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .premium-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    }
+    .gradient-header {
+        background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        padding: 24px;
+    }
+    .metric-card {
+        border-radius: 12px;
+        padding: 20px;
+        transition: transform 0.2s;
+        border: none;
+        color: white;
+    }
+    .metric-card:hover {
+        transform: scale(1.02);
+    }
+    .metric-title {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        font-weight: 600;
+    }
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-top: 8px;
+    }
+    .btn-action {
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .table-premium {
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    .table-premium tr {
+        background-color: #f8fafc;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+    }
+    .table-premium tr:hover {
+        background-color: #f1f5f9;
+    }
+    .table-premium th {
+        border: none !important;
+        background-color: transparent !important;
+        color: #475569;
+        font-weight: 700;
+    }
+    .table-premium td {
+        border: none !important;
+        padding: 16px !important;
+    }
+    .table-premium td:first-child, .table-premium th:first-child {
+        border-radius: 8px 0 0 8px;
+    }
+    .table-premium td:last-child, .table-premium th:last-child {
+        border-radius: 0 8px 8px 0;
+    }
+
+    /* Print Optimization CSS */
+    @media print {
+        body {
+            background: white !important;
+            color: black !important;
+            font-size: 12pt !important;
+        }
+        .sidebar, .navbar, .mobile-menu-toggle, .btn-action, .card-tools, form, footer, .d-print-none {
+            display: none !important;
+        }
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        .container-fluid {
+            width: 100% !important;
+            padding: 0 !important;
+        }
+        .premium-card {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+        }
+        .gradient-header {
+            background: none !important;
+            color: black !important;
+            border-bottom: 2px solid #000 !important;
+            padding: 10px 0 !important;
+        }
+        .gradient-header h3 {
+            color: black !important;
+        }
+        .table-premium tr {
+            background: transparent !important;
+            page-break-inside: avoid;
+        }
+        .table-premium td, .table-premium th {
+            border: 1px solid #ddd !important;
+            color: black !important;
+            padding: 8px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Thaaer Reports Unified Navigation Tab bar -->
+    <div class="row mb-4 d-print-none">
+        <div class="col-12">
+            <div class="card premium-card p-2 shadow-xs rounded-xl border" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);">
+                <div class="d-flex justify-content-center gap-2 flex-wrap align-items-center">
+                    <a href="{% url 'accounts:thaaer_strategic' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-brain mr-1"></i> لوحة القرار الاستراتيجي
+                    </a>
+                    <a href="{% url 'accounts:thaaer_comprehensive' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-file-invoice-dollar mr-1"></i> التقرير المالي الشامل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_annual_budget' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-calendar mr-1"></i> الميزانية السنوية
+                    </a>
+                    <a href="{% url 'accounts:thaaer_semester_budget' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-calendar-minus mr-1"></i> ميزانية الفصل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_trial_balance' %}" class="btn btn-action btn-indigo text-white rounded-pill shadow-xs">
+                        <i class="fas fa-scale-balanced mr-1 text-warning"></i> ميزان المراجعة الشامل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_income_statement' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-chart-line mr-1"></i> قائمة الدخل والأرباح
+                    </a>
+                    <a href="{% url 'accounts:thaaer_balance_sheet' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-building-columns mr-1"></i> الميزانية والمركز المالي
+                    </a>
+                    <a href="{% url 'accounts:thaaer_ledger' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-book mr-1"></i> الأستاذ العام وكشف الحساب
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card premium-card">
+                <div class="gradient-header d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h3 class="mb-1 font-weight-bold">
+                            <i class="fas fa-scale-balanced mr-2 text-warning"></i>
+                            ميزان المراجعة الشامل - تقارير Thaaer
+                        </h3>
+                        <p class="mb-0 text-white-50">عرض تفصيلي وتفاعلي لأرصدة الحسابات المدينة والدائنة وحالة التوازن المالي العام</p>
+                    </div>
+                    <div class="card-tools d-flex gap-2">
+                        <button onclick="window.print();" class="btn btn-light btn-action text-indigo shadow-sm" style="color: #4f46e5;">
+                            <i class="fas fa-print"></i> طباعة ميزان المراجعة
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Period & Options Filter Form -->
+                    <div class="row mb-4 align-items-end d-print-none">
+                        <div class="col-12">
+                            <form method="get" class="bg-light p-3 rounded-lg d-flex gap-3 align-items-end w-100 flex-wrap">
+                                <div class="form-group mb-0">
+                                    <label for="start_date" class="mr-2 mb-1 text-muted font-weight-bold d-block">من تاريخ:</label>
+                                    <input type="date" class="form-control rounded-pill border-gray-300" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="end_date" class="mr-2 mb-1 text-muted font-weight-bold d-block">إلى تاريخ:</label>
+                                    <input type="date" class="form-control rounded-pill border-gray-300" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="account_type" class="mr-2 mb-1 text-muted font-weight-bold d-block">نوع الحساب:</label>
+                                    <select class="form-control rounded-pill border-gray-300" id="account_type" name="account_type">
+                                        {% for val, text in trial_account_type_options %}
+                                        <option value="{{ val }}" {% if account_type == val %}selected{% endif %}>{{ text }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="hierarchy_mode" class="mr-2 mb-1 text-muted font-weight-bold d-block">مستوى العرض:</label>
+                                    <select class="form-control rounded-pill border-gray-300" id="hierarchy_mode" name="hierarchy_mode">
+                                        <option value="all" {% if hierarchy_mode == 'all' %}selected{% endif %}>كل الحسابات</option>
+                                        <option value="main_only" {% if hierarchy_mode == 'main_only' %}selected{% endif %}>الحسابات الرئيسية فقط</option>
+                                        <option value="leaf_only" {% if hierarchy_mode == 'leaf_only' %}selected{% endif %}>الحسابات الفرعية فقط</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-0 d-flex align-items-center" style="min-height: 38px;">
+                                    <div class="custom-control custom-checkbox mr-3">
+                                        <input type="checkbox" class="custom-control-input" id="show_zero" name="show_zero" value="1" {% if show_zero_balances %}checked{% endif %}>
+                                        <label class="custom-control-label font-weight-bold text-muted" for="show_zero">أرصدة صفرية</label>
+                                    </div>
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="full_report" name="full_report" value="1" {% if full_report %}checked{% endif %}>
+                                        <label class="custom-control-label font-weight-bold text-muted" for="full_report">تقرير تراكمي كلي</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 btn-action">
+                                    <i class="fas fa-filter"></i> تصفية وتحديث
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Summary Metric Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">إجمالي الحسابات المدينة</div>
+                                        <div class="metric-value">{{ total_debits|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-arrow-down-long fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">إجمالي الحسابات الدائنة</div>
+                                        <div class="metric-value">{{ total_credits|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-arrow-up-long fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">فرق التوازن المالي</div>
+                                        <div class="metric-value">{{ difference|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-scale-unbalanced fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card {% if is_balanced %}bg-success{% else %}bg-danger{% endif %}" style="background: {% if is_balanced %}linear-gradient(135deg, #059669 0%, #10b981 100%){% else %}linear-gradient(135deg, #dc2626 0%, #f87171 100%){% endif %};">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">حالة التوازن</div>
+                                        <div class="metric-value" style="font-size: 1.3rem; margin-top: 15px;">
+                                            {% if is_balanced %}
+                                            <i class="fas fa-check-circle mr-1"></i> متوازن محاسبياً
+                                            {% else %}
+                                            <i class="fas fa-warning mr-1"></i> غير متوازن
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-scale-balanced fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualization Chart & Live Search Row -->
+                    <div class="row mb-4 d-print-none">
+                        <!-- Chart Panel -->
+                        <div class="col-md-8 mb-3">
+                            <div class="bg-white p-4 rounded-xl border shadow-xs h-100">
+                                <h5 class="mb-3 font-weight-bold text-muted text-right">
+                                    <i class="fas fa-chart-bar text-indigo mr-1"></i> مقارنة الحسابات الكبرى من حيث المدين والدائن بيانيًا
+                                </h5>
+                                <div style="width: 100%; height: 260px; position: relative;">
+                                    <canvas id="trialBalanceChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Live Search Panel -->
+                        <div class="col-md-4 mb-3">
+                            <div class="bg-white p-4 rounded-xl border shadow-xs h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <h5 class="mb-3 font-weight-bold text-muted text-right">
+                                        <i class="fas fa-search text-primary mr-1"></i> بحث وتصفية فورية للميزان
+                                    </h5>
+                                    <input type="text" id="liveSearchInput" class="form-control rounded-pill border-gray-300 py-3 text-right" placeholder="اكتب رمز الحساب أو اسمه المالي...">
+                                    <small class="text-muted mt-2 d-block text-right">سيقوم الفلتر بتحديث جدول أرصدة ميزان المراجعة أدناه لحظياً بناءً على مدخلاتك.</small>
+                                </div>
+                                <div class="alert alert-info mb-0 text-right mt-3" style="font-size: 0.85rem;">
+                                    <i class="fas fa-info-circle mr-1"></i> إجمالي الحسابات المطابقة: <strong id="matchedAccountsCount">{{ account_count }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trial Balance Data Table -->
+                    <div class="table-responsive">
+                        <table class="table table-premium w-100" id="trialBalanceTable">
+                            <thead>
+                                <tr class="text-muted">
+                                    <th style="width: 15%;">رمز الحساب</th>
+                                    <th style="width: 35%;">اسم الحساب المالي</th>
+                                    <th style="width: 15%;">طبيعة الحساب</th>
+                                    <th style="width: 17%; text-align: left;">أرصدة مدينة (Debit)</th>
+                                    <th style="width: 17%; text-align: left;">أرصدة دائنة (Credit)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in trial_balance_data %}
+                                <tr class="account-row" data-code="{{ item.account.code }}" data-name="{{ item.account.name_ar|default:item.account.name }}">
+                                    <td><strong>{{ item.account.code }}</strong></td>
+                                    <td>
+                                        <a href="{% url 'accounts:thaaer_ledger' %}?account_code={{ item.account.code }}" class="text-indigo font-weight-bold">
+                                            {{ item.account.name_ar|default:item.account.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-indigo border px-3 py-1 rounded-pill">
+                                            {{ item.account.get_account_type_display }}
+                                        </span>
+                                    </td>
+                                    <td class="text-left font-weight-bold text-success" style="direction: ltr;">
+                                        {% if item.debit_amount > 0 %}
+                                        {{ item.debit_amount|floatformat:2|intcomma }}
+                                        {% else %}
+                                        0.00
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-left font-weight-bold text-danger" style="direction: ltr;">
+                                        {% if item.credit_amount > 0 %}
+                                        {{ item.credit_amount|floatformat:2|intcomma }}
+                                        {% else %}
+                                        0.00
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-5">
+                                        <i class="fas fa-folder-open fa-3x mb-3 text-gray-300"></i>
+                                        <p class="mb-0">لا توجد بيانات حسابات مطابقة للتصفية المحددة.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="bg-indigo text-white font-weight-bold">
+                                    <td colspan="3">إجمالي الأرصدة المتوازنة</td>
+                                    <td class="text-left" style="direction: ltr; font-size: 1.1rem; border-top: 2px solid white;">
+                                        {{ total_debits|floatformat:2|intcomma }}
+                                    </td>
+                                    <td class="text-left" style="direction: ltr; font-size: 1.1rem; border-top: 2px solid white;">
+                                        {{ total_credits|floatformat:2|intcomma }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Live Client-Side Search
+        const searchInput = document.getElementById("liveSearchInput");
+        const accountRows = document.querySelectorAll(".account-row");
+        const matchedCountSpan = document.getElementById("matchedAccountsCount");
+
+        if (searchInput) {
+            searchInput.addEventListener("keyup", function(e) {
+                const term = e.target.value.toLowerCase().trim();
+                let matchedCount = 0;
+                
+                accountRows.forEach(row => {
+                    const code = row.getAttribute("data-code").toLowerCase();
+                    const name = row.getAttribute("data-name").toLowerCase();
+                    
+                    if (code.includes(term) || name.includes(term)) {
+                        row.style.display = "";
+                        matchedCount++;
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+                
+                if (matchedCountSpan) {
+                    matchedCountSpan.textContent = matchedCount;
+                }
+            });
+        }
+
+        // 2. Chart.js Graphical Bar Chart for accounts
+        const ctx = document.getElementById("trialBalanceChart");
+        if (ctx) {
+            // Get top 8 accounts with non-zero balances to prevent crowding
+            const dataset = [];
+            {% for item in trial_balance_data|slice:":10" %}
+                dataset.push({
+                    name: "{{ item.account.name_ar|default:item.account.name|slice:':15' }}",
+                    debit: parseFloat("{{ item.debit_amount }}"),
+                    credit: parseFloat("{{ item.credit_amount }}")
+                });
+            {% endfor %}
+
+            const labels = dataset.map(d => d.name);
+            const debitsData = dataset.map(d => d.debit);
+            const creditsData = dataset.map(d => d.credit);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'أرصدة مدينة (Debit)',
+                            data: debitsData,
+                            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'أرصدة دائنة (Credit)',
+                            data: creditsData,
+                            backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                            borderColor: '#ef4444',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    rtl: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            position: 'right',
+                            grid: {
+                                color: '#f1f5f9'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: 'Inter, Outfit, sans-serif'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

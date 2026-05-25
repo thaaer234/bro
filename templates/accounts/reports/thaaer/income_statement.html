@@ -1,0 +1,461 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}قائمة الدخل والأرباح والخسائر - تقارير Thaaer{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Ultra-Premium Glassmorphism & Gradient Theme */
+    .premium-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .premium-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    }
+    .gradient-header {
+        background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        padding: 24px;
+    }
+    .metric-card {
+        border-radius: 12px;
+        padding: 20px;
+        transition: transform 0.2s;
+        border: none;
+        color: white;
+    }
+    .metric-card:hover {
+        transform: scale(1.02);
+    }
+    .metric-title {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        font-weight: 600;
+    }
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-top: 8px;
+    }
+    .btn-action {
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .table-premium {
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    .table-premium tr {
+        background-color: #f8fafc;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+    }
+    .table-premium tr:hover {
+        background-color: #f1f5f9;
+    }
+    .table-premium th {
+        border: none !important;
+        background-color: transparent !important;
+        color: #475569;
+        font-weight: 700;
+    }
+    .table-premium td {
+        border: none !important;
+        padding: 14px !important;
+    }
+    .table-premium td:first-child, .table-premium th:first-child {
+        border-radius: 8px 0 0 8px;
+    }
+    .table-premium td:last-child, .table-premium th:last-child {
+        border-radius: 0 8px 8px 0;
+    }
+
+    /* Print Optimization CSS */
+    @media print {
+        body {
+            background: white !important;
+            color: black !important;
+            font-size: 12pt !important;
+        }
+        .sidebar, .navbar, .mobile-menu-toggle, .btn-action, .card-tools, form, footer, .d-print-none {
+            display: none !important;
+        }
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        .container-fluid {
+            width: 100% !important;
+            padding: 0 !important;
+        }
+        .premium-card {
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+        }
+        .gradient-header {
+            background: none !important;
+            color: black !important;
+            border-bottom: 2px solid #000 !important;
+            padding: 10px 0 !important;
+        }
+        .gradient-header h3 {
+            color: black !important;
+        }
+        .table-premium tr {
+            background: transparent !important;
+            page-break-inside: avoid;
+        }
+        .table-premium td, .table-premium th {
+            border: 1px solid #ddd !important;
+            color: black !important;
+            padding: 8px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Thaaer Reports Unified Navigation Tab bar -->
+    <div class="row mb-4 d-print-none">
+        <div class="col-12">
+            <div class="card premium-card p-2 shadow-xs rounded-xl border" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);">
+                <div class="d-flex justify-content-center gap-2 flex-wrap align-items-center">
+                    <a href="{% url 'accounts:thaaer_strategic' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-brain mr-1"></i> لوحة القرار الاستراتيجي
+                    </a>
+                    <a href="{% url 'accounts:thaaer_comprehensive' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-file-invoice-dollar mr-1"></i> التقرير المالي الشامل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_annual_budget' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-calendar mr-1"></i> الميزانية السنوية
+                    </a>
+                    <a href="{% url 'accounts:thaaer_semester_budget' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-calendar-minus mr-1"></i> ميزانية الفصل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_trial_balance' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-scale-balanced mr-1"></i> ميزان المراجعة الشامل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_income_statement' %}" class="btn btn-action btn-indigo text-white rounded-pill shadow-xs">
+                        <i class="fas fa-chart-line mr-1 text-warning"></i> قائمة الدخل والأرباح
+                    </a>
+                    <a href="{% url 'accounts:thaaer_balance_sheet' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-building-columns mr-1"></i> الميزانية والمركز المالي
+                    </a>
+                    <a href="{% url 'accounts:thaaer_ledger' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-book mr-1"></i> الأستاذ العام وكشف الحساب
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card premium-card">
+                <div class="gradient-header d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h3 class="mb-1 font-weight-bold">
+                            <i class="fas fa-chart-line mr-2 text-warning"></i>
+                            قائمة الدخل والأرباح والخسائر - تقارير Thaaer
+                        </h3>
+                        <p class="mb-0 text-white-50">تحليل الأداء التشغيلي والربحية الفعلية للمعهد خلال الفترة المحددة</p>
+                    </div>
+                    <div class="card-tools d-flex gap-2">
+                        <button onclick="window.print();" class="btn btn-light btn-action text-indigo shadow-sm" style="color: #4f46e5;">
+                            <i class="fas fa-print"></i> طباعة قائمة الدخل
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Period Filter Form -->
+                    <div class="row mb-4 align-items-end d-print-none">
+                        <div class="col-md-8">
+                            <form method="get" class="form-inline bg-light p-3 rounded-lg d-flex gap-3 align-items-end w-100 flex-wrap">
+                                <div class="form-group mb-0">
+                                    <label for="start_date" class="mr-2 mb-1 text-muted font-weight-bold d-block">من تاريخ:</label>
+                                    <input type="date" class="form-control rounded-pill border-gray-300" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="end_date" class="mr-2 mb-1 text-muted font-weight-bold d-block">إلى تاريخ:</label>
+                                    <input type="date" class="form-control rounded-pill border-gray-300" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+                                </div>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 btn-action">
+                                    <i class="fas fa-filter"></i> تطبيق التصفية
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- P&L Metric Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">إجمالي الإيرادات التشغيلية</div>
+                                        <div class="metric-value">{{ total_revenue|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-sack-dollar fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">إجمالي المصروفات والنفقات</div>
+                                        <div class="metric-value">{{ total_expenses|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-hand-holding-dollar fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: {% if net_income >= 0 %}linear-gradient(135deg, #4f46e5 0%, #6366f1 100%){% else %}linear-gradient(135deg, #b91c1c 0%, #ef4444 100%){% endif %};">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">صافي الدخل (الأرباح/الخسائر)</div>
+                                        <div class="metric-value">{{ net_income|floatformat:2|intcomma }}</div>
+                                    </div>
+                                    <i class="fas fa-vault fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-card" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="metric-title">هامش الربح التشغيلي</div>
+                                        <div class="metric-value">{{ margin|floatformat:2 }}%</div>
+                                    </div>
+                                    <i class="fas fa-percent fa-3x opacity-5"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Graphical Analytics Dashboard (Expenses Breakdown) -->
+                    <div class="row mb-5 d-print-none">
+                        <!-- Col 1: Expense breakdown Chart -->
+                        <div class="col-md-6 mb-4">
+                            <div class="bg-white p-4 rounded-xl border shadow-xs h-100">
+                                <h5 class="mb-3 font-weight-bold text-muted text-right">
+                                    <i class="fas fa-chart-pie text-indigo mr-1"></i> توزيع المصاريف بيانيًا طبقًا لبنود الصرف
+                                </h5>
+                                <div style="width: 100%; height: 280px; position: relative;">
+                                    <canvas id="expensesPieChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Col 2: Info & Recommendations -->
+                        <div class="col-md-6 mb-4">
+                            <div class="bg-white p-4 rounded-xl border shadow-xs h-100 d-flex flex-column justify-content-between text-right">
+                                <div>
+                                    <h5 class="mb-3 font-weight-bold text-muted"><i class="fas fa-lightbulb text-warning mr-1"></i> تحليلات ذكية للمركز المالي</h5>
+                                    <p class="text-muted leading-relaxed">
+                                        يبلغ هامش الربح الحالي للمعهد <strong>{{ margin|floatformat:2 }}%</strong>. 
+                                        مؤشر الربحية هذا يقيس كفاءة المعهد في توليد الأرباح مقارنة بإيرادات التسجيل والدورات.
+                                    </p>
+                                    <hr>
+                                    <h6 class="font-weight-bold text-indigo mb-2">توصية الذكاء المالي:</h6>
+                                    {% if margin >= 40 %}
+                                    <span class="badge bg-success text-white p-2 rounded-pill font-weight-bold" style="font-size: 0.9rem;">
+                                        أداء مالي متميز جداً. نوصي باستثمار الفوائض في التوسع وتحديث البنية التحتية.
+                                    </span>
+                                    {% elif margin >= 15 %}
+                                    <span class="badge bg-primary text-white p-2 rounded-pill font-weight-bold" style="font-size: 0.9rem;">
+                                        ربحية مستقرة ومتوسطة. نوصي بمراجعة بنود المصاريف التشغيلية لزيادة كفاءة الهامش.
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-danger text-white p-2 rounded-pill font-weight-bold" style="font-size: 0.9rem;">
+                                        هامش ربح منخفض للغاية. هناك حاجة ملحة لخفض النفقات أو زيادة أسعار الدورات التدريبية وإعادة هيكلتها.
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="bg-light p-3 rounded-lg border text-right mt-3">
+                                    <span class="text-muted small"><i class="fas fa-clock mr-1"></i> تاريخ توليد التقرير: {% now "Y-m-d H:i" %}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Tables Row -->
+                    <div class="row">
+                        <!-- Revenues Table -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card premium-card border shadow-xs h-100">
+                                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #10b981 !important;">
+                                    <h5 class="mb-0 font-weight-bold text-success"><i class="fas fa-coins mr-1"></i> بنود الإيرادات (Revenues)</h5>
+                                    <span class="badge bg-success text-white px-3 py-2 rounded-pill font-weight-bold">الإجمالي: {{ total_revenue|floatformat:2|intcomma }}</span>
+                                </div>
+                                <div class="card-body">
+                                    <input type="text" id="revenueSearchInput" class="form-control rounded-pill border-gray-300 mb-3 text-right d-print-none" placeholder="فلترة الإيرادات...">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-premium mb-0" id="revenueTable" style="font-size: 0.9rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>رمز الحساب</th>
+                                                    <th>اسم بند الإيراد</th>
+                                                    <th class="text-left">المبلغ الإجمالي</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in revenue_accounts %}
+                                                <tr class="revenue-row" data-name="{{ item.name }}" data-code="{{ item.code }}">
+                                                    <td><strong>{{ item.code }}</strong></td>
+                                                    <td>{{ item.name }}</td>
+                                                    <td class="text-left font-weight-bold text-success">{{ item.balance|floatformat:2|intcomma }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">لا توجد إيرادات مسجلة.</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Expenses Table -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card premium-card border shadow-xs h-100">
+                                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center" style="border-bottom: 2px solid #ef4444 !important;">
+                                    <h5 class="mb-0 font-weight-bold text-danger"><i class="fas fa-arrow-right-from-bracket mr-1"></i> بنود المصروفات (Expenses)</h5>
+                                    <span class="badge bg-danger text-white px-3 py-2 rounded-pill font-weight-bold">الإجمالي: {{ total_expenses|floatformat:2|intcomma }}</span>
+                                </div>
+                                <div class="card-body">
+                                    <input type="text" id="expenseSearchInput" class="form-control rounded-pill border-gray-300 mb-3 text-right d-print-none" placeholder="فلترة المصروفات...">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-premium mb-0" id="expenseTable" style="font-size: 0.9rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>رمز الحساب</th>
+                                                    <th>اسم بند المصروف</th>
+                                                    <th class="text-left">المبلغ الإجمالي</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in expense_accounts %}
+                                                <tr class="expense-row" data-name="{{ item.name }}" data-code="{{ item.code }}" data-balance="{{ item.balance }}">
+                                                    <td><strong>{{ item.code }}</strong></td>
+                                                    <td>{{ item.name }}</td>
+                                                    <td class="text-left font-weight-bold text-danger">{{ item.balance|floatformat:2|intcomma }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">لا توجد مصروفات مسجلة.</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Live Filters
+        function setupLiveFilter(inputId, rowClass) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener("keyup", function(e) {
+                    const term = e.target.value.toLowerCase().trim();
+                    document.querySelectorAll("." + rowClass).forEach(row => {
+                        const name = row.getAttribute("data-name").toLowerCase();
+                        const code = row.getAttribute("data-code").toLowerCase();
+                        if (name.includes(term) || code.includes(term)) {
+                            row.style.display = "";
+                        } else {
+                            row.style.display = "none";
+                        }
+                    });
+                });
+            }
+        }
+        setupLiveFilter("revenueSearchInput", "revenue-row");
+        setupLiveFilter("expenseSearchInput", "expense-row");
+
+        // 2. Chart.js Doughnut Expense Chart
+        const ctx = document.getElementById("expensesPieChart");
+        if (ctx) {
+            const expenseData = [];
+            {% for item in expense_accounts|slice:":8" %}
+                expenseData.push({
+                    name: "{{ item.name|slice:':15' }}",
+                    value: parseFloat("{{ item.balance }}")
+                });
+            {% endfor %}
+
+            const labels = expenseData.map(d => d.name);
+            const values = expenseData.map(d => d.value);
+
+            // Generate harmonious dynamic color palette
+            const colors = [
+                'rgba(79, 70, 229, 0.8)',
+                'rgba(239, 68, 68, 0.8)',
+                'rgba(245, 158, 11, 0.8)',
+                'rgba(16, 185, 129, 0.8)',
+                'rgba(6, 182, 212, 0.8)',
+                'rgba(236, 72, 153, 0.8)',
+                'rgba(168, 85, 247, 0.8)',
+                'rgba(107, 114, 128, 0.8)'
+            ];
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, values.length),
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    rtl: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: {
+                                    family: 'Inter, Outfit, sans-serif'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
