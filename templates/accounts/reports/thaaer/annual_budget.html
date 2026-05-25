@@ -132,6 +132,28 @@
 
 {% block content %}
 <div class="container-fluid py-4">
+    <!-- Thaaer Reports Unified Navigation Tab bar -->
+    <div class="row mb-4 d-print-none">
+        <div class="col-12">
+            <div class="card premium-card p-2 shadow-xs rounded-xl border">
+                <div class="d-flex justify-content-center gap-3 flex-wrap align-items-center" style="gap: 15px;">
+                    <a href="{% url 'accounts:thaaer_strategic' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-brain mr-1 text-warning"></i> لوحة اتخاذ القرار الاستراتيجي
+                    </a>
+                    <a href="{% url 'accounts:thaaer_comprehensive' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-file-invoice-dollar mr-1"></i> التقرير المالي الشامل
+                    </a>
+                    <a href="{% url 'accounts:thaaer_annual_budget' %}" class="btn btn-action btn-indigo text-white rounded-pill shadow-xs">
+                        <i class="fas fa-calendar mr-1"></i> الميزانية السنوية
+                    </a>
+                    <a href="{% url 'accounts:thaaer_semester_budget' %}" class="btn btn-action btn-light text-indigo rounded-pill shadow-xs">
+                        <i class="fas fa-calendar-minus mr-1"></i> ميزانية الفصل
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <div class="card premium-card">
@@ -224,50 +246,142 @@
                         </div>
                     </div>
 
-                    <!-- Main Report Content Table -->
-                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center">
-                        <i class="fas fa-table mr-2 text-primary"></i> تفاصيل الحسابات والمجموعات الرئيسية
+                    <!-- Financial Summary Metrics & Chart -->
+                    <div class="row mb-5">
+                        <div class="col-md-8 mb-4">
+                            <!-- Main Report Summary Table -->
+                            <div class="bg-white p-4 rounded-xl border h-100 shadow-xs">
+                                <h5 class="mb-3 font-weight-bold text-muted d-flex align-items-center">
+                                    <i class="fas fa-table mr-2 text-primary"></i> الخلاصة المالية العامة للميزانية
+                                </h5>
+                                <div class="table-responsive">
+                                    <table class="table table-premium mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>نوع الحساب الرئيسي</th>
+                                                <th>إجمالي الحركات الفعلية</th>
+                                                <th>النسبة من الإيرادات</th>
+                                                <th>الحالة التشغيلية</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong class="text-success"><i class="fas fa-arrow-trend-up"></i> الإيرادات العامة (Revenues)</strong></td>
+                                                <td class="font-weight-bold text-success" style="font-size: 1.15rem;">{{ total_revenue|floatformat:2|intcomma }}</td>
+                                                <td>100.00%</td>
+                                                <td><span class="badge bg-success text-white rounded-pill px-3 py-1">نشط ومستمر</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong class="text-danger"><i class="fas fa-arrow-trend-down"></i> المصروفات العامة (Expenses)</strong></td>
+                                                <td class="font-weight-bold text-danger" style="font-size: 1.15rem;">{{ total_expenses|floatformat:2|intcomma }}</td>
+                                                <td class="font-weight-bold text-muted">{{ expense_percentage|floatformat:2 }}%</td>
+                                                <td><span class="badge bg-danger text-white rounded-pill px-3 py-1">مضبوط ومعتمد</span></td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="bg-dark text-white rounded-lg">
+                                                <td><strong>صافي الفائض التشغيلي / العجز</strong></td>
+                                                <td colspan="2" class="font-weight-bold" style="font-size: 1.25rem;">
+                                                    {{ net_profit|floatformat:2|intcomma }}
+                                                </td>
+                                                <td>
+                                                    {% if net_profit >= 0 %}
+                                                    <span class="badge bg-success text-white px-3 py-1 font-weight-bold">فائض ميزانية إيجابي</span>
+                                                    {% else %}
+                                                    <span class="badge bg-danger text-white px-3 py-1 font-weight-bold">عجز مالي في الميزانية</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4 d-print-none">
+                            <!-- Premium Visualization Card -->
+                            <div class="bg-white p-4 rounded-xl border h-100 shadow-xs d-flex flex-column align-items-center justify-content-center">
+                                <h5 class="w-100 mb-3 font-weight-bold text-muted text-right"><i class="fas fa-chart-pie text-indigo mr-1"></i> توزيع الميزانية بيانيًا</h5>
+                                <div style="width: 100%; max-height: 220px; position: relative;">
+                                    <canvas id="budgetDonutChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Sub-Accounts Breakdowns -->
+                    <h4 class="mb-3 font-weight-bold text-muted d-flex align-items-center mt-5">
+                        <i class="fas fa-indent mr-2 text-indigo"></i> تفصيل الحسابات الفرعية الدقيقة والإيرادات والمصاريف بالليرة
                     </h4>
-                    <div class="table-responsive">
-                        <table class="table table-premium">
-                            <thead>
-                                <tr>
-                                    <th>نوع الحساب</th>
-                                    <th>إجمالي الحركات</th>
-                                    <th>النسبة من الإيرادات</th>
-                                    <th>الحالة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong class="text-success">الإيرادات (Revenue)</strong></td>
-                                    <td class="font-weight-bold text-success">{{ total_revenue|floatformat:2|intcomma }}</td>
-                                    <td>100.00%</td>
-                                    <td><span class="badge bg-success text-white rounded-pill px-3">نشط</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong class="text-danger">المصروفات (Expense)</strong></td>
-                                    <td class="font-weight-bold text-danger">{{ total_expenses|floatformat:2|intcomma }}</td>
-                                    <td>{{ expense_percentage|floatformat:2 }}%</td>
-                                    <td><span class="badge bg-danger text-white rounded-pill px-3">مستمر</span></td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr class="bg-dark text-white rounded-lg">
-                                    <td><strong>الصافي المالي العام</strong></td>
-                                    <td colspan="2" class="font-weight-bold">
-                                        {{ net_profit|floatformat:2|intcomma }}
-                                    </td>
-                                    <td>
-                                        {% if net_profit >= 0 %}
-                                        <span class="badge bg-success text-white px-3">فائض إيجابي</span>
-                                        {% else %}
-                                        <span class="badge bg-danger text-white px-3">عجز ميزانية</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                    <div class="row">
+                        <!-- Revenue Sub-accounts -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-xs border-0 rounded-xl overflow-hidden h-100" style="border: 1px solid #e2e8f0 !important;">
+                                <div class="card-header bg-success border-0 text-white py-3">
+                                    <h6 class="mb-0 font-weight-bold"><i class="fas fa-plus-circle mr-1"></i> مصادر الإيرادات المحققة تفصيلياً (Revenues Ledger)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                        <table class="table table-sm table-premium mb-0" style="font-size: 0.9rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>كود الحساب</th>
+                                                    <th>اسم حساب الإيراد</th>
+                                                    <th class="text-left">القيمة المحققة</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for acc in revenue_details %}
+                                                <tr>
+                                                    <td><strong>{{ acc.code }}</strong></td>
+                                                    <td>{{ acc.name }}</td>
+                                                    <td class="text-left text-success font-weight-bold" style="font-size: 1rem;">{{ acc.balance|floatformat:2|intcomma }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted py-3">لا توجد حركات إيرادات تفصيلية.</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Expense Sub-accounts -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow-xs border-0 rounded-xl overflow-hidden h-100" style="border: 1px solid #e2e8f0 !important;">
+                                <div class="card-header bg-danger border-0 text-white py-3">
+                                    <h6 class="mb-0 font-weight-bold"><i class="fas fa-minus-circle mr-1"></i> بنود المصروفات التشغيلية والرواتب تفصيلياً (Expenses Ledger)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                        <table class="table table-sm table-premium mb-0" style="font-size: 0.9rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th>كود الحساب</th>
+                                                    <th>اسم بند المصروف</th>
+                                                    <th class="text-left">المبلغ المنصرف</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for acc in expense_details %}
+                                                <tr>
+                                                    <td><strong>{{ acc.code }}</strong></td>
+                                                    <td>{{ acc.name }}</td>
+                                                    <td class="text-left text-danger font-weight-bold" style="font-size: 1rem;">{{ acc.balance|floatformat:2|intcomma }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted py-3">لا توجد حركات مصروفات تفصيلية.</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -275,3 +389,45 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var ctx = document.getElementById('budgetDonutChart');
+        if (ctx) {
+            ctx = ctx.getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['الإيرادات', 'المصروفات'],
+                    datasets: [{
+                        data: [{{ total_revenue|stringformat:".2f" }}, {{ total_expenses|stringformat:".2f" }}],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    family: 'Cairo, Inter, sans-serif',
+                                    size: 11
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
+

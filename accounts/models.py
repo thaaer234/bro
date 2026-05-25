@@ -561,83 +561,49 @@ class CostCenter(models.Model):
     def get_absolute_url(self):
         return reverse('accounts:cost_center_detail', kwargs={'pk': self.pk})
     
-    # ===== REVENUE METHODS =====
-
-    def get_other_expenses(self, start_date, end_date):
-        """
-        حساب إجمالي المصاريف الأخرى لفترة محددة
-        """
-        try:
-            from .models import OtherExpense  # تأكد من المسار الصحيح
-            total = OtherExpense.objects.filter(
-                cost_center=self,
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total if total else 0
-        except Exception as e:
-            return 0
-
-
-
-    # الحقول الموجودة لديك...
+    # ===== CASH FLOW & BI METHODS =====
     
     def get_opening_balance(self, start_date=None, end_date=None):
         """رصيد الافتتاح - مع معالجة القيم الافتراضية"""
-        try:
-            # إذا ما بدك تستخدم التواريخ، ممكن ترجع قيمة ثابتة
-            return self.opening_balance or 0
-        except:
-            return 0
+        return self.opening_balance or Decimal('0.00')
 
     def get_cash_inflow(self, start_date, end_date):
-        """إجمالي التدفقات النقدية الداخلة"""
+        """حساب التدفقات النقدية الداخلة للمركز (إيصالات الطلاب + حركات الصندوق المباشرة)"""
+        from django.db.models import Sum
         try:
-            total = self.cashinflow_set.filter(
+            # 1. إيصالات الطلاب المرتبطة بدورات مركز التكلفة
+            receipts_sum = StudentReceipt.objects.filter(
+                course__cost_center=self,
                 date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
+            ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
+            
+            # 2. حركات الصندوق المدين المباشرة لمركز التكلفة
+            direct_sum = Transaction.objects.filter(
+                cost_center=self,
+                account__code__startswith='121',
+                is_debit=True,
+                journal_entry__date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            
+            return receipts_sum + direct_sum
+        except Exception as e:
+            print(f"Error in get_cash_inflow: {e}")
+            return Decimal('0.00')
 
     def get_cash_outflow(self, start_date, end_date):
-        """إجمالي التدفقات النقدية الخارجة"""
+        """حساب التدفقات النقدية الخارجة للمركز (حركات الصندوق الدائن المباشرة)"""
+        from django.db.models import Sum
         try:
-            total = self.cashoutflow_set.filter(
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
-
-    def get_other_expenses(self, start_date, end_date):
-        """المصاريف الأخرى"""
-        try:
-            total = self.otherexpense_set.filter(
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
-
-    def get_salary_expenses(self, start_date, end_date):
-        """مصاريف الرواتب"""
-        try:
-            total = self.salary_set.filter(
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
-
-    def get_operational_expenses(self, start_date, end_date):
-        """المصاريف التشغيلية"""
-        try:
-            total = self.operationalexpense_set.filter(
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
+            direct_sum = Transaction.objects.filter(
+                cost_center=self,
+                account__code__startswith='121',
+                is_debit=False,
+                journal_entry__date__range=[start_date, end_date]
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            return direct_sum
+        except Exception as e:
+            print(f"Error in get_cash_outflow: {e}")
+            return Decimal('0.00')
 
     def get_closing_balance(self, start_date, end_date):
         """رصيد الإغلاق"""
@@ -646,8 +612,9 @@ class CostCenter(models.Model):
             inflow = self.get_cash_inflow(start_date, end_date)
             outflow = self.get_cash_outflow(start_date, end_date)
             return opening + inflow - outflow
-        except:
-            return 0
+        except Exception as e:
+            print(f"Error in get_closing_balance: {e}")
+            return Decimal('0.00')
 
  
 
@@ -665,126 +632,6 @@ class CostCenter(models.Model):
         return revenue - expenses
     # الحقول الموجودة لديك...
     
-    def get_cash_inflow(self, start_date, end_date):
-        """احصل على إجمالي التدفقات النقدية الداخلة"""
-        try:
-            # استبدل بنموذجك الفعلي
-            total = self.cash_inflows.filter(
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
-
-    def get_cash_outflow(self, start_date, end_date):
-        """احصل على إجمالي التدفقات النقدية الخارجة"""
-        try:
-            # استبدل بنموذجك الفعلي
-            total = self.cash_outflows.filter(
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
-
-    def get_other_expenses(self, start_date, end_date):
-        """احصل على إجمالي المصاريف الأخرى"""
-        try:
-            total = self.other_expenses.filter(
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
-
-    def get_salary_expenses(self, start_date, end_date):
-        """احصل على إجمالي مصاريف الرواتب"""
-        try:
-            total = self.salaries.filter(
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
-
-    def get_operational_expenses(self, start_date, end_date):
-        """احصل على إجمالي المصاريف التشغيلية"""
-        try:
-            total = self.operational_expenses.filter(
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total or 0
-        except:
-            return 0
-
-    # دوال إضافية قد تحتاجها
-
-
-    def get_total_expenses(self, start_date, end_date):
-        """إجمالي المصاريف (يمكن أن يكون مجموع عدة أنواع)"""
-        salary = self.get_salary_expenses(start_date, end_date)
-        operational = self.get_operational_expenses(start_date, end_date)
-        other = self.get_other_expenses(start_date, end_date)
-        return salary + operational + other
-
-    # الحقول الموجودة لديك...
-    
-    def get_cash_inflow(self, start_date, end_date):
-        """
-        حساب إجمالي التدفقات النقدية الداخلة
-        """
-        try:
-            # استبدل CashInflow بنموذج التدفقات النقدية الفعلي لديك
-            from .models import CashInflow
-            total = CashInflow.objects.filter(
-                cost_center=self,
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total if total else 0
-        except Exception as e:
-            return 0
-
-    def get_other_expenses(self, start_date, end_date):
-        """
-        حساب إجمالي المصاريف الأخرى
-        """
-        try:
-            from .models import OtherExpense
-            total = OtherExpense.objects.filter(
-                cost_center=self,
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total if total else 0
-        except Exception as e:
-            return 0
-
-    def get_salary_expenses(self, start_date, end_date):
-        """
-        حساب إجمالي مصاريف الرواتب
-        """
-        try:
-            from employ.models import Salary  # أو من أي app آخر
-            total = Salary.objects.filter(
-                cost_center=self,
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total if total else 0
-        except Exception as e:
-            return 0
-
-    def get_operational_expenses(self, start_date, end_date):
-        """
-        حساب إجمالي المصاريف التشغيلية
-        """
-        try:
-            from .models import OperationalExpense
-            total = OperationalExpense.objects.filter(
-                cost_center=self,
-                date__range=[start_date, end_date]
-            ).aggregate(total=Sum('amount'))['total']
-            return total if total else 0
-        except Exception as e:
-            return 0
     def get_revenue_by_course(self, start_date=None, end_date=None):
         """تفصيل الإيرادات حسب الدورة"""
         revenue_data = []
@@ -805,44 +652,106 @@ class CostCenter(models.Model):
                     })
         
         return revenue_data
+
     def get_total_revenue(self, start_date=None, end_date=None):
-        """إجمالي الإيرادات مع معالجة القيم الافتراضية"""
+        """إجمالي الإيرادات مع معالجة القيم الافتراضية والارتباط بالدورات"""
+        from django.db.models import Sum
         try:
-            # استخدام القيم الافتراضية إذا لم يتم توفيرها
-            if not start_date or not end_date:
-                # آخر 30 يوم كقيمة افتراضية
-                end_date = timezone.now().date()
-                start_date = end_date - timedelta(days=30)
+            # 1. إيرادات الدورات المرتبطة بمركز التكلفة
+            course_revenue = Decimal('0.00')
+            for course in self.courses.all():
+                course_revenue += course.get_total_revenue(start_date, end_date)
             
-            # البحث في المعاملات المرتبطة بمركز التكلفة
-            total = self.transactions.filter(
-                journal_entry__date__range=[start_date, end_date],
-                is_debit=False  # الإيرادات بتكون دائن
-            ).aggregate(total=Sum('amount'))['total']
+            # 2. أي إيرادات مباشرة مسجلة على مركز التكلفة
+            direct_revenue = Decimal('0.00')
+            direct_tx = self.transaction_set.filter(
+                account__account_type='REVENUE',
+                is_debit=False
+            )
+            if start_date:
+                direct_tx = direct_tx.filter(journal_entry__date__gte=start_date)
+            if end_date:
+                direct_tx = direct_tx.filter(journal_entry__date__lte=end_date)
+                
+            direct_revenue = direct_tx.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
             
-            return total if total else 0
+            return course_revenue + direct_revenue
         except Exception as e:
             print(f"Error in get_total_revenue: {e}")
-            return 0
-    # ===== TEACHER SALARIES METHODS =====
+            return Decimal('0.00')
+
     def get_teacher_salaries(self, start_date=None, end_date=None):
-        """رواتب جميع مدرسي مركز التكلفة"""
+        """رواتب مدرسي مركز التكلفة (موزعة على الدورات أو مسجلة مباشرة)"""
         from django.db.models import Sum
-        total_salaries = Decimal('0.00')
-        
-        # جميع المدرسين المرتبطين بدورات مركز التكلفة
-        for teacher in self.get_teacher_list():
-            # راتب المدرس من الحساب 501 (رواتب المدرسين)
-            teacher_salary_account = Account.objects.filter(
-                code=f'501-{teacher.id:03d}'
-            ).first()
+        try:
+            # 1. رواتب المدرسين من تعيينات الدورات
+            course_salaries = Decimal('0.00')
+            for course in self.courses.all():
+                course_salaries += course.get_total_teacher_salaries(start_date, end_date)
             
-            if teacher_salary_account:
-                salary = teacher_salary_account.get_net_balance()
-                total_salaries += salary
-        
-        return total_salaries
-    
+            # 2. أي قيود مباشرة على حسابات الرواتب 501 الخاصة بهذا المركز
+            direct_salaries = Decimal('0.00')
+            direct_tx = Transaction.objects.filter(
+                cost_center=self,
+                account__code__startswith='501',
+                is_debit=True
+            )
+            if start_date:
+                direct_tx = direct_tx.filter(journal_entry__date__gte=start_date)
+            if end_date:
+                direct_tx = direct_tx.filter(journal_entry__date__lte=end_date)
+                
+            direct_salaries = direct_tx.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            
+            return course_salaries + direct_salaries
+        except Exception as e:
+            print(f"Error in get_teacher_salaries: {e}")
+            return Decimal('0.00')
+
+    def get_salary_expenses(self, start_date=None, end_date=None):
+        """مصاريف رواتب الموظفين (502) لمركز التكلفة"""
+        from django.db.models import Sum
+        try:
+            tx = Transaction.objects.filter(
+                cost_center=self,
+                is_debit=True,
+                account__code__startswith='502'
+            )
+            if start_date:
+                tx = tx.filter(journal_entry__date__gte=start_date)
+            if end_date:
+                tx = tx.filter(journal_entry__date__lte=end_date)
+            return tx.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        except Exception as e:
+            print(f"Error in get_salary_expenses: {e}")
+            return Decimal('0.00')
+
+    def get_operational_expenses(self, start_date=None, end_date=None):
+        """المصاريف التشغيلية لمركز التكلفة (باستثناء رواتب 501 و 502)"""
+        from django.db.models import Sum
+        try:
+            expenses = Transaction.objects.filter(
+                cost_center=self,
+                is_debit=True,
+                account__account_type='EXPENSE'
+            ).exclude(
+                account__code__startswith='501'
+            ).exclude(
+                account__code__startswith='502'
+            )
+            if start_date:
+                expenses = expenses.filter(journal_entry__date__gte=start_date)
+            if end_date:
+                expenses = expenses.filter(journal_entry__date__lte=end_date)
+            return expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        except Exception as e:
+            print(f"Error in get_operational_expenses: {e}")
+            return Decimal('0.00')
+
+    def get_other_expenses(self, start_date=None, end_date=None):
+        """المصاريف الأخرى لمركز التكلفة"""
+        return Decimal('0.00')
+
     def get_teacher_count(self):
         """عدد المدرسين في مركز التكلفة"""
         return len(self.get_teacher_list())
@@ -886,25 +795,10 @@ class CostCenter(models.Model):
     def get_total_expenses(self, start_date=None, end_date=None):
         """إجمالي مصروفات مركز التكلفة"""
         teacher_salaries = self.get_teacher_salaries(start_date, end_date)
+        employee_salaries = self.get_salary_expenses(start_date, end_date)
         operational_expenses = self.get_operational_expenses(start_date, end_date)
-        return teacher_salaries + operational_expenses
-    
-    def get_operational_expenses(self, start_date=None, end_date=None):
-        """المصاريف التشغيلية لمركز التكلفة"""
-        from django.db.models import Sum
-        
-        # جميع المصاريف المرتبطة بمركز التكلفة (من جدول Transaction)
-        expenses = Transaction.objects.filter(
-            cost_center=self,
-            is_debit=True  # المصاريف بتكون مدين
-        )
-        
-        if start_date:
-            expenses = expenses.filter(journal_entry__date__gte=start_date)
-        if end_date:
-            expenses = expenses.filter(journal_entry__date__lte=end_date)
-        
-        return expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        return teacher_salaries + employee_salaries + operational_expenses
+
     
     def get_expenses_by_category(self, start_date=None, end_date=None):
         """تفصيل المصروفات حسب النوع"""

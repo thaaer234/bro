@@ -105,6 +105,52 @@ class ThaaerAnnualBudgetReportView(ThaaerReportsMixin, View):
         net_profit = revenue_val - expenses_val
         expense_percentage = (expenses_val / revenue_val * 100) if revenue_val else 0
 
+        # Detailed sub-accounts under Revenue (credits - debits)
+        revenue_details = []
+        for acc in Account.objects.filter(account_type='REVENUE', is_active=True).order_by('code'):
+            debits = Transaction.objects.filter(
+                account=acc,
+                is_debit=True,
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            credits = Transaction.objects.filter(
+                account=acc,
+                is_debit=False,
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            net = credits - debits
+            if net != 0:
+                revenue_details.append({
+                    "code": acc.code,
+                    "name": acc.name_ar if acc.name_ar else acc.name,
+                    "balance": net
+                })
+
+        # Detailed sub-accounts under Expense (debits - credits)
+        expense_details = []
+        for acc in Account.objects.filter(account_type='EXPENSE', is_active=True).order_by('code'):
+            debits = Transaction.objects.filter(
+                account=acc,
+                is_debit=True,
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            credits = Transaction.objects.filter(
+                account=acc,
+                is_debit=False,
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            net = debits - credits
+            if net != 0:
+                expense_details.append({
+                    "code": acc.code,
+                    "name": acc.name_ar if acc.name_ar else acc.name,
+                    "balance": net
+                })
+
         context = {
             "start_date": start,
             "end_date": end,
@@ -112,8 +158,11 @@ class ThaaerAnnualBudgetReportView(ThaaerReportsMixin, View):
             "total_revenue": revenue_val,
             "net_profit": net_profit,
             "expense_percentage": expense_percentage,
+            "revenue_details": revenue_details,
+            "expense_details": expense_details,
         }
         return render(request, self.template_name, context)
+
 
     def post(self, request):
         # Export to Excel
@@ -220,6 +269,52 @@ class ThaaerSemesterBudgetReportView(ThaaerReportsMixin, View):
         net_profit = revenue_val - expenses_val
         expense_percentage = (expenses_val / revenue_val * 100) if revenue_val else 0
 
+        # Detailed sub-accounts under Revenue (credits - debits)
+        revenue_details = []
+        for acc in Account.objects.filter(account_type='REVENUE', is_active=True).order_by('code'):
+            debits = Transaction.objects.filter(
+                account=acc,
+                is_debit=True,
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            credits = Transaction.objects.filter(
+                account=acc,
+                is_debit=False,
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            net = credits - debits
+            if net != 0:
+                revenue_details.append({
+                    "code": acc.code,
+                    "name": acc.name_ar if acc.name_ar else acc.name,
+                    "balance": net
+                })
+
+        # Detailed sub-accounts under Expense (debits - credits)
+        expense_details = []
+        for acc in Account.objects.filter(account_type='EXPENSE', is_active=True).order_by('code'):
+            debits = Transaction.objects.filter(
+                account=acc,
+                is_debit=True,
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            credits = Transaction.objects.filter(
+                account=acc,
+                is_debit=False,
+                journal_entry__date__gte=start,
+                journal_entry__date__lte=end
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            net = debits - credits
+            if net != 0:
+                expense_details.append({
+                    "code": acc.code,
+                    "name": acc.name_ar if acc.name_ar else acc.name,
+                    "balance": net
+                })
+
         context = {
             "start_date": start,
             "end_date": end,
@@ -227,8 +322,11 @@ class ThaaerSemesterBudgetReportView(ThaaerReportsMixin, View):
             "total_revenue": revenue_val,
             "net_profit": net_profit,
             "expense_percentage": expense_percentage,
+            "revenue_details": revenue_details,
+            "expense_details": expense_details,
         }
         return render(request, self.template_name, context)
+
 
     def post(self, request):
         start, end = self.get_date_range(request)
@@ -300,26 +398,50 @@ class ThaaerComprehensiveReportView(ThaaerReportsMixin, View):
         cost_centers = CostCenter.objects.filter(is_active=True)
         analysis_data = []
         cash_flow_data = []
+        
+        total_expenses_all = Decimal('0.00')
+        total_revenue_all = Decimal('0.00')
+        total_profit_loss_all = Decimal('0.00')
+        total_teacher_salaries_all = Decimal('0.00')
+        total_other_expenses_all = Decimal('0.00')
+        total_inflow_all = Decimal('0.00')
+        total_outflow_all = Decimal('0.00')
+        total_opening_balance_all = Decimal('0.00')
+        total_closing_balance_all = Decimal('0.00')
+
         for cc in cost_centers:
-            expenses = cc.get_total_expenses(start, end) or 0
-            revenue = cc.get_total_revenue(start, end) or 0
+            expenses = cc.get_total_expenses(start, end) or Decimal('0.00')
+            revenue = cc.get_total_revenue(start, end) or Decimal('0.00')
             profit_loss = revenue - expenses
+            teacher_salaries = cc.get_teacher_salaries(start, end) or Decimal('0.00')
+            other_expenses = cc.get_operational_expenses(start, end) or Decimal('0.00') # Use operational expense for CC other expense
+
+            total_expenses_all += Decimal(str(expenses))
+            total_revenue_all += Decimal(str(revenue))
+            total_profit_loss_all += Decimal(str(profit_loss))
+            total_teacher_salaries_all += Decimal(str(teacher_salaries))
+            total_other_expenses_all += Decimal(str(other_expenses))
 
             analysis_data.append({
                 "code": cc.code,
                 "name": cc.name_ar if cc.name_ar else cc.name,
                 "total_expenses": expenses,
-                "teacher_salaries": cc.get_teacher_salaries(start, end) or 0,
-                "other_expenses": cc.get_other_expenses(start, end) or 0,
+                "teacher_salaries": teacher_salaries,
+                "other_expenses": other_expenses,
                 "total_revenue": revenue,
                 "course_count": cc.get_course_count(),
                 "profit_loss": profit_loss,
             })
 
-            inflow = cc.get_cash_inflow(start, end) or 0
-            outflow = cc.get_cash_outflow(start, end) or 0
-            opening = cc.get_opening_balance(start) or 0
+            inflow = cc.get_cash_inflow(start, end) or Decimal('0.00')
+            outflow = cc.get_cash_outflow(start, end) or Decimal('0.00')
+            opening = cc.get_opening_balance(start) or Decimal('0.00')
             closing = opening + inflow - outflow
+
+            total_inflow_all += Decimal(str(inflow))
+            total_outflow_all += Decimal(str(outflow))
+            total_opening_balance_all += Decimal(str(opening))
+            total_closing_balance_all += Decimal(str(closing))
 
             cash_flow_data.append({
                 "code": cc.code,
@@ -329,11 +451,21 @@ class ThaaerComprehensiveReportView(ThaaerReportsMixin, View):
                 "opening_balance": opening,
                 "closing_balance": closing,
             })
+
         context = {
             "start_date": start,
             "end_date": end,
             "analysis_data": analysis_data,
             "cash_flow_data": cash_flow_data,
+            "total_expenses_all": total_expenses_all,
+            "total_revenue_all": total_revenue_all,
+            "total_profit_loss_all": total_profit_loss_all,
+            "total_teacher_salaries_all": total_teacher_salaries_all,
+            "total_other_expenses_all": total_other_expenses_all,
+            "total_inflow_all": total_inflow_all,
+            "total_outflow_all": total_outflow_all,
+            "total_opening_balance_all": total_opening_balance_all,
+            "total_closing_balance_all": total_closing_balance_all,
         }
         return render(request, self.template_name, context)
 
