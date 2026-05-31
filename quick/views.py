@@ -3276,7 +3276,6 @@ def _build_quick_session_population_report(request):
         sessions = [session for session in sessions if today > session.end_date]
 
     # Fetch Excel student counts for these sessions
-    from django.db.models import Count
     from quick.models import QuickSessionExcelStudent
     excel_counts_by_session = defaultdict(lambda: {'alkhoutwa': 0, 'alidrisi': 0, 'khalil': 0, 'total': 0})
     if sessions:
