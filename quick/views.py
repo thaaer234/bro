@@ -3225,6 +3225,8 @@ def _build_quick_session_population_report(request):
         'largest_session': None,
         'generated_at': timezone.localtime(),
         'today': today,
+        'total_excel_students': {'alkhoutwa': 0, 'alidrisi': 0, 'khalil': 0, 'total': 0},
+        'grand_total_students': 0,
     }
 
     if not courses:
@@ -3273,6 +3275,23 @@ def _build_quick_session_population_report(request):
     elif session_status == 'finished':
         sessions = [session for session in sessions if today > session.end_date]
 
+    # Fetch Excel student counts for these sessions
+    from django.db.models import Count
+    from quick.models import QuickSessionExcelStudent
+    excel_counts_by_session = defaultdict(lambda: {'alkhoutwa': 0, 'alidrisi': 0, 'khalil': 0, 'total': 0})
+    if sessions:
+        excel_stats = (
+            QuickSessionExcelStudent.objects.filter(excel_import__session_id__in=[s.id for s in sessions])
+            .values('excel_import__session_id', 'excel_import__institute')
+            .annotate(count=Count('id'))
+        )
+        for row in excel_stats:
+            sid = row['excel_import__session_id']
+            inst = row['excel_import__institute']
+            cnt = row['count']
+            excel_counts_by_session[sid][inst] = cnt
+            excel_counts_by_session[sid]['total'] += cnt
+
     sessions_by_course = defaultdict(list)
     largest_session = None
     total_sessions = 0
@@ -3290,24 +3309,32 @@ def _build_quick_session_population_report(request):
             lifecycle_label = 'يعمل الآن'
 
         capacity = session.capacity or 0
-        assigned_count = session.assigned_count or 0
-        utilization = round((assigned_count / capacity) * 100) if capacity else 0
+        primary_assigned = session.assigned_count or 0
+        
+        excel_info = excel_counts_by_session.get(session.id, {'alkhoutwa': 0, 'alidrisi': 0, 'khalil': 0, 'total': 0})
+        excel_total = excel_info['total']
+        total_assigned_count = primary_assigned + excel_total
+
+        utilization = round((total_assigned_count / capacity) * 100) if capacity else 0
         session_row = {
             'session': session,
-            'assigned_count': assigned_count,
+            'assigned_count': total_assigned_count,  # use total for capacity/utilization mapping in general fields
+            'primary_count': primary_assigned,
+            'excel_total': excel_total,
+            'excel_info': excel_info,
             'capacity': capacity,
-            'available_seats': max(0, capacity - assigned_count) if capacity else None,
+            'available_seats': max(0, capacity - total_assigned_count) if capacity else None,
             'seat_utilization': utilization,
             'lifecycle': lifecycle,
             'lifecycle_label': lifecycle_label,
         }
         sessions_by_course[session.course_id].append(session_row)
 
-        candidate_key = (assigned_count, utilization, session.start_date, session.id)
+        candidate_key = (total_assigned_count, utilization, session.start_date, session.id)
         if largest_session is None or candidate_key > largest_session['sort_key']:
             largest_session = {
                 'session': session,
-                'assigned_count': assigned_count,
+                'assigned_count': total_assigned_count,
                 'seat_utilization': utilization,
                 'sort_key': candidate_key,
             }
@@ -3316,6 +3343,7 @@ def _build_quick_session_population_report(request):
     total_enrollments = 0
     total_assigned_students = 0
     total_unassigned_students = 0
+    total_excel_students = {'alkhoutwa': 0, 'alidrisi': 0, 'khalil': 0, 'total': 0}
 
     for course in courses:
         stats = enrollment_stats.get(course.id, {})
@@ -3328,6 +3356,16 @@ def _build_quick_session_population_report(request):
         capacity_total = sum(item['capacity'] for item in session_rows if item['capacity'])
         assigned_via_sessions = sum(item['assigned_count'] for item in session_rows)
 
+        # We can calculate the total excel students for this course
+        course_excel = {'alkhoutwa': 0, 'alidrisi': 0, 'khalil': 0, 'total': 0}
+        for item in session_rows:
+            for k in ['alkhoutwa', 'alidrisi', 'khalil', 'total']:
+                course_excel[k] += item['excel_info'][k]
+                
+        # Total excel students across all courses
+        for k in ['alkhoutwa', 'alidrisi', 'khalil', 'total']:
+            total_excel_students[k] += course_excel[k]
+
         course_rows.append({
             'course': course,
             'sessions': session_rows,
@@ -3336,6 +3374,7 @@ def _build_quick_session_population_report(request):
             'assigned_students': assigned_course_enrollments,
             'assigned_via_sessions': assigned_via_sessions,
             'unassigned_students': unassigned_course_enrollments,
+            'course_excel': course_excel,
             'assignment_rate': round((assigned_course_enrollments / total_course_enrollments) * 100) if total_course_enrollments else 0,
             'capacity_total': capacity_total,
             'available_seats_total': max(0, capacity_total - assigned_via_sessions) if capacity_total else None,
@@ -3346,6 +3385,8 @@ def _build_quick_session_population_report(request):
         total_assigned_students += assigned_course_enrollments
         total_unassigned_students += unassigned_course_enrollments
 
+    grand_total_students = total_assigned_students + total_excel_students['total']
+
     report.update({
         'course_rows': course_rows,
         'total_courses': len(course_rows),
@@ -3353,6 +3394,8 @@ def _build_quick_session_population_report(request):
         'total_enrollments': total_enrollments,
         'total_assigned_students': total_assigned_students,
         'total_unassigned_students': total_unassigned_students,
+        'total_excel_students': total_excel_students,
+        'grand_total_students': grand_total_students,
         'assignment_rate': round((total_assigned_students / total_enrollments) * 100) if total_enrollments else 0,
         'courses_with_unassigned': sum(1 for row in course_rows if row['has_unassigned_students']),
         'largest_session': largest_session,

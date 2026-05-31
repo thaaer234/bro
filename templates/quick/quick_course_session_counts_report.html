@@ -120,9 +120,23 @@
         <div class="quick-count-stat"><span class="quick-count-stat__label">الدورات الظاهرة</span><strong class="quick-count-stat__value">{{ total_courses }}</strong></div>
         <div class="quick-count-stat"><span class="quick-count-stat__label">الكلاسات الفعالة</span><strong class="quick-count-stat__value">{{ total_sessions }}</strong></div>
         <div class="quick-count-stat"><span class="quick-count-stat__label">إجمالي المسجلين</span><strong class="quick-count-stat__value">{{ total_enrollments }}</strong></div>
-        <div class="quick-count-stat"><span class="quick-count-stat__label">الطلاب المنزلون</span><strong class="quick-count-stat__value">{{ total_assigned_students }}</strong></div>
+        <div class="quick-count-stat"><span class="quick-count-stat__label">الطلاب المنزلون (الأساسيون)</span><strong class="quick-count-stat__value">{{ total_assigned_students }}</strong></div>
         <div class="quick-count-stat"><span class="quick-count-stat__label">غير المنزلين</span><strong class="quick-count-stat__value">{{ total_unassigned_students }}</strong></div>
-        <div class="quick-count-stat"><span class="quick-count-stat__label">نسبة التنزيل</span><strong class="quick-count-stat__value">{{ assignment_rate }}%</strong></div>
+        <div class="quick-count-stat" style="background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(254, 243, 199, 0.5)); border: 1px solid rgba(245, 158, 11, 0.2);">
+            <span class="quick-count-stat__label" style="color: #b45309;">طلاب المعاهد الأخرى</span>
+            <strong class="quick-count-stat__value" style="color: #b45309;">{{ total_excel_students.total }}</strong>
+            <div style="font-size: 0.72rem; margin-top: 4px; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+                <span style="color: #ea580c; font-weight: bold;">الخطوة: {{ total_excel_students.alkhoutwa }}</span>
+                <span style="color: #dc2626; font-weight: bold;">الإدريسي: {{ total_excel_students.alidrisi }}</span>
+                <span style="color: #854d0e; font-weight: bold;">خليل: {{ total_excel_students.khalil }}</span>
+            </div>
+        </div>
+        <div class="quick-count-stat" style="background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(219, 234, 254, 0.5)); border: 1px solid rgba(59, 130, 246, 0.2);">
+            <span class="quick-count-stat__label" style="color: #1e3a8a;">المجموع الكلي الفعلي</span>
+            <strong class="quick-count-stat__value" style="color: #1e3a8a;">{{ grand_total_students }}</strong>
+            <div class="text-muted" style="font-size: 0.72rem; margin-top: 4px; font-weight: bold;">(أساسي + مستورد)</div>
+        </div>
+        <div class="quick-count-stat"><span class="quick-count-stat__label">نسبة التنزيل (أساسي)</span><strong class="quick-count-stat__value">{{ assignment_rate }}%</strong></div>
     </div>
 
     {% if largest_session %}
@@ -130,7 +144,7 @@
         <div class="card-body">
             <div class="tip-label">أكثر كلاس ازدحاماً حالياً</div>
             <h4>{{ largest_session.session.course.name }} | {{ largest_session.session.title }}</h4>
-            <p>يحمل هذا الكلاس <strong>{{ largest_session.assigned_count }}</strong> طالب، ونسبة الإشغال فيه <strong>{{ largest_session.seat_utilization }}%</strong>. آخر تحديث للتقرير: {{ generated_at|date:"Y-m-d H:i" }}</p>
+            <p>يحمل هذا الكلاس <strong>{{ largest_session.assigned_count }}</strong> طالب (أساسي + معاهد)، ونسبة الإشغال فيه <strong>{{ largest_session.seat_utilization }}%</strong>. آخر تحديث للتقرير: {{ generated_at|date:"Y-m-d H:i" }}</p>
         </div>
     </div>
     {% endif %}
@@ -149,6 +163,18 @@
                         <span class="quick-count-badge success">المنزلون {{ row.assigned_students }}</span>
                         <span class="quick-count-badge {% if row.unassigned_students %}warning{% else %}info{% endif %}">غير منزلين {{ row.unassigned_students }}</span>
                         <span class="quick-count-badge info">نسبة التنزيل {{ row.assignment_rate }}%</span>
+                        {% if row.course_excel.total > 0 %}
+                        <span class="quick-count-badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309;">طلاب المعاهد: {{ row.course_excel.total }}</span>
+                            {% if row.course_excel.alkhoutwa > 0 %}
+                            <span class="quick-count-badge" style="background: rgba(234, 88, 12, 0.1); color: #ea580c;">الخطوة: {{ row.course_excel.alkhoutwa }}</span>
+                            {% endif %}
+                            {% if row.course_excel.alidrisi > 0 %}
+                            <span class="quick-count-badge" style="background: rgba(220, 38, 38, 0.1); color: #dc2626;">الإدريسي: {{ row.course_excel.alidrisi }}</span>
+                            {% endif %}
+                            {% if row.course_excel.khalil > 0 %}
+                            <span class="quick-count-badge" style="background: rgba(133, 77, 14, 0.1); color: #854d0e;">خليل: {{ row.course_excel.khalil }}</span>
+                            {% endif %}
+                        {% endif %}
                     </div>
                 </div>
 
@@ -181,7 +207,23 @@
                                     <div class="quick-count-session-title">{{ session_row.session.room.name|default:session_row.session.room_name|default:"غير محددة" }}</div>
                                     <div class="quick-count-session-meta">{% if session_row.session.time_option %}{{ session_row.session.time_option.title }}{% else %}كلاس مباشر{% endif %}</div>
                                 </td>
-                                <td class="text-center"><span class="quick-count-badge primary">{{ session_row.assigned_count }}</span></td>
+                                <td class="text-center">
+                                    <span class="quick-count-badge primary" style="font-size: 0.95rem; padding: 0.4rem 0.8rem;" title="إجمالي الطلاب">{{ session_row.assigned_count }}</span>
+                                    {% if session_row.excel_total > 0 %}
+                                    <div style="font-size: 0.72rem; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; align-items: center;">
+                                        <span class="text-muted" style="font-size: 0.68rem; font-weight: bold;">(أساسي: {{ session_row.primary_count }})</span>
+                                        {% if session_row.excel_info.alkhoutwa > 0 %}
+                                        <span style="color: #ea580c; font-weight: 800; background: rgba(234, 88, 12, 0.1); padding: 1px 6px; border-radius: 4px;">الخطوة: {{ session_row.excel_info.alkhoutwa }}</span>
+                                        {% endif %}
+                                        {% if session_row.excel_info.alidrisi > 0 %}
+                                        <span style="color: #dc2626; font-weight: 800; background: rgba(220, 38, 38, 0.1); padding: 1px 6px; border-radius: 4px;">الإدريسي: {{ session_row.excel_info.alidrisi }}</span>
+                                        {% endif %}
+                                        {% if session_row.excel_info.khalil > 0 %}
+                                        <span style="color: #854d0e; font-weight: 800; background: rgba(133, 77, 14, 0.1); padding: 1px 6px; border-radius: 4px;">خليل: {{ session_row.excel_info.khalil }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </td>
                                 <td class="text-center">{% if session_row.capacity %}{{ session_row.capacity }}{% else %}<span class="text-muted">مفتوحة</span>{% endif %}</td>
                                 <td class="text-center">{% if session_row.available_seats is not None %}{{ session_row.available_seats }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
                                 <td class="text-center"><span class="quick-count-badge info">{{ session_row.seat_utilization }}%</span></td>

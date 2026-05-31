@@ -82,7 +82,7 @@
         .report-body { padding:22px; }
         .summary-grid {
             display:grid;
-            grid-template-columns:repeat(4, minmax(0, 1fr));
+            grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));
             gap:14px;
             margin-bottom:18px;
         }
@@ -177,11 +177,22 @@
 
         <div class="report-body">
             <div class="summary-grid">
-                <div class="summary-card"><div class="summary-label">حالة الكلاسات</div><div class="summary-value" style="font-size:18px;">{{ session_status_label }}</div></div>
+                <div class="summary-card"><div class="summary-label">حالة الكلاسات</div><div class="summary-value" style="font-size:16px;">{{ session_status_label }}</div></div>
                 <div class="summary-card"><div class="summary-label">الدورات الظاهرة</div><div class="summary-value">{{ total_courses }}</div></div>
                 <div class="summary-card"><div class="summary-label">الكلاسات الفعالة</div><div class="summary-value">{{ total_sessions }}</div></div>
                 <div class="summary-card"><div class="summary-label">إجمالي المسجلين</div><div class="summary-value">{{ total_enrollments }}</div></div>
-                <div class="summary-card"><div class="summary-label">نسبة التنزيل</div><div class="summary-value">{{ assignment_rate }}%</div></div>
+                <div class="summary-card"><div class="summary-label">المنزلون (الأساسيون)</div><div class="summary-value">{{ total_assigned_students }}</div></div>
+                <div class="summary-card" style="background:#fffdf5; border-color:#f59e0b;"><div class="summary-label" style="color:#b45309;">طلاب المعاهد الأخرى</div><div class="summary-value" style="color:#b45309;">{{ total_excel_students.total }}</div>
+                    <div style="font-size: 9px; margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;">
+                        <span style="color:#ea580c; font-weight: bold;">الخطوة: {{ total_excel_students.alkhoutwa }}</span>
+                        <span style="color:#dc2626; font-weight: bold;">الإدريسي: {{ total_excel_students.alidrisi }}</span>
+                        <span style="color:#854d0e; font-weight: bold;">خليل: {{ total_excel_students.khalil }}</span>
+                    </div>
+                </div>
+                <div class="summary-card" style="background:#f4f8ff; border-color:#3b82f6;"><div class="summary-label" style="color:#1e3a8a;">المجموع الفعلي</div><div class="summary-value" style="color:#1e3a8a;">{{ grand_total_students }}</div>
+                    <div style="font-size: 9px; color:#64748b; margin-top: 4px; font-weight: bold;">(أساسي + مستورد)</div>
+                </div>
+                <div class="summary-card"><div class="summary-label">نسبة التنزيل (أساسي)</div><div class="summary-value">{{ assignment_rate }}%</div></div>
             </div>
 
             <div class="section-title">تفصيل الدورات والكلاسات</div>
@@ -196,6 +207,9 @@
                         <span class="pill primary">المسجلون {{ row.total_enrollments }}</span>
                         <span class="pill success">المنزلون {{ row.assigned_students }}</span>
                         <span class="pill warning">غير منزلين {{ row.unassigned_students }}</span>
+                        {% if row.course_excel.total > 0 %}
+                        <span class="pill" style="background: rgba(245, 158, 11, 0.15); color: #b45309;">طلاب المعاهد: {{ row.course_excel.total }}</span>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="table-card">
@@ -223,7 +237,23 @@
                                     <div class="muted">{{ session_row.session.start_time|time:"H:i" }}{% if session_row.session.end_time %} - {{ session_row.session.end_time|time:"H:i" }}{% endif %}</div>
                                 </td>
                                 <td>{{ session_row.session.room.name|default:session_row.session.room_name|default:"غير محددة" }}</td>
-                                <td class="text-center">{{ session_row.assigned_count }}</td>
+                                <td class="text-center">
+                                    <strong style="font-size: 14px;">{{ session_row.assigned_count }}</strong>
+                                    {% if session_row.excel_total > 0 %}
+                                    <div style="font-size: 9px; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; align-items: center;">
+                                        <span class="muted">(أساسي: {{ session_row.primary_count }})</span>
+                                        {% if session_row.excel_info.alkhoutwa > 0 %}
+                                        <span style="color: #ea580c; font-weight: bold; background: rgba(234, 88, 12, 0.1); padding: 1px 4px; border-radius: 4px;">الخطوة: {{ session_row.excel_info.alkhoutwa }}</span>
+                                        {% endif %}
+                                        {% if session_row.excel_info.alidrisi > 0 %}
+                                        <span style="color: #dc2626; font-weight: bold; background: rgba(220, 38, 38, 0.1); padding: 1px 4px; border-radius: 4px;">الإدريسي: {{ session_row.excel_info.alidrisi }}</span>
+                                        {% endif %}
+                                        {% if session_row.excel_info.khalil > 0 %}
+                                        <span style="color: #854d0e; font-weight: bold; background: rgba(133, 77, 14, 0.1); padding: 1px 4px; border-radius: 4px;">خليل: {{ session_row.excel_info.khalil }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </td>
                                 <td class="text-center">{% if session_row.capacity %}{{ session_row.capacity }}{% else %}-{% endif %}</td>
                                 <td class="text-center">{{ session_row.seat_utilization }}%</td>
                                 <td class="text-center">
