@@ -44,6 +44,37 @@ class ClassroomListView(ListView):
     template_name = 'classroom/classroom.html'
     model = Classroom
     context_object_name = 'classrooms'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if not self.request.user.is_superuser:
+            queryset = queryset.filter(is_visible=True)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        classrooms = self.get_queryset()
+        
+        # Calculate statistics based on the filtered queryset
+        study_classrooms = classrooms.filter(class_type='study')
+        course_classrooms = classrooms.filter(class_type='course')
+        
+        # Compute students count
+        from django.db.models import Count
+        from .models import Classroomenrollment
+        total_students = Classroomenrollment.objects.filter(classroom__in=classrooms).values('student').distinct().count()
+        
+        # Count empty classrooms
+        classrooms_with_counts = classrooms.annotate(num_students=Count('enrollments'))
+        empty_classrooms = classrooms_with_counts.filter(num_students=0).count()
+        
+        context.update({
+            'total_study_classrooms': study_classrooms.count(),
+            'total_course_classrooms': course_classrooms.count(),
+            'total_students': total_students,
+            'empty_classrooms': empty_classrooms,
+        })
+        return context
     
     
 class CreateClassroomView(CreateView):
@@ -51,6 +82,11 @@ class CreateClassroomView(CreateView):
     form_class = ClassroomForm
     template_name = 'classroom/create_classroom.html'
     success_url = reverse_lazy('classroom:classroom')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -77,19 +113,36 @@ class AssignStudentsView(View):
         # نبدأ بكل الطلاب النشطين فقط
         base_students = Student.objects.filter(is_active=True)
 
-        if classroom.class_type == 'study':
-            # للشعبة الدراسية: نعرض فقط الطلاب غير مسجلين في أي شعبة دراسية ومن نفس الفرع
-            enrolled_in_study = Classroomenrollment.objects.filter(
-                classroom__class_type='study'
+        if classroom.course:
+            # إذا كانت هناك دورة مرتبطة: نعرض فقط الطلاب المسجلين في تلك الدورة والذين لم يتم توزيعهم على أي كلاس (شعبة) لهذه الدورة
+            course_student_ids = Studentenrollment.objects.filter(
+                course=classroom.course
             ).values_list('student__id', flat=True)
             
-            available_students = base_students.exclude(
-                id__in=enrolled_in_study
+            assigned_student_ids = Classroomenrollment.objects.filter(
+                classroom__course=classroom.course
+            ).values_list('student__id', flat=True)
+            
+            # عرض الطلاب المسجلين في الدورة وغير الموزعين على أي كلاس، بغض النظر عن حقل is_active (طالما هم مسجلون في الدورة)
+            available_students = Student.objects.filter(
+                id__in=course_student_ids
+            ).exclude(
+                id__in=assigned_student_ids
             ).distinct()
         else:
-            # للدورة: نعرض جميع الطلاب غير مسجلين في هذه الدورة
-            enrolled_in_course = current_enrollments.values_list('student__id', flat=True)
-            available_students = base_students.exclude(id__in=enrolled_in_course).distinct()
+            if classroom.class_type == 'study':
+                # للشعبة الدراسية بدون دورة مرتبطة: نعرض فقط الطلاب غير مسجلين في أي شعبة دراسية ومن نفس الفرع
+                enrolled_in_study = Classroomenrollment.objects.filter(
+                    classroom__class_type='study'
+                ).values_list('student__id', flat=True)
+                
+                available_students = base_students.exclude(
+                    id__in=enrolled_in_study
+                ).distinct()
+            else:
+                # للدورة بدون دورة مرتبطة: نعرض جميع الطلاب غير مسجلين في هذه الدورة
+                enrolled_in_course = current_enrollments.values_list('student__id', flat=True)
+                available_students = base_students.exclude(id__in=enrolled_in_course).distinct()
         
         return render(request, self.template_name, {
             'classroom': classroom,
@@ -266,9 +319,11 @@ class ClassroomCardsPrintView(LoginRequiredMixin, TemplateView):
         teachers_total = 0
 
         if should_generate:
+            qs = Classroom.objects.all()
+            if not self.request.user.is_superuser:
+                qs = qs.filter(is_visible=True)
             classrooms = list(
-                Classroom.objects.all()
-                .order_by('name')
+                qs.order_by('name')
                 .annotate(students_count=Count('enrollments__student', distinct=True))
             )
             teachers_total = Teacher.objects.count()
@@ -319,9 +374,11 @@ def classroom_cards_print_pdf(request):
     teachers_total = 0
 
     if should_generate:
+        qs = Classroom.objects.all()
+        if not request.user.is_superuser:
+            qs = qs.filter(is_visible=True)
         classrooms = list(
-            Classroom.objects.all()
-            .order_by('name')
+            qs.order_by('name')
             .annotate(students_count=Count('enrollments__student', distinct=True))
         )
         teachers_total = Teacher.objects.count()
@@ -577,6 +634,11 @@ class UpdateClassroomView(UpdateView):
     template_name = 'classroom/update_classroom.html'
     pk_url_kwarg = 'classroom_id'
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+        
     def get_success_url(self):
         return reverse_lazy('classroom:classroom')
     

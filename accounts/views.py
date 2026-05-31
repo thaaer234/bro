@@ -2150,6 +2150,18 @@ class OutstandingCoursesView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         courses = _scope_queryset_to_current_year(Course.objects.filter(is_active=True), self.request).order_by('name')
+        
+        # استبعاد الدورات التي تم نقلها بالكامل إلى فصل دراسي جديد
+        try:
+            from academic_years.models import AcademicYearTransferCourseItem
+            transferred_course_ids = AcademicYearTransferCourseItem.objects.filter(
+                batch__status='completed',
+                status='completed'
+            ).values_list('source_course_id', flat=True)
+            courses = courses.exclude(id__in=transferred_course_ids)
+        except Exception as e:
+            print(f"Error excluding transferred courses: {e}")
+            
         course_data = []
         
         for course in courses:
@@ -2167,30 +2179,12 @@ class OutstandingCoursesView(LoginRequiredMixin, TemplateView):
             for enrollment in enrollments:
                 student = enrollment.student
                 
-                # استخدام نفس منطق الحساب المالي
-                course_price = course.price or Decimal('0')
-                discount_percent = enrollment.discount_percent or Decimal('0')
-                discount_amount = enrollment.discount_amount or Decimal('0')
-                
-                # حساب صافي المبلغ المستحق بعد الخصم
-                if discount_percent > 0:
-                    discount_value = course_price * (discount_percent / Decimal('100'))
-                    net_due = course_price - discount_value - discount_amount
-                else:
-                    net_due = course_price - discount_amount
-                
-                net_due = max(Decimal('0'), net_due)
-                
-                # حساب المبلغ المدفوع
-                paid_total = StudentReceipt.objects.filter(
-                    student_profile=student,
-                    course=course
-                ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
-                
-                remaining = net_due - paid_total
+                net_due = enrollment.net_amount
+                paid_total = enrollment.amount_paid
+                remaining = enrollment.balance_due
                 
                 # تحديد الحالة
-                is_fully_paid = (discount_percent >= 100) or (net_due <= 0) or (remaining <= Decimal('0'))
+                is_fully_paid = (enrollment.discount_percent >= 100) or (net_due <= 0) or (remaining <= Decimal('0'))
                 
                 if is_fully_paid:
                     fully_paid_count += 1
@@ -2386,23 +2380,10 @@ class OutstandingCourseStudentsView(LoginRequiredMixin, TemplateView):
             print(f"  - سعر الدورة: {course_price}")
             print(f"  - خصم من التسجيل: {discount_percent}% + {discount_amount}")
             
-            # حساب صافي المبلغ المستحق بعد الخصم
-            if discount_percent > 0:
-                # خصم نسبي
-                discount_value = course_price * (discount_percent / Decimal('100'))
-                net_due = course_price - discount_value - discount_amount
-            else:
-                # خصم مقطوع فقط
-                net_due = course_price - discount_amount
-            
-            # التأكد من أن net_due لا يقل عن صفر
-            net_due = max(Decimal('0'), net_due)
-            
-            # حساب المبلغ المدفوع
-            paid_total = self.calculate_paid_amount(student, course)
-            
-            # حساب المتبقي (بعد الخصم)
-            remaining = net_due - paid_total
+            # جلب القيم المحسوبة مباشرة المتطابقة مع دفتر اليومية ودليل الحسابات
+            net_due = enrollment.net_amount
+            paid_total = enrollment.amount_paid
+            remaining = enrollment.balance_due
             
             # تحديد إذا كان مسدد بالكامل
             # إذا كان الخصم 100% أو المتبقي <= 0 فهو مسدد
@@ -2677,36 +2658,7 @@ class OutstandingStudentsByClassroomView(LoginRequiredMixin, TemplateView):
     def calculate_enrollment_remaining(self, enrollment):
         """حساب المتبقي لتسجيل محدد"""
         try:
-            course_price = enrollment.course.price or Decimal('0')
-            discount_percent = enrollment.discount_percent or Decimal('0')
-            discount_amount = enrollment.discount_amount or Decimal('0')
-            
-            print(f"          سعر الدورة: {course_price}")
-            print(f"          خصم: {discount_percent}% + {discount_amount}")
-            
-            # حساب صافي المبلغ المستحق بعد الخصم
-            if discount_percent > 0:
-                discount_value = course_price * (discount_percent / Decimal('100'))
-                net_due = course_price - discount_value - discount_amount
-            else:
-                net_due = course_price - discount_amount
-            
-            net_due = max(Decimal('0'), net_due)
-            
-            # حساب المبلغ المدفوع
-            paid_total = StudentReceipt.objects.filter(
-                student_profile=enrollment.student,
-                course=enrollment.course
-            ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
-            
-            remaining = net_due - paid_total
-            final_remaining = max(Decimal('0'), remaining)
-            
-            print(f"          المستحق: {net_due}")
-            print(f"          المدفوع: {paid_total}")
-            print(f"          المتبقي: {final_remaining}")
-            
-            return final_remaining
+            return enrollment.balance_due
             
         except Exception as e:
             print(f"          خطأ في حساب المتبقي: {e}")

@@ -107,6 +107,7 @@ class AcademicYearTransferService:
             target_enrollment = self._get_or_create_target_enrollment(enrollment, target_student, target_course)
             self._clone_enrollment_entries(enrollment, target_enrollment, target_student, target_course)
             self._clone_receipts_for_enrollment(enrollment, target_enrollment, target_student, target_course)
+            self._delete_source_entries(enrollment)
 
         self.log(
             "اكتمل ترحيل دورة.",
@@ -117,6 +118,61 @@ class AcademicYearTransferService:
                 "target_course": str(target_course),
             },
         )
+
+    def _delete_source_entries(self, enrollment):
+        touched_accounts = set()
+
+        # Collect receipts and their journal entries
+        receipts = list(StudentReceipt.objects.filter(enrollment=enrollment).select_related("journal_entry"))
+        
+        # 1. Delete source receipt journal entries
+        for receipt in receipts:
+            if receipt.journal_entry_id:
+                je = receipt.journal_entry
+                try:
+                    for tx in je.transactions.all():
+                        touched_accounts.add(tx.account)
+                    je.transactions.all().delete()
+                    je.delete()
+                    self.log(f"تم حذف قيد الدفع الأصلي رقم {je.id} للفصل الأول.")
+                except Exception as e:
+                    self.log(f"خطأ أثناء حذف قيد الدفع الأصلي: {e}", level=AcademicYearTransferLog.LEVEL_WARNING)
+
+        # 2. Delete source StudentReceipts
+        for receipt in receipts:
+            try:
+                receipt_id = receipt.id
+                receipt.delete()
+                self.log(f"تم حذف إيصال الدفع الأصلي رقم {receipt_id} للفصل الأول.")
+            except Exception as e:
+                self.log(f"خطأ أثناء حذف إيصال الدفع الأصلي: {e}", level=AcademicYearTransferLog.LEVEL_WARNING)
+
+        # 3. Delete source enrollment journal entry
+        if enrollment.enrollment_journal_entry_id:
+            je = enrollment.enrollment_journal_entry
+            try:
+                for tx in je.transactions.all():
+                    touched_accounts.add(tx.account)
+                je.transactions.all().delete()
+                je.delete()
+                self.log(f"تم حذف قيد التسجيل الأصلي رقم {je.id} للفصل الأول.")
+            except Exception as e:
+                self.log(f"خطأ أثناء حذف قيد التسجيل الأصلي: {e}", level=AcademicYearTransferLog.LEVEL_WARNING)
+
+        # 4. Delete source enrollment itself
+        try:
+            enrollment_id = enrollment.id
+            enrollment.delete()
+            self.log(f"تم حذف تسجيل الطالب رقم {enrollment_id} للفصل الأول بشكل نهائي.")
+        except Exception as e:
+            self.log(f"خطأ أثناء حذف تسجيل الطالب: {e}", level=AcademicYearTransferLog.LEVEL_WARNING)
+
+        # 5. Recalculate tree balances for all touched accounts
+        for account in touched_accounts:
+            try:
+                account.recalculate_tree_balances()
+            except Exception as e:
+                self.log(f"خطأ أثناء تحديث رصيد الحساب {account.code}: {e}", level=AcademicYearTransferLog.LEVEL_WARNING)
 
     def _get_or_create_target_course(self, source_course):
         if source_course.pk in self.course_map:

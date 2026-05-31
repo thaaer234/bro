@@ -146,6 +146,16 @@
                 <td>
                     <div class="classroom-name">
                         <strong>{{ classroom.name }}</strong>
+                        {% if classroom.course %}
+                        <span class="badge badge-info ml-1" title="الدورة المرتبطة">
+                            <i class="fas fa-link mr-1"></i> {{ classroom.course }}
+                        </span>
+                        {% endif %}
+                        {% if not classroom.is_visible %}
+                        <span class="badge badge-danger ml-1" title="مخفية عن باقي المستخدمين">
+                            <i class="fas fa-eye-slash mr-1"></i> مخفية
+                        </span>
+                        {% endif %}
                         {% if classroom.description %}
                         <small class="text-muted d-block">{{ classroom.description|truncatewords:5 }}</small>
                         {% endif %}

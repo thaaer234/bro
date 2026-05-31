@@ -1889,18 +1889,40 @@ class Studentenrollment(models.Model):
 
     @property
     def net_amount(self):
-        """Calculate net amount after discounts"""
+        """Calculate net amount after discounts, aligned with General Ledger if available"""
+        try:
+            student_ar_account = Account.get_student_ar_account_for_course(self.student, self.course)
+            if student_ar_account:
+                ledger_debit = student_ar_account.get_debit_balance(academic_year=None)
+                ledger_credit = student_ar_account.get_credit_balance(academic_year=None)
+                if ledger_debit > 0 or ledger_credit > 0:
+                    return ledger_debit
+        except Exception as e:
+            print(f"Error fetching ledger debit: {e}")
+        
+        # Fallback to standard computed net due
         after_percent = self.total_amount - (self.total_amount * self.discount_percent / Decimal('100'))
         return max(Decimal('0'), after_percent - self.discount_amount)
 
     @property
     def amount_paid(self):
-        """Total amount paid for this enrollment"""
+        """Total amount paid for this enrollment, aligned with General Ledger if available"""
+        try:
+            student_ar_account = Account.get_student_ar_account_for_course(self.student, self.course)
+            if student_ar_account:
+                ledger_debit = student_ar_account.get_debit_balance(academic_year=None)
+                ledger_credit = student_ar_account.get_credit_balance(academic_year=None)
+                if ledger_debit > 0 or ledger_credit > 0:
+                    return ledger_credit
+        except Exception as e:
+            print(f"Error fetching ledger credit: {e}")
+        
+        # Fallback to standard computed paid total
         return self.payments.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
 
     @property
     def balance_due(self):
-        """Remaining balance due"""
+        """Remaining balance due, aligned with General Ledger if available"""
         return max(Decimal('0'), self.net_amount - self.amount_paid)
 
     def create_accrual_enrollment_entry(self, user):

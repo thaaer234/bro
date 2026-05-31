@@ -33,6 +33,19 @@ class Classroom(models.Model):
     min_capacity = models.PositiveIntegerField(default=1, verbose_name='الحد الأدنى', null=True, blank=True)
     max_capacity = models.PositiveIntegerField(default=0, verbose_name='الحد الأقصى', null=True, blank=True)
     is_active = models.BooleanField(default=True, verbose_name='نشطة')
+    course = models.ForeignKey(
+        'accounts.Course',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='classrooms',
+        verbose_name='الدورة المرتبطة',
+    )
+    is_visible = models.BooleanField(
+        default=True,
+        verbose_name='مرئية لباقي المستخدمين',
+        help_text='تحديد ما إذا كانت هذه الشعبة مرئية لباقي المستخدمين غير السوبر يوزر.'
+    )
 
     def clean(self):
         if self.class_type == 'study' and not self.branches:
