@@ -25,8 +25,8 @@
             <div class="students-list">
                 {% for student in unassigned_students %}
                 <div class="student-item">
-                    <input type="checkbox" name="student_ids" value="{{ student.id }}" id="student-{{ student.id }}">
-                    <label for="student-{{ student.id }}">{{ student.full_name }}</label>
+                    <input type="checkbox" name="student_ids" value="{{ student.id|stringformat:"d" }}" id="student-{{ student.id|stringformat:"d" }}">
+                    <label for="student-{{ student.id|stringformat:"d" }}">{{ student.full_name }}</label>
                 </div>
                 {% empty %}
                 <p>لا يوجد طلاب متاحين</p>

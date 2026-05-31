@@ -150,7 +150,7 @@
                         {% for student in students %}
                         <tr>
                             <td>
-                                <input type="checkbox" name="student_ids" value="{{ student.id }}" class="select-student">
+                                <input type="checkbox" name="student_ids" value="{{ student.id|stringformat:"d" }}" class="select-student">
                             </td>
                             <td>{{ forloop.counter }}</td>
                             <td>

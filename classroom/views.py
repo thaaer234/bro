@@ -160,7 +160,9 @@ class AssignStudentsView(View):
 
         added_count = 0
         for student_id in student_ids:
-            student = get_object_or_404(Student, id=student_id)
+            # تنظيف المعرف من أي علامات ترقيم محلية مثل الفواصل أو النقاط الناتجة عن التنسيق التلقائي للأرقام
+            clean_student_id = str(student_id).replace(',', '').replace('.', '')
+            student = get_object_or_404(Student, id=clean_student_id)
                 
             try:
                 enrollment = Classroomenrollment(
@@ -544,7 +546,8 @@ class AssignToCourseView(View):
         
         return render(request, self.template_name, {
             'course': course,
-            'available_students': available_students,
+            'classroom': course,
+            'unassigned_students': available_students,
             'enrolled_students': [e.student for e in enrollments]
         })
 
@@ -554,10 +557,10 @@ class AssignToCourseView(View):
 
         if student_ids:
             for student_id in student_ids:
+                clean_student_id = str(student_id).replace(',', '').replace('.', '')
                 Classroomenrollment.objects.get_or_create(
-                    student_id=student_id,
+                    student_id=clean_student_id,
                     classroom=course,
-                    
                 )
             messages.success(request, 'تم تسجيل الطلاب في الدورة بنجاح')
         
