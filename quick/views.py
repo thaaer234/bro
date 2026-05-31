@@ -6837,9 +6837,9 @@ class QuickCourseSessionStudentsView(LoginRequiredMixin, TemplateView):
         assign_form = QuickSessionAssignStudentsForm(session=session)
 
         # Excel-imported students
-        alkhoutwa_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alkhoutwa').select_related('excel_import')
-        alidrisi_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alidrisi').select_related('excel_import')
-        khalil_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='khalil').select_related('excel_import')
+        alkhoutwa_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alkhoutwa').select_related('excel_import').order_by('phone')
+        alidrisi_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alidrisi').select_related('excel_import').order_by('phone')
+        khalil_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='khalil').select_related('excel_import').order_by('phone')
         
         excel_imports_list = session.excel_imports.select_related('created_by').all()
 
@@ -6900,9 +6900,9 @@ class QuickCourseSessionStudentsPrintView(LoginRequiredMixin, TemplateView):
         )
 
         # Excel-imported students
-        alkhoutwa_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alkhoutwa').select_related('excel_import')
-        alidrisi_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alidrisi').select_related('excel_import')
-        khalil_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='khalil').select_related('excel_import')
+        alkhoutwa_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alkhoutwa').select_related('excel_import').order_by('phone')
+        alidrisi_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alidrisi').select_related('excel_import').order_by('phone')
+        khalil_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='khalil').select_related('excel_import').order_by('phone')
 
         alkhoutwa_count = alkhoutwa_students.count()
         alidrisi_count = alidrisi_students.count()
