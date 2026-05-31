@@ -31,13 +31,19 @@
         <div class="card">
             <div class="card-body">
                 <div class="d-flex flex-wrap gap-2">
-                    <span class="badge bg-primary">الطلاب داخل الصف: {{ assigned_count }}</span>
+                    <span class="badge bg-primary">الطلاب الأساسيين: {{ assigned_count }}</span>
+                    {% if alkhoutwa_count %}<span class="badge" style="background-color: #f97316; color: white;">طلاب الخطوة: {{ alkhoutwa_count }}</span>{% endif %}
+                    {% if alidrisi_count %}<span class="badge" style="background-color: #dc2626; color: white;">طلاب الإدريسي: {{ alidrisi_count }}</span>{% endif %}
+                    {% if khalil_count %}<span class="badge" style="background-color: #78350f; color: white;">طلاب خليل: {{ khalil_count }}</span>{% endif %}
+                    {% if excel_total_count %}<span class="badge bg-warning text-dark">طلاب معاهد أخرى: {{ excel_total_count }}</span>{% endif %}
+                    <span class="badge bg-dark">الإجمالي الكلي: {{ grand_total_count }}</span>
                     <span class="badge bg-info text-dark">المتاح للتوزيع: {{ available_enrollment_count }}</span>
                     <span class="badge bg-secondary">تاريخ اليوم: {{ today|date:"Y-m-d" }}</span>
                 </div>
             </div>
         </div>
     </div>
+
 
     <div class="card mt-4">
         <div class="card-header">
@@ -63,6 +69,93 @@
             </div>
         </form>
     </div>
+
+
+    <!-- Excel Student Import Section -->
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h3 class="mb-0"><i class="fas fa-file-excel text-success"></i> استيراد طلاب من ملف Excel</h3>
+            <a href="{% url 'quick:download_excel_template' %}" class="btn btn-sm btn-outline-success">
+                <i class="fas fa-download"></i> تحميل قالب Excel الفارغ
+            </a>
+        </div>
+        <form method="post" action="{% url 'quick:session_import_excel' session.id %}" enctype="multipart/form-data" class="card-body">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label class="form-label fw-semibold">اختر ملف Excel للرفع (يجب أن يحتوي على اسم الطالب ورقم الهاتف)</label>
+                    <input type="file" name="excel_file" accept=".xlsx, .xls" class="form-control" required>
+                </div>
+                <div class="col-md-6 col-12">
+                    <label class="form-label fw-semibold">اختر معهد الطلاب المستوردين</label>
+                    <select name="institute" class="form-select" required>
+                        <option value="">-- اختر المعهد --</option>
+                        <option value="alkhoutwa">معهد الخطوة (ثيم برتقالي)</option>
+                        <option value="alidrisi">معهد الإدريسي (ثيم أحمر)</option>
+                        <option value="khalil">معهد خليل (ثيم بني)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions mt-3">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-upload"></i> استيراد وتوزيع الطلاب
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Excel Imports History Section -->
+    {% if excel_imports_list %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3 class="mb-0"><i class="fas fa-history text-secondary"></i> دفعات استيراد Excel الحالية لهذا الكلاس</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>اسم الملف</th>
+                            <th>المعهد المصدر</th>
+                            <th>عدد الطلاب</th>
+                            <th>تاريخ الاستيراد</th>
+                            <th>بواسطة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for imp in excel_imports_list %}
+                        <tr>
+                            <td><strong class="text-primary"><i class="fas fa-file-excel"></i> {{ imp.filename }}</strong></td>
+                            <td>
+                                {% if imp.institute == 'alkhoutwa' %}
+                                <span class="badge" style="background-color: #f97316; color: white; font-weight: bold;">معهد الخطوة</span>
+                                {% elif imp.institute == 'alidrisi' %}
+                                <span class="badge" style="background-color: #dc2626; color: white; font-weight: bold;">معهد الإدريسي</span>
+                                {% else %}
+                                <span class="badge" style="background-color: #78350f; color: white; font-weight: bold;">معهد خليل</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge bg-secondary fs-6">{{ imp.students.count }} طلاب</span></td>
+                            <td>{{ imp.imported_at|date:"Y-m-d H:i" }}</td>
+                            <td>{{ imp.created_by.get_full_name|default:imp.created_by.username }}</td>
+                            <td>
+                                <form method="post" action="{% url 'quick:session_delete_import' session.id imp.id %}" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف دفعة الاستيراد هذه بالكامل؟ سيتم حذف جميع الطلاب المستوردين فيها من الكلاس!');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash-alt"></i> حذف الاستيراد
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
 
     <div class="card mt-4">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -136,7 +229,118 @@
             </table>
         </div>
     </div>
+
+    <!-- Themed Excel Imported Student Tables -->
+    
+    <!-- 1. Al-Khoutwa (Orange) -->
+    {% if alkhoutwa_students %}
+    <div class="card mt-4" style="border: 1px solid #f97316;">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background-color: #fff7ed; border-bottom: 2px solid #f97316;">
+            <h3 class="mb-0" style="color: #ea580c; font-weight: bold;"><i class="fas fa-graduation-cap"></i> طلاب معهد الخطوة</h3>
+            <span class="badge" style="background-color: #f97316; color: white; font-size: 0.9rem;">العدد: {{ alkhoutwa_count }}</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #f97316;">
+                            <th style="color: #ea580c; width: 60px;">#</th>
+                            <th style="color: #ea580c;">الاسم</th>
+                            <th style="color: #ea580c;">رقم الهاتف</th>
+                            <th style="color: #ea580c;">تاريخ الاستيراد</th>
+                            <th style="color: #ea580c;">ملف الاستيراد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in alkhoutwa_students %}
+                        <tr>
+                            <td><strong>{{ forloop.counter }}</strong></td>
+                            <td class="fw-bold">{{ student.name }}</td>
+                            <td>{{ student.phone|default:"-" }}</td>
+                            <td>{{ student.excel_import.imported_at|date:"Y-m-d" }}</td>
+                            <td><span class="text-muted small"><i class="fas fa-file-excel"></i> {{ student.excel_import.filename }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 2. Al-Idrisi (Red) -->
+    {% if alidrisi_students %}
+    <div class="card mt-4" style="border: 1px solid #dc2626;">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background-color: #fef2f2; border-bottom: 2px solid #dc2626;">
+            <h3 class="mb-0" style="color: #b91c1c; font-weight: bold;"><i class="fas fa-graduation-cap"></i> طلاب معهد الإدريسي</h3>
+            <span class="badge" style="background-color: #dc2626; color: white; font-size: 0.9rem;">العدد: {{ alidrisi_count }}</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #dc2626;">
+                            <th style="color: #b91c1c; width: 60px;">#</th>
+                            <th style="color: #b91c1c;">الاسم</th>
+                            <th style="color: #b91c1c;">رقم الهاتف</th>
+                            <th style="color: #b91c1c;">تاريخ الاستيراد</th>
+                            <th style="color: #b91c1c;">ملف الاستيراد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in alidrisi_students %}
+                        <tr>
+                            <td><strong>{{ forloop.counter }}</strong></td>
+                            <td class="fw-bold">{{ student.name }}</td>
+                            <td>{{ student.phone|default:"-" }}</td>
+                            <td>{{ student.excel_import.imported_at|date:"Y-m-d" }}</td>
+                            <td><span class="text-muted small"><i class="fas fa-file-excel"></i> {{ student.excel_import.filename }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 3. Khalil (Brown) -->
+    {% if khalil_students %}
+    <div class="card mt-4" style="border: 1px solid #78350f;">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2" style="background-color: #fef3c7; border-bottom: 2px solid #78350f;">
+            <h3 class="mb-0" style="color: #92400e; font-weight: bold;"><i class="fas fa-graduation-cap"></i> طلاب معهد خليل</h3>
+            <span class="badge" style="background-color: #78350f; color: white; font-size: 0.9rem;">العدد: {{ khalil_count }}</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #78350f;">
+                            <th style="color: #92400e; width: 60px;">#</th>
+                            <th style="color: #92400e;">الاسم</th>
+                            <th style="color: #92400e;">رقم الهاتف</th>
+                            <th style="color: #92400e;">تاريخ الاستيراد</th>
+                            <th style="color: #92400e;">ملف الاستيراد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in khalil_students %}
+                        <tr>
+                            <td><strong>{{ forloop.counter }}</strong></td>
+                            <td class="fw-bold">{{ student.name }}</td>
+                            <td>{{ student.phone|default:"-" }}</td>
+                            <td>{{ student.excel_import.imported_at|date:"Y-m-d" }}</td>
+                            <td><span class="text-muted small"><i class="fas fa-file-excel"></i> {{ student.excel_import.filename }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

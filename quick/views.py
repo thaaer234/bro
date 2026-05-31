@@ -68,6 +68,8 @@ from .models import (
     QuickStudent,
     QuickStudentReceipt,
     AcademicYear,
+    QuickSessionExcelImport,
+    QuickSessionExcelStudent,
 )
 from accounts.models import Course, CostCenter
 from academic_years.services.session import get_current_academic_year
@@ -6791,6 +6793,20 @@ class QuickCourseSessionStudentsView(LoginRequiredMixin, TemplateView):
             session.attendance_records.values_list('enrollment_id', flat=True)
         )
         assign_form = QuickSessionAssignStudentsForm(session=session)
+
+        # Excel-imported students
+        alkhoutwa_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alkhoutwa').select_related('excel_import')
+        alidrisi_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alidrisi').select_related('excel_import')
+        khalil_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='khalil').select_related('excel_import')
+        
+        excel_imports_list = session.excel_imports.select_related('created_by').all()
+
+        alkhoutwa_count = alkhoutwa_students.count()
+        alidrisi_count = alidrisi_students.count()
+        khalil_count = khalil_students.count()
+        excel_total = alkhoutwa_count + alidrisi_count + khalil_count
+        grand_total = len(assignments) + excel_total
+
         context.update({
             'session': session,
             'course': session.course,
@@ -6804,6 +6820,15 @@ class QuickCourseSessionStudentsView(LoginRequiredMixin, TemplateView):
             ],
             'assign_form': assign_form,
             'assigned_count': len(assignments),
+            'alkhoutwa_students': alkhoutwa_students,
+            'alidrisi_students': alidrisi_students,
+            'khalil_students': khalil_students,
+            'excel_imports_list': excel_imports_list,
+            'alkhoutwa_count': alkhoutwa_count,
+            'alidrisi_count': alidrisi_count,
+            'khalil_count': khalil_count,
+            'excel_total_count': excel_total,
+            'grand_total_count': grand_total,
             'available_enrollment_count': assign_form.fields['enrollment_ids'].queryset.count(),
             'can_manage_assignment_changes': (
                 self.request.user.is_superuser
@@ -6831,6 +6856,18 @@ class QuickCourseSessionStudentsPrintView(LoginRequiredMixin, TemplateView):
         attendance_enrollment_ids = set(
             session.attendance_records.values_list('enrollment_id', flat=True)
         )
+
+        # Excel-imported students
+        alkhoutwa_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alkhoutwa').select_related('excel_import')
+        alidrisi_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='alidrisi').select_related('excel_import')
+        khalil_students = QuickSessionExcelStudent.objects.filter(excel_import__session=session, excel_import__institute='khalil').select_related('excel_import')
+
+        alkhoutwa_count = alkhoutwa_students.count()
+        alidrisi_count = alidrisi_students.count()
+        khalil_count = khalil_students.count()
+        excel_total = alkhoutwa_count + alidrisi_count + khalil_count
+        grand_total = len(assignments) + excel_total
+
         context.update({
             'session': session,
             'course': session.course,
@@ -6843,9 +6880,253 @@ class QuickCourseSessionStudentsPrintView(LoginRequiredMixin, TemplateView):
                 for assignment in assignments
             ],
             'assigned_count': len(assignments),
+            'alkhoutwa_students': alkhoutwa_students,
+            'alidrisi_students': alidrisi_students,
+            'khalil_students': khalil_students,
+            'alkhoutwa_count': alkhoutwa_count,
+            'alidrisi_count': alidrisi_count,
+            'khalil_count': khalil_count,
+            'excel_total_count': excel_total,
+            'grand_total_count': grand_total,
             'generated_at': timezone.localtime(),
         })
         return context
+
+
+@login_required
+def quick_download_excel_template(request):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "قالب الطلاب"
+    
+    # Headers
+    ws.append(["اسم الطالب", "رقم الهاتف"])
+    
+    # Style headers
+    header_fill = PatternFill(start_color="16324F", end_color="16324F", fill_type="solid")
+    header_font = Font(name="Cairo", size=11, bold=True, color="FFFFFF")
+    align_center = Alignment(horizontal="center", vertical="center")
+    
+    ws.row_dimensions[1].height = 25
+    ws.column_dimensions['A'].width = 30
+    ws.column_dimensions['B'].width = 20
+    
+    for col in range(1, 3):
+        cell = ws.cell(row=1, column=col)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = align_center
+        
+    # Return as response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="students_template.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+@require_POST
+def quick_session_import_excel(request, session_id):
+    session = get_object_or_404(QuickCourseSession, pk=session_id, is_active=True)
+    file = request.FILES.get('excel_file')
+    institute = request.POST.get('institute')
+    
+    if not file:
+        messages.error(request, "يرجى تحديد ملف Excel أو CSV للرفع.")
+        return redirect('quick:course_session_students', session_id=session.id)
+        
+    if not institute or institute not in ['alkhoutwa', 'alidrisi', 'khalil']:
+        messages.error(request, "يرجى اختيار المعهد بشكل صحيح.")
+        return redirect('quick:course_session_students', session_id=session.id)
+        
+    # Save a debug copy in the scratch folder for offline inspection
+    try:
+        import os
+        debug_dir = r"C:\Users\THAAER\.gemini\antigravity-ide\brain\5854fc6b-5626-4c71-9eef-afd6e2b626a7\scratch"
+        os.makedirs(debug_dir, exist_ok=True)
+        debug_path = os.path.join(debug_dir, f"last_upload_{file.name}")
+        with open(debug_path, 'wb+') as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+        file.seek(0)
+    except Exception as e_debug:
+        logger.warning(f"Failed to save debug upload copy: {e_debug}")
+        
+    try:
+        import openpyxl
+        import csv
+        import io
+        
+        students_to_create = []
+        file_name_lower = file.name.lower()
+        
+        def clean_cell(val):
+            if val is None:
+                return None
+            val_str = str(val).strip()
+            if val_str == "" or val_str.lower() == "none":
+                return None
+            return val_str
+            
+        all_rows = []
+        
+        if file_name_lower.endswith('.csv'):
+            # CSV file parsing
+            csv_data = file.read()
+            # Try common decodings for Arabic files
+            for encoding in ['utf-8-sig', 'utf-8', 'windows-1256', 'utf-16']:
+                try:
+                    text_data = csv_data.decode(encoding)
+                    break
+                except UnicodeDecodeError:
+                    continue
+            else:
+                text_data = csv_data.decode('utf-8', errors='ignore')
+                
+            csv_file = io.StringIO(text_data)
+            # Detect delimiter (comma, semicolon, or tab)
+            sample = csv_file.read(2048)
+            csv_file.seek(0)
+            delimiter = ','
+            if ';' in sample:
+                delimiter = ';'
+            elif '\t' in sample:
+                delimiter = '\t'
+                
+            reader = csv.reader(csv_file, delimiter=delimiter)
+            for r in reader:
+                cleaned_row = [clean_cell(cell) for cell in r]
+                if any(cell is not None for cell in cleaned_row):
+                    all_rows.append(cleaned_row)
+        else:
+            # Excel file parsing
+            wb = openpyxl.load_workbook(file, data_only=True)
+            sheet = wb.worksheets[0]
+            
+            for row in sheet.iter_rows(values_only=True):
+                cleaned_row = [clean_cell(cell) for cell in row]
+                if any(cell is not None for cell in cleaned_row):
+                    all_rows.append(cleaned_row)
+            
+        if all_rows:
+            first_row = all_rows[0]
+            student_name_idx = None
+            phone_idx = None
+            
+            # 1. Smart Keyword Mapping (avoids conflict on 'رقم الطالب' matching name)
+            for idx, val in enumerate(first_row):
+                if val:
+                    val_str = str(val).strip().lower()
+                    val_str = val_str.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
+                    
+                    # Name match: contains "اسم" or "طالب" but NOT "رقم"
+                    if ("اسم" in val_str or "طالب" in val_str) and "رقم" not in val_str:
+                        student_name_idx = idx
+                    # Phone match: contains "هاتف", "جوال", "موبايل", "تلفون", or ("رقم" and NOT student ID/national ID)
+                    elif "هاتف" in val_str or "جوال" in val_str or "موبايل" in val_str or "تلفون" in val_str or ("رقم" in val_str and "طالب" not in val_str and "جامعي" not in val_str and "قيد" not in val_str):
+                        phone_idx = idx
+                        
+            # 2. Smart Auto-Detection fallback by analyzing column data
+            if student_name_idx is None or phone_idx is None:
+                col_types = {}
+                # Inspect first 8 rows to classify column types
+                for row in all_rows[:8]:
+                    for idx, val in enumerate(row):
+                        if val:
+                            val_str = str(val).strip()
+                            if val_str.isdigit() and len(val_str) < 5:
+                                col_types.setdefault(idx, []).append('serial')
+                            elif any(c.isdigit() for c in val_str) and len([c for c in val_str if c.isdigit()]) >= 7:
+                                col_types.setdefault(idx, []).append('phone')
+                            elif len(val_str) > 2 and not any(c.isdigit() for c in val_str):
+                                col_types.setdefault(idx, []).append('name')
+                                
+                detected_name_idx = None
+                detected_phone_idx = None
+                
+                for idx, types in col_types.items():
+                    phone_ratio = types.count('phone') / len(types) if types else 0
+                    name_ratio = types.count('name') / len(types) if types else 0
+                    if phone_ratio >= 0.5:
+                        detected_phone_idx = idx
+                    elif name_ratio >= 0.5:
+                        if detected_name_idx is None:
+                            detected_name_idx = idx
+                            
+                if student_name_idx is None and detected_name_idx is not None:
+                    student_name_idx = detected_name_idx
+                if phone_idx is None and detected_phone_idx is not None:
+                    phone_idx = detected_phone_idx
+                    
+            # 3. Final fallback defaults
+            if student_name_idx is None:
+                student_name_idx = 0
+            if phone_idx is None:
+                phone_idx = 1 if len(first_row) > 1 else 0
+                
+            # 4. Check if the first row is a header row or has student data
+            has_headers = False
+            for val in first_row:
+                if val:
+                    val_str = str(val).strip().lower()
+                    if any(kw in val_str for kw in ["اسم", "هاتف", "الاسم", "الهاتف", "رقم"]):
+                        has_headers = True
+                        break
+                        
+            start_row = 1 if has_headers else 0
+            
+            # Parse student records
+            for row in all_rows[start_row:]:
+                if not row:
+                    continue
+                name = row[student_name_idx] if student_name_idx < len(row) else None
+                phone = row[phone_idx] if phone_idx < len(row) else None
+                
+                if name:
+                    name_str = str(name).strip()
+                    phone_str = str(phone).strip() if phone is not None else ""
+                    if name_str:
+                        students_to_create.append((name_str, phone_str))
+                        
+            if students_to_create:
+                with transaction.atomic():
+                    excel_import = QuickSessionExcelImport.objects.create(
+                        session=session,
+                        institute=institute,
+                        filename=file.name,
+                        created_by=request.user
+                    )
+                    for name_str, phone_str in students_to_create:
+                        QuickSessionExcelStudent.objects.create(
+                            excel_import=excel_import,
+                            name=name_str,
+                            phone=phone_str
+                        )
+                messages.success(request, f"تم استيراد {len(students_to_create)} طالب بنجاح من المعهد المحدد.")
+            else:
+                messages.error(request, "لم يتم العثور على أي بيانات طلاب صالحة في الملف المرفوع.")
+        else:
+            messages.error(request, "الملف فارغ أو لا يحتوي على أي بيانات.")
+            
+    except Exception as e:
+        messages.error(request, f"حدث خطأ أثناء معالجة الملف: {str(e)}")
+        
+    return redirect('quick:course_session_students', session_id=session.id)
+
+
+
+
+@login_required
+@require_POST
+def quick_session_delete_import(request, session_id, import_id):
+    session = get_object_or_404(QuickCourseSession, pk=session_id, is_active=True)
+    excel_import = get_object_or_404(QuickSessionExcelImport, pk=import_id, session=session)
+    
+    count = excel_import.students.count()
+    excel_import.delete()
+    
+    messages.success(request, f"تم حذف استيراد الملف بالكامل وحذف {count} طالب تابعين له.")
+    return redirect('quick:course_session_students', session_id=session.id)
 
 
 class QuickAllSessionsManageView(LoginRequiredMixin, TemplateView):

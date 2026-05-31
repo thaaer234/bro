@@ -35,7 +35,11 @@ urlpatterns = [
     path('sessions/<int:session_id>/extend/', require_employee_perm('course_accounting_edit')(views.quick_course_session_extend), name='course_session_extend'),
     path('sessions/<int:session_id>/attendance/', require_employee_perm('attendance_take')(views.QuickCourseSessionAttendanceView.as_view()), name='course_session_attendance'),
     path('sessions/<int:session_id>/attendance/report/', require_employee_perm('attendance_take')(views.QuickCourseSessionAttendanceReportView.as_view()), name='course_session_attendance_report'),
+    path('sessions/download-excel-template/', require_employee_perm('course_accounting_view')(views.quick_download_excel_template), name='download_excel_template'),
+    path('sessions/<int:session_id>/import-excel/', require_employee_perm('course_accounting_edit')(views.quick_session_import_excel), name='session_import_excel'),
+    path('sessions/<int:session_id>/delete-import/<int:import_id>/', require_employee_perm('course_accounting_edit')(views.quick_session_delete_import), name='session_delete_import'),
     path('attendance/quick-courses/', require_employee_perm('attendance_view')(views.QuickCourseAttendanceDashboardView.as_view()), name='quick_course_attendance'),
+
     path('attendance/quick-courses/archive/', require_employee_perm('attendance_view')(views.QuickCourseAttendanceArchiveView.as_view()), name='quick_course_attendance_archive'),
 
     path('students/', require_superuser(views.QuickStudentListView.as_view()), name='student_list'),

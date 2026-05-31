@@ -176,10 +176,16 @@ class QuickCourseSession(models.Model):
 
     @property
     def enrolled_count(self):
-        return self.session_enrollments.filter(
+        primary_count = self.session_enrollments.filter(
             enrollment__is_completed=False,
             enrollment__student__is_active=True,
         ).count()
+        try:
+            excel_count = QuickSessionExcelStudent.objects.filter(excel_import__session=self).count()
+        except Exception:
+            excel_count = 0
+        return primary_count + excel_count
+
 
     @property
     def available_seats(self):
@@ -952,3 +958,40 @@ def delete_quick_entry_when_receipt_deleted(sender, instance, **kwargs):
     for entry in instance.get_linked_journal_entries():
         entry._skip_linked_cleanup = True
         entry.delete()
+
+
+class QuickSessionExcelImport(models.Model):
+    INSTITUTE_CHOICES = [
+        ('alkhoutwa', 'الخطوة'),
+        ('alidrisi', 'الادريسي'),
+        ('khalil', 'خليل'),
+    ]
+
+    session = models.ForeignKey(QuickCourseSession, on_delete=models.CASCADE, related_name='excel_imports', verbose_name='الفترة')
+    institute = models.CharField(max_length=50, choices=INSTITUTE_CHOICES, verbose_name='المعهد')
+    filename = models.CharField(max_length=255, verbose_name='اسم الملف')
+    imported_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الاستيراد')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='تم الاستيراد بواسطة')
+
+    class Meta:
+        verbose_name = 'استيراد طلاب إكسل'
+        verbose_name_plural = 'استيرادات طلاب إكسل'
+        ordering = ['-imported_at']
+
+    def __str__(self):
+        return f"{self.filename} - {self.get_institute_display()} ({self.session.title})"
+
+
+class QuickSessionExcelStudent(models.Model):
+    excel_import = models.ForeignKey(QuickSessionExcelImport, on_delete=models.CASCADE, related_name='students', verbose_name='دفعة الاستيراد')
+    name = models.CharField(max_length=200, verbose_name='اسم الطالب')
+    phone = models.CharField(max_length=50, blank=True, verbose_name='رقم الهاتف')
+
+    class Meta:
+        verbose_name = 'طالب مستورد من إكسل'
+        verbose_name_plural = 'طلاب مستوردون من إكسل'
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} - {self.excel_import.get_institute_display()}"
+
