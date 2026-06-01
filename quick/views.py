@@ -11,7 +11,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.contrib.auth.decorators import login_required  # ← أضف هذا السطر
 from attendance.models import Attendance
 from classroom.models import Classroomenrollment, Classroom
-from django.http import JsonResponse, Http404, HttpResponse
+from django.http import JsonResponse, Http404, HttpResponse, HttpResponseForbidden
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView, ListView, DetailView
@@ -11224,3 +11224,183 @@ class QuickLatePaymentCoursesPrintView(LoginRequiredMixin, TemplateView):
         self.request.session['quick_outstanding_report_snapshot'] = current_snapshot
         self.request.session['quick_outstanding_report_timestamp'] = timezone.now().strftime('%Y-%m-%d %H:%M')
         return context
+
+
+def _build_regular_discount_fix_rows():
+    """بناء قائمة تسجيلات الطلاب النظاميين ذات الحسم والمشاكل"""
+    from accounts.models import Studentenrollment, StudentReceipt
+
+    rows = []
+    enrollments = list(
+        Studentenrollment.objects.filter(
+            is_completed=False,
+        ).filter(
+            Q(discount_percent__gt=0) | Q(discount_amount__gt=0)
+        ).select_related('student', 'course').order_by('student__full_name', 'course__name', 'id')
+    )
+
+    for enrollment in enrollments:
+        gross_amount = enrollment.total_amount or Decimal('0')
+        discount_percent = enrollment.discount_percent or Decimal('0')
+        discount_amount = enrollment.discount_amount or Decimal('0')
+
+        if discount_percent > 0:
+            calculated_discount = (gross_amount * discount_percent) / Decimal('100')
+        else:
+            calculated_discount = discount_amount
+
+        net_amount = max(Decimal('0'), gross_amount - calculated_discount)
+
+        entry = enrollment.enrollment_journal_entry
+        entry_amount = Decimal('0')
+        if entry:
+            debit_transactions = entry.transactions.filter(is_debit=True)
+            if debit_transactions.exists():
+                entry_amount = debit_transactions.first().amount or Decimal('0')
+
+        issues = []
+        if entry and entry_amount != net_amount:
+            issues.append(f'قيد التسجيل يعكس {entry_amount} لكن المبلغ المتوقع {net_amount}')
+        elif not entry and net_amount > 0:
+            issues.append('لا يوجد قيد تسجيل بينما يجب أن يكون هناك قيد')
+
+        receipts = StudentReceipt.objects.filter(enrollment=enrollment)
+        total_paid = receipts.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+
+        rows.append({
+            'enrollment': enrollment,
+            'gross_amount': gross_amount,
+            'discount_percent': discount_percent,
+            'discount_amount': discount_amount,
+            'calculated_discount': calculated_discount,
+            'net_amount': net_amount,
+            'entry': entry,
+            'entry_amount': entry_amount,
+            'total_paid': total_paid,
+            'issues': issues,
+            'is_compliant': not issues,
+        })
+
+    return rows
+
+
+def _fix_one_regular_discount_enrollment(enrollment, user):
+    """تصحيح تسجيل واحد للطالب النظامي"""
+    from accounts.models import Account, JournalEntry, Transaction
+
+    result = {
+        'entry_created': False,
+        'entry_updated': False,
+        'entry_reversed': False,
+    }
+
+    gross_amount = enrollment.total_amount or Decimal('0')
+    discount_percent = enrollment.discount_percent or Decimal('0')
+    discount_amount = enrollment.discount_amount or Decimal('0')
+
+    if discount_percent > 0:
+        calculated_discount = (gross_amount * discount_percent) / Decimal('100')
+    else:
+        calculated_discount = discount_amount
+
+    net_amount = max(Decimal('0'), gross_amount - calculated_discount)
+
+    with transaction.atomic():
+        existing_entry = enrollment.enrollment_journal_entry
+
+        if existing_entry and existing_entry.is_posted:
+            debit_transaction = existing_entry.transactions.filter(is_debit=True).first()
+            existing_amount = debit_transaction.amount if debit_transaction else Decimal('0')
+
+            if existing_amount != net_amount:
+                existing_entry.reverse_entry(
+                    user,
+                    description=(
+                        f"[REGULAR_DISCOUNT_FIX #{enrollment.id}] "
+                        f"إلغاء قيد تسجيل قديم - {enrollment.student.full_name} - {enrollment.course.name}"
+                    ),
+                )
+                result['entry_reversed'] = True
+                enrollment.enrollment_journal_entry = None
+                enrollment.save(update_fields=['enrollment_journal_entry'])
+
+        if net_amount > 0 and not enrollment.enrollment_journal_entry:
+            student_ar_account = Account.get_or_create_student_ar_account(enrollment.student, enrollment.course)
+            course_deferred_account = Account.get_or_create_course_deferred_account(enrollment.course)
+
+            entry = JournalEntry.objects.create(
+                date=enrollment.enrollment_date,
+                description=f"تسجيل نظامي - {enrollment.student.full_name} في {enrollment.course.name}",
+                entry_type='enrollment',
+                total_amount=net_amount,
+                academic_year=enrollment.academic_year or enrollment.course.academic_year,
+                created_by=user
+            )
+
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=student_ar_account,
+                amount=net_amount,
+                is_debit=True,
+                description=f"تسجيل - {enrollment.student.full_name}"
+            )
+
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=course_deferred_account,
+                amount=net_amount,
+                is_debit=False,
+                description=f"إيرادات مؤجلة - {enrollment.course.name}"
+            )
+
+            entry.post_entry(user)
+
+            enrollment.enrollment_journal_entry = entry
+            enrollment.save(update_fields=['enrollment_journal_entry'])
+            result['entry_created'] = True
+
+    return result
+
+
+@login_required
+def regular_discount_fix_tool(request):
+    """أداة تصحيح الحسومات والقيود للطلاب النظاميين"""
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Only superusers can access this tool.')
+
+    if request.method == 'POST':
+        enrollment_id = request.POST.get('enrollment_id')
+        if not enrollment_id:
+            messages.error(request, 'لم يتم تحديد التسجيل المطلوب تصحيحه.')
+            return redirect('quick:regular_discount_fix_tool')
+
+        from accounts.models import Studentenrollment
+        enrollment = get_object_or_404(
+            Studentenrollment.objects.select_related('student', 'course'),
+            pk=enrollment_id,
+        )
+        try:
+            result = _fix_one_regular_discount_enrollment(enrollment, request.user)
+            messages.success(
+                request,
+                f'تم تصحيح {enrollment.student.full_name} - {enrollment.course.name}: '
+                f'إنشاء قيد جديد={ "نعم" if result["entry_created"] else "لا" }، '
+                f'عكس قيد قديم={ "نعم" if result["entry_reversed"] else "لا" }.'
+            )
+        except Exception as exc:
+            messages.error(
+                request,
+                f'فشل تصحيح {enrollment.student.full_name} - {enrollment.course.name}: {exc}'
+            )
+        return redirect('quick:regular_discount_fix_tool')
+
+    rows = _build_regular_discount_fix_rows()
+    issue_rows = [row for row in rows if row['issues']]
+    context = {
+        'rows': rows,
+        'issue_rows': issue_rows,
+        'audited_count': len(rows),
+        'issues_count': len(issue_rows),
+        'compliant_count': sum(1 for row in rows if row['is_compliant']),
+    }
+    return render(request, 'quick/regular_discount_fix_tool.html', context)

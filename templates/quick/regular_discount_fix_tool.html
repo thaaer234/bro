@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4" dir="rtl">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h2 class="mb-2">أداة تصحيح الحسومات والقيود - الطلاب النظاميين</h2>
+                    <p class="text-muted mb-0">
+                        تعرض تسجيلات الطلاب النظاميين التي فيها حسم، وتكشف الحالات عندما لا تتطابق القيود مع الحسم المحدد.
+                        التصحيح هنا يتم واحداً بواحد، ويعيد بناء قيود التسجيل المحاسبية فقط.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small mb-2">إجمالي المفحوص</div><div class="fs-3 fw-bold">{{ audited_count }}</div></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small mb-2">الحالات المخالفة</div><div class="fs-3 fw-bold text-danger">{{ issues_count }}</div></div></div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small mb-2">الحالات المطابقة</div><div class="fs-3 fw-bold text-success">{{ compliant_count }}</div></div></div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if issue_rows %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>الطالب</th>
+                            <th>الدورة</th>
+                            <th>الإجمالي</th>
+                            <th>نسبة الحسم</th>
+                            <th>قيمة الحسم</th>
+                            <th>الحسم المحسوب</th>
+                            <th>الصافي المتوقع</th>
+                            <th>قيد التسجيل الحالي</th>
+                            <th>المدفوع</th>
+                            <th>المشاكل</th>
+                            <th>الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in issue_rows %}
+                        <tr class="table-warning">
+                            <td>{{ row.enrollment.student.full_name }}</td>
+                            <td>{{ row.enrollment.course.name }}</td>
+                            <td>{{ row.gross_amount|floatformat:2 }}</td>
+                            <td>{{ row.discount_percent|floatformat:2 }}%</td>
+                            <td>{{ row.discount_amount|floatformat:2 }}</td>
+                            <td>{{ row.calculated_discount|floatformat:2 }}</td>
+                            <td><strong>{{ row.net_amount|floatformat:2 }}</strong></td>
+                            <td>
+                                {% if row.entry %}
+                                    <span class="badge bg-info">{{ row.entry_amount|floatformat:2 }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">غير موجود</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ row.total_paid|floatformat:2 }}</td>
+                            <td>
+                                {% for issue in row.issues %}
+                                <div class="small">{{ issue }}</div>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <form method="post" class="d-grid gap-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="enrollment_id" value="{{ row.enrollment.id }}">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('سيتم إعادة بناء قيد التسجيل المحاسبي ليعكس الحسم الصحيح والمبلغ الصافي. هل تريد المتابعة؟');">
+                                        تصحيح
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">لا توجد حالياً تسجيلات محسومة مخالفة. جميع الحسومات والقيود متطابقة!</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- جدول الحالات المطابقة (مطوي) -->
+    {% if rows|length > issue_rows|length %}
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#compliantRows">
+                    عرض الحالات المطابقة ({{ compliant_count }})
+                </button>
+            </h6>
+        </div>
+        <div class="collapse" id="compliantRows">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>الطالب</th>
+                                <th>الدورة</th>
+                                <th>الحسم</th>
+                                <th>الصافي</th>
+                                <th>قيد التسجيل</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                                {% if row.is_compliant %}
+                                <tr>
+                                    <td>{{ row.enrollment.student.full_name }}</td>
+                                    <td>{{ row.enrollment.course.name }}</td>
+                                    <td>{{ row.calculated_discount|floatformat:2 }}</td>
+                                    <td>{{ row.net_amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% if row.entry %}
+                                            <span class="badge bg-success">{{ row.entry_amount|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-success">✓ متطابق</span></td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Bootstrap collapse initializer
+    document.addEventListener('DOMContentLoaded', function() {
+        var collapseElements = document.querySelectorAll('.collapse');
+        collapseElements.forEach(function(el) {
+            new bootstrap.Collapse(el, { toggle: false });
+        });
+    });
+</script>
+{% endblock %}

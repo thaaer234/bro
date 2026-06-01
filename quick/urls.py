@@ -87,6 +87,7 @@ urlpatterns = [
     path('reports/duplicate-students/print/all/', require_superuser(views.quick_duplicate_students_full_print), name='duplicate_students_full_print'),
     path('reports/accounting-fix/', require_superuser(views.quick_accounting_fix_tool), name='accounting_fix_tool'),
     path('reports/discount-fix/', require_superuser(views.quick_discount_fix_tool), name='discount_fix_tool'),
+    path('reports/regular-discount-fix/', require_superuser(views.regular_discount_fix_tool), name='regular_discount_fix_tool'),
     path('reports/withdrawal-fix/', require_superuser(views.quick_withdrawal_fix_tool), name='withdrawal_fix_tool'),
 
     path('student/<int:student_id>/profile/', require_employee_perm('students_profile')(views.QuickStudentProfileView.as_view()), name='student_profile'),

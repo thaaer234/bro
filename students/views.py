@@ -1760,10 +1760,16 @@ def quick_receipt(request, student_id):
     remaining_amount = Decimal('0.00')
     enrollment = None
     enrollment_paid = Decimal('0.00')
+    target_student = student
     
     try:
         if enrollment_id:
-            enrollment = Studentenrollment.objects.get(pk=enrollment_id, student=student)
+            # We first try to get the enrollment with the correct target student if we can find it
+            enrollment = Studentenrollment.objects.filter(pk=enrollment_id).first()
+            if enrollment:
+                target_student = enrollment.student
+            else:
+                return JsonResponse({'ok': False, 'error': 'التسجيل غير موجود'}, status=404)
             
             # ✅ الإصلاح: التحقق من أن التسجيل نشط
             if enrollment.is_completed:
@@ -1785,12 +1791,55 @@ def quick_receipt(request, student_id):
             
         elif course_id:
             course = Course.objects.get(pk=course_id)
+            
+            # --- NEW LOGIC FOR SEMESTER SEPARATION ---
+            if course.academic_year and student.academic_year != course.academic_year:
+                target_student = Student.objects.filter(
+                    full_name=student.full_name,
+                    academic_year=course.academic_year
+                ).first()
+                if not target_student:
+                    target_student = Student.objects.create(
+                        full_name=student.full_name,
+                        email=student.email,
+                        phone=student.phone,
+                        gender=student.gender,
+                        branch=student.branch,
+                        birth_date=student.birth_date,
+                        student_number=student.student_number,
+                        nationality=student.nationality,
+                        registration_date=receipt_date,
+                        tase3=student.tase3,
+                        disease=student.disease,
+                        father_name=student.father_name,
+                        father_job=student.father_job,
+                        father_phone=student.father_phone,
+                        mother_name=student.mother_name,
+                        mother_job=student.mother_job,
+                        mother_phone=student.mother_phone,
+                        address=student.address,
+                        home_phone=student.home_phone,
+                        previous_school=student.previous_school,
+                        elementary_school=student.elementary_school,
+                        how_knew_us=student.how_knew_us,
+                        notes=student.notes,
+                        discount_percent=student.discount_percent,
+                        discount_amount=student.discount_amount,
+                        discount_reason=student.discount_reason,
+                        tudent_type=student.tudent_type,
+                        academic_level=student.academic_level,
+                        registration_status=student.registration_status,
+                        academic_year=course.academic_year,
+                        added_by=request.user
+                    )
+            # ----------------------------------------
+            
             if amount == 0 and not is_free:
                 amount = course.price or Decimal('0.00')
                 
             # البحث عن enrollment لهذه الدورة
             enrollment = Studentenrollment.objects.filter(
-                student=student, 
+                student=target_student, 
                 course=course,
                 is_completed=False  # ✅ فقط التسجيلات النشطة
             ).first()
@@ -1833,10 +1882,11 @@ def quick_receipt(request, student_id):
     
     # Create receipt
     try:
+        actual_student = enrollment.student if enrollment else target_student
         receipt = StudentReceipt.objects.create(
             date=receipt_date,
-            student_profile=student,
-            student_name=student.full_name,
+            student_profile=actual_student,
+            student_name=actual_student.full_name,
             course=course,
             course_name=(course.name if course else ''),
             enrollment=enrollment,
@@ -1894,9 +1944,58 @@ def register_course(request, student_id):
                 else:
                     enrollment_date = timezone.now().date()
 
+                # --- NEW LOGIC: Separate Profile Per Semester/Academic Year ---
+                target_student = student
+                if course.academic_year and student.academic_year != course.academic_year:
+                    # Search for an existing profile of this student in the target academic year
+                    target_student = Student.objects.filter(
+                        full_name=student.full_name,
+                        academic_year=course.academic_year
+                    ).first()
+                    
+                    if not target_student:
+                        # Clone/Copy student profile to the new academic year
+                        target_student = Student.objects.create(
+                            full_name=student.full_name,
+                            email=student.email,
+                            phone=student.phone,
+                            gender=student.gender,
+                            branch=student.branch,
+                            birth_date=student.birth_date,
+                            student_number=student.student_number,
+                            nationality=student.nationality,
+                            registration_date=enrollment_date,
+                            tase3=student.tase3,
+                            disease=student.disease,
+                            father_name=student.father_name,
+                            father_job=student.father_job,
+                            father_phone=student.father_phone,
+                            mother_name=student.mother_name,
+                            mother_job=student.mother_job,
+                            mother_phone=student.mother_phone,
+                            address=student.address,
+                            home_phone=student.home_phone,
+                            previous_school=student.previous_school,
+                            elementary_school=student.elementary_school,
+                            how_knew_us=student.how_knew_us,
+                            notes=student.notes,
+                            discount_percent=student.discount_percent,
+                            discount_amount=student.discount_amount,
+                            discount_reason=student.discount_reason,
+                            tudent_type=student.tudent_type,
+                            academic_level=student.academic_level,
+                            registration_status=student.registration_status,
+                            academic_year=course.academic_year,
+                            added_by=request.user
+                        )
+                        messages.info(request, f'تم إنشاء ملف تعريفي جديد للطالب في الفصل: {course.academic_year.name}')
+                    else:
+                        messages.info(request, f'تم ربط التسجيل بملف الطالب الحالي في الفصل: {course.academic_year.name}')
+                # -------------------------------------------------------------
+
                 # Check if student is already enrolled in this course
                 existing_enrollment = Studentenrollment.objects.filter(
-                    student=student,
+                    student=target_student,
                     course=course,
                     is_completed=False
                 ).first()
@@ -1906,7 +2005,7 @@ def register_course(request, student_id):
                 else:
                     # Check if this is the first enrollment
                     is_first_enrollment = not Studentenrollment.objects.filter(
-                        student=student,
+                        student=target_student,
                         is_completed=False
                     ).exists()
 
@@ -1918,9 +2017,9 @@ def register_course(request, student_id):
                     if apply_discount:
                         if is_first_enrollment:
                             # استخدام الحسم من الاستمارة للدورة الأولى
-                            discount_percent = student.discount_percent or Decimal('0')
-                            discount_amount = student.discount_amount or Decimal('0')
-                            discount_reason = student.discount_reason or 'حسم من الاستمارة'
+                            discount_percent = target_student.discount_percent or Decimal('0')
+                            discount_amount = target_student.discount_amount or Decimal('0')
+                            discount_reason = target_student.discount_reason or 'حسم من الاستمارة'
                         else:
                             # للدورات الأخرى، استخدام الحسم المدخل من المستخدم
                             discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
@@ -1929,7 +2028,7 @@ def register_course(request, student_id):
 
                     # Create new enrollment
                     enrollment = Studentenrollment.objects.create(
-                        student=student,
+                        student=target_student,
                         course=course,
                         enrollment_date=enrollment_date,
                         total_amount=course.price,
@@ -1955,7 +2054,7 @@ def register_course(request, student_id):
         else:
             messages.error(request, 'يجب اختيار دورة للتسجيل')
 
-        return redirect('students:student_profile', student_id=student.id)
+        return redirect('students:student_profile', student_id=target_student.id)
 
     # GET request - show registration form
     available_courses = _scope_queryset_to_current_year(Course.objects.filter(is_active=True), request).order_by('name')

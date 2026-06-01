@@ -297,12 +297,25 @@ class Student(models.Model):
             print(f"الخصم الجديد: {enrollment.discount_percent}% / {enrollment.discount_amount}")
             print(f"المبلغ الصافي الجديد: {new_net_amount}")
 
-            # إذا تغير المبلغ الصافي، قم بتحديث القيد المحاسبي
-            if old_net_amount != new_net_amount and enrollment.enrollment_journal_entry:
-                print(f"سيتم تعديل القيد: الفرق {new_net_amount - old_net_amount}")
-                self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
+            # إذا تغير المبلغ الصافي، قم بتحديث أو إنشاء القيد المحاسبي
+            if old_net_amount != new_net_amount:
+                if new_net_amount <= 0 and enrollment.enrollment_journal_entry:
+                    print(f"تم الحسم 100% - سيتم عكس القيد القديم")
+                    if enrollment.enrollment_journal_entry.is_posted:
+                        enrollment.enrollment_journal_entry.reverse_entry(
+                            user,
+                            description=f"[DISCOUNT_UPDATE #{enrollment.id}] إلغاء قيد تسجيل - دورة مجانية - {self.full_name} - {enrollment.course.name}"
+                        )
+                    enrollment.enrollment_journal_entry = None
+                    enrollment.save(update_fields=['enrollment_journal_entry'])
+                elif enrollment.enrollment_journal_entry:
+                    print(f"سيتم تعديل القيد: الفرق {new_net_amount - old_net_amount}")
+                    self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
+                elif new_net_amount > 0:
+                    print(f"سيتم إنشاء قيد جديد بمبلغ {new_net_amount}")
+                    enrollment.create_accrual_enrollment_entry(user)
             else:
-                print("لا يوجد فرق في المبلغ الصافي أو لا يوجد قيد")
+                print("لا يوجد فرق في المبلغ الصافي")
     
     def _update_enrollment_journal_entry(self, enrollment, user, old_amount, new_amount):
         """تحديث قيد التسجيل المحاسبي بناءً على الفرق في المبلغ"""
