@@ -11285,13 +11285,12 @@ def _build_regular_discount_fix_rows():
 
 
 def _fix_one_regular_discount_enrollment(enrollment, user):
-    """تصحيح تسجيل واحد للطالب النظامي"""
+    """تصحيح تسجيل واحد للطالب النظامي - تعديل القيد الموجود فقط"""
     from accounts.models import Account, JournalEntry, Transaction
 
     result = {
-        'entry_created': False,
         'entry_updated': False,
-        'entry_reversed': False,
+        'message': '',
     }
 
     gross_amount = enrollment.total_amount or Decimal('0')
@@ -11308,56 +11307,30 @@ def _fix_one_regular_discount_enrollment(enrollment, user):
     with transaction.atomic():
         existing_entry = enrollment.enrollment_journal_entry
 
-        if existing_entry and existing_entry.is_posted:
-            debit_transaction = existing_entry.transactions.filter(is_debit=True).first()
-            existing_amount = debit_transaction.amount if debit_transaction else Decimal('0')
+        if not existing_entry:
+            result['message'] = 'لا يوجد قيد لتعديله'
+            return result
 
-            if existing_amount != net_amount:
-                existing_entry.reverse_entry(
-                    user,
-                    description=(
-                        f"[REGULAR_DISCOUNT_FIX #{enrollment.id}] "
-                        f"إلغاء قيد تسجيل قديم - {enrollment.student.full_name} - {enrollment.course.name}"
-                    ),
-                )
-                result['entry_reversed'] = True
-                enrollment.enrollment_journal_entry = None
-                enrollment.save(update_fields=['enrollment_journal_entry'])
+        # تحديث مبلغ القيد والمعاملات الموجودة
+        debit_transaction = existing_entry.transactions.filter(is_debit=True).first()
+        credit_transaction = existing_entry.transactions.filter(is_debit=False).first()
 
-        if net_amount > 0 and not enrollment.enrollment_journal_entry:
-            student_ar_account = Account.get_or_create_student_ar_account(enrollment.student, enrollment.course)
-            course_deferred_account = Account.get_or_create_course_deferred_account(enrollment.course)
+        old_amount = Decimal('0')
+        if debit_transaction:
+            old_amount = debit_transaction.amount or Decimal('0')
+            debit_transaction.amount = net_amount
+            debit_transaction.save(update_fields=['amount'])
 
-            entry = JournalEntry.objects.create(
-                date=enrollment.enrollment_date,
-                description=f"تسجيل نظامي - {enrollment.student.full_name} في {enrollment.course.name}",
-                entry_type='enrollment',
-                total_amount=net_amount,
-                academic_year=enrollment.academic_year or enrollment.course.academic_year,
-                created_by=user
-            )
+        if credit_transaction:
+            credit_transaction.amount = net_amount
+            credit_transaction.save(update_fields=['amount'])
 
-            Transaction.objects.create(
-                journal_entry=entry,
-                account=student_ar_account,
-                amount=net_amount,
-                is_debit=True,
-                description=f"تسجيل - {enrollment.student.full_name}"
-            )
+        # تحديث مبلغ القيد
+        existing_entry.total_amount = net_amount
+        existing_entry.save(update_fields=['total_amount'])
 
-            Transaction.objects.create(
-                journal_entry=entry,
-                account=course_deferred_account,
-                amount=net_amount,
-                is_debit=False,
-                description=f"إيرادات مؤجلة - {enrollment.course.name}"
-            )
-
-            entry.post_entry(user)
-
-            enrollment.enrollment_journal_entry = entry
-            enrollment.save(update_fields=['enrollment_journal_entry'])
-            result['entry_created'] = True
+        result['entry_updated'] = True
+        result['message'] = f'تم تعديل القيد من {old_amount} إلى {net_amount}'
 
     return result
 
@@ -11383,9 +11356,7 @@ def regular_discount_fix_tool(request):
             result = _fix_one_regular_discount_enrollment(enrollment, request.user)
             messages.success(
                 request,
-                f'تم تصحيح {enrollment.student.full_name} - {enrollment.course.name}: '
-                f'إنشاء قيد جديد={ "نعم" if result["entry_created"] else "لا" }، '
-                f'عكس قيد قديم={ "نعم" if result["entry_reversed"] else "لا" }.'
+                f'تم تعديل {enrollment.student.full_name} - {enrollment.course.name}: {result["message"]}'
             )
         except Exception as exc:
             messages.error(
@@ -11396,11 +11367,36 @@ def regular_discount_fix_tool(request):
 
     rows = _build_regular_discount_fix_rows()
     issue_rows = [row for row in rows if row['issues']]
+
+    # تجميع البيانات حسب الدورة
+    grouped_issues = {}
+    grouped_compliant = {}
+
+    for row in issue_rows:
+        course_name = row['enrollment'].course.name
+        if course_name not in grouped_issues:
+            grouped_issues[course_name] = []
+        grouped_issues[course_name].append(row)
+
+    for row in rows:
+        if row['is_compliant']:
+            course_name = row['enrollment'].course.name
+            if course_name not in grouped_compliant:
+                grouped_compliant[course_name] = []
+            grouped_compliant[course_name].append(row)
+
+    # ترتيب المجموعات
+    grouped_issues = dict(sorted(grouped_issues.items()))
+    grouped_compliant = dict(sorted(grouped_compliant.items()))
+
     context = {
         'rows': rows,
         'issue_rows': issue_rows,
+        'grouped_issues': grouped_issues,
+        'grouped_compliant': grouped_compliant,
         'audited_count': len(rows),
         'issues_count': len(issue_rows),
         'compliant_count': sum(1 for row in rows if row['is_compliant']),
+        'courses_count': len(set(row['enrollment'].course.name for row in rows)),
     }
     return render(request, 'quick/regular_discount_fix_tool.html', context)
