@@ -37,7 +37,17 @@
             <div class="card-header bg-primary text-white">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">📚 {{ course_name }}</h5>
-                    <span class="badge bg-light text-dark">{{ course_rows|length }} طالب مع مشاكل</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-light text-dark">{{ course_rows|length }} طالب مع مشاكل</span>
+                        <form method="post" class="d-inline" style="margin: 0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="course_id" value="{{ course_rows.0.enrollment.course.id }}">
+                            <input type="hidden" name="action" value="fix_course">
+                            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('سيتم تصحيح {{ course_rows|length }} طالب في هذه الدورة. هل تريد المتابعة؟');">
+                                ⚡ صحح الدورة كاملة
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
             <div class="card-body">

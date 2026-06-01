@@ -11423,27 +11423,69 @@ def regular_discount_fix_tool(request):
         return HttpResponseForbidden('Only superusers can access this tool.')
 
     if request.method == 'POST':
-        enrollment_id = request.POST.get('enrollment_id')
-        if not enrollment_id:
-            messages.error(request, 'لم يتم تحديد التسجيل المطلوب تصحيحه.')
-            return redirect('quick:regular_discount_fix_tool')
-
         from accounts.models import Studentenrollment
-        enrollment = get_object_or_404(
-            Studentenrollment.objects.select_related('student', 'course'),
-            pk=enrollment_id,
-        )
-        try:
-            result = _fix_one_regular_discount_enrollment(enrollment, request.user)
-            messages.success(
-                request,
-                f'تم تعديل {enrollment.student.full_name} - {enrollment.course.name}: {result["message"]}'
+
+        action = request.POST.get('action', 'fix_single')
+
+        if action == 'fix_course':
+            # تصحيح الدورة كاملة
+            course_id = request.POST.get('course_id')
+            if not course_id:
+                messages.error(request, 'لم يتم تحديد الدورة.')
+                return redirect('quick:regular_discount_fix_tool')
+
+            enrollments = Studentenrollment.objects.filter(
+                course_id=course_id,
+                is_completed=False,
+            ).filter(
+                Q(discount_percent__gt=0) | Q(discount_amount__gt=0)
+            ).select_related('student', 'course')
+
+            fixed_count = 0
+            errors = []
+
+            for enrollment in enrollments:
+                try:
+                    result = _fix_one_regular_discount_enrollment(enrollment, request.user)
+                    fixed_count += 1
+                except Exception as exc:
+                    errors.append(f'{enrollment.student.full_name}: {exc}')
+
+            if fixed_count > 0:
+                messages.success(
+                    request,
+                    f'✅ تم تصحيح {fixed_count} طالب في الدورة بنجاح'
+                )
+
+            for error in errors[:5]:  # عرض أول 5 أخطاء
+                messages.error(request, f'❌ {error}')
+
+            if len(errors) > 5:
+                messages.warning(request, f'... و {len(errors) - 5} أخطاء أخرى')
+
+        else:
+            # تصحيح طالب واحد
+            enrollment_id = request.POST.get('enrollment_id')
+            if not enrollment_id:
+                messages.error(request, 'لم يتم تحديد التسجيل المطلوب تصحيحه.')
+                return redirect('quick:regular_discount_fix_tool')
+
+            enrollment = get_object_or_404(
+                Studentenrollment.objects.select_related('student', 'course'),
+                pk=enrollment_id,
             )
-        except Exception as exc:
-            messages.error(
-                request,
-                f'فشل تصحيح {enrollment.student.full_name} - {enrollment.course.name}: {exc}'
-            )
+            try:
+                result = _fix_one_regular_discount_enrollment(enrollment, request.user)
+                messages.success(
+                    request,
+                    f'تم تعديل {enrollment.student.full_name} - {enrollment.course.name}: {result["message"]}'
+                )
+            except Exception as exc:
+                messages.error(
+                    request,
+                    f'فشل تصحيح {enrollment.student.full_name} - {enrollment.course.name}: {exc}'
+                )
+
         return redirect('quick:regular_discount_fix_tool')
 
     rows = _build_regular_discount_fix_rows()
