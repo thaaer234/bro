@@ -11284,12 +11284,86 @@ def _build_regular_discount_fix_rows():
     return rows
 
 
+def _find_or_create_discount_adjustment_entry(enrollment, discount_amount, user):
+    """البحث عن قيد تسوية الحسم أو إنشاء واحد جديد"""
+    from accounts.models import Account, JournalEntry, Transaction
+
+    if discount_amount <= 0:
+        return None
+
+    # البحث عن قيد adjustment موجود لهذا التسجيل
+    existing_adjustment = JournalEntry.objects.filter(
+        entry_type='ADJUSTMENT',
+        description__contains=f'تعديل حسم - {enrollment.student.full_name} - {enrollment.course.name}'
+    ).order_by('-date').first()
+
+    student_ar_account = Account.get_or_create_student_ar_account(enrollment.student, enrollment.course)
+    course_deferred_account = Account.get_or_create_course_deferred_account(enrollment.course)
+
+    with transaction.atomic():
+        if existing_adjustment and not existing_adjustment.is_posted:
+            # تعديل القيد الموجود إذا لم يكن مرحلاً
+            existing_adjustment.total_amount = discount_amount
+            existing_adjustment.date = timezone.now().date()
+            existing_adjustment.description = (
+                f"تعديل حسم - {enrollment.student.full_name} - {enrollment.course.name} "
+                f"[تعديل {timezone.now().strftime('%Y-%m-%d')}]"
+            )
+            existing_adjustment.save(update_fields=['total_amount', 'date', 'description'])
+
+            # تحديث المعاملات
+            debit_trans = existing_adjustment.transactions.filter(is_debit=True).first()
+            credit_trans = existing_adjustment.transactions.filter(is_debit=False).first()
+
+            if debit_trans:
+                debit_trans.amount = discount_amount
+                debit_trans.save(update_fields=['amount'])
+            if credit_trans:
+                credit_trans.amount = discount_amount
+                credit_trans.save(update_fields=['amount'])
+
+            return existing_adjustment
+
+        # إنشاء قيد جديد
+        new_entry = JournalEntry.objects.create(
+            date=timezone.now().date(),
+            description=f"تعديل حسم - {enrollment.student.full_name} - {enrollment.course.name}",
+            entry_type='ADJUSTMENT',
+            total_amount=discount_amount,
+            academic_year=enrollment.academic_year or enrollment.course.academic_year,
+            created_by=user
+        )
+
+        # قيد الخصم من حساب الإيرادات المؤجلة
+        Transaction.objects.create(
+            journal_entry=new_entry,
+            account=course_deferred_account,
+            amount=discount_amount,
+            is_debit=True,
+            description=f"تعديل حسم - {enrollment.course.name}"
+        )
+
+        # قيد الدائن إلى حساب الطالب
+        Transaction.objects.create(
+            journal_entry=new_entry,
+            account=student_ar_account,
+            amount=discount_amount,
+            is_debit=False,
+            description=f"تعديل حسم - {enrollment.student.full_name}"
+        )
+
+        new_entry.post_entry(user)
+        return new_entry
+
+
 def _fix_one_regular_discount_enrollment(enrollment, user):
-    """تصحيح تسجيل واحد للطالب النظامي - تعديل القيد الموجود فقط"""
+    """تصحيح تسجيل واحد للطالب النظامي - تعديل القيد الموجود وإنشاء قيد الحسم"""
     from accounts.models import Account, JournalEntry, Transaction
 
     result = {
         'entry_updated': False,
+        'discount_entry_updated': False,
+        'discount_entry_created': False,
         'message': '',
     }
 
@@ -11305,32 +11379,39 @@ def _fix_one_regular_discount_enrollment(enrollment, user):
     net_amount = max(Decimal('0'), gross_amount - calculated_discount)
 
     with transaction.atomic():
+        # تحديث قيد التسجيل الرئيسي
         existing_entry = enrollment.enrollment_journal_entry
 
-        if not existing_entry:
-            result['message'] = 'لا يوجد قيد لتعديله'
-            return result
+        if existing_entry:
+            debit_transaction = existing_entry.transactions.filter(is_debit=True).first()
+            credit_transaction = existing_entry.transactions.filter(is_debit=False).first()
 
-        # تحديث مبلغ القيد والمعاملات الموجودة
-        debit_transaction = existing_entry.transactions.filter(is_debit=True).first()
-        credit_transaction = existing_entry.transactions.filter(is_debit=False).first()
+            old_amount = Decimal('0')
+            if debit_transaction:
+                old_amount = debit_transaction.amount or Decimal('0')
+                debit_transaction.amount = net_amount
+                debit_transaction.save(update_fields=['amount'])
 
-        old_amount = Decimal('0')
-        if debit_transaction:
-            old_amount = debit_transaction.amount or Decimal('0')
-            debit_transaction.amount = net_amount
-            debit_transaction.save(update_fields=['amount'])
+            if credit_transaction:
+                credit_transaction.amount = net_amount
+                credit_transaction.save(update_fields=['amount'])
 
-        if credit_transaction:
-            credit_transaction.amount = net_amount
-            credit_transaction.save(update_fields=['amount'])
+            existing_entry.total_amount = net_amount
+            existing_entry.save(update_fields=['total_amount'])
 
-        # تحديث مبلغ القيد
-        existing_entry.total_amount = net_amount
-        existing_entry.save(update_fields=['total_amount'])
+            result['entry_updated'] = True
+            result['message'] = f'تم تعديل قيد التسجيل من {old_amount} إلى {net_amount}'
 
-        result['entry_updated'] = True
-        result['message'] = f'تم تعديل القيد من {old_amount} إلى {net_amount}'
+        # إنشاء أو تعديل قيد الحسم
+        if calculated_discount > 0:
+            discount_entry = _find_or_create_discount_adjustment_entry(enrollment, calculated_discount, user)
+            if discount_entry:
+                if discount_entry.created_at == timezone.now().date():  # قيد جديد
+                    result['discount_entry_created'] = True
+                    result['message'] += ' | تم إنشاء قيد حسم جديد'
+                else:
+                    result['discount_entry_updated'] = True
+                    result['message'] += ' | تم تعديل قيد الحسم'
 
     return result
 
