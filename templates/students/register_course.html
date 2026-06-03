@@ -216,8 +216,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const discountAmountInput = document.getElementById('discount_amount');
     const discountCard = document.getElementById('discount-card-container');
 
-    const studentDiscountPercent = parseFloat("{{ student_discount_percent|default:0 }}") || 0;
-    const studentDiscountAmount = parseFloat("{{ student_discount_amount|default:0 }}") || 0;
+    const studentDiscountPercent = parseFloat("{{ student_discount_percent|stringformat:'.2f' }}") || 0;
+    const studentDiscountAmount = parseFloat("{{ student_discount_amount|stringformat:'.2f' }}") || 0;
     const isFirstEnrollment = {% if is_first_enrollment %}true{% else %}false{% endif %};
 
     // تحديث معاينة تاريخ التسجيل

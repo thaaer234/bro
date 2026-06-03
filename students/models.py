@@ -283,7 +283,10 @@ class Student(models.Model):
             # حفظ القيم القديمة للمقارنة
             old_discount_percent = enrollment.discount_percent
             old_discount_amount = enrollment.discount_amount
-            old_net_amount = enrollment.net_amount
+            
+            # حساب المبلغ الصافي القديم رياضياً لتفادي قراءة رصيد القيد القديم من الدفتر مباشرة
+            old_after_percent = enrollment.total_amount - (enrollment.total_amount * old_discount_percent / Decimal('100'))
+            old_net_amount = max(Decimal('0'), old_after_percent - old_discount_amount)
 
             print(f"التسجيل: {enrollment.course.name}")
             print(f"الخصم القديم: {old_discount_percent}% / {old_discount_amount}")
@@ -295,7 +298,10 @@ class Student(models.Model):
             enrollment.discount_reason = discount_reason
             enrollment.save()
 
-            new_net_amount = enrollment.net_amount
+            # حساب المبلغ الصافي الجديد رياضياً
+            new_after_percent = enrollment.total_amount - (enrollment.total_amount * discount_percent / Decimal('100'))
+            new_net_amount = max(Decimal('0'), new_after_percent - discount_amount)
+            
             gross_amount = enrollment.total_amount or Decimal('0')
             print(f"الخصم الجديد: {enrollment.discount_percent}% / {enrollment.discount_amount}")
             print(f"المبلغ الصافي الجديد: {new_net_amount}")
