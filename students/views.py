@@ -2730,8 +2730,11 @@ def audit_course_api(request):
     
     if course_type == 'QUICK':
         from quick.models import QuickCourse, QuickEnrollment
-        course = get_object_or_404(QuickCourse, id=course_id)
-        enrollments = QuickEnrollment.objects.filter(course=course).select_related('student')
+        if course_id == 'all':
+            enrollments = QuickEnrollment.objects.all().select_related('student', 'course')
+        else:
+            course = get_object_or_404(QuickCourse, id=course_id)
+            enrollments = QuickEnrollment.objects.filter(course=course).select_related('student', 'course')
         
         stats = {
             'total_students': enrollments.count(),
@@ -2743,6 +2746,7 @@ def audit_course_api(request):
         for e in enrollments:
             student = e.student
             student_name = student.full_name
+            course = e.course
             
             # احتساب المبلغ الصافي
             computed_net = e.calculated_net_amount
@@ -2802,8 +2806,11 @@ def audit_course_api(request):
                 })
     else:
         # الدورات النظامية
-        course = get_object_or_404(Course, id=course_id)
-        enrollments = Studentenrollment.objects.filter(course=course).select_related('student', 'enrollment_journal_entry')
+        if course_id == 'all':
+            enrollments = Studentenrollment.objects.all().select_related('student', 'course', 'enrollment_journal_entry')
+        else:
+            course = get_object_or_404(Course, id=course_id)
+            enrollments = Studentenrollment.objects.filter(course=course).select_related('student', 'course', 'enrollment_journal_entry')
 
         stats = {
             'total_students': enrollments.count(),
@@ -2815,6 +2822,7 @@ def audit_course_api(request):
         for e in enrollments:
             student = e.student
             student_name = getattr(student, 'full_name', None) or getattr(student, 'name', '') or str(student)
+            course = e.course
             
             # الربط المحاسبي التلقائي وتنظيف القيود المكررة للتسجيل من المحاولات السابقة
             ar_account = Account.get_student_ar_account_for_course(student, course)

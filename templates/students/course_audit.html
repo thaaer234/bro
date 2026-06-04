@@ -100,8 +100,13 @@
 
         <!-- Audit Results Card -->
         <div class="card border-0 shadow-sm mb-4 bg-white" id="resultsCard">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-list text-primary me-2"></i> تفاصيل الحسابات والأخطاء المكتشفة</h5>
+                <div class="btn-group btn-group-sm" role="group" id="auditFilters">
+                    <button type="button" class="btn btn-outline-secondary active" data-filter="all">الكل (All)</button>
+                    <button type="button" class="btn btn-outline-warning" data-filter="missing_entry">قيود مفقودة/محذوفة</button>
+                    <button type="button" class="btn btn-outline-info" data-filter="mismatch">خلل تسوية وأرصدة</button>
+                </div>
                 <button id="fixAllBtn" class="btn btn-outline-danger btn-sm d-none">
                     <i class="fas fa-wand-magic-sparkles me-1"></i> تصحيح الكل تلقائياً
                 </button>
@@ -165,6 +170,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const list = type === 'REGULAR' ? regularCourses : quickCourses;
         
         courseSelect.innerHTML = '<option value="" selected disabled>-- اختر دورة --</option>';
+        
+        // Add "جميع الدورات" option
+        const allOpt = document.createElement('option');
+        allOpt.value = 'all';
+        allOpt.textContent = '--- جميع الدورات (All Courses) ---';
+        courseSelect.appendChild(allOpt);
+        
         list.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
@@ -221,6 +233,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     statTotalErrors.innerText = data.stats.total_errors;
                     statMissingEntries.innerText = data.stats.missing_entries;
                     statMismatches.innerText = data.stats.mismatches;
+
+                    // Reset filter buttons
+                    document.querySelectorAll('#auditFilters button').forEach(b => b.classList.remove('active'));
+                    const allBtn = document.querySelector('#auditFilters button[data-filter="all"]');
+                    if (allBtn) allBtn.classList.add('active');
 
                     // Load Table
                     auditTableBody.innerHTML = '';
@@ -406,6 +423,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 buttonElement.innerHTML = `<i class="fas fa-circle-xmark"></i> خطأ`;
                 reject(err);
             });
+        });
+    }
+
+    // Filter click handler
+    document.querySelectorAll('#auditFilters button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('#auditFilters button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const filterValue = this.getAttribute('data-filter');
+            filterTableRows(filterValue);
+        });
+    });
+
+    function filterTableRows(filterValue) {
+        const rows = document.querySelectorAll('#auditTableBody tr');
+        rows.forEach(row => {
+            const btn = row.querySelector('.fix-single-btn');
+            if (!btn) return;
+            const errorType = btn.getAttribute('data-error-type');
+            if (filterValue === 'all' || errorType === filterValue) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
         });
     }
 
