@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import sys, os
 sys.stdout.reconfigure(encoding='utf-8')
+# Add project root to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alyaman.settings')
 import django
 django.setup()
+
 
 from students.models import Student
 from accounts.models import Studentenrollment, Account, JournalEntry, Transaction
@@ -12,10 +15,10 @@ from decimal import Decimal
 # Find Mayas Haidar (مياس حيدر)
 students = Student.objects.filter(full_name__contains='مياس حيدر')
 for s in students:
-    print(f"Student: ID={s.id}, Name={s.full_name}, Phone={getattr(s, 'father_phone', 'N/A') or getattr(s, 'phone', 'N/A')}")
+    print(f"Student: ID={s.id}, Name={s.full_name}, Phone={getattr(s, 'father_phone', 'N/A') or getattr(s, 'phone', 'N/A')}, DefaultDiscount%={s.discount_percent}, DefaultDiscountAmt={s.discount_amount}")
     enrollments = Studentenrollment.objects.filter(student=s)
     for e in enrollments:
-        print(f"  Enrollment: ID={e.id}, Course={e.course.name}, Total={e.total_amount}, Net={e.net_amount}, Completed={e.is_completed}")
+        print(f"  Enrollment: ID={e.id}, Course={e.course.name}, Total={e.total_amount}, Net={e.net_amount}, Completed={e.is_completed}, Discount%={e.discount_percent}, DiscountAmt={e.discount_amount}")
         ar_account = Account.get_student_ar_account_for_course(s, e.course)
         if ar_account:
             print(f"    AR Account: ID={ar_account.id}, Code={ar_account.code}, Balance={ar_account.balance}")
