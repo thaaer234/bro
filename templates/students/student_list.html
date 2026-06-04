@@ -7,6 +7,11 @@
 <div class="module-header premium-hero">
     <h2>إدارة الطلاب</h2>
     {% if user.is_authenticated %}
+    {% if user.is_superuser or 'students_view' in emp_perms %}
+    <a href="{% url 'students:course_audit' %}" class="btn btn-info">
+        <i class="fas fa-scale-balanced"></i> تدقيق حسابات الدورات
+    </a>
+    {% endif %}
     {% if user.is_superuser %}
     <a href="{% url 'students:student_cards_print' %}" class="btn btn-success">
         <i class="fas fa-id-card"></i> بطاقات الطلاب
