@@ -2924,7 +2924,7 @@ def audit_course_api(request):
     })
 
 def fix_student_enrollment_error(request):
-    """إجراء لتصحيح الأخطاء تلقائياً وبأمان لكافة أنواع الدورات"""
+    """إجراء لتصحيح الأخطاء تلقائياً وبأمان أو تنفيذ خيارات تحكم متقدمة"""
     if not request.user.is_authenticated:
         return JsonResponse({'success': False, 'error': 'غير مصرح'})
         
@@ -2952,7 +2952,81 @@ def fix_student_enrollment_error(request):
                 
                 computed_net = enrollment.calculated_net_amount
                 
-                if error_type == 'missing_entry':
+                if error_type == 'advanced_action':
+                    action_type = data.get('action_type')
+                    if action_type == 'recalculate_balance':
+                        student_ar_account = Account.get_or_create_quick_student_ar_account(student)
+                        deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+                        recalculate_account_balances(student_ar_account, deferred_account)
+                    elif action_type == 'toggle_completed':
+                        enrollment.is_completed = not enrollment.is_completed
+                        if enrollment.is_completed:
+                            from django.utils import timezone
+                            enrollment.completion_date = timezone.now().date()
+                        else:
+                            enrollment.completion_date = None
+                        enrollment.save(update_fields=['is_completed', 'completion_date'])
+                    elif action_type == 'delete_adjustments':
+                        adjustments = JournalEntry.objects.filter(
+                            entry_type='ADJUSTMENT',
+                            description__contains=student.full_name
+                        ).filter(description__contains=course.name)
+                        adjustments = adjustments | JournalEntry.objects.filter(
+                            entry_type='ADJUSTMENT',
+                            description__icontains=f'[QUICK_DISCOUNT #{enrollment.id}]'
+                        )
+                        for adj in adjustments:
+                            adj._skip_linked_cleanup = True
+                            adj.transactions.all().delete()
+                            adj.delete()
+                        student_ar_account = Account.get_or_create_quick_student_ar_account(student)
+                        deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+                        recalculate_account_balances(student_ar_account, deferred_account)
+                    elif action_type == 'update_net_amount':
+                        custom_net_amount = data.get('custom_net_amount')
+                        if custom_net_amount is None:
+                            return JsonResponse({'success': False, 'error': 'لم يتم تحديد المبلغ الجديد'})
+                        custom_net = Decimal(str(custom_net_amount))
+                        
+                        enrollment.total_amount = custom_net
+                        enrollment.discount_percent = Decimal('0')
+                        enrollment.discount_amount = Decimal('0')
+                        enrollment.net_amount = custom_net
+                        enrollment.save()
+                        
+                        adjustments = JournalEntry.objects.filter(
+                            entry_type='ADJUSTMENT',
+                            description__contains=student.full_name
+                        ).filter(description__contains=course.name)
+                        adjustments = adjustments | JournalEntry.objects.filter(
+                            entry_type='ADJUSTMENT',
+                            description__icontains=f'[QUICK_DISCOUNT #{enrollment.id}]'
+                        )
+                        for adj in adjustments:
+                            adj._skip_linked_cleanup = True
+                            adj.transactions.all().delete()
+                            adj.delete()
+                        
+                        je = enrollment.enrollment_journal_entry
+                        if je:
+                            je.total_amount = custom_net
+                            je.save(update_fields=['total_amount'])
+                            debit_trans = je.transactions.filter(is_debit=True).first()
+                            credit_trans = je.transactions.filter(is_debit=False).first()
+                            if debit_trans:
+                                debit_trans.amount = custom_net
+                                debit_trans.save(update_fields=['amount'])
+                            if credit_trans:
+                                credit_trans.amount = custom_net
+                                credit_trans.save(update_fields=['amount'])
+                        else:
+                            enrollment.create_accrual_enrollment_entry(request.user)
+                            
+                        student_ar_account = Account.get_or_create_quick_student_ar_account(student)
+                        deferred_account = Account.get_or_create_quick_course_deferred_account(course)
+                        recalculate_account_balances(student_ar_account, deferred_account)
+                
+                elif error_type == 'missing_entry':
                     enrollment.create_accrual_enrollment_entry(request.user)
                 elif error_type == 'mismatch':
                     # 1. حذف قيود الحسم/التسوية
@@ -3020,7 +3094,72 @@ def fix_student_enrollment_error(request):
                 
                 computed_net = max(Decimal('0'), enrollment.total_amount - (enrollment.total_amount * enrollment.discount_percent / Decimal('100')) - enrollment.discount_amount)
 
-                if error_type == 'missing_entry':
+                if error_type == 'advanced_action':
+                    action_type = data.get('action_type')
+                    if action_type == 'recalculate_balance':
+                        student_ar_account = Account.get_student_ar_account_for_course(student, course)
+                        course_deferred_account = Account.get_or_create_course_deferred_account(course)
+                        recalculate_account_balances(student_ar_account, course_deferred_account)
+                    elif action_type == 'toggle_completed':
+                        enrollment.is_completed = not enrollment.is_completed
+                        if enrollment.is_completed:
+                            from django.utils import timezone
+                            enrollment.completion_date = timezone.now().date()
+                        else:
+                            enrollment.completion_date = None
+                        enrollment.save(update_fields=['is_completed', 'completion_date'])
+                    elif action_type == 'delete_adjustments':
+                        adjustments = JournalEntry.objects.filter(
+                            entry_type='ADJUSTMENT',
+                            description__contains=student.full_name
+                        ).filter(description__contains=course.name)
+                        for adj in adjustments:
+                            adj._skip_linked_cleanup = True
+                            adj.transactions.all().delete()
+                            adj.delete()
+                        student_ar_account = Account.get_student_ar_account_for_course(student, course)
+                        course_deferred_account = Account.get_or_create_course_deferred_account(course)
+                        recalculate_account_balances(student_ar_account, course_deferred_account)
+                    elif action_type == 'update_net_amount':
+                        custom_net_amount = data.get('custom_net_amount')
+                        if custom_net_amount is None:
+                            return JsonResponse({'success': False, 'error': 'لم يتم تحديد المبلغ الجديد'})
+                        custom_net = Decimal(str(custom_net_amount))
+                        
+                        enrollment.total_amount = custom_net
+                        enrollment.discount_percent = Decimal('0')
+                        enrollment.discount_amount = Decimal('0')
+                        enrollment.save()
+                        
+                        adjustments = JournalEntry.objects.filter(
+                            entry_type='ADJUSTMENT',
+                            description__contains=student.full_name
+                        ).filter(description__contains=course.name)
+                        for adj in adjustments:
+                            adj._skip_linked_cleanup = True
+                            adj.transactions.all().delete()
+                            adj.delete()
+                            
+                        je = enrollment.enrollment_journal_entry
+                        if je:
+                            je.total_amount = custom_net
+                            je.save(update_fields=['total_amount'])
+                            debit_trans = je.transactions.filter(is_debit=True).first()
+                            credit_trans = je.transactions.filter(is_debit=False).first()
+                            if debit_trans:
+                                debit_trans.amount = custom_net
+                                debit_trans.save(update_fields=['amount'])
+                            if credit_trans:
+                                credit_trans.amount = custom_net
+                                credit_trans.save(update_fields=['amount'])
+                        else:
+                            enrollment.create_accrual_enrollment_entry(request.user)
+                            
+                        student_ar_account = Account.get_student_ar_account_for_course(student, course)
+                        course_deferred_account = Account.get_or_create_course_deferred_account(course)
+                        recalculate_account_balances(student_ar_account, course_deferred_account)
+                
+                elif error_type == 'missing_entry':
                     if computed_net > 0:
                         enrollment.create_accrual_enrollment_entry(request.user)
                         
@@ -3067,7 +3206,7 @@ def fix_student_enrollment_error(request):
                     course_deferred_account = Account.get_or_create_course_deferred_account(course)
                     recalculate_account_balances(student_ar_account, course_deferred_account)
 
-        return JsonResponse({'success': True, 'message': 'تم تصحيح القيد بنجاح'})
+        return JsonResponse({'success': True, 'message': 'تم تنفيذ الإجراء بنجاح'})
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})

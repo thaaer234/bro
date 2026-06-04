@@ -283,12 +283,61 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <small class="text-success fw-bold"><i class="fas fa-lightbulb"></i> المقترح: ${err.suggestion}</small>
                                 </td>
                                 <td class="text-center">
-                                    <button class="btn btn-success btn-sm fix-single-btn px-3" data-enrollment-id="${err.enrollment_id}" data-error-type="${err.type}">
-                                        <i class="fas fa-wrench me-1"></i> تصحيح
-                                    </button>
+                                    <div class="d-flex flex-column gap-1 align-items-center">
+                                        <button class="btn btn-success btn-sm fix-single-btn px-3 w-100" data-enrollment-id="${err.enrollment_id}" data-error-type="${err.type}">
+                                            <i class="fas fa-wrench me-1"></i> تصحيح
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm toggle-advanced-btn px-2 w-100 mt-1" data-enrollment-id="${err.enrollment_id}">
+                                            <i class="fas fa-cog me-1"></i> خيارات متقدمة
+                                        </button>
+                                    </div>
                                 </td>
                             `;
                             auditTableBody.appendChild(tr);
+
+                            // Advanced Options Sub-row
+                            const advTr = document.createElement('tr');
+                            advTr.id = `adv-${err.enrollment_id}`;
+                            advTr.className = 'd-none bg-light';
+                            advTr.innerHTML = `
+                                <td colspan="8" class="p-3 bg-light">
+                                    <div class="border rounded p-3 bg-white shadow-sm" style="border-right: 4px solid var(--bs-info) !important;">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <i class="fas fa-sliders-h text-info me-2 fs-5"></i>
+                                            <span class="fw-bold text-dark fs-6">لوحة التحكم المتقدمة للطالب: ${err.student_name}</span>
+                                        </div>
+                                        <div class="row align-items-end g-3">
+                                            <!-- Manual Net override -->
+                                            <div class="col-md-5">
+                                                <label class="form-label small fw-bold text-secondary mb-1">
+                                                    <i class="fas fa-edit me-1"></i> تعديل صافي القيمة يدوياً (حذف الحسومات وتحديث قيد التسجيل):
+                                                </label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control custom-net-input" value="${err.net_amount}" placeholder="المبلغ الجديد" step="1000">
+                                                    <button class="btn btn-primary update-net-btn px-3" data-enrollment-id="${err.enrollment_id}">
+                                                        <i class="fas fa-save me-1"></i> تحديث القيمة
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <!-- Other advanced buttons -->
+                                            <div class="col-md-7 text-start">
+                                                <div class="d-flex gap-2 justify-content-end flex-wrap">
+                                                    <button class="btn btn-outline-warning btn-sm delete-adj-btn" data-enrollment-id="${err.enrollment_id}">
+                                                        <i class="fas fa-eraser me-1"></i> حذف قيود التسوية
+                                                    </button>
+                                                    <button class="btn btn-outline-info btn-sm recalc-bal-btn" data-enrollment-id="${err.enrollment_id}">
+                                                        <i class="fas fa-calculator me-1"></i> تحديث الأرصدة
+                                                    </button>
+                                                    <button class="btn btn-outline-dark btn-sm toggle-completed-btn" data-enrollment-id="${err.enrollment_id}">
+                                                        <i class="fas fa-toggle-on me-1"></i> حالة الاكتمال (Completed)
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            `;
+                            auditTableBody.appendChild(advTr);
                         });
 
                         // Bind single buttons
@@ -297,6 +346,57 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const enrollId = this.getAttribute('data-enrollment-id');
                                 const errorType = this.getAttribute('data-error-type');
                                 fixError(enrollId, errorType, this);
+                            });
+                        });
+
+                        // Bind advanced toggle buttons
+                        document.querySelectorAll('.toggle-advanced-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const enrollId = this.getAttribute('data-enrollment-id');
+                                const subRow = document.getElementById(`adv-${enrollId}`);
+                                if (subRow) {
+                                    subRow.classList.toggle('d-none');
+                                }
+                            });
+                        });
+
+                        // Bind advanced control actions
+                        document.querySelectorAll('.update-net-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const enrollId = this.getAttribute('data-enrollment-id');
+                                const subRow = document.getElementById(`adv-${enrollId}`);
+                                const input = subRow.querySelector('.custom-net-input');
+                                const newAmount = input.value;
+                                if (!newAmount || parseFloat(newAmount) < 0) {
+                                    alert('الرجاء إدخال مبلغ صحيح.');
+                                    return;
+                                }
+                                if (confirm(`هل أنت متأكد من تغيير صافي المبلغ إلى ${parseFloat(newAmount).toLocaleString()} ل.س؟ سيتم حذف قيود الحسم وتحديث قيد التسجيل بالكامل.`)) {
+                                    executeAdvancedAction(enrollId, 'update_net_amount', { custom_net_amount: newAmount }, this);
+                                }
+                            });
+                        });
+
+                        document.querySelectorAll('.delete-adj-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const enrollId = this.getAttribute('data-enrollment-id');
+                                if (confirm('هل أنت متأكد من حذف كافة قيود التسوية/الحسم (ADJUSTMENT) المرتبطة بهذا التسجيل وإعادة احتساب الأرصدة؟')) {
+                                    executeAdvancedAction(enrollId, 'delete_adjustments', {}, this);
+                                }
+                            });
+                        });
+
+                        document.querySelectorAll('.recalc-bal-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const enrollId = this.getAttribute('data-enrollment-id');
+                                executeAdvancedAction(enrollId, 'recalculate_balance', {}, this);
+                            });
+                        });
+
+                        document.querySelectorAll('.toggle-completed-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const enrollId = this.getAttribute('data-enrollment-id');
+                                executeAdvancedAction(enrollId, 'toggle_completed', {}, this);
                             });
                         });
                     }
@@ -309,6 +409,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('حدث خطأ في الاتصال بالخادم.');
                 console.error(err);
             });
+    }
+
+    function executeAdvancedAction(enrollmentId, actionType, extraData, buttonElement) {
+        const originalHtml = buttonElement.innerHTML;
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>...`;
+
+        const type = courseTypeSelect.value;
+        const payload = Object.assign({
+            enrollment_id: enrollmentId,
+            error_type: 'advanced_action',
+            action_type: actionType,
+            course_type: type
+        }, extraData);
+
+        fetch('/students/course-audit/fix/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalHtml;
+            if (data.success) {
+                alert(data.message || 'تم تنفيذ الإجراء بنجاح.');
+                runAudit(); // Refresh the table
+            } else {
+                alert('فشل تنفيذ الإجراء: ' + data.error);
+            }
+        })
+        .catch(err => {
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalHtml;
+            alert('حدث خطأ في الاتصال بالخادم.');
+            console.error(err);
+        });
     }
 
     function fixError(enrollmentId, errorType, buttonElement) {
