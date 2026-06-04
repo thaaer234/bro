@@ -49,4 +49,9 @@ urlpatterns = [
     path('student-cards-print/pdf/', views.student_cards_print_pdf, name='student_cards_print_pdf'),
     path('student-cards-print/pdf-by-branch/', views.student_cards_print_pdf_by_branch, name='student_cards_print_pdf_by_branch'),
     path('student-cards-print/pdf-by-classroom/', views.student_cards_print_pdf_by_classroom, name='student_cards_print_pdf_by_classroom'),
+    
+    # تدقيق وتصحيح الحسابات
+    path('course-audit/', require_employee_perm('students_view')(views.CourseAuditView.as_view()), name='course_audit'),
+    path('course-audit/api/', views.audit_course_api, name='course_audit_api'),
+    path('course-audit/fix/', views.fix_student_enrollment_error, name='fix_student_enrollment_error'),
 ]

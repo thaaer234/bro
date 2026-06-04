@@ -145,6 +145,10 @@
                     <i class="fas fa-users"></i>
                     <span>الطلاب النظاميون</span>
                 </a>
+                <a href="{% url 'students:course_audit' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'students' and request.resolver_match.url_name == 'course_audit' %}active{% endif %}">
+                    <i class="fas fa-scale-balanced"></i>
+                    <span>تدقيق حسابات الدورات</span>
+                </a>
                 {% endif %}
                 {% if user.is_superuser or 'students_create' in emp_perms %}
                 <a href="{% url 'students:student_type_choice' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'students' and request.resolver_match.url_name == 'student_type_choice' %}active{% endif %}">

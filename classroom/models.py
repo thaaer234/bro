@@ -85,13 +85,24 @@ class Classroomenrollment(models.Model):
 
     def clean(self):
         if self.classroom.class_type == 'study':
-            existing_study_enrollment = Classroomenrollment.objects.filter(
-                student=self.student,
-                classroom__class_type='study',
-            ).exclude(classroom=self.classroom).exists()
+            if self.classroom.course:
+                existing_study_enrollment = Classroomenrollment.objects.filter(
+                    student=self.student,
+                    classroom__class_type='study',
+                    classroom__course=self.classroom.course,
+                ).exclude(classroom=self.classroom).exists()
 
-            if existing_study_enrollment:
-                raise ValidationError('الطالب مسجل بالفعل في شعبة دراسية أخرى')
+                if existing_study_enrollment:
+                    raise ValidationError('الطالب مسجل بالفعل في شعبة دراسية أخرى لهذه الدورة')
+            else:
+                existing_study_enrollment = Classroomenrollment.objects.filter(
+                    student=self.student,
+                    classroom__class_type='study',
+                    classroom__course__isnull=True,
+                ).exclude(classroom=self.classroom).exists()
+
+                if existing_study_enrollment:
+                    raise ValidationError('الطالب مسجل بالفعل في شعبة دراسية عامة أخرى')
 
     def __str__(self):
         return f'{self.student} في {self.classroom}'

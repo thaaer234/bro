@@ -69,6 +69,9 @@
         </div>
     </div>
     <div class="filter-actions">
+        <button class="btn btn-primary" id="search-btn">
+            <i class="fas fa-search me-2"></i> بحث
+        </button>
         <button class="btn btn-info" id="show-all-btn">
             <i class="fas fa-list me-2"></i> عرض جميع الطلاب
         </button>
@@ -232,7 +235,7 @@
     </div>
 </div>
 
-{% elif search_query %}
+{% elif search_query or search_name or search_number or search_phone %}
 <!-- 🔍 إذا كان هناك بحث ولكن لا توجد نتائج -->
 <div class="card mt-4">
     <div class="card-body text-center py-5">
@@ -799,17 +802,14 @@ function initializeFilters() {
         // بناء رابط البحث
         const params = new URLSearchParams();
         
-        // تحديد حقل البحث الرئيسي (الأولوية للاسم ثم الرقم ثم الهاتف)
-        let searchQuery = '';
-        if (filterElements.name.value.trim()) {
-            searchQuery = filterElements.name.value.trim();
-        } else if (filterElements.id.value.trim()) {
-            searchQuery = filterElements.id.value.trim();
-        } else if (filterElements.phone.value.trim()) {
-            searchQuery = filterElements.phone.value.trim();
-        }
+        const nameVal = filterElements.name.value.trim();
+        const numberVal = filterElements.id.value.trim();
+        const phoneVal = filterElements.phone.value.trim();
         
-        if (searchQuery) params.append('q', searchQuery);
+        if (nameVal) params.append('name', nameVal);
+        if (numberVal) params.append('student_number', numberVal);
+        if (phoneVal) params.append('phone', phoneVal);
+        
         if (filterElements.type.value) params.append('type', filterElements.type.value);
         if (filterElements.branch.value) params.append('branch', filterElements.branch.value);
         if (filterElements.year.value) params.append('academic_year', filterElements.year.value);
@@ -823,6 +823,14 @@ function initializeFilters() {
         }
     }
     
+    // ربط زر البحث اليدوي
+    const searchBtn = document.getElementById('search-btn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', function() {
+            applyFilters();
+        });
+    }
+    
     // إضافة مستمعي الأحداث للفلاتر
     Object.keys(filterElements).forEach(key => {
         const element = filterElements[key];
@@ -833,20 +841,11 @@ function initializeFilters() {
                     applyFilters();
                 });
             } else {
-                // البحث أثناء الكتابة مع تأخير للحقول النصية
-                let timeoutId;
-                element.addEventListener('input', function() {
-                    clearTimeout(timeoutId);
-                    timeoutId = setTimeout(() => {
-                        console.log(`تم إدخال نص في ${key}:`, this.value);
-                        applyFilters();
-                    }, 800); // تأخير 800 مللي ثانية
-                });
+                // تم إزالة البحث التلقائي أثناء الكتابة (بدون مؤقت) بطلب من المستخدم
                 
                 // السماح بالبحث بالضغط على Enter
                 element.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
-                        clearTimeout(timeoutId);
                         applyFilters();
                     }
                 });
@@ -894,12 +893,21 @@ function populateCurrentFiltersFromURL() {
         year: document.getElementById('year-filter')
     };
     
-    if (urlParams.has('q')) {
+    if (urlParams.has('name')) {
+        if (filterElements.name) filterElements.name.value = urlParams.get('name');
+    } else if (urlParams.has('q')) {
         const searchQuery = urlParams.get('q');
-        // نضع قيمة البحث في حقل الاسم كافتراضي
-        if (filterElements.name) {
+        if (searchQuery !== 'all' && filterElements.name) {
             filterElements.name.value = searchQuery;
         }
+    }
+    
+    if (urlParams.has('student_number')) {
+        if (filterElements.id) filterElements.id.value = urlParams.get('student_number');
+    }
+    
+    if (urlParams.has('phone')) {
+        if (filterElements.phone) filterElements.phone.value = urlParams.get('phone');
     }
     
     if (urlParams.has('type')) {

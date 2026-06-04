@@ -663,6 +663,10 @@ class StudentListView(LoginRequiredMixin, TemplateView):
         
         # 🔍 البحث عن الطلاب إذا كان هناك معايير بحث
         search_query = (self.request.GET.get('q', '') or '').strip()
+        search_name = (self.request.GET.get('name', '') or '').strip()
+        search_number = (self.request.GET.get('student_number', '') or '').strip()
+        search_phone = (self.request.GET.get('phone', '') or '').strip()
+        
         academic_year_id = self.request.GET.get('academic_year')
         current_year = getattr(self.request, 'current_academic_year', None)
         if current_year:
@@ -674,22 +678,32 @@ class StudentListView(LoginRequiredMixin, TemplateView):
         show_all_students = search_query.lower() == 'all'
         
         students_list = []
+        is_searching = show_all_students or search_query or search_name or search_number or search_phone or (academic_year_id and academic_year_id != '0') or branch_filter or type_filter
         
         # إذا كان هناك بحث، جلب النتائج
-        if show_all_students or search_query or (academic_year_id and academic_year_id != '0') or branch_filter or type_filter:
-            normalized_search = '' if show_all_students else search_query
+        if is_searching:
             # البحث في الطلاب النظاميين
             regular_students = _scope_queryset_to_current_year(Student.objects.all(), self.request).select_related('academic_year', 'added_by')
             
             # تطبيق الفلاتر
-            if normalized_search:
-                regular_students = regular_students.filter(
-                    Q(full_name__icontains=normalized_search) |
-                    Q(student_number__icontains=normalized_search) |
-                    Q(phone__icontains=normalized_search) |
-                    Q(email__icontains=normalized_search) |
-                    Q(father_phone__icontains=normalized_search)
-                )
+            if not show_all_students:
+                if search_query:
+                    regular_students = regular_students.filter(
+                        Q(full_name__icontains=search_query) |
+                        Q(student_number__icontains=search_query) |
+                        Q(phone__icontains=search_query) |
+                        Q(email__icontains=search_query) |
+                        Q(father_phone__icontains=search_query)
+                    )
+                if search_name:
+                    regular_students = regular_students.filter(full_name__icontains=search_name)
+                if search_number:
+                    regular_students = regular_students.filter(student_number__icontains=search_number)
+                if search_phone:
+                    regular_students = regular_students.filter(
+                        Q(phone__icontains=search_phone) |
+                        Q(father_phone__icontains=search_phone)
+                    )
             
             if academic_year_id and academic_year_id != '0':
                 regular_students = regular_students.filter(academic_year_id=academic_year_id)
@@ -723,18 +737,26 @@ class StudentListView(LoginRequiredMixin, TemplateView):
                     from quick.models import QuickStudent
                     quick_students = _scope_queryset_to_current_year(QuickStudent.objects.filter(is_active=True), self.request).select_related('academic_year')
                     
-                    if normalized_search:
-                        quick_students = quick_students.filter(
-                            Q(full_name__icontains=normalized_search) |
-                            Q(phone__icontains=normalized_search)
-                        )
+                    if not show_all_students:
+                        if search_query:
+                            quick_students = quick_students.filter(
+                                Q(full_name__icontains=search_query) |
+                                Q(phone__icontains=search_query)
+                            )
+                        if search_name:
+                            quick_students = quick_students.filter(full_name__icontains=search_name)
+                        if search_phone:
+                            quick_students = quick_students.filter(phone__icontains=search_phone)
+                        if search_number:
+                            # الطلاب السريعون ليس لديهم رقم طالب بالعادة
+                            quick_students = quick_students.filter(id=-1)
                     
                     if academic_year_id and academic_year_id != '0':
                         quick_students = quick_students.filter(academic_year_id=academic_year_id)
-
+ 
                     if branch_filter and branch_filter != '':
                         quick_students = quick_students.none()
-
+ 
                     quick_students = quick_students.order_by('full_name', 'id')
                     
                     for student in quick_students:
@@ -750,7 +772,7 @@ class StudentListView(LoginRequiredMixin, TemplateView):
                         
                 except ImportError:
                     pass
-
+ 
             students_list.sort(
                 key=lambda student: (
                     getattr(student, 'full_name', '') or '',
@@ -762,10 +784,16 @@ class StudentListView(LoginRequiredMixin, TemplateView):
         context['search_results'] = students_list
         context['has_search_results'] = len(students_list) > 0
         context['search_query'] = '' if show_all_students else search_query
+        context['search_name'] = search_name
+        context['search_number'] = search_number
+        context['search_phone'] = search_phone
         context['current_filters'] = {
             'academic_year': academic_year_id,
             'branch': branch_filter,
-            'type': type_filter
+            'type': type_filter,
+            'name': search_name,
+            'student_number': search_number,
+            'phone': search_phone,
         }
         
         # الإحصائيات الحالية (الكود الأصلي)
@@ -2650,4 +2678,319 @@ class StudentUpdateView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'تم تحديث بيانات الطالب بنجاح')
         return super().form_valid(form)
+
+
+class CourseAuditView(LoginRequiredMixin, TemplateView):
+    template_name = 'students/course_audit.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # جلب الدورات النظامية
+        courses = Course.objects.all().order_by('-id')
+        courses_data = [
+            {'id': c.id, 'name': c.name, 'academic_year': c.academic_year.name if c.academic_year else ''}
+            for c in courses
+        ]
+        
+        # جلب الدورات السريعة
+        from quick.models import QuickCourse
+        quick_courses = QuickCourse.objects.all().order_by('-id')
+        quick_courses_data = [
+            {'id': qc.id, 'name': qc.name, 'academic_year': qc.academic_year.name if qc.academic_year else ''}
+            for qc in quick_courses
+        ]
+        
+        import json
+        context['courses_json'] = json.dumps(courses_data)
+        context['quick_courses_json'] = json.dumps(quick_courses_data)
+        return context
+
+def audit_course_api(request):
+    """API لتدقيق الحسابات والقيود على مستوى دورة معينة (نظامية أو سريعة)"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'غير مصرح'})
+        
+    course_id = request.GET.get('course_id')
+    course_type = request.GET.get('type', 'REGULAR')
+    if not course_id:
+        return JsonResponse({'success': False, 'error': 'لم يتم اختيار الدورة'})
+
+    errors = []
+    
+    if course_type == 'QUICK':
+        from quick.models import QuickCourse, QuickEnrollment
+        course = get_object_or_404(QuickCourse, id=course_id)
+        enrollments = QuickEnrollment.objects.filter(course=course).select_related('student')
+        
+        stats = {
+            'total_students': enrollments.count(),
+            'total_errors': 0,
+            'missing_entries': 0,
+            'mismatches': 0
+        }
+
+        for e in enrollments:
+            student = e.student
+            student_name = student.full_name
+            
+            # احتساب المبلغ الصافي
+            computed_net = e.calculated_net_amount
+            
+            # جلب قيد التسجيل وقيد الخصم الخاصين بهذا التسجيل تحديداً لتفادي الخلط مع دورات سريعة أخرى لنفس الطالب
+            enrollment_entry = e.enrollment_journal_entry
+            discount_entry = JournalEntry.objects.filter(
+                entry_type='ADJUSTMENT',
+                description__icontains=f'[QUICK_DISCOUNT #{e.id}]'
+            ).first()
+            
+            gross_ledger = enrollment_entry.total_amount if enrollment_entry else Decimal('0')
+            discount_ledger = discount_entry.total_amount if discount_entry else Decimal('0')
+            
+            # الصافي الدفتري الخاص بهذا التسجيل
+            actual_net_debit = gross_ledger - discount_ledger
+            
+            # فحص القيود المفقودة
+            if computed_net > 0 and not enrollment_entry:
+                stats['total_errors'] += 1
+                stats['missing_entries'] += 1
+                errors.append({
+                    'enrollment_id': e.id,
+                    'student_id': student.id,
+                    'student_name': student_name,
+                    'student_phone': student.phone or 'بلا هاتف',
+                    'total_amount': e.total_amount,
+                    'discount_percent': e.discount_percent,
+                    'discount_amount': e.discount_amount,
+                    'discount_reason': 'تسجيل سريع',
+                    'net_amount': computed_net,
+                    'ledger_balance': actual_net_debit,
+                    'type': 'missing_entry',
+                    'type_display': 'قيد تسجيل مفقود',
+                    'description': 'الطالب مسجل بنجاح في دورة سريعة ولكن لا يوجد قيد محاسبي للتسجيل.',
+                    'suggestion': 'إنشاء قيد التسجيل المحاسبي للدورة السريعة بقيمة إجمالية ' + str(e.total_amount) + ' ل.س.'
+                })
+            # فحص خلل الأرصدة
+            elif abs(actual_net_debit - computed_net) > Decimal('0.01'):
+                stats['total_errors'] += 1
+                stats['mismatches'] += 1
+                errors.append({
+                    'enrollment_id': e.id,
+                    'student_id': student.id,
+                    'student_name': student_name,
+                    'student_phone': student.phone or 'بلا هاتف',
+                    'total_amount': e.total_amount,
+                    'discount_percent': e.discount_percent,
+                    'discount_amount': e.discount_amount,
+                    'discount_reason': 'تسجيل سريع',
+                    'net_amount': computed_net,
+                    'ledger_balance': actual_net_debit,
+                    'type': 'mismatch',
+                    'type_display': 'خلل في أرصدة القيود',
+                    'description': f'صافي التسجيل السريع المحسوب هو {computed_net} ل.س بينما الرصيد الدفتري الحالي هو {actual_net_debit} ل.س (بسبب خلل في قيد التسجيل أو التسوية).',
+                    'suggestion': 'حذف قيود التسوية المكررة وإعادة بناء قيد الحسم وقيد التسجيل الأصلي بالقيم الصحيحة.'
+                })
+    else:
+        # الدورات النظامية
+        course = get_object_or_404(Course, id=course_id)
+        enrollments = Studentenrollment.objects.filter(course=course).select_related('student', 'enrollment_journal_entry')
+
+        stats = {
+            'total_students': enrollments.count(),
+            'total_errors': 0,
+            'missing_entries': 0,
+            'mismatches': 0
+        }
+
+        for e in enrollments:
+            student = e.student
+            student_name = getattr(student, 'full_name', None) or getattr(student, 'name', '') or str(student)
+            
+            # احتساب المبلغ الصافي رياضياً
+            computed_net = max(Decimal('0'), e.total_amount - (e.total_amount * e.discount_percent / Decimal('100')) - e.discount_amount)
+            
+            # جلب الحساب الجاري والقيود
+            ar_account = Account.get_student_ar_account_for_course(student, course)
+            
+            ledger_debit = Decimal('0')
+            ledger_credit = Decimal('0')
+            
+            if ar_account:
+                ledger_debit = ar_account.get_debit_balance() or Decimal('0')
+                ledger_credit = ar_account.get_credit_balance() or Decimal('0')
+                
+            # إجمالي قيود الخصم/التسوية الدائنة والمدينة
+            adjustments_credit = Transaction.objects.filter(
+                account=ar_account, 
+                journal_entry__entry_type='ADJUSTMENT', 
+                is_debit=False
+            ).aggregate(s=Sum('amount'))['s'] or Decimal('0')
+            
+            adjustments_debit = Transaction.objects.filter(
+                account=ar_account, 
+                journal_entry__entry_type='ADJUSTMENT', 
+                is_debit=True
+            ).aggregate(s=Sum('amount'))['s'] or Decimal('0')
+
+            # الصافي الدفتري قبل المدفوعات (المدين الأصلي مطروحاً منه الخصومات)
+            actual_net_debit = ledger_debit - adjustments_credit + adjustments_debit
+            
+            # فحص القيود المفقودة
+            if computed_net > 0 and not e.enrollment_journal_entry:
+                stats['total_errors'] += 1
+                stats['missing_entries'] += 1
+                errors.append({
+                    'enrollment_id': e.id,
+                    'student_id': student.id,
+                    'student_name': student_name,
+                    'student_phone': student.father_phone or 'بلا هاتف',
+                    'total_amount': e.total_amount,
+                    'discount_percent': e.discount_percent,
+                    'discount_amount': e.discount_amount,
+                    'discount_reason': e.discount_reason,
+                    'net_amount': computed_net,
+                    'ledger_balance': actual_net_debit,
+                    'type': 'missing_entry',
+                    'type_display': 'قيد تسجيل مفقود',
+                    'description': 'الطالب مسجل بنجاح وله ذمة مالية ولكن لا يوجد قيد محاسبي للتسجيل.',
+                    'suggestion': 'إنشاء قيد التسجيل المحاسبي (DR ذمة الطالب / CR إيرادات مؤجلة) بمبلغ ' + str(computed_net) + ' ل.س.'
+                })
+                
+            # فحص خلل الأرصدة بسبب قيود الحسم المزدوجة
+            elif abs(actual_net_debit - computed_net) > Decimal('0.01'):
+                stats['total_errors'] += 1
+                stats['mismatches'] += 1
+                errors.append({
+                    'enrollment_id': e.id,
+                    'student_id': student.id,
+                    'student_name': student_name,
+                    'student_phone': student.father_phone or 'بلا هاتف',
+                    'total_amount': e.total_amount,
+                    'discount_percent': e.discount_percent,
+                    'discount_amount': e.discount_amount,
+                    'discount_reason': e.discount_reason,
+                    'net_amount': computed_net,
+                    'ledger_balance': actual_net_debit,
+                    'type': 'mismatch',
+                    'type_display': 'خلل في أرصدة القيود',
+                    'description': f'صافي التسجيل المحسوب هو {computed_net} ل.س بينما الرصيد الدفتري الحالي هو {actual_net_debit} ل.س (بسبب قيود تسوية مكررة أو خاطئة).',
+                    'suggestion': 'إلغاء قيود التسوية (ADJUSTMENT) الخاطئة وتحديث قيمة القيد الأصلي ليعبر بدقة عن الصافي.'
+                })
+
+    return JsonResponse({
+        'success': True,
+        'errors': errors,
+        'stats': stats
+    })
+
+def fix_student_enrollment_error(request):
+    """إجراء لتصحيح الأخطاء تلقائياً وبأمان لكافة أنواع الدورات"""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'غير مصرح'})
+        
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'طلب غير صالح'})
+
+    try:
+        data = json.loads(request.body)
+        enrollment_id = data.get('enrollment_id')
+        error_type = data.get('error_type')
+        course_type = data.get('course_type', 'REGULAR')
+        
+        if not enrollment_id or not error_type:
+            return JsonResponse({'success': False, 'error': 'معطيات ناقصة'})
+
+        from django.db import transaction as db_transaction
+        
+        with db_transaction.atomic():
+            if course_type == 'QUICK':
+                from quick.models import QuickEnrollment
+                enrollment = get_object_or_404(QuickEnrollment, id=enrollment_id)
+                student = enrollment.student
+                course = enrollment.course
+                
+                computed_net = enrollment.calculated_net_amount
+                
+                if error_type == 'missing_entry':
+                    enrollment.create_accrual_enrollment_entry(request.user)
+                elif error_type == 'mismatch':
+                    # 1. حذف قيود الحسم/التسوية
+                    adjustments = JournalEntry.objects.filter(
+                        entry_type='ADJUSTMENT',
+                        description__contains=student.full_name
+                    ).filter(description__contains=course.name)
+                    for adj in adjustments:
+                        adj.transactions.all().delete()
+                        adj.delete()
+                        
+                    # 2. تحديث قيد التسجيل الأصلي للصافي/الإجمالي الصحيح
+                    je = enrollment.enrollment_journal_entry
+                    if je:
+                        je.total_amount = enrollment.gross_amount
+                        je.save(update_fields=['total_amount'])
+                        
+                        debit_trans = je.transactions.filter(is_debit=True).first()
+                        credit_trans = je.transactions.filter(is_debit=False).first()
+                        if debit_trans:
+                            debit_trans.amount = enrollment.gross_amount
+                            debit_trans.save(update_fields=['amount'])
+                        if credit_trans:
+                            credit_trans.amount = enrollment.gross_amount
+                            credit_trans.save(update_fields=['amount'])
+                    else:
+                        enrollment.create_accrual_enrollment_entry(request.user)
+                        
+                    # 3. إعادة إنشاء قيد الحسم
+                    if enrollment.discount_value > 0:
+                        enrollment.create_discount_adjustment_entry(request.user)
+            else:
+                enrollment = get_object_or_404(Studentenrollment, id=enrollment_id)
+                student = enrollment.student
+                course = enrollment.course
+                
+                computed_net = max(Decimal('0'), enrollment.total_amount - (enrollment.total_amount * enrollment.discount_percent / Decimal('100')) - enrollment.discount_amount)
+
+                if error_type == 'missing_entry':
+                    if computed_net > 0:
+                        enrollment.create_accrual_enrollment_entry(request.user)
+                        
+                elif error_type == 'mismatch':
+                    adjustments = JournalEntry.objects.filter(
+                        entry_type='ADJUSTMENT',
+                        description__contains=student.full_name
+                    ).filter(description__contains=course.name)
+                    
+                    for adj in adjustments:
+                        adj.transactions.all().delete()
+                        adj.delete()
+                    
+                    if enrollment.enrollment_journal_entry:
+                        je = enrollment.enrollment_journal_entry
+                        if computed_net == 0:
+                            je.transactions.all().delete()
+                            je.delete()
+                            enrollment.enrollment_journal_entry = None
+                            enrollment.save(update_fields=['enrollment_journal_entry'])
+                        else:
+                            je.total_amount = computed_net
+                            je.save(update_fields=['total_amount'])
+                            
+                            debit_trans = je.transactions.filter(is_debit=True).first()
+                            credit_trans = je.transactions.filter(is_debit=False).first()
+                            
+                            if debit_trans:
+                                debit_trans.amount = computed_net
+                                debit_trans.save(update_fields=['amount'])
+                            if credit_trans:
+                                credit_trans.amount = computed_net
+                                credit_trans.save(update_fields=['amount'])
+                    else:
+                        if computed_net > 0:
+                            enrollment.create_accrual_enrollment_entry(request.user)
+
+        return JsonResponse({'success': True, 'message': 'تم تصحيح القيد بنجاح'})
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
     

@@ -320,17 +320,9 @@ class Student(models.Model):
                 elif enrollment.enrollment_journal_entry:
                     print(f"سيتم تعديل القيد: الفرق {new_net_amount - old_net_amount}")
                     self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
-                    # إنشاء أو تعديل قيد الحسم
-                    calculated_discount = max(Decimal('0'), gross_amount - new_net_amount)
-                    if calculated_discount > 0:
-                        self._create_or_update_discount_adjustment(enrollment, calculated_discount, user)
                 elif new_net_amount > 0:
                     print(f"سيتم إنشاء قيد جديد بمبلغ {new_net_amount}")
                     enrollment.create_accrual_enrollment_entry(user)
-                    # إنشاء قيد الحسم
-                    calculated_discount = max(Decimal('0'), gross_amount - new_net_amount)
-                    if calculated_discount > 0:
-                        self._create_or_update_discount_adjustment(enrollment, calculated_discount, user)
             else:
                 print("لا يوجد فرق في المبلغ الصافي")
 
