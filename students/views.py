@@ -2920,7 +2920,10 @@ def fix_student_enrollment_error(request):
                         entry_type='ADJUSTMENT',
                         description__contains=student.full_name
                     ).filter(description__contains=course.name)
+                    if enrollment.enrollment_journal_entry:
+                        adjustments = adjustments.exclude(id=enrollment.enrollment_journal_entry.id)
                     for adj in adjustments:
+                        adj._skip_linked_cleanup = True
                         adj.transactions.all().delete()
                         adj.delete()
                         
@@ -2960,14 +2963,18 @@ def fix_student_enrollment_error(request):
                         entry_type='ADJUSTMENT',
                         description__contains=student.full_name
                     ).filter(description__contains=course.name)
+                    if enrollment.enrollment_journal_entry:
+                        adjustments = adjustments.exclude(id=enrollment.enrollment_journal_entry.id)
                     
                     for adj in adjustments:
+                        adj._skip_linked_cleanup = True
                         adj.transactions.all().delete()
                         adj.delete()
                     
                     if enrollment.enrollment_journal_entry:
                         je = enrollment.enrollment_journal_entry
                         if computed_net == 0:
+                            je._skip_linked_cleanup = True
                             je.transactions.all().delete()
                             je.delete()
                             enrollment.enrollment_journal_entry = None
