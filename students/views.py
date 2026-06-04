@@ -2706,6 +2706,16 @@ class CourseAuditView(LoginRequiredMixin, TemplateView):
         context['quick_courses_json'] = json.dumps(quick_courses_data)
         return context
 
+def recalculate_account_balances(*accounts):
+    """إعادة احتساب وتحديث الأرصدة المخزنة (الكاش) في الحسابات وآبائها بالكامل من واقع المعاملات الفعلية"""
+    for acc in accounts:
+        if acc:
+            curr = acc
+            while curr:
+                curr.balance = curr.get_net_balance()
+                curr.save(update_fields=['balance'])
+                curr = curr.parent
+
 def audit_course_api(request):
     """API لتدقيق الحسابات والقيود على مستوى دورة معينة (نظامية أو سريعة)"""
     if not request.user.is_authenticated:
@@ -2826,6 +2836,7 @@ def audit_course_api(request):
                                 duplicate_je._skip_linked_cleanup = True
                                 duplicate_je.transactions.all().delete()
                                 duplicate_je.delete()
+                        recalculate_account_balances(ar_account)
                                 
             # احتساب المبلغ الصافي رياضياً
             computed_net = max(Decimal('0'), e.total_amount - (e.total_amount * e.discount_percent / Decimal('100')) - e.discount_amount)
@@ -2968,6 +2979,11 @@ def fix_student_enrollment_error(request):
                     # 3. إعادة إنشاء قيد الحسم
                     if enrollment.discount_value > 0:
                         enrollment.create_discount_adjustment_entry(request.user)
+                        
+                    # 4. تحديث الأرصدة المخزنة للحسابات محاسبياً بالكامل
+                    student_ar_account = Account.get_or_create_quick_student_ar_account(enrollment.student)
+                    deferred_account = Account.get_or_create_quick_course_deferred_account(enrollment.course)
+                    recalculate_account_balances(student_ar_account, deferred_account)
             else:
                 enrollment = get_object_or_404(Studentenrollment, id=enrollment_id)
                 student = enrollment.student
@@ -3037,6 +3053,11 @@ def fix_student_enrollment_error(request):
                     else:
                         if computed_net > 0:
                             enrollment.create_accrual_enrollment_entry(request.user)
+                            
+                    # تحديث الأرصدة المخزنة للحسابات محاسبياً بالكامل
+                    student_ar_account = Account.get_student_ar_account_for_course(student, course)
+                    course_deferred_account = Account.get_or_create_course_deferred_account(course)
+                    recalculate_account_balances(student_ar_account, course_deferred_account)
 
         return JsonResponse({'success': True, 'message': 'تم تصحيح القيد بنجاح'})
 
