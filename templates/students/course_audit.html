@@ -102,10 +102,16 @@
         <div class="card border-0 shadow-sm mb-4 bg-white" id="resultsCard">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-list text-primary me-2"></i> تفاصيل الحسابات والأخطاء المكتشفة</h5>
-                <div class="btn-group btn-group-sm" role="group" id="auditFilters">
-                    <button type="button" class="btn btn-outline-secondary active" data-filter="all">الكل (All)</button>
-                    <button type="button" class="btn btn-outline-warning" data-filter="missing_entry">قيود مفقودة/محذوفة</button>
-                    <button type="button" class="btn btn-outline-info" data-filter="mismatch">خلل تسوية وأرصدة</button>
+                <div class="d-flex align-items-center gap-2 flex-wrap ms-auto">
+                    <!-- Search Input -->
+                    <div class="position-relative">
+                        <input type="text" id="studentSearchInput" class="form-control form-control-sm border-2 px-3" placeholder="ابحث باسم الطالب أو رقم الهاتف..." style="min-width: 250px; border-radius: 20px;">
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group" id="auditFilters">
+                        <button type="button" class="btn btn-outline-secondary active" data-filter="all">الكل (All)</button>
+                        <button type="button" class="btn btn-outline-warning" data-filter="missing_entry">قيود مفقودة/محذوفة</button>
+                        <button type="button" class="btn btn-outline-info" data-filter="mismatch">خلل تسوية وأرصدة</button>
+                    </div>
                 </div>
                 <button id="fixAllBtn" class="btn btn-outline-danger btn-sm d-none">
                     <i class="fas fa-wand-magic-sparkles me-1"></i> تصحيح الكل تلقائياً
@@ -566,27 +572,60 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Unified Filter logic
+    let currentFilter = 'all';
+
+    const studentSearchInput = document.getElementById('studentSearchInput');
+    if (studentSearchInput) {
+        studentSearchInput.addEventListener('input', applyFilters);
+    }
+
     // Filter click handler
     document.querySelectorAll('#auditFilters button').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('#auditFilters button').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             
-            const filterValue = this.getAttribute('data-filter');
-            filterTableRows(filterValue);
+            currentFilter = this.getAttribute('data-filter');
+            applyFilters();
         });
     });
 
-    function filterTableRows(filterValue) {
+    function applyFilters() {
+        const query = studentSearchInput ? studentSearchInput.value.toLowerCase().trim() : '';
         const rows = document.querySelectorAll('#auditTableBody tr');
+        
+        // Loop through rows using enrollment IDs
+        const checkedEnrollments = new Set();
+        
         rows.forEach(row => {
-            const btn = row.querySelector('.fix-single-btn');
-            if (!btn) return;
-            const errorType = btn.getAttribute('data-error-type');
-            if (filterValue === 'all' || errorType === filterValue) {
-                row.classList.remove('d-none');
+            const enrollId = row.getAttribute('data-enrollment-id');
+            if (!enrollId || checkedEnrollments.has(enrollId)) return;
+            
+            checkedEnrollments.add(enrollId);
+            
+            // Get main row and its advanced sub-row
+            const mainRow = document.querySelector(`#auditTableBody tr[data-enrollment-id="${enrollId}"]:not([id^="adv-"])`);
+            const advRow = document.getElementById(`adv-${enrollId}`);
+            
+            if (!mainRow) return;
+            
+            const btn = mainRow.querySelector('.fix-single-btn');
+            const errorType = btn ? btn.getAttribute('data-error-type') : '';
+            
+            // Student text contents (Name, Phone, ID)
+            const studentCellText = mainRow.querySelector('td:first-child').innerText.toLowerCase();
+            
+            const matchesFilter = (currentFilter === 'all' || errorType === currentFilter);
+            const matchesQuery = (!query || studentCellText.includes(query));
+            
+            if (matchesFilter && matchesQuery) {
+                mainRow.classList.remove('d-none');
             } else {
-                row.classList.add('d-none');
+                mainRow.classList.add('d-none');
+                if (advRow) {
+                    advRow.classList.add('d-none'); // hide advanced panel if main row is hidden
+                }
             }
         });
     }
