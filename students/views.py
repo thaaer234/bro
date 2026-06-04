@@ -2806,6 +2806,27 @@ def audit_course_api(request):
             student = e.student
             student_name = getattr(student, 'full_name', None) or getattr(student, 'name', '') or str(student)
             
+            # الربط المحاسبي التلقائي وتنظيف القيود المكررة للتسجيل من المحاولات السابقة
+            ar_account = Account.get_student_ar_account_for_course(student, course)
+            if ar_account:
+                enrollment_jes = JournalEntry.objects.filter(
+                    entry_type='enrollment',
+                    transactions__account=ar_account,
+                    transactions__is_debit=True
+                ).distinct().order_by('id')
+                
+                if enrollment_jes.exists():
+                    if not e.enrollment_journal_entry or e.enrollment_journal_entry not in enrollment_jes:
+                        e.enrollment_journal_entry = enrollment_jes[0]
+                        e.save(update_fields=['enrollment_journal_entry'])
+                    
+                    if enrollment_jes.count() > 1:
+                        for duplicate_je in enrollment_jes:
+                            if duplicate_je.id != e.enrollment_journal_entry.id:
+                                duplicate_je._skip_linked_cleanup = True
+                                duplicate_je.transactions.all().delete()
+                                duplicate_je.delete()
+                                
             # احتساب المبلغ الصافي رياضياً
             computed_net = max(Decimal('0'), e.total_amount - (e.total_amount * e.discount_percent / Decimal('100')) - e.discount_amount)
             
@@ -2951,6 +2972,27 @@ def fix_student_enrollment_error(request):
                 enrollment = get_object_or_404(Studentenrollment, id=enrollment_id)
                 student = enrollment.student
                 course = enrollment.course
+                
+                # الربط المحاسبي التلقائي وتنظيف القيود المكررة للتسجيل من المحاولات السابقة
+                ar_account = Account.get_student_ar_account_for_course(student, course)
+                if ar_account:
+                    enrollment_jes = JournalEntry.objects.filter(
+                        entry_type='enrollment',
+                        transactions__account=ar_account,
+                        transactions__is_debit=True
+                    ).distinct().order_by('id')
+                    
+                    if enrollment_jes.exists():
+                        if not enrollment.enrollment_journal_entry or enrollment.enrollment_journal_entry not in enrollment_jes:
+                            enrollment.enrollment_journal_entry = enrollment_jes[0]
+                            enrollment.save(update_fields=['enrollment_journal_entry'])
+                        
+                        if enrollment_jes.count() > 1:
+                            for duplicate_je in enrollment_jes:
+                                if duplicate_je.id != enrollment.enrollment_journal_entry.id:
+                                    duplicate_je._skip_linked_cleanup = True
+                                    duplicate_je.transactions.all().delete()
+                                    duplicate_je.delete()
                 
                 computed_net = max(Decimal('0'), enrollment.total_amount - (enrollment.total_amount * enrollment.discount_percent / Decimal('100')) - enrollment.discount_amount)
 

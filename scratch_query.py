@@ -8,47 +8,41 @@ django.setup()
 from django.db import connections
 connections['default'].cursor().execute("PRAGMA busy_timeout = 30000;")
 
-from quick.models import QuickCourse, QuickEnrollment
-from accounts.models import JournalEntry, Transaction
+from accounts.models import Course, Studentenrollment, JournalEntry, Transaction, Account
+from students.models import Student
 from django.db.models import Sum
 from decimal import Decimal
 
-quick_courses = QuickCourse.objects.all()
+student = Student.objects.get(id=1531)
+print(f"Student: {student.full_name}")
 
-total_missing = 0
-total_mismatch = 0
-mismatched_courses = {}
+enrollments = Studentenrollment.objects.filter(student=student)
+print(f"Enrollments count: {enrollments.count()}")
 
-for qc in quick_courses:
-    enrollments = QuickEnrollment.objects.filter(course=qc)
-    course_errors = 0
+for e in enrollments:
+    print(f"\nEnrollment ID: {e.id}")
+    print(f"Course: {e.course.name} (Price: {e.course.price})")
+    print(f"Enrollment total: {e.total_amount}, discount percent: {e.discount_percent}, discount amount: {e.discount_amount}")
+    computed_net = max(Decimal('0'), e.total_amount - (e.total_amount * e.discount_percent / Decimal('100')) - e.discount_amount)
+    print(f"Computed net: {computed_net}")
+    print(f"Enrollment Journal Entry: {e.enrollment_journal_entry}")
     
-    for e in enrollments:
-        computed_net = e.calculated_net_amount
-        enrollment_entry = e.enrollment_journal_entry
-        discount_entry = JournalEntry.objects.filter(
-            entry_type='ADJUSTMENT',
-            description__icontains=f'[QUICK_DISCOUNT #{e.id}]'
-        ).first()
+    ar_account = Account.get_student_ar_account_for_course(student, e.course)
+    print(f"AR Account: {ar_account}")
+    if ar_account:
+        print(f"  Account Debit: {ar_account.get_debit_balance()}")
+        print(f"  Account Credit: {ar_account.get_credit_balance()}")
         
-        gross_ledger = enrollment_entry.total_amount if enrollment_entry else Decimal('0')
-        discount_ledger = discount_entry.total_amount if discount_entry else Decimal('0')
-        actual_net_debit = gross_ledger - discount_ledger
-        
-        if computed_net > 0 and not enrollment_entry:
-            total_missing += 1
-            course_errors += 1
-        elif abs(actual_net_debit - computed_net) > Decimal('0.01'):
-            total_mismatch += 1
-            course_errors += 1
-            
-    if course_errors > 0:
-        mismatched_courses[qc.name] = course_errors
+        txs = Transaction.objects.filter(account=ar_account)
+        print("  Transactions:")
+        for tx in txs:
+            print(f"    - TX ID: {tx.id}, JE ID: {tx.journal_entry.id}, JE Type: {tx.journal_entry.entry_type}, Reference: {tx.journal_entry.reference}, Description: {tx.journal_entry.description}, Amount: {tx.amount}, Is Debit: {tx.is_debit}")
 
-print(f"=== GLOBAL AUDIT SUMMARY FOR ALL QUICK COURSES ===")
-print(f"Total Quick Courses with errors: {len(mismatched_courses)} out of {quick_courses.count()}")
-print(f"Total Missing Enrollment Entries: {total_missing}")
-print(f"Total Balance Mismatches: {total_mismatch}")
-print("\nCourses and their error counts:")
-for cname, err_count in mismatched_courses.items():
-    print(f" - {cname}: {err_count} errors")
+        # Let's see the adjustment entries in the view query:
+        adjustments = JournalEntry.objects.filter(
+            entry_type='ADJUSTMENT',
+            description__contains=student.full_name
+        ).filter(description__contains=e.course.name)
+        print("  Matching ADJUSTMENTS to delete in code:")
+        for adj in adjustments:
+            print(f"    - ADJ ID: {adj.id}, Reference: {adj.reference}, Description: {adj.description}, Amount: {adj.total_amount}")
