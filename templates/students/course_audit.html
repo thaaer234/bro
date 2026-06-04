@@ -43,8 +43,34 @@
                         <i class="fas fa-magnifying-glass-chart me-2"></i> تشغيل الفحص
                     </button>
                 </div>
+        </div>
+    </div>
+
+    <!-- Student Search Card -->
+    <div class="card shadow-sm border-0 mb-4 bg-white">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-9">
+                    <label for="inspectStudentInput" class="form-label font-weight-bold text-secondary">
+                        <i class="fas fa-search-dollar me-1"></i> فحص حسابات طالب معين بالكامل (جميع دوراته وقيد ذمته وتفاصيل حساباته):
+                    </label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-light border-2"><i class="fas fa-user-circle text-muted"></i></span>
+                        <input type="text" id="inspectStudentInput" class="form-control border-2" placeholder="أدخل اسم الطالب للبحث والتدقيق...">
+                    </div>
+                </div>
+                <div class="col-md-3 text-md-end pt-4">
+                    <button id="runStudentInspectBtn" class="btn btn-info btn-lg text-white px-4 w-100">
+                        <i class="fas fa-user-shield me-2"></i> فحص حالة الطالب
+                    </button>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- Student Inspect Results Section (Hidden until loaded) -->
+    <div id="studentInspectSection" class="d-none mb-4">
+        <!-- Populated dynamically -->
     </div>
 
     <!-- Loading Spinner -->
@@ -160,6 +186,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const noErrorsAlert = document.getElementById('noErrorsAlert');
     const resultsCard = document.getElementById('resultsCard');
     const fixAllBtn = document.getElementById('fixAllBtn');
+    const runStudentInspectBtn = document.getElementById('runStudentInspectBtn');
+    const inspectStudentInput = document.getElementById('inspectStudentInput');
+    const studentInspectSection = document.getElementById('studentInspectSection');
 
     // Stats Elements
     const statTotalStudents = document.getElementById('statTotalStudents');
@@ -200,6 +229,292 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     runAuditBtn.addEventListener('click', runAudit);
+
+    if (runStudentInspectBtn) {
+        runStudentInspectBtn.addEventListener('click', runStudentInspect);
+    }
+    if (inspectStudentInput) {
+        inspectStudentInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                runStudentInspect();
+            }
+        });
+    }
+
+    function runStudentInspect() {
+        const query = inspectStudentInput.value.trim();
+        if (!query) {
+            alert('الرجاء إدخال اسم الطالب للبحث.');
+            return;
+        }
+
+        auditLoading.classList.remove('d-none');
+        auditDashboard.classList.add('d-none');
+        studentInspectSection.classList.add('d-none');
+        noErrorsAlert.classList.add('d-none');
+
+        fetch(`/students/course-audit/api/?student_search=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+                auditLoading.classList.add('d-none');
+                if (data.success) {
+                    studentInspectSection.innerHTML = '';
+                    studentInspectSection.classList.remove('d-none');
+
+                    if (data.results.length === 0) {
+                        studentInspectSection.innerHTML = `
+                            <div class="alert alert-warning border shadow-sm">
+                                <i class="fas fa-exclamation-triangle me-2"></i> لم يتم العثور على أي طالب يطابق الاسم "<strong>${query}</strong>".
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    data.results.forEach(student => {
+                        const studentCard = document.createElement('div');
+                        studentCard.className = 'card shadow-sm border-0 mb-4 bg-white';
+                        
+                        let enrollmentsHtml = '';
+                        if (student.enrollments.length === 0) {
+                            enrollmentsHtml = `<p class="text-muted p-3 text-center">لا يوجد تسجيلات حالية لهذا الطالب.</p>`;
+                        } else {
+                            student.enrollments.forEach(e => {
+                                let errorBadges = '';
+                                if (e.errors && e.errors.length > 0) {
+                                    e.errors.forEach(err => {
+                                        errorBadges += `<span class="badge bg-danger ms-1 mb-1"><i class="fas fa-circle-exclamation me-1"></i> ${err}</span>`;
+                                    });
+                                } else {
+                                    errorBadges = `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> سليم محاسبياً</span>`;
+                                }
+
+                                let entriesRows = '';
+                                if (e.linked_entries.length === 0) {
+                                    entriesRows = `<tr><td colspan="5" class="text-center text-muted">لا توجد قيود مرتبطة مسجلة</td></tr>`;
+                                } else {
+                                    e.linked_entries.forEach(entry => {
+                                        entriesRows += `
+                                            <tr>
+                                                <td><span class="badge bg-light text-dark border fw-bold">${entry.reference}</span></td>
+                                                <td><span class="badge bg-light text-secondary border">${entry.type === 'enrollment' ? 'قيد تسجيل' : 'قيد تسوية/حسم'}</span></td>
+                                                <td class="fw-semibold">${parseFloat(entry.amount).toLocaleString()} ل.س</td>
+                                                <td>${entry.date}</td>
+                                                <td><small class="text-muted">${entry.description}</small></td>
+                                            </tr>
+                                        `;
+                                    });
+                                }
+
+                                enrollmentsHtml += `
+                                    <div class="border rounded p-3 mb-4 bg-white" style="border-right: 4px solid var(--bs-primary) !important;">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 border-bottom pb-2">
+                                            <h6 class="font-weight-bold text-primary m-0">
+                                                <i class="fas fa-graduation-cap me-1"></i> ${e.course_name}
+                                                <span class="badge bg-light text-secondary border ms-2">${e.academic_year || 'سنة دراسية غير محددة'}</span>
+                                            </h6>
+                                            <div>
+                                                ${errorBadges}
+                                                <span class="badge bg-light-${e.is_completed ? 'success' : 'warning'} text-${e.is_completed ? 'success' : 'warning'} border px-2 py-1 ms-2">
+                                                    ${e.is_completed ? 'مكتمل' : 'نشط (غير مكتمل)'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Financial details -->
+                                        <div class="row text-center mb-3">
+                                            <div class="col-md-2 col-6 border-left mb-2">
+                                                <div class="text-muted small">المبلغ الإجمالي</div>
+                                                <div class="fw-bold">${parseFloat(e.total_amount).toLocaleString()} ل.س</div>
+                                            </div>
+                                            <div class="col-md-2 col-6 border-left mb-2">
+                                                <div class="text-muted small">الحسم الفعلي</div>
+                                                <div class="fw-bold text-danger">${parseFloat(e.discount_percent)}% / ${parseFloat(e.discount_amount).toLocaleString()}</div>
+                                            </div>
+                                            <div class="col-md-2 col-6 border-left mb-2">
+                                                <div class="text-muted small">الصافي المطلوب</div>
+                                                <div class="fw-bold text-success">${parseFloat(e.net_amount).toLocaleString()} ل.س</div>
+                                            </div>
+                                            <div class="col-md-2 col-6 border-left mb-2">
+                                                <div class="text-muted small">المدين الدفتري</div>
+                                                <div class="fw-bold text-info">${parseFloat(e.ledger_debit).toLocaleString()} ل.س</div>
+                                            </div>
+                                            <div class="col-md-2 col-6 border-left mb-2">
+                                                <div class="text-muted small">المدفوع الفعلي</div>
+                                                <div class="fw-bold text-dark">${parseFloat(e.ledger_credit).toLocaleString()} ل.س</div>
+                                            </div>
+                                            <div class="col-md-2 col-6 mb-2">
+                                                <div class="text-muted small">الرصيد الدفتري الحالي</div>
+                                                <div class="fw-bold text-primary">${parseFloat(e.ledger_balance).toLocaleString()} ل.س</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Associated entries table -->
+                                        <div class="table-responsive mb-3 border rounded">
+                                            <table class="table table-sm table-hover align-middle mb-0 text-right text-muted small">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>رمز القيد</th>
+                                                        <th>نوع القيد</th>
+                                                        <th>المبلغ الإجمالي</th>
+                                                        <th>التاريخ</th>
+                                                        <th>الوصف والبيان</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${entriesRows}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- Advanced Action Panel inside student report -->
+                                        <div class="bg-light p-3 rounded border">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-sliders-h text-secondary me-2"></i>
+                                                <span class="fw-bold text-secondary small">لوحة إجراءات التصحيح المباشرة لهذا الكورس:</span>
+                                            </div>
+                                            <div class="row align-items-end g-2">
+                                                <div class="col-md-5">
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="number" class="form-control custom-net-input-inspect" value="${e.net_amount}" placeholder="صافي جديد" step="1000">
+                                                        <button class="btn btn-primary update-net-btn-inspect shadow-sm" data-enrollment-id="${e.enrollment_id}" data-course-type="${student.type}">
+                                                            <i class="fas fa-save me-1"></i> حفظ وتصحيح القيمة
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-7 text-start">
+                                                    <div class="d-flex gap-1 justify-content-end flex-wrap">
+                                                        <button class="btn btn-outline-warning btn-sm delete-adj-btn-inspect shadow-sm" data-enrollment-id="${e.enrollment_id}" data-course-type="${student.type}">
+                                                            <i class="fas fa-eraser me-1"></i> حذف قيود التسوية
+                                                        </button>
+                                                        <button class="btn btn-outline-info btn-sm recalc-bal-btn-inspect shadow-sm" data-enrollment-id="${e.enrollment_id}" data-course-type="${student.type}">
+                                                            <i class="fas fa-calculator me-1"></i> تحديث الأرصدة
+                                                        </button>
+                                                        <button class="btn btn-outline-dark btn-sm toggle-completed-btn-inspect shadow-sm" data-enrollment-id="${e.enrollment_id}" data-course-type="${student.type}">
+                                                            <i class="fas fa-toggle-on me-1"></i> تبديل حالة الاكتمال
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        }
+
+                        studentCard.innerHTML = `
+                            <div class="card-header bg-info-light py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap" style="background-color: #f0f9ff;">
+                                <div>
+                                    <h5 class="m-0 font-weight-bold text-dark">
+                                        <i class="fas fa-user-circle text-info me-2"></i> ${student.student_name}
+                                    </h5>
+                                    <small class="text-muted">رقم المعرّف: ${student.student_id} | الهاتف: ${student.student_phone} | نظام الطلاب: ${student.type === 'REGULAR' ? 'طلاب نظاميون' : 'طلاب تسجيل سريع'}</small>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                ${enrollmentsHtml}
+                            </div>
+                        `;
+                        
+                        studentInspectSection.appendChild(studentCard);
+                    });
+
+                    // Bind actions inside inspected cards
+                    bindInspectCardActions();
+
+                } else {
+                    alert('خطأ أثناء فحص الطالب: ' + data.error);
+                }
+            })
+            .catch(err => {
+                auditLoading.classList.add('d-none');
+                alert('حدث خطأ في الاتصال بالخادم.');
+                console.error(err);
+            });
+    }
+
+    function bindInspectCardActions() {
+        document.querySelectorAll('.update-net-btn-inspect').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const enrollId = this.getAttribute('data-enrollment-id');
+                const courseType = this.getAttribute('data-course-type');
+                const container = this.closest('.border');
+                const input = container.querySelector('.custom-net-input-inspect');
+                const newAmount = input.value;
+                if (!newAmount || parseFloat(newAmount) < 0) {
+                    alert('الرجاء إدخال مبلغ صحيح.');
+                    return;
+                }
+                if (confirm(`هل أنت متأكد من تغيير صافي المبلغ إلى ${parseFloat(newAmount).toLocaleString()} ل.س؟ سيتم حذف قيود الحسم وتحديث قيد التسجيل بالكامل للصافي الجديد.`)) {
+                    executeInspectAdvancedAction(enrollId, 'update_net_amount', { custom_net_amount: newAmount }, courseType, this);
+                }
+            });
+        });
+
+        document.querySelectorAll('.delete-adj-btn-inspect').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const enrollId = this.getAttribute('data-enrollment-id');
+                const courseType = this.getAttribute('data-course-type');
+                if (confirm('هل أنت متأكد من حذف كافة قيود التسوية/الحسم (ADJUSTMENT) المرتبطة بهذا التسجيل وإعادة احتساب الأرصدة؟')) {
+                    executeInspectAdvancedAction(enrollId, 'delete_adjustments', {}, courseType, this);
+                }
+            });
+        });
+
+        document.querySelectorAll('.recalc-bal-btn-inspect').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const enrollId = this.getAttribute('data-enrollment-id');
+                const courseType = this.getAttribute('data-course-type');
+                executeInspectAdvancedAction(enrollId, 'recalculate_balance', {}, courseType, this);
+            });
+        });
+
+        document.querySelectorAll('.toggle-completed-btn-inspect').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const enrollId = this.getAttribute('data-enrollment-id');
+                const courseType = this.getAttribute('data-course-type');
+                executeInspectAdvancedAction(enrollId, 'toggle_completed', {}, courseType, this);
+            });
+        });
+    }
+
+    function executeInspectAdvancedAction(enrollmentId, actionType, extraData, courseType, buttonElement) {
+        const originalHtml = buttonElement.innerHTML;
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>...`;
+
+        const payload = Object.assign({
+            enrollment_id: enrollmentId,
+            error_type: 'advanced_action',
+            action_type: actionType,
+            course_type: courseType
+        }, extraData);
+
+        fetch('/students/course-audit/fix/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalHtml;
+            if (data.success) {
+                alert(data.message || 'تم تنفيذ الإجراء بنجاح.');
+                runStudentInspect(); // Refresh inspection results
+            } else {
+                alert('فشل تنفيذ الإجراء: ' + data.error);
+            }
+        })
+        .catch(err => {
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalHtml;
+            alert('حدث خطأ في الاتصال بالخادم.');
+            console.error(err);
+        });
+    }
 
     function getCookie(name) {
         let cookieValue = null;

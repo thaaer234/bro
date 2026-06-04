@@ -2717,10 +2717,152 @@ def recalculate_account_balances(*accounts):
                 curr = curr.parent
 
 def audit_course_api(request):
-    """API لتدقيق الحسابات والقيود على مستوى دورة معينة (نظامية أو سريعة)"""
+    """API لتدقيق الحسابات والقيود على مستوى دورة معينة أو فحص طالب بالكامل"""
     if not request.user.is_authenticated:
         return JsonResponse({'success': False, 'error': 'غير مصرح'})
         
+    student_search = request.GET.get('student_search')
+    if student_search:
+        from students.models import Student
+        from quick.models import QuickStudent, QuickEnrollment
+        from accounts.models import Studentenrollment, Account, JournalEntry, Transaction
+        from django.db.models import Sum
+        
+        students = Student.objects.filter(full_name__icontains=student_search)
+        quick_students = QuickStudent.objects.filter(full_name__icontains=student_search)
+        
+        results = []
+        
+        # 1. Regular Students
+        for s in students:
+            student_data = {
+                'student_id': s.id,
+                'student_name': s.full_name,
+                'student_phone': s.father_phone or s.phone or 'بلا هاتف',
+                'type': 'REGULAR',
+                'enrollments': []
+            }
+            
+            enrollments = Studentenrollment.objects.filter(student=s).select_related('course', 'enrollment_journal_entry')
+            for e in enrollments:
+                ar_account = Account.get_student_ar_account_for_course(s, e.course)
+                ledger_debit = Decimal('0')
+                ledger_credit = Decimal('0')
+                if ar_account:
+                    ledger_debit = ar_account.get_debit_balance() or Decimal('0')
+                    ledger_credit = ar_account.get_credit_balance() or Decimal('0')
+                
+                computed_net = max(Decimal('0'), e.total_amount - (e.total_amount * e.discount_percent / Decimal('100')) - e.discount_amount)
+                
+                # Check for errors
+                errors = []
+                if computed_net > 0 and not e.enrollment_journal_entry:
+                    errors.append('قيد تسجيل مفقود')
+                elif abs(ledger_debit - computed_net) > Decimal('0.01'):
+                    errors.append(f'خلل أرصدة: الصافي المحسوب {computed_net} ل.س بينما المدين الدفتري هو {ledger_debit} ل.س')
+                
+                # Get linked entries
+                linked_entries = []
+                if e.enrollment_journal_entry:
+                    linked_entries.append({
+                        'id': e.enrollment_journal_entry.id,
+                        'reference': e.enrollment_journal_entry.reference or f'JE-{e.enrollment_journal_entry.id}',
+                        'type': 'enrollment',
+                        'amount': e.enrollment_journal_entry.total_amount,
+                        'date': str(e.enrollment_journal_entry.date),
+                        'description': e.enrollment_journal_entry.description
+                    })
+                
+                # Adjustments
+                if ar_account:
+                    adjustments = JournalEntry.objects.filter(
+                        entry_type='ADJUSTMENT',
+                        transactions__account=ar_account
+                    ).distinct()
+                    for adj in adjustments:
+                        linked_entries.append({
+                            'id': adj.id,
+                            'reference': adj.reference or f'JE-{adj.id}',
+                            'type': 'ADJUSTMENT',
+                            'amount': adj.total_amount,
+                            'date': str(adj.date),
+                            'description': adj.description
+                        })
+                        
+                student_data['enrollments'].append({
+                    'enrollment_id': e.id,
+                    'course_name': e.course.name,
+                    'academic_year': e.academic_year.name if e.academic_year else '',
+                    'total_amount': e.total_amount,
+                    'discount_percent': e.discount_percent,
+                    'discount_amount': e.discount_amount,
+                    'net_amount': computed_net,
+                    'ledger_debit': ledger_debit,
+                    'ledger_credit': ledger_credit,
+                    'ledger_balance': ledger_debit - ledger_credit,
+                    'is_completed': e.is_completed,
+                    'errors': errors,
+                    'linked_entries': linked_entries
+                })
+            results.append(student_data)
+            
+        # 2. Quick Students
+        for qs in quick_students:
+            student_data = {
+                'student_id': qs.id,
+                'student_name': qs.full_name,
+                'student_phone': qs.phone or 'بلا هاتف',
+                'type': 'QUICK',
+                'enrollments': []
+            }
+            
+            enrollments = QuickEnrollment.objects.filter(student=qs).select_related('course')
+            for e in enrollments:
+                computed_net = e.calculated_net_amount
+                
+                student_ar_account = Account.get_or_create_quick_student_ar_account(qs)
+                ledger_debit = student_ar_account.get_debit_balance() if student_ar_account else Decimal('0')
+                ledger_credit = student_ar_account.get_credit_balance() if student_ar_account else Decimal('0')
+                
+                # Fetch linked entries
+                linked_entries = []
+                je = e.enrollment_journal_entry
+                if je:
+                    linked_entries.append({
+                        'id': je.id,
+                        'reference': je.reference or f'JE-{je.id}',
+                        'type': 'enrollment',
+                        'amount': je.total_amount,
+                        'date': str(je.date),
+                        'description': je.description
+                    })
+                
+                # Check for errors
+                errors = []
+                if computed_net > 0 and not je:
+                    errors.append('قيد تسجيل مفقود')
+                elif je and abs(je.total_amount - e.total_amount) > Decimal('0.01'):
+                    errors.append(f'خلل أرصدة: قيمة القيد {je.total_amount} ل.س بينما الإجمالي هو {e.total_amount} ل.س')
+                
+                student_data['enrollments'].append({
+                    'enrollment_id': e.id,
+                    'course_name': e.course.name,
+                    'academic_year': e.course.academic_year.name if e.course.academic_year else '',
+                    'total_amount': e.total_amount,
+                    'discount_percent': e.discount_percent,
+                    'discount_amount': e.discount_amount,
+                    'net_amount': computed_net,
+                    'ledger_debit': ledger_debit,
+                    'ledger_credit': ledger_credit,
+                    'ledger_balance': ledger_debit - ledger_credit,
+                    'is_completed': e.is_completed,
+                    'errors': errors,
+                    'linked_entries': linked_entries
+                })
+            results.append(student_data)
+            
+        return JsonResponse({'success': True, 'results': results, 'is_search': True})
+
     course_id = request.GET.get('course_id')
     course_type = request.GET.get('type', 'REGULAR')
     if not course_id:
