@@ -2892,6 +2892,7 @@ def fix_student_enrollment_error(request):
         return JsonResponse({'success': False, 'error': 'طلب غير صالح'})
 
     try:
+        import json
         data = json.loads(request.body)
         enrollment_id = data.get('enrollment_id')
         error_type = data.get('error_type')

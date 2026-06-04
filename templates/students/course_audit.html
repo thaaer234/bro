@@ -227,7 +227,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.errors.length === 0) {
                         noErrorsAlert.classList.remove('d-none');
                         resultsCard.classList.add('d-none');
+                        fixAllBtn.classList.add('d-none');
                     } else {
+                        noErrorsAlert.classList.add('d-none');
+                        resultsCard.classList.remove('d-none');
+                        fixAllBtn.classList.remove('d-none');
+                        fixAllBtn.disabled = false;
+                        fixAllBtn.innerHTML = `<i class="fas fa-wand-magic-sparkles me-1"></i> تصحيح الكل تلقائياً`;
                         data.errors.forEach(err => {
                             const tr = document.createElement('tr');
                             tr.setAttribute('data-enrollment-id', err.enrollment_id);
@@ -330,6 +336,76 @@ document.addEventListener('DOMContentLoaded', function() {
             buttonElement.disabled = false;
             buttonElement.innerHTML = `<i class="fas fa-wrench me-1"></i> تصحيح`;
             console.error(err);
+        });
+    }
+
+    fixAllBtn.addEventListener('click', async function() {
+        const buttons = Array.from(document.querySelectorAll('.fix-single-btn:not([disabled])'));
+        if (buttons.length === 0) return;
+        
+        if (!confirm(`هل أنت متأكد من رغبتك في تصحيح جميع الأخطاء الـ (${buttons.length}) المكتشفة تلقائياً وبشكل آمن؟`)) return;
+        
+        fixAllBtn.disabled = true;
+        fixAllBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري تصحيح الكل...`;
+        
+        for (let i = 0; i < buttons.length; i++) {
+            const btn = buttons[i];
+            const enrollId = btn.getAttribute('data-enrollment-id');
+            const errorType = btn.getAttribute('data-error-type');
+            
+            try {
+                await executeFixPromise(enrollId, errorType, btn);
+            } catch (e) {
+                console.error('Failed to fix enrollment:', enrollId, e);
+            }
+        }
+        
+        fixAllBtn.innerHTML = `<i class="fas fa-check-double"></i> تم تصحيح الجميع!`;
+        setTimeout(() => {
+            runAudit();
+        }, 1500);
+    });
+
+    function executeFixPromise(enrollmentId, errorType, buttonElement) {
+        return new Promise((resolve, reject) => {
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>...`;
+            
+            const type = courseTypeSelect.value;
+            
+            fetch('/students/course-audit/fix/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    enrollment_id: enrollmentId,
+                    error_type: errorType,
+                    course_type: type
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const row = buttonElement.closest('tr');
+                    row.classList.add('table-success');
+                    buttonElement.className = 'btn btn-outline-success btn-sm disabled';
+                    buttonElement.innerHTML = `<i class="fas fa-check"></i> تم`;
+                    resolve(data);
+                } else {
+                    buttonElement.disabled = false;
+                    buttonElement.className = 'btn btn-danger btn-sm';
+                    buttonElement.innerHTML = `<i class="fas fa-circle-xmark"></i> فشل`;
+                    resolve(data);
+                }
+            })
+            .catch(err => {
+                buttonElement.disabled = false;
+                buttonElement.className = 'btn btn-danger btn-sm';
+                buttonElement.innerHTML = `<i class="fas fa-circle-xmark"></i> خطأ`;
+                reject(err);
+            });
         });
     }
 
