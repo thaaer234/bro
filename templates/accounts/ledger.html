@@ -52,6 +52,9 @@
                     <tr>
                         <th>التاريخ<br>Date</th>
                         <th>المرجع<br>Reference</th>
+                        {% if is_student_ledger %}
+                        <th>الحساب / Account</th>
+                        {% endif %}
                         <th>الوصف<br>Description</th>
                         <th class="text-center">مدين<br>Debit</th>
                         <th class="text-center">دائن<br>Credit</th>
@@ -61,7 +64,7 @@
                 <tbody>
                     <!-- Opening Balance Row -->
                     <tr class="table-light">
-                        <td colspan="3"><strong>الرصيد الافتتاحي / Opening Balance</strong></td>
+                        <td colspan="{% if is_student_ledger %}4{% else %}3{% endif %}"><strong>الرصيد الافتتاحي / Opening Balance</strong></td>
                         <td class="text-center">-</td>
                         <td class="text-center">-</td>
                         <td class="text-center"><strong>0.00</strong></td>
@@ -75,6 +78,13 @@
                                 {{ item.transaction.journal_entry.reference }}
                             </a>
                         </td>
+                        {% if is_student_ledger %}
+                        <td>
+                            <small class="badge bg-secondary">{{ item.transaction.account.code }}</small>
+                            <br>
+                            <span class="small">{{ item.transaction.account.display_name }}</span>
+                        </td>
+                        {% endif %}
                         <td>
                             {{ item.transaction.description|default:item.transaction.journal_entry.description }}
                         </td>
@@ -100,10 +110,10 @@
                 </tbody>
                 <tfoot class="table-dark">
                     <tr>
-                        <th colspan="3">الرصيد النهائي / Final Balance</th>
-                        <th class="text-center">{{ account.get_debit_balance|floatformat:2 }}</th>
-                        <th class="text-center">{{ account.get_credit_balance|floatformat:2 }}</th>
-                        <th class="text-center">{{ account.get_net_balance|floatformat:2 }}</th>
+                        <th colspan="{% if is_student_ledger %}4{% else %}3{% endif %}">الرصيد النهائي / Final Balance</th>
+                        <th class="text-center">{{ total_debit|floatformat:2 }}</th>
+                        <th class="text-center">{{ total_credit|floatformat:2 }}</th>
+                        <th class="text-center">{{ net_balance|floatformat:2 }}</th>
                     </tr>
                 </tfoot>
             </table>
@@ -119,19 +129,19 @@
                             <div class="col-md-3">
                                 <div class="border rounded p-3">
                                     <h6 class="text-muted">إجمالي المدين / Total Debits</h6>
-                                    <div class="fs-4 fw-bold text-success">{{ account.get_debit_balance|floatformat:2 }}</div>
+                                    <div class="fs-4 fw-bold text-success">{{ total_debit|floatformat:2 }}</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3">
                                     <h6 class="text-muted">إجمالي الدائن / Total Credits</h6>
-                                    <div class="fs-4 fw-bold text-danger">{{ account.get_credit_balance|floatformat:2 }}</div>
+                                    <div class="fs-4 fw-bold text-danger">{{ total_credit|floatformat:2 }}</div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3">
                                     <h6 class="text-muted">الرصيد الصافي / Net Balance</h6>
-                                    <div class="fs-4 fw-bold text-primary">{{ account.get_net_balance|floatformat:2 }}</div>
+                                    <div class="fs-4 fw-bold text-primary">{{ net_balance|floatformat:2 }}</div>
                                 </div>
                             </div>
                             <div class="col-md-3">

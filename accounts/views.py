@@ -1590,21 +1590,41 @@ class LedgerView(LoginRequiredMixin, TemplateView):
         account = get_object_or_404(Account, id=account_id)
         academic_year = _current_academic_year(self.request)
         
-        # Get all transactions for this account and its descendants
-        transactions = account.transactions_with_descendants(academic_year=academic_year).select_related('journal_entry').order_by('journal_entry__date', 'journal_entry__created_at')
+        if account.is_student_account:
+            # Get all accounts for the same student
+            student_name = account.student_name
+            parts = account.code.split('-')
+            student_id = parts[-1] if len(parts) > 1 else None
+            
+            if student_name:
+                student_accounts = Account.objects.filter(is_student_account=True, student_name=student_name)
+            elif student_id:
+                student_accounts = Account.objects.filter(is_student_account=True, code__endswith=f'-{student_id}')
+            else:
+                student_accounts = Account.objects.filter(id=account.id)
+                
+            account_ids = student_accounts.values_list('id', flat=True)
+            transactions = Transaction.objects.filter(account_id__in=account_ids).select_related('journal_entry', 'account').order_by('journal_entry__date', 'journal_entry__created_at', 'id')
+        else:
+            transactions = account.transactions_with_descendants(academic_year=academic_year).select_related('journal_entry', 'account').order_by('journal_entry__date', 'journal_entry__created_at', 'id')
         
         # Calculate running balance
         running_balance = Decimal('0.00')
         transaction_data = []
+        total_debit = Decimal('0.00')
+        total_credit = Decimal('0.00')
         
         for transaction in transactions:
+            tx_account = transaction.account
             if transaction.is_debit:
-                if account.account_type in ['ASSET', 'EXPENSE']:
+                total_debit += transaction.amount
+                if tx_account.account_type in ['ASSET', 'EXPENSE']:
                     running_balance += transaction.amount
                 else:
                     running_balance -= transaction.amount
             else:  # Credit
-                if account.account_type in ['LIABILITY', 'EQUITY', 'REVENUE']:
+                total_credit += transaction.amount
+                if tx_account.account_type in ['LIABILITY', 'EQUITY', 'REVENUE']:
                     running_balance += transaction.amount
                 else:
                     running_balance -= transaction.amount
@@ -1613,10 +1633,19 @@ class LedgerView(LoginRequiredMixin, TemplateView):
                 'transaction': transaction,
                 'running_balance': running_balance,
             })
+            
+        if account.account_type in ['ASSET', 'EXPENSE']:
+            net_balance = total_debit - total_credit
+        else:
+            net_balance = total_credit - total_debit
         
         context.update({
             'account': account,
             'transaction_data': transaction_data,
+            'total_debit': total_debit,
+            'total_credit': total_credit,
+            'net_balance': net_balance,
+            'is_student_ledger': account.is_student_account,
         })
         
         return context
@@ -3661,16 +3690,34 @@ class BalanceSheetExportExcelView(LoginRequiredMixin, View):
 class LedgerExportExcelView(LoginRequiredMixin, View):
     def get(self, request, account_id):
         account = get_object_or_404(Account, id=account_id)
-        tx = Transaction.objects.filter(account=account).select_related('journal_entry').order_by('journal_entry__date', 'journal_entry__created_at')
+        if account.is_student_account:
+            student_name = account.student_name
+            parts = account.code.split('-')
+            student_id = parts[-1] if len(parts) > 1 else None
+            
+            if student_name:
+                student_accounts = Account.objects.filter(is_student_account=True, student_name=student_name)
+            elif student_id:
+                student_accounts = Account.objects.filter(is_student_account=True, code__endswith=f'-{student_id}')
+            else:
+                student_accounts = Account.objects.filter(id=account.id)
+                
+            account_ids = student_accounts.values_list('id', flat=True)
+            tx = Transaction.objects.filter(account_id__in=account_ids).select_related('journal_entry', 'account').order_by('journal_entry__date', 'journal_entry__created_at', 'id')
+        else:
+            tx = Transaction.objects.filter(account=account).select_related('journal_entry', 'account').order_by('journal_entry__date', 'journal_entry__created_at', 'id')
+            
         rows = []
         rb = Decimal('0.00')
         for t in tx:
-            amt = t.amount if (t.is_debit and account.account_type in ['ASSET','EXPENSE']) or ((not t.is_debit) and account.account_type in ['LIABILITY','EQUITY','REVENUE']) else -t.amount
+            tx_account = t.account
+            amt = t.amount if (t.is_debit and tx_account.account_type in ['ASSET','EXPENSE']) or ((not t.is_debit) and tx_account.account_type in ['LIABILITY','EQUITY','REVENUE']) else -t.amount
             rb += amt
             rows.append({
                 'Date': t.journal_entry.date.isoformat(),
                 'Reference': t.journal_entry.reference,
-                'Description': t.description,
+                'Account': f"{t.account.code} - {t.account.display_name}",
+                'Description': t.description or t.journal_entry.description,
                 'Debit': float(t.amount if t.is_debit else 0),
                 'Credit': float(t.amount if not t.is_debit else 0),
                 'RunningBalance': float(rb),
