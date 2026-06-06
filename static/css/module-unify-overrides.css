@@ -117,10 +117,21 @@ body.app-employ .tab {
 body.app-quick .tab-btn.active,
 body.app-students .tab-btn.active,
 body.app-employ .tab.active,
-body.app-attendance .attendance-option.active,
 body.app-announcements .preset-btn,
 body.app-announcements .status-active {
     background: linear-gradient(135deg, #0f766e, #115e59) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+body.app-attendance .attendance-option.present-option.active {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+}
+
+body.app-attendance .attendance-option.absent-option.active {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
     color: #fff !important;
     border-color: transparent !important;
 }
@@ -181,10 +192,20 @@ body.app-announcements .announcement-item p {
 body.app-quick .card-icon,
 body.app-students .card-icon,
 body.app-employ .btn-info,
-body.app-attendance .attendance-option.present-option,
-body.app-attendance .attendance-option.absent-option,
 body.app-announcements .hero-stat {
     background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(200, 155, 67, 0.14)) !important;
+}
+
+body.app-attendance .attendance-option.present-option {
+    background: rgba(16, 185, 129, 0.08) !important;
+    border: 1px solid rgba(16, 185, 129, 0.25) !important;
+    color: #059669 !important;
+}
+
+body.app-attendance .attendance-option.absent-option {
+    background: rgba(239, 68, 68, 0.08) !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+    color: #dc2626 !important;
 }
 
 body.app-quick .student-avatar,
@@ -234,9 +255,12 @@ body.app-attendance .attendance-option input {
     accent-color: #0f766e;
 }
 
-body.app-attendance .attendance-option.present-option.active,
+body.app-attendance .attendance-option.present-option.active {
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.28) !important;
+}
+
 body.app-attendance .attendance-option.absent-option.active {
-    box-shadow: 0 10px 20px rgba(15, 118, 110, 0.14) !important;
+    box-shadow: 0 10px 20px rgba(239, 68, 68, 0.28) !important;
 }
 
 body.app-quick .table thead th,

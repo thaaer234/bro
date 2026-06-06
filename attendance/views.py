@@ -94,7 +94,7 @@ class TakeAttendanceView(View):
     
     def get(self, request):
         form = AttendanceForm()
-        classrooms = Classroom.objects.all()
+        classrooms = Classroom.objects.filter(is_active=True)
         current_year = getattr(request, 'current_academic_year', None)
         if current_year:
             classrooms = classrooms.filter(enrollments__student__academic_year=current_year).distinct()
@@ -1144,7 +1144,7 @@ class TakeStudentsAttendanceView(View):
     
     def get(self, request):
         return render(request, self.template_name, {
-            'classrooms': Classroom.objects.all(),
+            'classrooms': Classroom.objects.filter(is_active=True),
             'today': timezone.now().date()
         })
     
