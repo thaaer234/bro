@@ -1143,7 +1143,10 @@ class TakeStudentsAttendanceView(View):
     template_name = 'attendance/take_students_attendance.html'
     
     def get(self, request):
-        classrooms = Classroom.objects.filter(is_active=True, class_type='study').order_by('name')
+        classrooms = Classroom.objects.filter(is_active=True, class_type='study')
+        if not request.user.is_superuser:
+            classrooms = classrooms.filter(is_visible=True)
+        classrooms = classrooms.order_by('name')
         return render(request, self.template_name, {
             'classrooms': classrooms,
             'today': timezone.now().date()
