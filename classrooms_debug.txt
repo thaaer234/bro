@@ -1,0 +1,26 @@
+=== ALL CLASSROOMS ===
+ID: 5 | Name: الشعبة الأولى | Branch: علمي | Class Type: study | Is Active: False | Course: No Course | Students: 52
+ID: 6 | Name: الشعبة الثانية | Branch: علمي | Class Type: study | Is Active: True | Course: No Course | Students: 49
+ID: 7 | Name: الشعبة الثالثة | Branch: علمي | Class Type: study | Is Active: True | Course: No Course | Students: 30
+ID: 8 | Name: الشعبة الرابعة | Branch: علمي | Class Type: study | Is Active: True | Course: No Course | Students: 44
+ID: 9 | Name: الشعبة الخامسة | Branch: علمي | Class Type: study | Is Active: True | Course: No Course | Students: 36
+ID: 10 | Name: الشعبة السادسة | Branch: علمي | Class Type: study | Is Active: True | Course: No Course | Students: 35
+ID: 11 | Name: الشعبة السابعة | Branch: علمي | Class Type: study | Is Active: True | Course: No Course | Students: 23
+ID: 12 | Name: الشعبة الثامنة | Branch: علمي | Class Type: study | Is Active: True | Course: No Course | Students: 40
+ID: 13 | Name: الشعبة الأولى أدبي | Branch: أدبي | Class Type: study | Is Active: True | Course: No Course | Students: 25
+ID: 14 | Name: الشعبة الثانية أدبي | Branch: أدبي | Class Type: study | Is Active: True | Course: No Course | Students: 23
+ID: 15 | Name: الشعبة الأولى تاسع | Branch: تاسع | Class Type: study | Is Active: True | Course: No Course | Students: 50
+ID: 16 | Name: الشعبة الثانية تاسع | Branch: تاسع | Class Type: study | Is Active: True | Course: No Course | Students: 43
+ID: 17 | Name: تمهيدي | Branch: علمي | Class Type: study | Is Active: True | Course: No Course | Students: 15
+ID: 18 | Name: القاعة A | Branch: None | Class Type: course | Is Active: True | Course: No Course | Students: 0
+ID: 19 | Name: القاعة B | Branch: None | Class Type: course | Is Active: True | Course: No Course | Students: 0
+ID: 20 | Name: القاعة C | Branch: None | Class Type: course | Is Active: True | Course: No Course | Students: 0
+ID: 21 | Name: القاعة D | Branch: None | Class Type: course | Is Active: True | Course: No Course | Students: 0
+ID: 22 | Name: القاعة E | Branch: None | Class Type: course | Is Active: True | Course: No Course | Students: 0
+ID: 23 | Name: القاعة F | Branch: None | Class Type: course | Is Active: True | Course: No Course | Students: 0
+ID: 24 | Name: القاعة G | Branch: None | Class Type: course | Is Active: True | Course: No Course | Students: 0
+ID: 25 | Name: الشعبة الاولى | Branch: علمي | Class Type: study | Is Active: True | Course: دورة صيف علمي 2026-2027 | Students: 24
+ID: 26 | Name: الشعبة الثانية | Branch: علمي | Class Type: study | Is Active: True | Course: دورة صيف علمي 2026-2027 | Students: 36
+ID: 27 | Name: الشعبة الثالثة | Branch: علمي | Class Type: study | Is Active: True | Course: دورة صيف علمي 2026-2027 | Students: 24
+ID: 28 | Name: الشعبة الرابعة | Branch: علمي | Class Type: study | Is Active: True | Course: دورة صيف علمي 2026-2027 | Students: 22
+ID: 29 | Name: الشعبة الخامسة | Branch: علمي | Class Type: study | Is Active: True | Course: دورة صيف علمي 2026-2027 | Students: 39
