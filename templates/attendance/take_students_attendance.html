@@ -85,7 +85,9 @@
             <select name="classroom" id="classroom" class="form-control" required>
                 <option value="">اختر الشعبة</option>
                 {% for classroom in classrooms %}
-                <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                <option value="{{ classroom.id }}">
+                    {{ classroom.name }}{% if classroom.branches %} - {{ classroom.get_branches_display }}{% endif %}{% if classroom.course %} ({{ classroom.course.name }}){% endif %}
+                </option>
                 {% endfor %}
             </select>
         </div>
