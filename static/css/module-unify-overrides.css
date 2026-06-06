@@ -196,16 +196,19 @@ body.app-announcements .hero-stat {
     background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(200, 155, 67, 0.14)) !important;
 }
 
-body.app-attendance .attendance-option.present-option {
-    background: rgba(16, 185, 129, 0.08) !important;
-    border: 1px solid rgba(16, 185, 129, 0.25) !important;
-    color: #059669 !important;
+body.app-attendance .attendance-option.present-option,
+body.app-attendance .attendance-option.absent-option {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #64748b !important;
+    transition: all 0.2s ease !important;
 }
 
-body.app-attendance .attendance-option.absent-option {
-    background: rgba(239, 68, 68, 0.08) !important;
-    border: 1px solid rgba(239, 68, 68, 0.25) !important;
-    color: #dc2626 !important;
+body.app-attendance .attendance-option.present-option:hover,
+body.app-attendance .attendance-option.absent-option:hover {
+    background: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
+    color: #475569 !important;
 }
 
 body.app-quick .student-avatar,
