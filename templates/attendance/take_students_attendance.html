@@ -5,6 +5,57 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/attendance.css' %}">
+<style>
+/* تنسيق أزرار الحضور والغائب */
+.attendance-container .attendance-option {
+    min-width: 112px !important;
+    font-weight: 700 !important;
+    border-radius: 16px !important;
+    padding: 10px 15px !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* الحالة الافتراضية (غير نشط) - رمادي محايد */
+.attendance-container .attendance-option.present-option,
+.attendance-container .attendance-option.absent-option {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #64748b !important;
+}
+
+.attendance-container .attendance-option.present-option:hover,
+.attendance-container .attendance-option.absent-option:hover {
+    background: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
+    color: #475569 !important;
+}
+
+/* عند التحديد كحاضر - أخضر */
+.attendance-container .attendance-option.present-option.active {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.24) !important;
+}
+
+/* عند التحديد كغائب - أحمر */
+.attendance-container .attendance-option.absent-option.active {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.24) !important;
+}
+
+/* إخفاء راديو بوتون الافتراضي */
+.attendance-container .attendance-option input[type="radio"] {
+    display: none !important;
+}
+</style>
 {% endblock %}
 {% block content %}
 <div class="module-header">
