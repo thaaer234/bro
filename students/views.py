@@ -617,7 +617,7 @@ class StudentStatementView(LoginRequiredMixin, DetailView):
                 'rows': rows,
                 'balance': total_balance,
                 'receipts': receipts,
-                'per_course': per_course,
+                    'per_course': per_course,
                 'has_accounts': student_accounts.exists(),
                 'transactions_count': len(all_transactions)
             })
@@ -660,27 +660,26 @@ class StudentAccountingIssuesView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get names from GET or prepopulate with provided names
         names_param = self.request.GET.get('names')
         if names_param:
             names = [n.strip() for n in names_param.split(',') if n.strip()]
         else:
-            # Default names as per user request
             names = ['لامار عباس احمد غوراني', 'سامر قبي', 'قولي ياسر طهماز']
-        # Retrieve regular students (non‑quick)
-        students = Student.objects.filter(full_name__in=names, account__isnull=False).select_related('account')
-        # Also include students without account for missing account detection
-        students_missing = Student.objects.filter(full_name__in=names, account__isnull=True)
+        
+        students = Student.objects.filter(full_name__in=names).prefetch_related('enrollments', 'enrollments__course')
         issues = []
-        from accounts.models import JournalEntry
-        for student in list(students) + list(students_missing):
+        
+        for student in students:
             student_issues = []
+            
             # Missing AR account
-            if not student.account:
+            if not hasattr(student, 'account') or not student.account:
                 student_issues.append('⚠️ لا يوجد حساب ذمم للطالب')
-            # Negative balance
+            
+            # Negative balance check
             try:
-                if student.balance < 0:
+                # Assuming student.get_balance() or similar logic
+                if hasattr(student, 'balance') and student.balance < 0:
                     student_issues.append('⚠️ رصيد سلبي')
             except Exception:
                 pass
