@@ -2771,10 +2771,21 @@ def audit_course_api(request):
         from students.models import Student
         from quick.models import QuickStudent, QuickEnrollment
         from accounts.models import Studentenrollment, Account, JournalEntry, Transaction
-        from django.db.models import Sum
+        from django.db.models import Sum, Q
         
-        students = Student.objects.filter(full_name__icontains=student_search)
-        quick_students = QuickStudent.objects.filter(full_name__icontains=student_search)
+        # تحسين البحث عن الطالب ليدعم الاسم، الهاتف، هاتف الأب، البريد، والرقم الجامعي
+        students = Student.objects.filter(
+            Q(full_name__icontains=student_search) |
+            Q(student_number__icontains=student_search) |
+            Q(phone__icontains=student_search) |
+            Q(email__icontains=student_search) |
+            Q(father_phone__icontains=student_search)
+        ).distinct()
+        
+        quick_students = QuickStudent.objects.filter(
+            Q(full_name__icontains=student_search) |
+            Q(phone__icontains=student_search)
+        ).distinct()
         
         results = []
         
@@ -2798,14 +2809,58 @@ def audit_course_api(request):
                     ledger_credit = ar_account.get_credit_balance() or Decimal('0')
                 
                 computed_net = max(Decimal('0'), e.total_amount - (e.total_amount * e.discount_percent / Decimal('100')) - e.discount_amount)
+                ledger_balance = ledger_debit - ledger_credit
                 
                 # Check for errors
                 errors = []
+                warnings = []
                 if computed_net > 0 and not e.enrollment_journal_entry:
                     errors.append('قيد تسجيل مفقود')
                 elif abs(ledger_debit - computed_net) > Decimal('0.01'):
                     errors.append(f'خلل أرصدة: الصافي المحسوب {computed_net} ل.س بينما المدين الدفتري هو {ledger_debit} ل.س')
                 
+                # 🔍 تشخيص أسباب رصيد الحساب السالب
+                if ledger_balance < 0:
+                    if not e.enrollment_journal_entry:
+                        warnings.append("رصيد ذمة الطالب سالب لأن قيد التسجيل الأصلي مفقود أو غير مسجل (مدين بقيمة 0)، وأي دفعات محصلة تجعل الحساب دائناً بالكامل.")
+                    elif ledger_credit > computed_net:
+                        warnings.append(f"رصيد الحساب سالب بسبب تسديد زائد: إجمالي المدفوعات المستلمة ({ledger_credit} ل.س) يتجاوز صافي قيمة الدورة المطلوبة بعد الحسم ({computed_net} ل.س). قد يكون هناك حسم تم منحه بعد تسديد القيمة أو دفعة زائدة.")
+                    else:
+                        warnings.append("رصيد الحساب سالب نتيجة وجود تسويات دائنة (ADJUSTMENT) أو دفعات إضافية خفضت الرصيد مدينياً.")
+
+                # 🔍 تشخيص القيود المكررة أو الزائدة عن اللازم
+                if ar_account:
+                    # قيود تسجيل مكررة لنفس الدورة والطالب
+                    enrollment_jes = JournalEntry.objects.filter(
+                        entry_type='enrollment',
+                        transactions__account=ar_account,
+                        transactions__is_debit=True
+                    ).distinct()
+                    if enrollment_jes.count() > 1:
+                        warnings.append(f"يوجد {enrollment_jes.count()} قيود تسجيل مكررة (من نوع enrollment) لهذا الكورس (معرفات القيود: {', '.join(str(je.id) for je in enrollment_jes)}). هذا التكرار يضخم الأرصدة المدنية ويحتاج لحذف المكرر.")
+                    
+                    # قيود حسم/تسوية مكررة لنفس الدورة والطالب
+                    adj_jes = JournalEntry.objects.filter(
+                        entry_type='ADJUSTMENT',
+                        transactions__account=ar_account
+                    ).distinct()
+                    if adj_jes.count() > 1:
+                        warnings.append(f"يوجد {adj_jes.count()} قيود تسوية/حسومات مكررة (ADJUSTMENT) لنفس الكورس (معرفات القيود: {', '.join(str(je.id) for je in adj_jes)}).")
+                    
+                    # مقبوضات/دفعات مكررة بنفس القيمة والتاريخ
+                    payment_trans = Transaction.objects.filter(
+                        account=ar_account,
+                        journal_entry__entry_type='PAYMENT',
+                        is_debit=False
+                    ).select_related('journal_entry')
+                    from collections import defaultdict
+                    seen_payments = defaultdict(list)
+                    for p in payment_trans:
+                        seen_payments[(p.amount, p.journal_entry.date)].append(p.journal_entry.id)
+                    for (amount, date), je_ids in seen_payments.items():
+                        if len(je_ids) > 1:
+                            warnings.append(f"تنبيه: يوجد دفعات مكررة بنفس القيمة ({amount} ل.س) وتاريخ ({date}) (معرفات القيود: {', '.join(str(id) for id in je_ids)}). قد يكون هذا قيد دفع تم إدخاله مرتين بالخطأ ويحتاج لحذف المكرر.")
+
                 # Get linked entries
                 linked_entries = []
                 if e.enrollment_journal_entry:
@@ -2844,9 +2899,10 @@ def audit_course_api(request):
                     'net_amount': computed_net,
                     'ledger_debit': ledger_debit,
                     'ledger_credit': ledger_credit,
-                    'ledger_balance': ledger_debit - ledger_credit,
+                    'ledger_balance': ledger_balance,
                     'is_completed': e.is_completed,
                     'errors': errors,
+                    'warnings': warnings,
                     'linked_entries': linked_entries
                 })
             results.append(student_data)
@@ -2868,10 +2924,42 @@ def audit_course_api(request):
                 student_ar_account = Account.get_or_create_quick_student_ar_account(qs)
                 ledger_debit = student_ar_account.get_debit_balance() if student_ar_account else Decimal('0')
                 ledger_credit = student_ar_account.get_credit_balance() if student_ar_account else Decimal('0')
+                ledger_balance = ledger_debit - ledger_credit
                 
+                # Check for errors
+                errors = []
+                warnings = []
+                je = e.enrollment_journal_entry
+                if computed_net > 0 and not je:
+                    errors.append('قيد تسجيل مفقود')
+                elif je and abs(je.total_amount - e.total_amount) > Decimal('0.01'):
+                    errors.append(f'خلل أرصدة: قيمة القيد {je.total_amount} ل.س بينما الإجمالي هو {e.total_amount} ل.س')
+                
+                # 🔍 تشخيص أسباب رصيد الحساب السالب للطلاب السريعين
+                if ledger_balance < 0:
+                    if not je:
+                        warnings.append("رصيد ذمة الطالب السريع سالب لأن قيد التسجيل مفقود أو غير مسجل.")
+                    elif ledger_credit > computed_net:
+                        warnings.append(f"رصيد الحساب سالب لأن إجمالي المقبوضات يتجاوز صافي قيمة هذه الدورة المطلوبة ({computed_net} ل.س).")
+                    else:
+                        warnings.append("رصيد الحساب سالب بسبب مقبوضات زائدة أو تسويات خفضت الذمة.")
+                        
+                # 🔍 تشخيص القيود المكررة أو الزائدة عن اللازم للطلاب السريعين
+                reference = e.enrollment_reference
+                if reference:
+                    duplicate_jes = JournalEntry.objects.filter(reference=reference)
+                    if duplicate_jes.count() > 1:
+                        warnings.append(f"يوجد قيود تسجيل مكررة بالمرجع {reference} (عدد القيود: {duplicate_jes.count()}).")
+                
+                discount_jes = JournalEntry.objects.filter(
+                    entry_type='ADJUSTMENT',
+                    description__icontains=f'[QUICK_DISCOUNT #{e.id}]'
+                )
+                if discount_jes.count() > 1:
+                    warnings.append(f"يوجد {discount_jes.count()} قيود خصم مكررة (ADJUSTMENT) لنفس التسجيل السريع (معرفات القيود: {', '.join(str(je.id) for je in discount_jes)}).")
+
                 # Fetch linked entries
                 linked_entries = []
-                je = e.enrollment_journal_entry
                 if je:
                     linked_entries.append({
                         'id': je.id,
@@ -2881,13 +2969,6 @@ def audit_course_api(request):
                         'date': str(je.date),
                         'description': je.description
                     })
-                
-                # Check for errors
-                errors = []
-                if computed_net > 0 and not je:
-                    errors.append('قيد تسجيل مفقود')
-                elif je and abs(je.total_amount - e.total_amount) > Decimal('0.01'):
-                    errors.append(f'خلل أرصدة: قيمة القيد {je.total_amount} ل.س بينما الإجمالي هو {e.total_amount} ل.س')
                 
                 student_data['enrollments'].append({
                     'enrollment_id': e.id,
@@ -2899,9 +2980,10 @@ def audit_course_api(request):
                     'net_amount': computed_net,
                     'ledger_debit': ledger_debit,
                     'ledger_credit': ledger_credit,
-                    'ledger_balance': ledger_debit - ledger_credit,
+                    'ledger_balance': ledger_balance,
                     'is_completed': e.is_completed,
                     'errors': errors,
+                    'warnings': warnings,
                     'linked_entries': linked_entries
                 })
             results.append(student_data)
@@ -2951,6 +3033,36 @@ def audit_course_api(request):
             # الصافي الدفتري الخاص بهذا التسجيل
             actual_net_debit = gross_ledger - discount_ledger
             
+            student_ar_account = Account.get_or_create_quick_student_ar_account(student)
+            ledger_debit = student_ar_account.get_debit_balance() if student_ar_account else Decimal('0')
+            ledger_credit = student_ar_account.get_credit_balance() if student_ar_account else Decimal('0')
+            ledger_balance = ledger_debit - ledger_credit
+            
+            warnings = []
+            
+            # 🔍 تشخيص أسباب رصيد الحساب السالب للطلاب السريعين
+            if ledger_balance < 0:
+                if not enrollment_entry:
+                    warnings.append("رصيد ذمة الطالب السريع سالب لأن قيد التسجيل مفقود أو غير مسجل.")
+                elif ledger_credit > computed_net:
+                    warnings.append(f"رصيد الحساب سالب لأن إجمالي المقبوضات يتجاوز صافي قيمة هذه الدورة المطلوبة ({computed_net} ل.س).")
+                else:
+                    warnings.append("رصيد الحساب سالب بسبب مقبوضات زائدة أو تسويات خفضت الذمة.")
+            
+            # 🔍 تشخيص القيود المكررة للطلاب السريعين
+            reference = e.enrollment_reference
+            if reference:
+                duplicate_jes = JournalEntry.objects.filter(reference=reference)
+                if duplicate_jes.count() > 1:
+                    warnings.append(f"يوجد قيود تسجيل مكررة بالمرجع {reference} (عدد القيود: {duplicate_jes.count()}).")
+            
+            discount_jes = JournalEntry.objects.filter(
+                entry_type='ADJUSTMENT',
+                description__icontains=f'[QUICK_DISCOUNT #{e.id}]'
+            )
+            if discount_jes.count() > 1:
+                warnings.append(f"يوجد {discount_jes.count()} قيود خصم مكررة (ADJUSTMENT) لنفس التسجيل السريع (معرفات القيود: {', '.join(str(je.id) for je in discount_jes)}).")
+            
             # فحص القيود المفقودة
             if computed_net > 0 and not enrollment_entry:
                 stats['total_errors'] += 1
@@ -2969,7 +3081,8 @@ def audit_course_api(request):
                     'type': 'missing_entry',
                     'type_display': 'قيد تسجيل مفقود',
                     'description': 'الطالب مسجل بنجاح في دورة سريعة ولكن لا يوجد قيد محاسبي للتسجيل.',
-                    'suggestion': 'إنشاء قيد التسجيل المحاسبي للدورة السريعة بقيمة إجمالية ' + str(e.total_amount) + ' ل.س.'
+                    'suggestion': 'إنشاء قيد التسجيل المحاسبي للدورة السريعة بقيمة إجمالية ' + str(e.total_amount) + ' ل.س.',
+                    'warnings': warnings
                 })
             # فحص خلل الأرصدة
             elif abs(actual_net_debit - computed_net) > Decimal('0.01'):
@@ -2989,7 +3102,8 @@ def audit_course_api(request):
                     'type': 'mismatch',
                     'type_display': 'خلل في أرصدة القيود',
                     'description': f'صافي التسجيل السريع المحسوب هو {computed_net} ل.س بينما الرصيد الدفتري الحالي هو {actual_net_debit} ل.س (بسبب خلل في قيد التسجيل أو التسوية).',
-                    'suggestion': 'حذف قيود التسوية المكررة وإعادة بناء قيد الحسم وقيد التسجيل الأصلي بالقيم الصحيحة.'
+                    'suggestion': 'حذف قيود التسوية المكررة وإعادة بناء قيد الحسم وقيد التسجيل الأصلي بالقيم الصحيحة.',
+                    'warnings': warnings
                 })
     else:
         # الدورات النظامية
@@ -3062,6 +3176,48 @@ def audit_course_api(request):
             # الصافي الدفتري قبل المدفوعات (المدين الأصلي مطروحاً منه الخصومات)
             actual_net_debit = ledger_debit - adjustments_credit + adjustments_debit
             
+            ledger_balance = ledger_debit - ledger_credit
+            warnings = []
+            
+            # 🔍 تشخيص أسباب رصيد الحساب السالب للطلاب النظاميين
+            if ledger_balance < 0:
+                if not e.enrollment_journal_entry:
+                    warnings.append("رصيد ذمة الطالب سالب لأن قيد التسجيل الأصلي مفقود أو غير مسجل (مدين بقيمة 0)، وأي دفعات محصلة تجعل الحساب دائناً بالكامل.")
+                elif ledger_credit > computed_net:
+                    warnings.append(f"رصيد الحساب سالب بسبب تسديد زائد: إجمالي المدفوعات المستلمة ({ledger_credit} ل.س) يتجاوز صافي قيمة الدورة المطلوبة بعد الحسم ({computed_net} ل.س). قد يكون هناك حسم تم منحه بعد تسديد القيمة أو دفعة زائدة.")
+                else:
+                    warnings.append("رصيد الحساب سالب نتيجة وجود تسويات دائنة (ADJUSTMENT) أو دفعات إضافية خفضت الرصيد مدينياً.")
+
+            # 🔍 تشخيص القيود المكررة للطلاب النظاميين
+            if ar_account:
+                enrollment_jes = JournalEntry.objects.filter(
+                    entry_type='enrollment',
+                    transactions__account=ar_account,
+                    transactions__is_debit=True
+                ).distinct()
+                if enrollment_jes.count() > 1:
+                    warnings.append(f"يوجد {enrollment_jes.count()} قيود تسجيل مكررة (من نوع enrollment) لهذا الكورس (معرفات القيود: {', '.join(str(je.id) for je in enrollment_jes)}).")
+                
+                adj_jes = JournalEntry.objects.filter(
+                    entry_type='ADJUSTMENT',
+                    transactions__account=ar_account
+                ).distinct()
+                if adj_jes.count() > 1:
+                    warnings.append(f"يوجد {adj_jes.count()} قيود تسوية/حسومات مكررة (ADJUSTMENT) لنفس الكورس (معرفات القيود: {', '.join(str(je.id) for je in adj_jes)}).")
+                
+                payment_trans = Transaction.objects.filter(
+                    account=ar_account,
+                    journal_entry__entry_type='PAYMENT',
+                    is_debit=False
+                ).select_related('journal_entry')
+                from collections import defaultdict
+                seen_payments = defaultdict(list)
+                for p in payment_trans:
+                    seen_payments[(p.amount, p.journal_entry.date)].append(p.journal_entry.id)
+                for (amount, date), je_ids in seen_payments.items():
+                    if len(je_ids) > 1:
+                        warnings.append(f"تنبيه: يوجد دفعات مكررة بنفس القيمة ({amount} ل.س) وتاريخ ({date}) (معرفات القيود: {', '.join(str(id) for id in je_ids)}). قد يكون هذا إدخال مكرر.")
+
             # فحص القيود المفقودة
             if computed_net > 0 and not e.enrollment_journal_entry:
                 stats['total_errors'] += 1
@@ -3080,7 +3236,8 @@ def audit_course_api(request):
                     'type': 'missing_entry',
                     'type_display': 'قيد تسجيل مفقود',
                     'description': 'الطالب مسجل بنجاح وله ذمة مالية ولكن لا يوجد قيد محاسبي للتسجيل.',
-                    'suggestion': 'إنشاء قيد التسجيل المحاسبي (DR ذمة الطالب / CR إيرادات مؤجلة) بمبلغ ' + str(computed_net) + ' ل.س.'
+                    'suggestion': 'إنشاء قيد التسجيل المحاسبي (DR ذمة الطالب / CR إيرادات مؤجلة) بمبلغ ' + str(computed_net) + ' ل.س.',
+                    'warnings': warnings
                 })
                 
             # فحص خلل الأرصدة بسبب قيود الحسم المزدوجة
@@ -3101,7 +3258,8 @@ def audit_course_api(request):
                     'type': 'mismatch',
                     'type_display': 'خلل في أرصدة القيود',
                     'description': f'صافي التسجيل المحسوب هو {computed_net} ل.س بينما الرصيد الدفتري الحالي هو {actual_net_debit} ل.س (بسبب قيود تسوية مكررة أو خاطئة).',
-                    'suggestion': 'إلغاء قيود التسوية (ADJUSTMENT) الخاطئة وتحديث قيمة القيد الأصلي ليعبر بدقة عن الصافي.'
+                    'suggestion': 'إلغاء قيود التسوية (ADJUSTMENT) الخاطئة وتحديث قيمة القيد الأصلي ليعبر بدقة عن الصافي.',
+                    'warnings': warnings
                 })
 
     return JsonResponse({
