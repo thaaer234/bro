@@ -655,6 +655,52 @@ from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404
 from .models import Student
 
+class StudentAccountingIssuesView(LoginRequiredMixin, TemplateView):
+    template_name = 'students/accounting_issues.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Get names from GET or prepopulate with provided names
+        names_param = self.request.GET.get('names')
+        if names_param:
+            names = [n.strip() for n in names_param.split(',') if n.strip()]
+        else:
+            # Default names as per user request
+            names = ['لامار عباس احمد غوراني', 'سامر قبي', 'قولي ياسر طهماز']
+        # Retrieve regular students (non‑quick)
+        students = Student.objects.filter(full_name__in=names, account__isnull=False).select_related('account')
+        # Also include students without account for missing account detection
+        students_missing = Student.objects.filter(full_name__in=names, account__isnull=True)
+        issues = []
+        from accounts.models import JournalEntry
+        for student in list(students) + list(students_missing):
+            student_issues = []
+            # Missing AR account
+            if not student.account:
+                student_issues.append('⚠️ لا يوجد حساب ذمم للطالب')
+            # Negative balance
+            try:
+                if student.balance < 0:
+                    student_issues.append('⚠️ رصيد سلبي')
+            except Exception:
+                pass
+            # Discount consistency checks on active enrollments
+            for enrollment in student.get_active_enrollments():
+                total = enrollment.total_amount or 0
+                expected = total - (total * enrollment.discount_percent / 100) - enrollment.discount_amount
+                net = enrollment.net_amount if enrollment.net_amount is not None else total
+                if round(expected, 2) != round(net, 2):
+                    student_issues.append(f'⚠️ عدم توافق الحسم في دورة {enrollment.course.name}')
+                # Journal entry posting status
+                je = getattr(enrollment, 'enrollment_journal_entry', None)
+                if je and not getattr(je, "is_posted", True):
+                    student_issues.append(f'⚠️ قيد التسجيل غير منشور لدورة {enrollment.course.name}')
+            if not student_issues:
+                student_issues.append('✅ لا توجد مشاكل')
+            issues.append({'student': student, 'issues': student_issues})
+        context['accounting_issues'] = issues
+        return context
+
 class StudentListView(LoginRequiredMixin, TemplateView):
     template_name = 'students/student_list.html'
     
