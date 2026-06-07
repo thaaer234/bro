@@ -49,20 +49,18 @@
     <!-- Student Search Card -->
     <div class="card shadow-sm border-0 mb-4 bg-white">
         <div class="card-body p-4">
-            <div class="row align-items-center">
-                <div class="col-md-9">
-                    <label for="inspectStudentInput" class="form-label font-weight-bold text-secondary">
-                        <i class="fas fa-search-dollar me-1"></i> فحص حسابات طالب معين بالكامل (جميع دوراته وقيد ذمته وتفاصيل حساباته):
+            <div class="row">
+                <div class="col-12">
+                    <label for="inspectStudentInput" class="form-label font-weight-bold text-secondary mb-2">
+                        <i class="fas fa-search-dollar me-1 text-info"></i> فحص حسابات طالب معين بالكامل (جميع دوراته وقيد ذمته وتفاصيل حساباته):
                     </label>
-                    <div class="input-group input-group-lg">
-                        <span class="input-group-text bg-light border-2"><i class="fas fa-user-circle text-muted"></i></span>
-                        <input type="text" id="inspectStudentInput" class="form-control border-2" placeholder="أدخل اسم الطالب للبحث والتدقيق...">
+                    <div class="d-flex align-items-center shadow-sm" style="border-radius: 50px; border: 2px solid #0dcaf0; background-color: #fff; padding: 4px; overflow: hidden; flex-wrap: nowrap !important;">
+                        <span class="ps-3 pe-2 text-info"><i class="fas fa-user-circle fs-4"></i></span>
+                        <input type="text" id="inspectStudentInput" class="form-control border-0 flex-grow-1 px-2" placeholder="أدخل اسم الطالب، رقم الهاتف، أو رقم الطالب للبحث والتدقيق..." style="box-shadow: none !important; font-size: 0.95rem; outline: none; background: transparent;">
+                        <button id="runStudentInspectBtn" class="btn btn-info px-4 text-white ms-2" type="button" style="border-radius: 50px; min-width: 180px; font-weight: bold; background: linear-gradient(135deg, #0dcaf0, #0bacbe); border: none; height: 46px;">
+                            <i class="fas fa-user-shield me-2"></i> فحص حالة الطالب
+                        </button>
                     </div>
-                </div>
-                <div class="col-md-3 text-md-end pt-4">
-                    <button id="runStudentInspectBtn" class="btn btn-info btn-lg text-white px-4 w-100">
-                        <i class="fas fa-user-shield me-2"></i> فحص حالة الطالب
-                    </button>
                 </div>
             </div>
         </div>
@@ -281,9 +279,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             student.enrollments.forEach(e => {
                                 let errorBadges = '';
                                 if (e.errors && e.errors.length > 0) {
-                                    e.errors.forEach(err => {
-                                        errorBadges += `<span class="badge bg-danger ms-1 mb-1"><i class="fas fa-circle-exclamation me-1"></i> ${err}</span>`;
-                                    });
+                                    errorBadges = `<span class="badge bg-danger ms-1 mb-1"><i class="fas fa-circle-exclamation me-1"></i> يوجد أخطاء محاسبية</span>`;
                                 } else {
                                     errorBadges = `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> سليم محاسبياً</span>`;
                                 }
@@ -305,13 +301,69 @@ document.addEventListener('DOMContentLoaded', function() {
                                     });
                                 }
 
+                                let errorsHtml = '';
+                                if (e.errors && e.errors.length > 0) {
+                                    errorsHtml = `
+                                        <div class="alert alert-danger border shadow-sm p-3 mb-3">
+                                            <h6 class="alert-heading fw-bold mb-2"><i class="fas fa-circle-exclamation text-danger me-2"></i> أخطاء محاسبية مكتشفة:</h6>
+                                            <ul class="mb-0 ps-3">
+                                                ${e.errors.map(err => {
+                                                    let errorType = '';
+                                                    if (err.includes('مفقود')) {
+                                                        errorType = 'missing_entry';
+                                                    } else if (err.includes('خلل')) {
+                                                        errorType = 'mismatch';
+                                                    }
+                                                    
+                                                    let fixBtn = '';
+                                                    if (errorType) {
+                                                        fixBtn = `
+                                                            <button class="btn btn-danger btn-sm py-0 px-2 ms-2 fix-inspect-error-btn" data-enrollment-id="${e.enrollment_id}" data-error-type="${errorType}" data-course-type="${student.type}" style="font-size: 0.75rem; font-weight: bold; border-radius: 4px;">
+                                                                <i class="fas fa-wrench me-1"></i> تصحيح تلقائي
+                                                            </button>
+                                                        `;
+                                                    }
+                                                    return `
+                                                        <li class="small mb-1 text-dark d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                            <span>${err}</span>
+                                                            ${fixBtn}
+                                                        </li>
+                                                    `;
+                                                }).join('')}
+                                            </ul>
+                                        </div>
+                                    `;
+                                }
+
                                 let warningsHtml = '';
                                 if (e.warnings && e.warnings.length > 0) {
                                     warningsHtml = `
                                         <div class="alert alert-warning border shadow-sm p-3 mb-3">
                                             <h6 class="alert-heading fw-bold mb-2"><i class="fas fa-triangle-exclamation text-warning me-2"></i> تنبيهات محاسبية وتفسير المشاكل:</h6>
                                             <ul class="mb-0 ps-3">
-                                                ${e.warnings.map(w => `<li class="small mb-1 text-dark">${w}</li>`).join('')}
+                                                ${e.warnings.map(w => {
+                                                    let errorType = '';
+                                                    if (w.includes('مفقود')) {
+                                                        errorType = 'missing_entry';
+                                                    } else if (w.includes('مكررة') || w.includes('سالب') || w.includes('تسويات') || w.includes('زائد')) {
+                                                        errorType = 'mismatch';
+                                                    }
+                                                    
+                                                    let fixBtn = '';
+                                                    if (errorType) {
+                                                        fixBtn = `
+                                                            <button class="btn btn-warning btn-sm py-0 px-2 ms-2 fix-inspect-error-btn text-dark" data-enrollment-id="${e.enrollment_id}" data-error-type="${errorType}" data-course-type="${student.type}" style="font-size: 0.7rem; font-weight: bold; border-color: #ffc107; border-radius: 4px;">
+                                                                 <i class="fas fa-wrench me-1"></i> تصحيح
+                                                            </button>
+                                                        `;
+                                                    }
+                                                    return `
+                                                        <li class="small mb-1 text-dark d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                            <span>${w}</span>
+                                                            ${fixBtn}
+                                                        </li>
+                                                    `;
+                                                }).join('')}
                                             </ul>
                                         </div>
                                     `;
@@ -332,6 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </div>
                                         </div>
                                         
+                                        ${errorsHtml}
                                         ${warningsHtml}
                                         
                                         <!-- Financial details -->
@@ -489,6 +542,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 executeInspectAdvancedAction(enrollId, 'toggle_completed', {}, courseType, this);
             });
         });
+
+        document.querySelectorAll('.fix-inspect-error-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const enrollId = this.getAttribute('data-enrollment-id');
+                const errorType = this.getAttribute('data-error-type');
+                const courseType = this.getAttribute('data-course-type');
+                fixInspectError(enrollId, errorType, courseType, this);
+            });
+        });
     }
 
     function executeInspectAdvancedAction(enrollmentId, actionType, extraData, courseType, buttonElement) {
@@ -520,6 +582,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 runStudentInspect(); // Refresh inspection results
             } else {
                 alert('فشل تنفيذ الإجراء: ' + data.error);
+            }
+        })
+        .catch(err => {
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalHtml;
+            alert('حدث خطأ في الاتصال بالخادم.');
+            console.error(err);
+        });
+    }
+
+    function fixInspectError(enrollmentId, errorType, courseType, buttonElement) {
+        if (!confirm('هل أنت متأكد من رغبتك في تصحيح هذا القيد/التنبيه تلقائياً وبأمان؟')) return;
+
+        const originalHtml = buttonElement.innerHTML;
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
+
+        fetch('/students/course-audit/fix/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                enrollment_id: enrollmentId,
+                error_type: errorType,
+                course_type: courseType
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalHtml;
+            if (data.success) {
+                alert(data.message || 'تم التصحيح بنجاح.');
+                runStudentInspect(); // Refresh inspection results
+            } else {
+                alert('فشل التصحيح: ' + data.error);
             }
         })
         .catch(err => {
