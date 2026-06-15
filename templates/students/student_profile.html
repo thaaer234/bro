@@ -2243,6 +2243,16 @@ function initDiscountUpdate() {
             updateStudentDiscount();
         });
     }
+
+    // تحديث حساب الحسم عند تغيير القيم
+    if (discountPercentInput && discountAmountInput) {
+        discountPercentInput.addEventListener('input', function() {
+            validateDiscountInput(this);
+        });
+        discountAmountInput.addEventListener('input', function() {
+            validateDiscountInput(this);
+        });
+    }
 }
 
 // تحديث خصم الدورة المحددة
@@ -2430,16 +2440,7 @@ function updateEnrollmentSubjects() {
     });
 }
 
-    // تحديث حساب الحسم عند تغيير القيم
-    if (discountPercentInput && discountAmountInput) {
-        discountPercentInput.addEventListener('input', function() {
-            validateDiscountInput(this);
-        });
-        discountAmountInput.addEventListener('input', function() {
-            validateDiscountInput(this);
-        });
-    }
-}
+
 
 // التحقق من صحة مدخلات الحسم
 function validateDiscountInput(input) {
