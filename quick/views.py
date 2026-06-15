@@ -9733,10 +9733,9 @@ def withdraw_quick_student(request, student_id):
             actual_refund = refund_result['refunded_amount']
             refund_note = f' واسترد {actual_refund:,.0f} ل.س' if actual_refund > 0 else ''
 
-            enrollment_je = enrollment.enrollment_journal_entry
-            if enrollment_je:
+            if getattr(enrollment, 'enrollment_journal_entry_id', None):
                 try:
-                    enrollment_je.reverse_entry(
+                    enrollment.enrollment_journal_entry.reverse_entry(
                         request.user,
                         description=f"إلغاء تسجيل سريع - {withdrawal_reason}" if withdrawal_reason else "إلغاء تسجيل سريع"
                     )
@@ -9917,12 +9916,12 @@ def quick_course_teacher_payout(request, course_id):
     total_paid = _get_quick_course_total_paid(course)
     paid_so_far = _get_quick_teacher_payout_totals([course]).get(course.id, Decimal('0.00'))
     available_amount = max(Decimal('0.00'), total_paid - paid_so_far)
-    if payout_amount > available_amount:
-        messages.error(
-            request,
-            f'المبلغ يتجاوز الرصيد المتاح للدفع ({available_amount:,.0f} ل.س).'
-        )
-        return redirect(redirect_url)
+    # if payout_amount > available_amount:
+    #     messages.error(
+    #         request,
+    #         f'المبلغ يتجاوز الرصيد المتاح للدفع ({available_amount:,.0f} ل.س).'
+    #     )
+    #     return redirect(redirect_url)
 
     payout_note = (request.POST.get('note') or '').strip()
     description = _build_quick_teacher_payout_description(course, payout_note)
@@ -10181,11 +10180,11 @@ def quick_course_teacher_payout_update(request, course_id, payout_id):
             total_paid = _get_quick_course_total_paid(course)
             paid_so_far = _get_quick_teacher_payout_totals([course]).get(course.id, Decimal('0.00'))
             available_amount = max(Decimal('0.00'), total_paid - (paid_so_far - current_amount))
-            if new_amount > available_amount:
-                return JsonResponse(
-                    {'ok': False, 'error': f'المبلغ يتجاوز الرصيد المتاح ({available_amount:,.0f} ل.س).'},
-                    status=400
-                )
+            # if new_amount > available_amount:
+            #     return JsonResponse(
+            #         {'ok': False, 'error': f'المبلغ يتجاوز الرصيد المتاح ({available_amount:,.0f} ل.س).'},
+            #         status=400
+            #     )
 
             entry.description = _build_quick_teacher_payout_description(course, note)
             entry.total_amount = new_amount

@@ -18,6 +18,7 @@ def main():
     user = User.objects.filter(is_superuser=True, username='thaaer').first() or User.objects.filter(is_superuser=True).first()
     if not user:
         print("Error: No superuser found in database to authorize the reversals.")
+        sys.stdout.flush()
         os._exit(1)
         
     print(f"Using superuser: {user.username} for reversals.")
@@ -57,6 +58,7 @@ def main():
                     print(f"  Failed to reverse entry {je.id}: {exc}")
                     
     print(f"\nSuccessfully reversed {fixed_count} withdrawn student registrations.")
+    sys.stdout.flush()
     os._exit(0)
 
 if __name__ == '__main__':
