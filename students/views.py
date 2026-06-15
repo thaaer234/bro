@@ -1770,6 +1770,41 @@ def update_student_discount(request, student_id):
             'success': False,
             'error': f'حدث خطأ: {str(e)}'
         })
+
+@require_POST
+@login_required
+def update_enrollment_subjects(request, student_id):
+    """تعديل المواد المسجلة للدورة المحددة"""
+    student = get_object_or_404(Student, id=student_id)
+    enrollment_id = request.POST.get('enrollment_id')
+    subjects_note = request.POST.get('subjects_note', 'كامل المواد')
+
+    if not enrollment_id:
+        return JsonResponse({
+            'success': False,
+            'error': 'لم يتم تحديد الدورة'
+        })
+
+    from accounts.models import Studentenrollment
+    enrollment = Studentenrollment.objects.filter(
+        id=enrollment_id,
+        student=student,
+        is_completed=False
+    ).first()
+
+    if not enrollment:
+        return JsonResponse({
+            'success': False,
+            'error': 'التسجيل غير موجود'
+        })
+
+    enrollment.subjects_note = subjects_note.strip() or 'كامل المواد'
+    enrollment.save(update_fields=['subjects_note'])
+
+    return JsonResponse({
+        'success': True,
+        'message': f'تم تحديث المواد المسجلة للدورة {enrollment.course.name} بنجاح'
+    })
     
 class StudentNumbersView(LoginRequiredMixin, TemplateView):
     template_name = 'students/stunum.html'    

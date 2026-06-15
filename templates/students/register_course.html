@@ -69,32 +69,7 @@
                             </select>
                         </div>
 
-                        <!-- المواد المسجلة في الدورة -->
-                        <div class="form-group mb-4">
-                            <label class="form-label">
-                                <i class="fas fa-book me-2"></i>
-                                المواد المسجلة في الدورة <span class="text-danger">*</span>
-                            </label>
-                            <div class="d-flex gap-4 mb-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="subjects_choice" id="subjects_all" value="all" checked>
-                                    <label class="form-check-label fw-bold" for="subjects_all">
-                                        كامل المواد
-                                    </label>
-                                </div>
-                                <div class="form-check ms-4">
-                                    <input class="form-check-input" type="radio" name="subjects_choice" id="subjects_custom" value="custom">
-                                    <label class="form-check-label fw-bold" for="subjects_custom">
-                                        مواد معينة
-                                    </label>
-                                </div>
-                            </div>
-                            <div id="custom-subjects-container" style="display: none;" class="mt-2">
-                                <input type="text" name="subjects_custom_text" id="subjects_custom_text" 
-                                       class="form-control" placeholder="أدخل المواد تفصل بينها فاصلة (مثال: رياضيات، فيزياء)">
-                                <small class="form-text text-muted">اكتب أسماء المواد مفصولة بفواصل.</small>
-                            </div>
-                        </div>
+
 
                         <!-- خيار تطبيق الحسم -->
                         <div class="form-group mb-3">
@@ -247,28 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const studentDiscountAmount = parseFloat("{{ student_discount_amount|stringformat:'.2f' }}") || 0;
     const isFirstEnrollment = {% if is_first_enrollment %}true{% else %}false{% endif %};
 
-    // إظهار/إخفاء حقل المواد المخصصة
-    const subjectsAll = document.getElementById('subjects_all');
-    const subjectsCustom = document.getElementById('subjects_custom');
-    const customSubjectsContainer = document.getElementById('custom-subjects-container');
-    const customSubjectsInput = document.getElementById('subjects_custom_text');
 
-    function toggleSubjectsInput() {
-        if (subjectsCustom.checked) {
-            customSubjectsContainer.style.display = 'block';
-            customSubjectsInput.required = true;
-            customSubjectsInput.focus();
-        } else {
-            customSubjectsContainer.style.display = 'none';
-            customSubjectsInput.required = false;
-            customSubjectsInput.value = '';
-        }
-    }
-
-    if (subjectsAll && subjectsCustom) {
-        subjectsAll.addEventListener('change', toggleSubjectsInput);
-        subjectsCustom.addEventListener('change', toggleSubjectsInput);
-    }
 
     // تحديث معاينة تاريخ التسجيل
     enrollmentDateInput.addEventListener('change', function() {

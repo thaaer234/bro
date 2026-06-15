@@ -26,7 +26,7 @@ try:
     from accounts.models import Course, Studentenrollment
     from students.models import Student
     from classroom.models import Classroom, Classroomenrollment
-    from students.views import register_course, update_student_discount
+    from students.views import register_course, update_enrollment_subjects
     from attendance.views import get_students
     from django.utils import timezone
     
@@ -71,14 +71,10 @@ try:
 
         factory = RequestFactory()
         
+        # Course registration POST (without subjects_choice since it's removed from registration UI)
         post_data = {
             'course_id': str(course.id),
-            'apply_discount': 'true',
-            'discount_percent': '10',
-            'discount_amount': '5000',
-            'discount_reason': 'Test Reason',
-            'subjects_choice': 'custom',
-            'subjects_custom_text': 'رياضيات، فيزياء'
+            'apply_discount': 'false'
         }
         
         request = factory.post(f'/students/{student.id}/register-course/', post_data)
@@ -99,34 +95,33 @@ try:
         enrollment = Studentenrollment.objects.filter(student=student, course=course).first()
         assert enrollment is not None, "Enrollment was not created!"
         print("SUCCESS: Enrollment created successfully!")
-        print(f"Enrollment subjects_note: '{enrollment.subjects_note}'")
-        assert enrollment.subjects_note == 'رياضيات، فيزياء', f"Expected 'رياضيات، فيزياء', got '{enrollment.subjects_note}'"
+        print(f"Default Enrollment subjects_note: '{enrollment.subjects_note}' (Expected: 'كامل المواد')")
+        assert enrollment.subjects_note == 'كامل المواد', f"Expected 'كامل المواد', got '{enrollment.subjects_note}'"
         log_file.flush()
         
+        # Now update subjects specifically via the new update_enrollment_subjects view
         update_post_data = {
             'enrollment_id': str(enrollment.id),
-            'discount_percent': '15',
-            'discount_amount': '7500',
-            'discount_reason': 'Updated Test Reason',
-            'subjects_note': 'كامل المواد'
+            'subjects_note': 'رياضيات، فيزياء'
         }
         
-        request_update = factory.post(f'/students/student/{student.id}/update_discount/', update_post_data)
+        request_update = factory.post(f'/students/student/{student.id}/update_subjects/', update_post_data)
         request_update.user = user
         
-        print("Simulating enrollment update POST...")
+        print("Simulating subjects update POST...")
         log_file.flush()
         import json
-        response_update = update_student_discount(request_update, student.id)
+        response_update = update_enrollment_subjects(request_update, student.id)
         resp_content = json.loads(response_update.content)
         print("Update response:", resp_content)
         assert resp_content['success'] is True, "Update failed!"
         
         enrollment.refresh_from_db()
-        print(f"Updated subjects_note: '{enrollment.subjects_note}'")
-        assert enrollment.subjects_note == 'كامل المواد', f"Expected 'كامل المواد', got '{enrollment.subjects_note}'"
+        print(f"Updated subjects_note: '{enrollment.subjects_note}' (Expected: 'رياضيات، فيزياء')")
+        assert enrollment.subjects_note == 'رياضيات، فيزياء', f"Expected 'رياضيات، فيزياء', got '{enrollment.subjects_note}'"
         log_file.flush()
         
+        # Enroll in classroom for attendance test
         Classroomenrollment.objects.create(
             student=student,
             classroom=classroom
@@ -145,21 +140,19 @@ try:
                 break
                 
         assert student_record is not None, "Student not found in attendance API data!"
-        print(f"API student subjects_note: '{student_record['subjects_note']}'")
-        assert student_record['subjects_note'] == 'كامل المواد', f"Expected 'كامل المواد', got '{student_record['subjects_note']}'"
+        print(f"API student subjects_note: '{student_record['subjects_note']}' (Expected: 'رياضيات، فيزياء')")
+        assert student_record['subjects_note'] == 'رياضيات، فيزياء', f"Expected 'رياضيات، فيزياء', got '{student_record['subjects_note']}'"
         log_file.flush()
         
+        # Change subjects again to test toggle/update
         update_post_data_2 = {
             'enrollment_id': str(enrollment.id),
-            'discount_percent': '15',
-            'discount_amount': '7500',
-            'discount_reason': 'Updated Test Reason',
-            'subjects_note': 'كيمياء، علوم'
+            'subjects_note': 'كامل المواد'
         }
         
-        request_update_2 = factory.post(f'/students/student/{student.id}/update_discount/', update_post_data_2)
+        request_update_2 = factory.post(f'/students/student/{student.id}/update_subjects/', update_post_data_2)
         request_update_2.user = user
-        update_student_discount(request_update_2, student.id)
+        update_enrollment_subjects(request_update_2, student.id)
         
         response_api_2 = get_students(request_api)
         api_data_2 = json.loads(response_api_2.content)
@@ -167,8 +160,8 @@ try:
             if rec['id'] == student.id:
                 student_record = rec
                 break
-        print(f"API student updated subjects_note: '{student_record['subjects_note']}'")
-        assert student_record['subjects_note'] == 'كيمياء، علوم', f"Expected 'كيمياء، علوم', got '{student_record['subjects_note']}'"
+        print(f"API student updated subjects_note: '{student_record['subjects_note']}' (Expected: 'كامل المواد')")
+        assert student_record['subjects_note'] == 'كامل المواد', f"Expected 'كامل المواد', got '{student_record['subjects_note']}'"
         log_file.flush()
         
         enrollment.delete()

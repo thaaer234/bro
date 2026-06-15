@@ -6,45 +6,22 @@ Django setup completed successfully.
 Imports completed successfully.
 --- Starting End-to-End Flow Test ---
 Using superuser: ahmad
-Created Course: Test Course 9900
-🎯 [DEBUG] set_auto_academic_year called for: Test Student 9900
-📅 [DEBUG] استخدام التاريخ: 2026-06-15 15:14:07.512715
+Created Course: Test Course 7622
+🎯 [DEBUG] set_auto_academic_year called for: Test Student 7622
+📅 [DEBUG] استخدام التاريخ: 2026-06-15 15:20:22.927712
 🔍 [DEBUG] الفصل المفتوح الموجود: الفصل الدراسي 2025-2026 - 2025-2026
 ✅ [DEBUG] تم تعيين الفصل: الفصل الدراسي 2025-2026 (مفتوح: True)
-Created Student: Test Student 9900
-Created Classroom: Classroom for Course 9900
+Created Student: Test Student 7622
+Created Classroom: Classroom for Course 7622
 Simulating course registration POST...
 SUCCESS: Enrollment created successfully!
-Enrollment subjects_note: 'رياضيات، فيزياء'
-Simulating enrollment update POST...
-تحديث حسم الدورة: Test Course 9900
-الحسم الجديد: 15% / 7500
-السبب: Updated Test Reason
-التسجيل: Test Course 9900
-الخصم القديم: 0.00% / 0.00
-المبلغ الصافي القديم: 50000.0000
-الخصم الجديد: 15% / 7500
-المبلغ الصافي الجديد: 35000.00
-سيتم تعديل القيد: الفرق -15000.0000
-فرق المبلغ: -15000.0000
-حساب ذمة الطالب: 1251-029-2085 - ذمة Test Student 9900 - Test Course 9900
-حساب الإيرادات المؤجلة: 21001-029 - إيرادات مؤجلة - Test Course 9900
-تخفيض في المبلغ: 15000.0000
-تم ترحيل قيد التسوية بنجاح
-Update response: {'success': True, 'message': 'تم تحديث الحسم للدورة Test Course 9900 بنجاح'}
-Updated subjects_note: 'كامل المواد'
+Default Enrollment subjects_note: 'كامل المواد' (Expected: 'كامل المواد')
+Simulating subjects update POST...
+Update response: {'success': True, 'message': 'تم تحديث المواد المسجلة للدورة Test Course 7622 بنجاح'}
+Updated subjects_note: 'رياضيات، فيزياء' (Expected: 'رياضيات، فيزياء')
 Enrolled student in classroom.
-API Data returned: [{'id': 2085, 'full_name': 'Test Student 9900', 'subjects_note': 'كامل المواد'}]
-API student subjects_note: 'كامل المواد'
-تحديث حسم الدورة: Test Course 9900
-الحسم الجديد: 15% / 7500
-السبب: Updated Test Reason
-التسجيل: Test Course 9900
-الخصم القديم: 15.00% / 7500.00
-المبلغ الصافي القديم: 35000.0000
-الخصم الجديد: 15% / 7500
-المبلغ الصافي الجديد: 35000.00
-لا يوجد فرق في المبلغ الصافي
-API student updated subjects_note: 'كيمياء، علوم'
+API Data returned: [{'id': 2086, 'full_name': 'Test Student 7622', 'subjects_note': 'رياضيات، فيزياء'}]
+API student subjects_note: 'رياضيات، فيزياء' (Expected: 'رياضيات، فيزياء')
+API student updated subjects_note: 'كامل المواد' (Expected: 'كامل المواد')
 SUCCESS: Cleaned up test data.
 --- All tests passed successfully! ---

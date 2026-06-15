@@ -41,6 +41,7 @@ urlpatterns = [
     path('student/<int:student_id>/quick-receipt/', require_employee_perm('students_receipt')(views.quick_receipt), name='quick_receipt'),
     path('<int:student_id>/refund/', require_employee_perm('students_withdraw')(views.refund_student), name='refund_student'),
     path('student/<int:student_id>/update_discount/', require_employee_perm('students_edit')(views.update_student_discount), name='update_student_discount'),
+    path('student/<int:student_id>/update_subjects/', require_employee_perm('students_edit')(views.update_enrollment_subjects), name='update_enrollment_subjects'),
     
     # التخصيص التلقائي
     path('auto-assign-students/', require_employee_perm('students_edit')(views.auto_assign_students_to_years), name='auto_assign_students'),
