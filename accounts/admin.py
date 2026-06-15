@@ -563,7 +563,9 @@ class StudentReceiptAdmin(AcademicYearScopedAdminMixin, ImportExportModelAdmin, 
     ]
     search_fields = [
         'receipt_number', 'student_name', 'course_name',
-        'student__full_name', 'student__phone', 'course__name'
+        'student__name', 'student__phone', 
+        'student_profile__full_name', 'student_profile__phone',
+        'course__name'
     ]
     readonly_fields = ['created_at', 'updated_at']
     list_per_page = 30
