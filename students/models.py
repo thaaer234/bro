@@ -138,6 +138,19 @@ class Student(models.Model):
         """خاصية student_id كبديل للرقم التسلسلي"""
         return f"STU-{self.id:04d}"
 
+    @property
+    def current_classroom(self):
+        """الحصول على الشعبة الحالية للطالب"""
+        try:
+            enrollment = self.classroom_enrollments.filter(
+                classroom__class_type='study'
+            ).first()
+            if enrollment:
+                return enrollment.classroom
+        except Exception:
+            pass
+        return None
+
     # الحقول الحالية...
     
     def get_auto_academic_year(self):

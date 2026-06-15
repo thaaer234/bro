@@ -170,7 +170,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% with classroom=row.student.current_classroom %}
+                                {% with classroom=row.current_classroom %}
                                     {% if classroom %}
                                         <span class="badge bg-primary status-badge">{{ classroom.name }}</span>
                                         <small class="text-muted d-block mt-1">{{ classroom.get_branches_display }}</small>
