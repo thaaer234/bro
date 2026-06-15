@@ -9733,9 +9733,10 @@ def withdraw_quick_student(request, student_id):
             actual_refund = refund_result['refunded_amount']
             refund_note = f' واسترد {actual_refund:,.0f} ل.س' if actual_refund > 0 else ''
 
-            if getattr(enrollment, 'enrollment_journal_entry_id', None):
+            enrollment_je = enrollment.enrollment_journal_entry
+            if enrollment_je:
                 try:
-                    enrollment.enrollment_journal_entry.reverse_entry(
+                    enrollment_je.reverse_entry(
                         request.user,
                         description=f"إلغاء تسجيل سريع - {withdrawal_reason}" if withdrawal_reason else "إلغاء تسجيل سريع"
                     )

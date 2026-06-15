@@ -1,0 +1,26 @@
+Found 3 courses matching 'ملهم علي'
+
+ID: 66 | Name: معسكر البكالوريا العلوم (ملهم علي) | Price: 300000.00 | Type: EXAM
+  Active enrollments: 42
+  Total receipts: 41
+  Deferred Account Code: 2151-066
+  Deferred Account Balance: 12300000
+  Receipts paid sum: 12000000
+  _get_quick_course_total_paid: 12000000.00
+
+ID: 65 | Name: امتحانية البكالوريا العلوم (ملهم علي) | Price: 150000.00 | Type: EXAM
+  Active enrollments: 23
+  Total receipts: 23
+  Deferred Account Code: 2151-065
+  Deferred Account Balance: 3450000.00
+  Receipts paid sum: 3450000
+  _get_quick_course_total_paid: 3450000.00
+
+ID: 15 | Name: مكثفة العلوم (الأستاذ ملهم علي) | Price: 500000.00 | Type: INTENSIVE
+  Active enrollments: 24
+  Total receipts: 26
+  Deferred Account Code: 2151-015
+  Deferred Account Balance: 2813000
+  Receipts paid sum: 11250000
+  _get_quick_course_total_paid: 11250000.00
+
