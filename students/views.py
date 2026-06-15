@@ -943,6 +943,16 @@ class StudentCardsPrintView(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
             Classroom.objects.filter(is_active=True, class_type='study').order_by('name')
         )
 
+# Build classroom list with associated course name
+        classrooms_with_course = []
+        for classroom in classrooms:
+            course_name = classroom.course.name if getattr(classroom, 'course', None) else 'دورة'
+            classrooms_with_course.append({
+                'id': classroom.id,
+                'name': classroom.name,
+                'course_name': course_name,
+            })
+
         context.update({
             'should_generate': should_generate,
             'pages': pages,
@@ -950,6 +960,7 @@ class StudentCardsPrintView(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
             'app_download_url': self.app_download_url,
             'app_qr_url': f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={quote(self.app_download_url)}",
             'classrooms': classrooms,
+            'classrooms_with_course': classrooms_with_course,
             'selected_classroom': selected_classroom,
             'pdf': False,
         })
