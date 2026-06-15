@@ -131,11 +131,6 @@
           <strong class="card-value">
             {{ student.discount_percent|default_if_none:0 }}% / {{ student.discount_amount|default_if_none:0 }}
           </strong>
-          {% if active_enrollments %}
-          <button class="btn btn-sm btn-outline-warning mt-1" id="updateDiscountBtn">
-            <i class="fas fa-edit"></i> تعديل
-          </button>
-          {% endif %}
         </div>
       </div>
       <div class="summary-card">
@@ -653,6 +648,18 @@
                       <i class="fas fa-percentage"></i>
                       <span>الخصم: {{ item.enrollment.discount_percent }}% / {{ item.enrollment.discount_amount|floatformat:2 }} ل.س</span>
                     </div>
+                    <!-- زر تعديل التسجيل والمواد -->
+                    <div class="mt-3 text-start">
+                      <button class="btn btn-sm btn-outline-warning edit-enrollment-btn"
+                              data-enrollment-id="{{ item.enrollment.id }}"
+                              data-course-name="{{ item.enrollment.course.name }}"
+                              data-discount-percent="{{ item.enrollment.discount_percent }}"
+                              data-discount-amount="{{ item.enrollment.discount_amount }}"
+                              data-discount-reason="{{ item.enrollment.discount_reason }}"
+                              data-subjects-note="{{ item.enrollment.subjects_note|default:'كامل المواد' }}">
+                        <i class="fas fa-edit"></i> تعديل المواد والخصم
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1086,7 +1093,7 @@
   <div class="modal-overlay"></div>
   <div class="modal-container">
     <div class="modal-header">
-      <h3><i class="fas fa-percentage"></i> تحديث خصم الدورة</h3>
+      <h3><i class="fas fa-edit"></i> تعديل تفاصيل التسجيل (المواد والخصم)</h3>
       <button type="button" class="close-btn" data-close>
         <i class="fas fa-times"></i>
       </button>
@@ -1094,28 +1101,30 @@
     <div class="modal-body">
       <div class="alert alert-info">
         <i class="fas fa-info-circle"></i>
-        اختر الدورة المراد تعديل حسمها - التعديل سيطبق على هذه الدورة فقط
+        تعديل المواد المسجلة أو الخصم المطبق على هذه الدورة فقط.
       </div>
 
       <form id="updateDiscountForm">
         {% csrf_token %}
 
-        <!-- اختيار الدورة -->
+        <!-- اختيار الدورة (مخفي للربط البرمجي) -->
+        <select id="enrollment_select" style="display: none;" required>
+          <option value="">-- اختر الدورة --</option>
+          {% for item in active_enrollments %}
+          <option value="{{ item.enrollment.id }}"
+                  data-discount-percent="{{ item.enrollment.discount_percent }}"
+                  data-discount-amount="{{ item.enrollment.discount_amount }}"
+                  data-discount-reason="{{ item.enrollment.discount_reason }}"
+                  data-subjects-note="{{ item.enrollment.subjects_note|default:'كامل المواد' }}">
+            {{ item.enrollment.course.name }}
+          </option>
+          {% endfor %}
+        </select>
+
+        <!-- اسم الدورة المعروض -->
         <div class="form-group mb-3">
-          <label for="enrollment_select">اختر الدورة <span class="text-danger">*</span></label>
-          <select id="enrollment_select" class="form-control" required>
-            <option value="">-- اختر الدورة --</option>
-            {% for item in active_enrollments %}
-            <option value="{{ item.enrollment.id }}"
-                    data-discount-percent="{{ item.enrollment.discount_percent }}"
-                    data-discount-amount="{{ item.enrollment.discount_amount }}"
-                    data-discount-reason="{{ item.enrollment.discount_reason }}"
-                    data-subjects-note="{{ item.enrollment.subjects_note|default:'كامل المواد' }}">
-              {{ item.enrollment.course.name }} -
-              الحسم الحالي: {{ item.enrollment.discount_percent }}% / {{ item.enrollment.discount_amount|floatformat:2 }}
-            </option>
-            {% endfor %}
-          </select>
+          <label class="fw-bold fs-6">الدورة المسجلة:</label>
+          <div id="modal_course_name_display" class="form-control-plaintext fs-5 fw-bold text-primary" style="padding: 0.375rem 0.75rem; border-bottom: 2px solid #eee; margin-bottom: 10px;"></div>
         </div>
 
         <div class="form-row">
@@ -2162,9 +2171,8 @@ function initCourseWithdrawButtons() {
     });
 }
 
-// تهيئة تحديث الخصم
+// تهيئة تحديث الخصم والمواد للدورات المسجلة
 function initDiscountUpdate() {
-    const updateDiscountBtn = document.getElementById('updateDiscountBtn');
     const updateDiscountModal = document.getElementById('updateDiscountModal');
     const confirmUpdateDiscount = document.getElementById('confirmUpdateDiscount');
     const enrollmentSelect = document.getElementById('enrollment_select');
@@ -2172,37 +2180,56 @@ function initDiscountUpdate() {
     const discountAmountInput = document.getElementById('update_discount_amount');
     const discountReasonInput = document.getElementById('update_discount_reason');
 
-    if (updateDiscountBtn) {
-        updateDiscountBtn.addEventListener('click', function() {
-            openModal(updateDiscountModal);
-            setupNumberFormatting();
-        });
-    }
+    // تفعيل أزرار التعديل في كروت الدورات المسجلة
+    const editEnrollmentBtns = document.querySelectorAll('.edit-enrollment-btn');
+    if (editEnrollmentBtns.length > 0) {
+        editEnrollmentBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const enrollmentId = this.dataset.enrollmentId;
+                const courseName = this.dataset.courseName;
+                const discountPercent = this.dataset.discountPercent || '0';
+                const discountAmount = this.dataset.discountAmount || '0';
+                const discountReason = this.dataset.discountReason || '';
+                const subjectsNote = this.dataset.subjectsNote || 'كامل المواد';
 
-    // عند اختيار دورة، حمل قيم الحسم الحالية
-    if (enrollmentSelect) {
-        enrollmentSelect.addEventListener('change', function() {
-            if (this.value) {
-                const selectedOption = this.options[this.selectedIndex];
-                discountPercentInput.value = selectedOption.dataset.discountPercent || '0';
-                discountAmountInput.value = selectedOption.dataset.discountAmount || '0';
-                discountReasonInput.value = selectedOption.dataset.discountReason || '';
-                
-                const subjectsNote = selectedOption.dataset.subjectsNote || 'كامل المواد';
-                if (subjectsNote === 'كامل المواد') {
-                    document.getElementById('update_subjects_all').checked = true;
-                    document.getElementById('update-custom-subjects-container').style.display = 'none';
-                    document.getElementById('update_subjects_custom_text').value = '';
-                } else {
-                    document.getElementById('update_subjects_custom').checked = true;
-                    document.getElementById('update-custom-subjects-container').style.display = 'block';
-                    document.getElementById('update_subjects_custom_text').value = subjectsNote;
+                // تعيين القيم في المودال
+                if (enrollmentSelect) {
+                    enrollmentSelect.value = enrollmentId;
+                }
+                const modalCourseNameDisplay = document.getElementById('modal_course_name_display');
+                if (modalCourseNameDisplay) {
+                    modalCourseNameDisplay.textContent = courseName;
                 }
                 
-                document.getElementById('discount-impact').style.display = 'block';
-            } else {
-                document.getElementById('discount-impact').style.display = 'none';
-            }
+                if (discountPercentInput) discountPercentInput.value = discountPercent;
+                if (discountAmountInput) discountAmountInput.value = discountAmount;
+                if (discountReasonInput) discountReasonInput.value = discountReason;
+
+                // التعامل مع ملاحظة المواد
+                const subjectsAll = document.getElementById('update_subjects_all');
+                const subjectsCustom = document.getElementById('update_subjects_custom');
+                const customContainer = document.getElementById('update-custom-subjects-container');
+                const customText = document.getElementById('update_subjects_custom_text');
+
+                if (subjectsNote === 'كامل المواد') {
+                    if (subjectsAll) subjectsAll.checked = true;
+                    if (customContainer) customContainer.style.display = 'none';
+                    if (customText) customText.value = '';
+                } else {
+                    if (subjectsCustom) subjectsCustom.checked = true;
+                    if (customContainer) customContainer.style.display = 'block';
+                    if (customText) customText.value = subjectsNote;
+                }
+
+                // إظهار تأثير الحسم المالي تلقائياً إذا كانت هناك قيم
+                const discountImpact = document.getElementById('discount-impact');
+                if (discountImpact) {
+                    discountImpact.style.display = 'block';
+                }
+
+                openModal(updateDiscountModal);
+                setupNumberFormatting();
+            });
         });
     }
 

@@ -6,40 +6,40 @@ Django setup completed successfully.
 Imports completed successfully.
 --- Starting End-to-End Flow Test ---
 Using superuser: ahmad
-Created Course: Test Course 5996
-🎯 [DEBUG] set_auto_academic_year called for: Test Student 5996
-📅 [DEBUG] استخدام التاريخ: 2026-06-15 14:47:14.359264
+Created Course: Test Course 9900
+🎯 [DEBUG] set_auto_academic_year called for: Test Student 9900
+📅 [DEBUG] استخدام التاريخ: 2026-06-15 15:14:07.512715
 🔍 [DEBUG] الفصل المفتوح الموجود: الفصل الدراسي 2025-2026 - 2025-2026
 ✅ [DEBUG] تم تعيين الفصل: الفصل الدراسي 2025-2026 (مفتوح: True)
-Created Student: Test Student 5996
-Created Classroom: Classroom for Course 5996
+Created Student: Test Student 9900
+Created Classroom: Classroom for Course 9900
 Simulating course registration POST...
 SUCCESS: Enrollment created successfully!
 Enrollment subjects_note: 'رياضيات، فيزياء'
 Simulating enrollment update POST...
-تحديث حسم الدورة: Test Course 5996
+تحديث حسم الدورة: Test Course 9900
 الحسم الجديد: 15% / 7500
 السبب: Updated Test Reason
-التسجيل: Test Course 5996
+التسجيل: Test Course 9900
 الخصم القديم: 0.00% / 0.00
 المبلغ الصافي القديم: 50000.0000
 الخصم الجديد: 15% / 7500
 المبلغ الصافي الجديد: 35000.00
 سيتم تعديل القيد: الفرق -15000.0000
 فرق المبلغ: -15000.0000
-حساب ذمة الطالب: 1251-028-2084 - ذمة Test Student 5996 - Test Course 5996
-حساب الإيرادات المؤجلة: 21001-028 - إيرادات مؤجلة - Test Course 5996
+حساب ذمة الطالب: 1251-029-2085 - ذمة Test Student 9900 - Test Course 9900
+حساب الإيرادات المؤجلة: 21001-029 - إيرادات مؤجلة - Test Course 9900
 تخفيض في المبلغ: 15000.0000
 تم ترحيل قيد التسوية بنجاح
-Update response: {'success': True, 'message': 'تم تحديث الحسم للدورة Test Course 5996 بنجاح'}
+Update response: {'success': True, 'message': 'تم تحديث الحسم للدورة Test Course 9900 بنجاح'}
 Updated subjects_note: 'كامل المواد'
 Enrolled student in classroom.
-API Data returned: [{'id': 2084, 'full_name': 'Test Student 5996', 'subjects_note': 'كامل المواد'}]
+API Data returned: [{'id': 2085, 'full_name': 'Test Student 9900', 'subjects_note': 'كامل المواد'}]
 API student subjects_note: 'كامل المواد'
-تحديث حسم الدورة: Test Course 5996
+تحديث حسم الدورة: Test Course 9900
 الحسم الجديد: 15% / 7500
 السبب: Updated Test Reason
-التسجيل: Test Course 5996
+التسجيل: Test Course 9900
 الخصم القديم: 15.00% / 7500.00
 المبلغ الصافي القديم: 35000.0000
 الخصم الجديد: 15% / 7500
