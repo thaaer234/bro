@@ -2589,7 +2589,7 @@ def refund_student(request, student_id):
         # 1. مدين: ذمة الطالب (تخفيض الذمة - زيادة المدين)
         Transaction.objects.create(
             journal_entry=refund_entry,
-            account=student.ar_account,
+            account=Account.get_or_create_student_ar_account(student, enrollment.course),
             amount=refund_amount,
             is_debit=True,
             description=f"استرداد مبلغ - {enrollment.course.name}"

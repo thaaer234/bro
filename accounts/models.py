@@ -189,11 +189,8 @@ class Account(models.Model):
             account.save(update_fields=['balance'])
 
     @classmethod
-    def get_or_create_student_ar_account(cls, student, course):
-        """Get or create AR account for student; must be scoped to a course"""
-        if not course:
-            raise ValueError("Course is required for student AR account creation")
-        
+    def get_or_create_student_ar_account(cls, student, course=None):
+        """Get or create AR account for student; must be scoped to a course if possible"""
         # Ensure AR parent exists
         ar_parent, _ = cls.objects.get_or_create(
             code='1251',
@@ -205,8 +202,37 @@ class Account(models.Model):
             }
         )
         
-        # Resolve student and course names
         student_name = getattr(student, 'full_name', None) or getattr(student, 'name', '') or getattr(student, 'student_name', '') or str(student)
+        
+        if not course:
+            # Try to get course from student's active enrollments
+            try:
+                from accounts.models import Studentenrollment
+                enrollment = Studentenrollment.objects.filter(student=student, is_completed=False).first()
+                if enrollment:
+                    course = enrollment.course
+            except Exception:
+                pass
+
+        if not course:
+            student_id_val = student.id if getattr(student, 'id', None) else 0
+            student_code = f"1251-000-{student_id_val:03d}"
+            student_account, created = cls.objects.get_or_create(
+                code=student_code,
+                defaults={
+                    'name': f"AR - {student_name} - General",
+                    'name_ar': f"ذمة {student_name} - عام",
+                    'account_type': 'ASSET',
+                    'parent': ar_parent,
+                    'is_student_account': True,
+                    'student_name': student_name,
+                    'course_name': 'General / عام',
+                    'is_active': True,
+                }
+            )
+            return student_account
+            
+        # Resolve course names
         course_name = getattr(course, 'name', '')
         course_name_ar = getattr(course, 'name_ar', None) or course_name
         
@@ -228,7 +254,8 @@ class Account(models.Model):
         
         # Create or get student-specific AR account under the course
         # التنسيق: 1251-الدورة-الطالب
-        student_code = f"1251-{course.id:03d}-{student.id:03d}"
+        student_id_val = student.id if getattr(student, 'id', None) else 0
+        student_code = f"1251-{course.id:03d}-{student_id_val:03d}"
         student_account, created = cls.objects.get_or_create(
             code=student_code,
             defaults={
@@ -1890,40 +1917,18 @@ class Studentenrollment(models.Model):
 
     @property
     def net_amount(self):
-        """Calculate net amount after discounts, aligned with General Ledger if available"""
-        try:
-            student_ar_account = Account.get_student_ar_account_for_course(self.student, self.course)
-            if student_ar_account:
-                ledger_debit = student_ar_account.get_debit_balance(academic_year=None)
-                ledger_credit = student_ar_account.get_credit_balance(academic_year=None)
-                if ledger_debit > 0 or ledger_credit > 0:
-                    return ledger_debit
-        except Exception as e:
-            print(f"Error fetching ledger debit: {e}")
-        
-        # Fallback to standard computed net due
+        """Calculate net amount after discounts"""
         after_percent = self.total_amount - (self.total_amount * self.discount_percent / Decimal('100'))
         return max(Decimal('0'), after_percent - self.discount_amount)
 
     @property
     def amount_paid(self):
-        """Total amount paid for this enrollment, aligned with General Ledger if available"""
-        try:
-            student_ar_account = Account.get_student_ar_account_for_course(self.student, self.course)
-            if student_ar_account:
-                ledger_debit = student_ar_account.get_debit_balance(academic_year=None)
-                ledger_credit = student_ar_account.get_credit_balance(academic_year=None)
-                if ledger_debit > 0 or ledger_credit > 0:
-                    return ledger_credit
-        except Exception as e:
-            print(f"Error fetching ledger credit: {e}")
-        
-        # Fallback to standard computed paid total
+        """Total amount paid for this enrollment"""
         return self.payments.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
 
     @property
     def balance_due(self):
-        """Remaining balance due, aligned with General Ledger if available"""
+        """Remaining balance due"""
         return max(Decimal('0'), self.net_amount - self.amount_paid)
 
     def create_accrual_enrollment_entry(self, user):
