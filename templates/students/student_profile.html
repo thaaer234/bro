@@ -646,6 +646,10 @@
                       <span>الحالة: {% if item.enrollment.is_active %}نشط{% else %}غير نشط{% endif %}</span>
                     </div>
                     <div class="info-item">
+                      <i class="fas fa-book"></i>
+                      <span>المواد المسجلة: <strong>{{ item.enrollment.subjects_note|default:"كامل المواد" }}</strong></span>
+                    </div>
+                    <div class="info-item">
                       <i class="fas fa-percentage"></i>
                       <span>الخصم: {{ item.enrollment.discount_percent }}% / {{ item.enrollment.discount_amount|floatformat:2 }} ل.س</span>
                     </div>
@@ -1105,7 +1109,8 @@
             <option value="{{ item.enrollment.id }}"
                     data-discount-percent="{{ item.enrollment.discount_percent }}"
                     data-discount-amount="{{ item.enrollment.discount_amount }}"
-                    data-discount-reason="{{ item.enrollment.discount_reason }}">
+                    data-discount-reason="{{ item.enrollment.discount_reason }}"
+                    data-subjects-note="{{ item.enrollment.subjects_note|default:'كامل المواد' }}">
               {{ item.enrollment.course.name }} -
               الحسم الحالي: {{ item.enrollment.discount_percent }}% / {{ item.enrollment.discount_amount|floatformat:2 }}
             </option>
@@ -1134,6 +1139,29 @@
                  class="form-control"
                  value=""
                  placeholder="أدخل سبب الخصم...">
+        </div>
+
+        <!-- المواد المسجلة -->
+        <div class="form-group mb-3">
+          <label class="fw-bold">المواد المسجلة في الدورة <span class="text-danger">*</span></label>
+          <div class="d-flex gap-4 mb-2">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="update_subjects_choice" id="update_subjects_all" value="all" checked>
+              <label class="form-check-label fw-bold" for="update_subjects_all">
+                كامل المواد
+              </label>
+            </div>
+            <div class="form-check ms-4">
+              <input class="form-check-input" type="radio" name="update_subjects_choice" id="update_subjects_custom" value="custom">
+              <label class="form-check-label fw-bold" for="update_subjects_custom">
+                مواد معينة
+              </label>
+            </div>
+          </div>
+          <div id="update-custom-subjects-container" style="display: none;" class="mt-2">
+            <input type="text" id="update_subjects_custom_text" class="form-control" placeholder="أدخل المواد تفصل بينها فاصلة (مثال: رياضيات، فيزياء)">
+            <small class="form-text text-muted">اكتب أسماء المواد مفصولة بفواصل.</small>
+          </div>
         </div>
 
         <div id="discount-impact" class="alert alert-success" style="display: none;">
@@ -2159,11 +2187,44 @@ function initDiscountUpdate() {
                 discountPercentInput.value = selectedOption.dataset.discountPercent || '0';
                 discountAmountInput.value = selectedOption.dataset.discountAmount || '0';
                 discountReasonInput.value = selectedOption.dataset.discountReason || '';
+                
+                const subjectsNote = selectedOption.dataset.subjectsNote || 'كامل المواد';
+                if (subjectsNote === 'كامل المواد') {
+                    document.getElementById('update_subjects_all').checked = true;
+                    document.getElementById('update-custom-subjects-container').style.display = 'none';
+                    document.getElementById('update_subjects_custom_text').value = '';
+                } else {
+                    document.getElementById('update_subjects_custom').checked = true;
+                    document.getElementById('update-custom-subjects-container').style.display = 'block';
+                    document.getElementById('update_subjects_custom_text').value = subjectsNote;
+                }
+                
                 document.getElementById('discount-impact').style.display = 'block';
             } else {
                 document.getElementById('discount-impact').style.display = 'none';
             }
         });
+    }
+
+    // إظهار/إخفاء حقل المواد المخصصة في المودال
+    const updateSubjectsAll = document.getElementById('update_subjects_all');
+    const updateSubjectsCustom = document.getElementById('update_subjects_custom');
+    const updateCustomSubjectsContainer = document.getElementById('update-custom-subjects-container');
+    const updateCustomSubjectsInput = document.getElementById('update_subjects_custom_text');
+
+    function toggleUpdateSubjectsInput() {
+        if (updateSubjectsCustom.checked) {
+            updateCustomSubjectsContainer.style.display = 'block';
+            updateCustomSubjectsInput.focus();
+        } else {
+            updateCustomSubjectsContainer.style.display = 'none';
+            updateCustomSubjectsInput.value = '';
+        }
+    }
+
+    if (updateSubjectsAll && updateSubjectsCustom) {
+        updateSubjectsAll.addEventListener('change', toggleUpdateSubjectsInput);
+        updateSubjectsCustom.addEventListener('change', toggleUpdateSubjectsInput);
     }
 
     if (confirmUpdateDiscount) {
@@ -2211,11 +2272,18 @@ function updateStudentDiscount() {
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
     }
 
+    let subjectsNote = 'كامل المواد';
+    const updateSubjectsCustom = document.getElementById('update_subjects_custom');
+    if (updateSubjectsCustom && updateSubjectsCustom.checked) {
+        subjectsNote = document.getElementById('update_subjects_custom_text').value.trim() || 'كامل المواد';
+    }
+
     const formData = new FormData();
     formData.append('enrollment_id', enrollmentId);
     formData.append('discount_percent', discountPercent);
     formData.append('discount_amount', discountAmount);
     formData.append('discount_reason', discountReason);
+    formData.append('subjects_note', subjectsNote);
 
     fetch(`{% url "students:update_student_discount" student.id %}`, {
         method: 'POST',

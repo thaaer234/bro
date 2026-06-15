@@ -1750,6 +1750,11 @@ def update_student_discount(request, student_id):
             request.user
         )
 
+        subjects_note = request.POST.get('subjects_note')
+        if subjects_note is not None:
+            enrollment.subjects_note = subjects_note.strip() or 'كامل المواد'
+            enrollment.save(update_fields=['subjects_note'])
+
         return JsonResponse({
             'success': True,
             'message': f'تم تحديث الحسم للدورة {enrollment.course.name} بنجاح'
@@ -2099,6 +2104,13 @@ def register_course(request, student_id):
                             discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
                             discount_reason = request.POST.get('discount_reason', 'حسم مطبق عند التسجيل')
 
+                    # Determine enrolled subjects
+                    subjects_choice = request.POST.get('subjects_choice', 'all')
+                    if subjects_choice == 'custom':
+                        subjects_note = request.POST.get('subjects_custom_text', '').strip() or 'كامل المواد'
+                    else:
+                        subjects_note = 'كامل المواد'
+
                     # Create new enrollment
                     enrollment = Studentenrollment.objects.create(
                         student=target_student,
@@ -2108,7 +2120,8 @@ def register_course(request, student_id):
                         discount_percent=discount_percent,
                         discount_amount=discount_amount,
                         discount_reason=discount_reason,
-                        payment_method='CASH'
+                        payment_method='CASH',
+                        subjects_note=subjects_note
                     )
 
                     # Create enrollment journal entry

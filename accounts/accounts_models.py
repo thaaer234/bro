@@ -696,6 +696,7 @@ class Studentenrollment(models.Model):
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default='CASH',
                                      verbose_name='طريقة الدفع / Payment Method')
     notes = models.TextField(blank=True, verbose_name='ملاحظات / Notes')
+    subjects_note = models.CharField(max_length=255, default='كامل المواد', verbose_name='المواد المسجلة / Registered Subjects')
     is_completed = models.BooleanField(default=False, verbose_name='مكتمل / Completed')
     completion_date = models.DateField(null=True, blank=True, verbose_name='تاريخ الإكمال / Completion Date')
     

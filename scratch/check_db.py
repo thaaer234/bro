@@ -1,21 +1,20 @@
-import os
-import sys
-import django
+import sqlite3
 
-# Setup django environment
-sys.path.append(r"c:\Users\THAAER\Desktop\project")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "alyaman.settings")
-os.environ["DISABLE_BIOMETRIC_SCHEDULER"] = "true"
-django.setup()
+def check_integrity():
+    conn = sqlite3.connect("db.sqlite3")
+    cursor = conn.cursor()
+    print("Checking database integrity...")
+    try:
+        cursor.execute("PRAGMA integrity_check;")
+        results = cursor.fetchall()
+        for res in results[:20]:
+            print(res)
+        if len(results) > 20:
+            print(f"... and {len(results) - 20} more errors/messages.")
+    except Exception as e:
+        print("Error checking integrity:", e)
+    finally:
+        conn.close()
 
-from quick.models import AcademicYear
-from accounts.models import Course, Studentenrollment, StudentReceipt, JournalEntry, Account, Transaction
-
-print("=== DB COUNTS ===")
-print("Academic Years:", AcademicYear.objects.count())
-print("Courses:", Course.objects.count())
-print("Student Enrollments:", Studentenrollment.objects.count())
-print("Student Receipts:", StudentReceipt.objects.count())
-print("Journal Entries:", JournalEntry.objects.count())
-print("Accounts:", Account.objects.count())
-print("Transactions:", Transaction.objects.count())
+if __name__ == "__main__":
+    check_integrity()

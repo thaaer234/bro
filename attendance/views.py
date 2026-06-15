@@ -174,6 +174,12 @@ def get_students(request):
         return JsonResponse({'error': 'يجب تحديد معرف الشعبة'}, status=400)
     
     try:
+        from classroom.models import Classroom
+        from accounts.models import Studentenrollment
+
+        classroom = Classroom.objects.filter(id=classroom_id).first()
+        course = classroom.course if classroom else None
+
         # جلب الطلاب عبر علاقة التسجيل في الشعبة
         students = Student.objects.filter(
             classroom_enrollments__classroom_id=classroom_id
@@ -181,12 +187,29 @@ def get_students(request):
         current_year = getattr(request, 'current_academic_year', None)
         if current_year:
             students = students.filter(academic_year=current_year)
-        students = students.values('id', 'full_name')
         
-        if not students.exists():
+        data = []
+        for student in students.order_by('full_name'):
+            subjects_note = 'كامل المواد'
+            if course:
+                enrollment = Studentenrollment.objects.filter(
+                    student=student,
+                    course=course,
+                    is_completed=False
+                ).first()
+                if enrollment:
+                    subjects_note = enrollment.subjects_note or 'كامل المواد'
+            
+            data.append({
+                'id': student.id,
+                'full_name': student.full_name,
+                'subjects_note': subjects_note
+            })
+            
+        if not data:
             return JsonResponse({'error': 'لا يوجد طلاب في هذه الشعبة'}, status=404)
             
-        return JsonResponse(list(students), safe=False)
+        return JsonResponse(data, safe=False)
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
