@@ -4,12 +4,16 @@
 {% block title %}تقرير فني معتمد: {{ report.report_number }} | خدمات تقنية{% endblock %}
 
 {% block extra_css %}
+<!-- Load premium Cairo font for high-fidelity Arabic typography -->
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+
 <style>
-    /* Styling for the screen view container */
+    /* Reset font for A4 paper and viewport */
     .report-viewport {
         background-color: #f1f5f9;
-        padding: 2rem 1rem;
+        padding: 2.5rem 1rem;
         direction: rtl;
+        font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
     }
     
     /* Pages representation on screen (A4 size representation) */
@@ -17,10 +21,10 @@
         background-color: #ffffff;
         width: 100%;
         max-width: 820px; /* Standard A4 width relative representation */
-        min-height: 1120px; /* Standard A4 height relative representation */
-        margin: 0 auto 2.5rem auto;
+        height: 1160px; /* Standard A4 height relative representation */
+        margin: 0 auto 3rem auto;
         padding: 3.5rem;
-        box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         border: 1px solid #cbd5e1;
         position: relative;
         display: flex;
@@ -28,368 +32,484 @@
         justify-content: space-between;
         box-sizing: border-box;
         border-radius: 8px;
+        overflow: hidden;
     }
     
-    /* Cover Page Specific Styles */
-    .cover-top-header {
+    /* =========================================
+       COVER PAGE SPECIFIC STYLES
+       ========================================= */
+    
+    /* Curved navy globe panel on the right side */
+    .cover-right-panel {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 48%;
+        height: 100%;
+        background-color: #0c1e35; /* Dark navy blue matching mockup */
+        clip-path: ellipse(85% 65% at 100% 50%); /* Arc shape */
+        border-right: 1px solid #0c1e35;
+        z-index: 1;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 4rem;
+        justify-content: flex-end;
     }
-    .cover-logo-group {
+    
+    /* Golden/Orange highlighting border curve */
+    .cover-curve-highlight {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: 49.5%;
+        height: 100%;
+        background-color: #f97316; /* Gold highlight line */
+        clip-path: ellipse(85% 65% at 100% 50%);
+        z-index: 0;
+    }
+    
+    /* Interactive connection SVG globe inside the panel */
+    .cover-globe-container {
+        position: absolute;
+        width: 110%;
+        height: 70%;
+        left: -10%;
+        top: 15%;
+        opacity: 0.28;
+    }
+    
+    .cover-left-content {
+        position: relative;
+        z-index: 5;
+        width: 55%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    
+    /* Cover Header Logos */
+    .cover-header {
         display: flex;
         align-items: center;
-        gap: 1.5rem;
+        gap: 1rem;
+        margin-bottom: 2rem;
     }
     .cover-logo-mahwar {
         text-align: center;
     }
-    .cover-logo-mahwar .brand-txt {
-        font-size: 2.2rem;
+    .cover-logo-mahwar .brand-title {
+        font-size: 1.8rem;
         font-weight: 900;
-        color: #0f172a;
-        letter-spacing: 2px;
+        color: #0d2240;
+        letter-spacing: 1px;
         line-height: 1;
     }
-    .cover-logo-mahwar .sub-txt {
-        font-size: 0.65rem;
-        color: #ea580c;
+    .cover-logo-mahwar .sub-title {
+        font-size: 0.6rem;
+        color: #f97316;
         font-weight: 700;
         text-transform: uppercase;
-        margin-top: 4px;
+        margin-top: 3px;
     }
-    .cover-logo-separator {
+    .cover-logo-divider {
         width: 1.5px;
-        height: 55px;
+        height: 48px;
         background-color: #cbd5e1;
     }
     .cover-logo-alyaman {
         text-align: right;
     }
     .cover-logo-alyaman .main-txt {
-        font-size: 1.25rem;
+        font-size: 1.15rem;
         font-weight: 800;
         color: #7c3aed; /* Purple lightbulb theme */
+        line-height: 1.2;
     }
     .cover-logo-alyaman .sub-txt {
-        font-size: 0.85rem;
-        color: #1e3a8a;
+        font-size: 0.8rem;
+        color: #0d2240;
         font-weight: 700;
     }
     
-    .cover-title-section {
-        text-align: center;
+    /* Cover Center Text */
+    .cover-title-box {
         margin-top: 2rem;
-        margin-bottom: 2rem;
     }
-    .cover-title-pre {
-        font-size: 4rem;
+    .cover-title-top {
+        font-size: 3.8rem;
         font-weight: 900;
-        color: #1e3a8a;
-        margin-bottom: 0.5rem;
-        letter-spacing: 2px;
+        color: #0d2240;
+        margin-bottom: 0.25rem;
+        letter-spacing: 1px;
+        line-height: 1;
     }
-    .cover-title-main {
+    .cover-title-middle {
         font-size: 3.2rem;
         font-weight: 900;
-        color: #ea580c; /* Orange gold */
-        margin-bottom: 1rem;
-        letter-spacing: 1px;
+        color: #ea580c; /* Golden orange */
+        margin-bottom: 0.8rem;
+        line-height: 1.1;
     }
-    .cover-title-sub {
-        font-size: 1.4rem;
+    .cover-title-bottom {
+        font-size: 1.2rem;
         font-weight: 700;
-        color: #334155;
+        color: #475569;
+        line-height: 1.5;
     }
     
     .cover-divider {
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin: 2.5rem 0;
+        gap: 8px;
+        margin: 1.5rem 0;
     }
     .cover-divider-line {
         height: 1.5px;
         background-color: #cbd5e1;
-        width: 150px;
+        width: 100px;
     }
     .cover-divider-dot {
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
         background-color: #ea580c;
         border-radius: 50%;
     }
     
-    .cover-icons-row {
-        display: flex;
-        justify-content: space-around;
-        margin: 2.5rem 0;
-        text-align: center;
-    }
-    .cover-icon-col {
+    /* Cover Circle Icons */
+    .cover-icons-list {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 0.75rem;
-        max-width: 160px;
+        gap: 1.5rem;
+        margin: 1.5rem 0;
     }
-    .cover-icon-circle {
-        width: 76px;
-        height: 76px;
-        border-radius: 50%;
-        border: 2.5px solid #1e3a8a;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #1e3a8a;
-        font-size: 1.9rem;
-        background-color: #ffffff;
-        box-shadow: 0 4px 12px rgba(30, 58, 138, 0.08);
-    }
-    .cover-icon-label {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #334155;
-        line-height: 1.4;
-    }
-    
-    .cover-metadata-list {
-        max-width: 480px;
-        margin: 3rem auto 0 auto;
-        display: flex;
-        flex-direction: column;
-        gap: 1.3rem;
-    }
-    .cover-meta-item {
+    .cover-icon-item {
         display: flex;
         align-items: center;
         gap: 1rem;
-        font-size: 1.15rem;
     }
-    .cover-meta-icon {
+    .cover-icon-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 2px solid #0d2240;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0d2240;
+        font-size: 1.35rem;
+        box-shadow: 0 4px 10px rgba(13, 34, 64, 0.08);
+        flex-shrink: 0;
+    }
+    .cover-icon-item:nth-child(2) .cover-icon-circle {
+        border-color: #ea580c;
         color: #ea580c;
-        width: 24px;
+    }
+    .cover-icon-label {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #1e293b;
+    }
+    
+    /* Cover Metadata lines */
+    .cover-meta-box {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        margin-top: 1.5rem;
+    }
+    .cover-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.95rem;
+    }
+    .cover-meta-row i {
+        color: #0d2240;
+        font-size: 1rem;
+        width: 20px;
         text-align: center;
-        font-size: 1.2rem;
     }
     .cover-meta-label {
         font-weight: 700;
-        color: #1e3a8a;
-        width: 140px;
+        color: #475569;
+        width: 100px;
     }
     .cover-meta-value {
-        font-weight: 500;
-        color: #1e293b;
-        border-bottom: 2px dotted #cbd5e1;
-        flex-grow: 1;
-        padding-bottom: 0.25rem;
-    }
-    
-    .cover-footer {
-        background-color: #1e3a8a;
-        color: #ffffff;
-        padding: 1.25rem 2rem;
-        margin: 3rem -3.5rem -3.5rem -3.5rem;
-        border-radius: 0 0 8px 8px;
-        position: relative;
-        overflow: hidden;
-        border-top: 4px solid #ea580c;
-    }
-    .cover-footer-txt {
-        text-align: center;
-        font-size: 1.35rem;
         font-weight: 700;
-        letter-spacing: 1px;
+        color: #0d2240;
+        border-bottom: 1.5px dotted #94a3b8;
+        flex-grow: 1;
+        padding-bottom: 0.15rem;
     }
     
-    /* Content Pages Specific Styles */
-    .page-header {
+    /* Cover Footer */
+    .cover-footer-banner {
+        background-color: #0d2240;
+        color: white;
+        padding: 0.9rem 2rem;
+        margin: 2rem -3.5rem -3.5rem -3.5rem;
+        border-top: 4px solid #ea580c;
+        position: relative;
+    }
+    .cover-footer-banner-txt {
+        text-align: center;
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    
+    /* =========================================
+       CONTENT PAGE GENERAL STYLES
+       ========================================= */
+    .content-page-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
+        position: relative;
+    }
+    
+    .page-main-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         border-bottom: 1.5px solid #cbd5e1;
-        padding-bottom: 1rem;
-        margin-bottom: 2rem;
+        padding-bottom: 0.8rem;
+        margin-bottom: 1.5rem;
+    }
+    .page-main-header .subtitle {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #ea580c;
     }
     
-    .general-info-box {
+    /* General Info Box (Rounded, with tab on top right) */
+    .gen-info-card {
         background-color: #f8fafc;
         border: 1px solid #cbd5e1;
         border-radius: 12px;
-        padding: 1.5rem;
+        padding: 1.5rem 1.25rem 1.25rem 1.25rem;
         margin-bottom: 2rem;
         position: relative;
-        margin-top: 1rem;
+        margin-top: 1.5rem;
     }
-    .general-info-header {
-        background-color: #1e3a8a;
+    .gen-info-tab {
+        background-color: #0d2240;
         color: white;
         padding: 0.5rem 1.25rem;
-        border-radius: 6px;
+        border-radius: 10px 0 10px 10px; /* Slanted corner tab look */
         font-weight: 700;
         font-size: 0.95rem;
-        display: inline-flex;
+        display: flex;
         align-items: center;
         gap: 0.5rem;
         position: absolute;
         top: -18px;
-        right: 20px;
-        box-shadow: 0 2px 5px rgba(30, 58, 138, 0.15);
+        right: -1px;
+        box-shadow: 0 4px 6px rgba(13, 34, 64, 0.15);
     }
-    .general-info-grid {
+    .gen-info-cols {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 1rem 3rem;
+        gap: 0.8rem 2.5rem;
         margin-top: 0.5rem;
     }
-    .gen-info-item {
+    .gen-info-row {
         display: flex;
-        font-size: 0.95rem;
         align-items: center;
+        font-size: 0.95rem;
     }
     .gen-info-label {
         font-weight: 700;
-        color: #1e3a8a;
+        color: #475569;
         width: 140px;
         flex-shrink: 0;
     }
     .gen-info-value {
-        color: #334155;
-        border-bottom: 1.5px dotted #e2e8f0;
+        color: #0d2240;
+        border-bottom: 1.5px dotted #cbd5e1;
         flex-grow: 1;
-        padding-bottom: 0.2rem;
+        padding-bottom: 0.15rem;
+        font-weight: 600;
     }
 
-    /* Content Cards matching Mockup */
-    .content-card-tab {
-        border: 2px solid #ea580c; /* Orange tab frame */
+    /* Content Cards layout matching Mockup */
+    .mockup-section-card {
+        border: 1.5px solid #cbd5e1;
         border-radius: 12px;
         margin-bottom: 2rem;
-        overflow: hidden;
+        position: relative;
         background-color: #ffffff;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-    }
-    .content-card-tab.blue-theme {
-        border-color: #1e3a8a;
-    }
-    .content-card-tab.purple-theme {
-        border-color: #7c3aed;
-    }
-    .content-card-tab.emerald-theme {
-        border-color: #10b981;
-    }
-    
-    .card-tab-header {
-        background-color: #ea580c;
-        color: #ffffff;
-        padding: 0.75rem 1.5rem;
-        font-weight: 700;
-        font-size: 1.1rem;
+        padding: 1.5rem;
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-    }
-    .content-card-tab.blue-theme .card-tab-header {
-        background-color: #1e3a8a;
-    }
-    .content-card-tab.purple-theme .card-tab-header {
-        background-color: #7c3aed;
-    }
-    .content-card-tab.emerald-theme .card-tab-header {
-        background-color: #10b981;
+        gap: 2rem;
+        min-height: 180px;
+        box-sizing: border-box;
     }
     
-    .card-tab-icon {
-        font-size: 1.25rem;
+    .mockup-section-tab {
+        background-color: #0d2240;
+        color: white;
+        padding: 0.45rem 1.25rem;
+        border-radius: 10px 0 10px 10px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        position: absolute;
+        top: -17px;
+        right: -1px;
+        box-shadow: 0 3px 6px rgba(13, 34, 64, 0.1);
     }
     
-    .card-tab-body {
-        padding: 1.5rem;
-        font-size: 1rem;
-        line-height: 1.8;
-        color: #334155;
-        white-space: pre-wrap;
-    }
+    /* Tab colors matching sections */
+    .mockup-section-card.impact-theme { border-color: #0d2240; }
+    .mockup-section-card.solution-theme { border-color: #7c3aed; }
+    .mockup-section-card.solution-theme .mockup-section-tab { background-color: #7c3aed; }
+    .mockup-section-card.instructions-theme { border-color: #10b981; }
+    .mockup-section-card.instructions-theme .mockup-section-tab { background-color: #10b981; }
+    .mockup-section-card.recommendations-theme { border-color: #0ea5e9; }
+    .mockup-section-card.recommendations-theme .mockup-section-tab { background-color: #0ea5e9; }
     
-    .code-editor-layout {
+    /* Left side graphic badge inside sections */
+    .section-left-graphic {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background-color: #eff6ff; /* soft blue circle */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border: 1px solid #bfdbfe;
+    }
+    .solution-theme .section-left-graphic { background-color: #f5f3ff; border-color: #ddd6fe; }
+    .instructions-theme .section-left-graphic { background-color: #ecfdf5; border-color: #a7f3d0; }
+    .recommendations-theme .section-left-graphic { background-color: #f0f9ff; border-color: #bae6fd; }
+
+    .section-left-graphic-inner {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0d2240;
+        font-size: 2.2rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .solution-theme .section-left-graphic-inner { color: #7c3aed; }
+    .instructions-theme .section-left-graphic-inner { color: #10b981; }
+    .recommendations-theme .section-left-graphic-inner { color: #0ea5e9; }
+
+    .section-right-text {
+        flex-grow: 1;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: #475569;
+        text-align: justify;
+    }
+
+    /* Terminal layout inside code solution */
+    .terminal-code-box {
         background-color: #1e293b;
         color: #f8fafc;
         border-radius: 8px;
-        padding: 1.25rem;
+        padding: 1rem;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         direction: ltr;
         text-align: left;
         overflow-x: auto;
         border: 1px solid #0f172a;
-        margin-top: 0.75rem;
+        margin-top: 0.5rem;
         box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
     }
     
-    .page-footer {
-        border-top: 1.5px solid #cbd5e1;
-        padding-top: 0.75rem;
+    /* High-Fidelity Slanted Page Footer */
+    .page-slant-footer {
+        height: 40px;
+        position: relative;
+        margin: auto -3.5rem -3.5rem -3.5rem;
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        font-size: 0.85rem;
-        color: #64748b;
-        margin-top: auto;
+        align-items: flex-end;
     }
-    .page-footer-logo {
+    .footer-left-slant {
+        width: 100px;
+        height: 40px;
+        background-color: #ea580c;
+        clip-path: polygon(0 0, 100% 100%, 0 100%);
+    }
+    .footer-center-txt {
+        color: #64748b;
+        font-size: 0.85rem;
         font-weight: 700;
-        color: #1e3a8a;
+        margin-bottom: 8px;
+        border-bottom: 2px solid #ea580c;
+        padding-bottom: 4px;
+        letter-spacing: 0.5px;
+    }
+    .footer-right-slant-tab {
+        width: 120px;
+        height: 40px;
+        background-color: #0d2240;
+        clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-left: 20px;
+        box-sizing: border-box;
+    }
+    .footer-right-slant-tab span {
+        font-size: 1.1rem;
+        font-weight: 900;
+        letter-spacing: 1px;
     }
 
     /* Signatures Section */
-    .signatures-block {
-        margin-top: 2rem;
+    .sigs-card-block {
         border-top: 1.5px solid #cbd5e1;
         padding-top: 1.5rem;
+        margin-top: 1.5rem;
     }
-    .signatures-grid {
+    .sigs-card-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 1.5rem;
         text-align: center;
     }
-    .sig-box {
-        font-size: 0.85rem;
-        color: #64748b;
+    .sig-card-item {
         background-color: #f8fafc;
         border: 1.5px dashed #cbd5e1;
-        border-radius: 8px;
-        padding: 1.25rem;
+        border-radius: 10px;
+        padding: 1rem;
+        font-size: 0.85rem;
+        color: #64748b;
     }
-    .sig-box-title {
-        font-weight: 700;
-        color: #1e3a8a;
-        margin-bottom: 2rem;
+    .sig-card-header {
+        font-weight: 800;
+        color: #0d2240;
+        margin-bottom: 1.5rem;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 0.35rem;
         font-size: 0.95rem;
     }
-    .sig-box-line {
-        border-top: 1px dashed #94a3b8;
-        margin: 0.5rem 0;
+    .sig-card-line {
+        border-top: 1px dashed #cbd5e1;
+        margin: 0.6rem 0;
     }
 
-    /* Action Bar */
-    .print-action-bar {
-        background-color: #f1f5f9;
-        border-radius: 12px;
-        padding: 1rem;
-        margin-bottom: 2rem;
-        max-width: 820px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    /* PRINT SPECIFIC STYLES */
+    /* PRINT SPECIFIC STYLES OVERRIDES */
     @media print {
         header, footer, nav, .sidebar, .print-action-bar, .base-admin-actions, .skip-link, .btn, hr.my-4 {
             display: none !important;
@@ -419,27 +539,30 @@
         .report-page-a4 {
             box-shadow: none !important;
             border: none !important;
-            padding: 2.2cm !important; /* Printable padding */
+            padding: 2.2cm !important; /* Printable A4 padding */
             margin: 0 !important;
             max-width: 100% !important;
             width: 100% !important;
-            min-height: 100% !important;
+            height: 29.7cm !important; /* Force exact A4 page size */
             page-break-after: always !important;
             box-sizing: border-box !important;
             border-radius: 0 !important;
+            overflow: hidden !important;
         }
-        /* Ensure cover footer stays at the very bottom */
-        .cover-footer {
-            margin: 4.5cm -2.2cm -2.2cm -2.2cm !important;
+        .cover-footer-banner {
+            margin: 4cm -2.2cm -2.2cm -2.2cm !important;
         }
-        .code-editor-layout {
+        .page-slant-footer {
+            margin: auto -2.2cm -2.2cm -2.2cm !important;
+        }
+        .terminal-code-box {
             background-color: #ffffff !important;
             color: #000000 !important;
             border: 1px solid #cbd5e1 !important;
             white-space: pre-wrap !important;
             box-shadow: none !important;
         }
-        .sig-box {
+        .sig-card-item {
             background-color: #ffffff !important;
         }
     }
@@ -464,146 +587,175 @@
         </div>
     </div>
 
-    <!-- PAGE 1: COVER PAGE (صفحة الغلاف) -->
-    <div class="report-page-a4">
-        <!-- Top Header -->
-        <div class="cover-top-header">
-            <!-- Dual Logos with Divider -->
-            <div class="cover-logo-group">
+    <!-- ===================================================================
+         PAGE 1: COVER PAGE (صفحة الغلاف)
+         =================================================================== -->
+    <div class="report-page-a4" style="background-color: #ffffff;">
+        
+        <!-- Curved Navy Globe panel matching mockup right section -->
+        <div class="cover-curve-highlight"></div>
+        <div class="cover-right-panel">
+            <div class="cover-globe-container">
+                <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; stroke: #60a5fa; stroke-width: 0.4; fill: none;">
+                    <circle cx="50" cy="50" r="42" stroke-dasharray="1 1" />
+                    <circle cx="50" cy="50" r="32" />
+                    <circle cx="50" cy="50" r="22" />
+                    <path d="M 8 50 Q 50 18 92 50" />
+                    <path d="M 8 50 Q 50 82 92 50" />
+                    <path d="M 50 8 Q 18 50 50 92" />
+                    <path d="M 50 8 Q 82 50 50 92" />
+                    <line x1="50" y1="8" x2="50" y2="92" />
+                    <line x1="8" y1="50" x2="92" y2="50" />
+                    <!-- Globe connection node dots -->
+                    <circle cx="50" cy="8" r="1.5" fill="#f97316" />
+                    <circle cx="50" cy="92" r="1.5" fill="#f97316" />
+                    <circle cx="8" cy="50" r="1.5" fill="#f97316" />
+                    <circle cx="92" cy="50" r="1.5" fill="#f97316" />
+                    <circle cx="28" cy="28" r="1.5" fill="#f97316" />
+                    <circle cx="72" cy="28" r="1.5" fill="#f97316" />
+                    <circle cx="28" cy="72" r="1.5" fill="#f97316" />
+                    <circle cx="72" cy="72" r="1.5" fill="#f97316" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Left Content Section -->
+        <div class="cover-left-content">
+            
+            <!-- Logos -->
+            <div class="cover-header">
                 <!-- MAHWAR LOGO -->
                 <div class="cover-logo-mahwar">
-                    <div class="brand-txt">MAHWAR</div>
-                    <div class="sub-txt">Tech Services Bridge</div>
+                    <div class="brand-title">MAHWAR</div>
+                    <div class="sub-title">Tech Services Bridge</div>
                 </div>
-                <!-- Vertical Separator Line -->
-                <div class="cover-logo-separator"></div>
+                <!-- Line Separator -->
+                <div class="cover-logo-divider"></div>
                 <!-- AL-YAMAN LOGO -->
                 <div class="cover-logo-alyaman">
                     <div class="main-txt">معهد اليمان</div>
                     <div class="sub-txt">للعلوم واللغات</div>
                 </div>
             </div>
-            
-            <!-- Graphic Design Sphere representation -->
-            <div style="font-size: 2.5rem; color: #1e3a8a;"><i class="fas fa-globe-americas"></i></div>
-        </div>
 
-        <!-- Cover Titles -->
-        <div class="cover-title-section">
-            <div class="cover-title-pre">تقرير</div>
-            <div class="cover-title-main">المشكلات التقنية</div>
-            <div class="cover-title-sub">التي واجهت الموظف وكيف تم حلها برمجياً</div>
-            
-            <!-- Separator with central dot -->
-            <div class="cover-divider">
-                <div class="cover-divider-line"></div>
-                <div class="cover-divider-dot"></div>
-                <div class="cover-divider-line"></div>
-            </div>
-        </div>
-
-        <!-- Middle Columns Icons Row -->
-        <div class="cover-icons-row">
-            <div class="cover-icon-col">
-                <div class="cover-icon-circle">
-                    <i class="fas fa-cogs"></i>
+            <!-- Title banner -->
+            <div class="cover-title-box">
+                <div class="cover-title-top">تقرير</div>
+                <div class="cover-title-middle">المشكلات التقنية</div>
+                <div class="cover-title-bottom">التي واجهت الموظف وكيف تم حلها برمجياً</div>
+                
+                <div class="cover-divider">
+                    <div class="cover-divider-line"></div>
+                    <div class="cover-divider-dot"></div>
+                    <div class="cover-divider-line"></div>
                 </div>
-                <div class="cover-icon-label">تحديد المشكلات وتحليل الأسباب</div>
             </div>
-            <div class="cover-icon-col">
-                <div class="cover-icon-circle">
-                    <i class="fas fa-code"></i>
-                </div>
-                <div class="cover-icon-label">الحلول البرمجية المطبقة</div>
-            </div>
-            <div class="cover-icon-col">
-                <div class="cover-icon-circle">
-                    <i class="fas fa-clipboard-list"></i>
-                </div>
-                <div class="cover-icon-label">الإجراءات المطلوبة</div>
-            </div>
-        </div>
 
-        <!-- Bottom Hand-filled dotted lines metadata -->
-        <div class="cover-metadata-list">
-            <div class="cover-meta-item">
-                <i class="fas fa-user-tie cover-meta-icon"></i>
-                <span class="cover-meta-label">اسم الموظف:</span>
-                <span class="cover-meta-value">{{ report.employee.get_full_name|default:report.employee.username }}</span>
+            <!-- Icons Columns (Three Columns vertical list matching mockup) -->
+            <div class="cover-icons-list">
+                <div class="cover-icon-item">
+                    <div class="cover-icon-circle">
+                        <i class="fas fa-gears"></i>
+                    </div>
+                    <span class="cover-icon-label">تحديد المشكلات وتحليل الأسباب</span>
+                </div>
+                <div class="cover-icon-item">
+                    <div class="cover-icon-circle">
+                        <i class="fas fa-code-branch"></i>
+                    </div>
+                    <span class="cover-icon-label">الحلول البرمجية المطبقة</span>
+                </div>
+                <div class="cover-icon-item">
+                    <div class="cover-icon-circle">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <span class="cover-icon-label">الإجراءات المطلوبة</span>
+                </div>
             </div>
-            <div class="cover-meta-item">
-                <i class="fas fa-network-wired cover-meta-icon"></i>
-                <span class="cover-meta-label">القسم:</span>
-                <span class="cover-meta-value">{{ report.department }}</span>
-            </div>
-            <div class="cover-meta-item">
-                <i class="fas fa-calendar-alt cover-meta-icon"></i>
-                <span class="cover-meta-label">تاريخ التقرير:</span>
-                <span class="cover-meta-value">{{ report.report_date|date:"Y/m/d" }}</span>
-            </div>
-            <div class="cover-meta-item">
-                <i class="fas fa-hashtag cover-meta-icon"></i>
-                <span class="cover-meta-label">رقم التقرير:</span>
-                <span class="cover-meta-value">{{ report.report_number|default:"غير محدد" }}</span>
-            </div>
-        </div>
 
-        <!-- Cover Page Footer banner -->
-        <div class="cover-footer">
-            <div class="cover-footer-txt">معاً نحو أداء تقني أفضل</div>
+            <!-- Metadata Dotted rows -->
+            <div class="cover-meta-box">
+                <div class="cover-meta-row">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="cover-meta-label">اسم الموظف:</span>
+                    <span class="cover-meta-value">{{ report.employee.get_full_name|default:report.employee.username }}</span>
+                </div>
+                <div class="cover-meta-row">
+                    <i class="fas fa-building"></i>
+                    <span class="cover-meta-label">القسم:</span>
+                    <span class="cover-meta-value">{{ report.department }}</span>
+                </div>
+                <div class="cover-meta-row">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="cover-meta-label">تاريخ التقرير:</span>
+                    <span class="cover-meta-value">{{ report.report_date|date:"Y/m/d" }}</span>
+                </div>
+                <div class="cover-meta-row">
+                    <i class="fas fa-file-invoice"></i>
+                    <span class="cover-meta-label">رقم التقرير:</span>
+                    <span class="cover-meta-value">{{ report.report_number|default:"غير محدد" }}</span>
+                </div>
+            </div>
+
+            <!-- Bottom Cover Footer Slogan -->
+            <div class="cover-footer-banner">
+                <div class="cover-footer-banner-txt">معاً نحو أداء تقني أفضل</div>
+            </div>
         </div>
     </div>
 
-    <!-- PAGE 2: CONTENT PAGE 1 (صفحة المحتوى الأولى) -->
+    <!-- ===================================================================
+         PAGE 2: CONTENT PAGE 1 (صفحة المحتوى الأولى)
+         =================================================================== -->
     <div class="report-page-a4">
-        <div class="w-100 d-flex flex-column h-100">
+        <div class="content-page-container">
             <!-- Header -->
-            <div class="page-header">
+            <div class="page-main-header">
                 <div class="cover-logo-group">
                     <div class="cover-logo-mahwar" style="scale: 0.85; transform-origin: right center;">
-                        <div class="brand-txt" style="font-size: 1.7rem;">MAHWAR</div>
+                        <div class="brand-title" style="font-size: 1.6rem; color: #0d2240;">MAHWAR</div>
                     </div>
-                    <div class="cover-logo-separator" style="height: 35px;"></div>
+                    <div class="cover-logo-separator" style="height: 32px;"></div>
                     <div class="cover-logo-alyaman" style="scale: 0.85; transform-origin: left center;">
-                        <div class="main-txt" style="font-size: 1.1rem;">معهد اليمان</div>
+                        <div class="main-txt" style="font-size: 1.05rem;">معهد اليمان</div>
                     </div>
                 </div>
-                <div style="font-size: 0.9rem; font-weight: 700; color: #ea580c;">تقرير المشكلات التقنية وكيفية حلها</div>
+                <span class="subtitle">تقرير المشكلات التقنية وكيفية حلها</span>
             </div>
 
-            <!-- Title banner of Page 2 -->
+            <!-- Header Titles -->
             <div class="text-center mb-4">
-                <h5 class="font-weight-bold text-slate-800 mb-1" style="font-size: 1.25rem; color: #1e3a8a;">تقرير المشكلات التقنية التي واجهت الموظف وكيف تم حلها برمجياً</h5>
-                <div style="width: 120px; height: 2px; background-color: #ea580c; margin: 0 auto;"></div>
+                <h5 class="font-weight-bold text-slate-800 mb-1" style="font-size: 1.2rem; color: #0d2240;">تقرير المشكلات التقنية التي واجهت الموظف وكيف تم حلها برمجياً</h5>
+                <div style="width: 100px; height: 2px; background-color: #ea580c; margin: 0 auto;"></div>
             </div>
 
             <!-- General Info Box -->
-            <div class="general-info-box">
-                <div class="general-info-header">
-                    <i class="fas fa-info-circle"></i> معلومات عامة
+            <div class="gen-info-card">
+                <div class="gen-info-tab">
+                    <i class="fas fa-address-card"></i> معلومات عامة
                 </div>
-                <div class="general-info-grid">
-                    <div class="gen-info-item">
+                <div class="gen-info-cols">
+                    <div class="gen-info-row">
                         <span class="gen-info-label">اسم الموظف:</span>
                         <span class="gen-info-value">{{ report.employee.get_full_name|default:report.employee.username }}</span>
                     </div>
-                    <div class="gen-info-item">
+                    <div class="gen-info-row">
                         <span class="gen-info-label">تاريخ التقرير:</span>
                         <span class="gen-info-value">{{ report.report_date|date:"Y/m/d" }}</span>
                     </div>
-                    <div class="gen-info-item">
+                    <div class="gen-info-row">
                         <span class="gen-info-label">الوظيفة:</span>
                         <span class="gen-info-value">{{ report.job_title }}</span>
                     </div>
-                    <div class="gen-info-item">
+                    <div class="gen-info-row">
                         <span class="gen-info-label">تاريخ وقوع المشكلة:</span>
                         <span class="gen-info-value">{{ report.incident_date|date:"Y/m/d" }}</span>
                     </div>
-                    <div class="gen-info-item">
+                    <div class="gen-info-row">
                         <span class="gen-info-label">القسم:</span>
                         <span class="gen-info-value">{{ report.department }}</span>
                     </div>
-                    <div class="gen-info-item">
+                    <div class="gen-info-row">
                         <span class="gen-info-label">رقم التقرير:</span>
                         <span class="gen-info-value font-weight-bold text-blue-700">{{ report.report_number|default:"غير محدد" }}</span>
                     </div>
@@ -611,118 +763,176 @@
             </div>
 
             <!-- 1. وصف المشكلة (Issue Description) -->
-            <div class="content-card-tab blue-theme">
-                <div class="card-tab-header">
-                    <i class="fas fa-exclamation-circle card-tab-icon"></i>
-                    <span>1. وصف المشكلة</span>
+            <div class="mockup-section-card">
+                <div class="mockup-section-tab">
+                    <i class="fas fa-laptop-code"></i> 1. وصف المشكلة
                 </div>
-                <div class="card-tab-body">
-                    {{ report.issue_description }}
+                
+                <!-- Left circular icon mockup -->
+                <div class="section-left-graphic">
+                    <div class="section-left-graphic-inner">
+                        <i class="fas fa-desktop"></i>
+                    </div>
+                </div>
+                
+                <!-- Right content text -->
+                <div class="section-right-text">
+                    <div class="text-muted font-size-xs mb-1 font-weight-bold">وصف تفصيلي للمشكلة التي واجهت الموظف (متى حدثت، في أي نظام/برنامج، وما هي الرسائل والأعراض الظاهرة):</div>
+                    <div>{{ report.issue_description }}</div>
                 </div>
             </div>
 
             <!-- 2. تأثير المشكلة (Issue Impact) -->
-            <div class="content-card-tab">
-                <div class="card-tab-header">
-                    <i class="fas fa-chart-line card-tab-icon"></i>
-                    <span>2. تأثير المشكلة</span>
+            <div class="mockup-section-card impact-theme">
+                <div class="mockup-section-tab">
+                    <i class="fas fa-chart-line"></i> 2. تأثير المشكلة
                 </div>
-                <div class="card-tab-body">
-                    {{ report.issue_impact|default:"لم يتم تحديد أثر المشكلة." }}
+                
+                <!-- Left circular target mockup -->
+                <div class="section-left-graphic">
+                    <div class="section-left-graphic-inner">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                </div>
+                
+                <!-- Right content text -->
+                <div class="section-right-text">
+                    <div class="text-muted font-size-xs mb-1 font-weight-bold">شرح تأثير المشكلة على سير العمل أو النظام أو العملاء:</div>
+                    <div>{{ report.issue_impact|default:"لم يحدد أثر المشكلة." }}</div>
                 </div>
             </div>
 
-            <!-- Footer of Page 2 -->
-            <div class="page-footer">
-                <span class="page-footer-logo">معاً نحو أداء تقني أفضل</span>
-                <span>01</span>
+            <!-- Slanted page footer -->
+            <div class="page-slant-footer">
+                <div class="footer-left-slant"></div>
+                <div class="footer-center-txt">معاً نحو أداء تقني أفضل</div>
+                <div class="footer-right-slant-tab">
+                    <span>01</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- PAGE 3: CONTENT PAGE 2 (صفحة المحتوى الثانية) -->
+    <!-- ===================================================================
+         PAGE 3: CONTENT PAGE 2 (صفحة المحتوى الثانية)
+         =================================================================== -->
     <div class="report-page-a4">
-        <div class="w-100 d-flex flex-column h-100">
+        <div class="content-page-container">
             <!-- Header -->
-            <div class="page-header">
+            <div class="page-main-header">
                 <div class="cover-logo-group">
                     <div class="cover-logo-mahwar" style="scale: 0.85; transform-origin: right center;">
-                        <div class="brand-txt" style="font-size: 1.7rem;">MAHWAR</div>
+                        <div class="brand-title" style="font-size: 1.6rem; color: #0d2240;">MAHWAR</div>
                     </div>
-                    <div class="cover-logo-separator" style="height: 35px;"></div>
+                    <div class="cover-logo-separator" style="height: 32px;"></div>
                     <div class="cover-logo-alyaman" style="scale: 0.85; transform-origin: left center;">
-                        <div class="main-txt" style="font-size: 1.1rem;">معهد اليمان</div>
+                        <div class="main-txt" style="font-size: 1.05rem;">معهد اليمان</div>
                     </div>
                 </div>
-                <div style="font-size: 0.9rem; font-weight: 700; color: #ea580c;">تقرير المشكلات التقنية وكيفية حلها</div>
+                <span class="subtitle">تقرير المشكلات التقنية وكيفية حلها</span>
             </div>
 
             <!-- 3. الحل البرمجي المطبق (Code Solution) -->
-            <div class="content-card-tab purple-theme">
-                <div class="card-tab-header">
-                    <i class="fas fa-code card-tab-icon"></i>
-                    <span>3. الحل البرمجي المطبق</span>
+            <div class="mockup-section-card solution-theme" style="min-height: 240px;">
+                <div class="mockup-section-tab">
+                    <i class="fas fa-code"></i> 3. الحل البرمجي المطبق
                 </div>
-                <div class="card-tab-body">
-                    <div class="mb-1 text-muted font-size-sm">تفاصيل الحل البرمجي المنفذ لإصلاح الخلل:</div>
+                
+                <!-- Left laptop code mockup -->
+                <div class="section-left-graphic">
+                    <div class="section-left-graphic-inner">
+                        <i class="fas fa-laptop-code"></i>
+                    </div>
+                </div>
+                
+                <!-- Right code editor -->
+                <div class="section-right-text">
+                    <div class="text-muted font-size-xs mb-1 font-weight-bold">شرح الحل البرمجي الذي تم تطبيقه لحل المشكلة (خطوات الحل، الأدوات أو الأكواد المستخدمة، وأي تعديلات تم القيام بها):</div>
                     {% if report.code_solution %}
-                        <pre class="code-editor-layout"><code>{{ report.code_solution }}</code></pre>
+                        <pre class="terminal-code-box"><code>{{ report.code_solution }}</code></pre>
                     {% else %}
-                        <div class="text-muted">لم يتم تسجيل الحل التقني.</div>
+                        <div class="text-muted font-size-sm">لم يتم تسجيل أي تعديل كود برمجي.</div>
                     {% endif %}
                 </div>
             </div>
 
             <!-- 4. ما يجب على الموظف القيام به (Employee Instructions) -->
-            <div class="content-card-tab emerald-theme">
-                <div class="card-tab-header">
-                    <i class="fas fa-user-shield card-tab-icon"></i>
-                    <span>4. ما يجب على الموظف القيام به</span>
+            <div class="mockup-section-card instructions-theme">
+                <div class="mockup-section-tab">
+                    <i class="fas fa-clipboard-check"></i> 4. ما يجب على الموظف القيام به
                 </div>
-                <div class="card-tab-body">
-                    {{ report.employee_instructions|default:"لا توجد تعليمات استثنائية للموظف." }}
+                
+                <!-- Left clipboard mockup -->
+                <div class="section-left-graphic">
+                    <div class="section-left-graphic-inner">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                </div>
+                
+                <!-- Right instructions -->
+                <div class="section-right-text">
+                    <div class="text-muted font-size-xs mb-1 font-weight-bold">الإجراءات أو التعليمات التي يجب على الموظف اتباعها لتجنب تكرار المشكلة أو لضمان استخدام النظام بشكل صحيح:</div>
+                    <div>{{ report.employee_instructions|default:"لا توجد إرشادات إضافية مسجلة." }}</div>
                 </div>
             </div>
 
             <!-- 5. توصيات وملاحظات (Recommendations) -->
-            <div class="content-card-tab blue-theme">
-                <div class="card-tab-header">
-                    <i class="fas fa-star card-tab-icon"></i>
-                    <span>5. توصيات وملاحظات</span>
+            <div class="mockup-section-card recommendations-theme">
+                <div class="mockup-section-tab">
+                    <i class="fas fa-star"></i> 5. توصيات وملاحظات
                 </div>
-                <div class="card-tab-body">
-                    {{ report.recommendations|default:"لا توجد توصيات فنية إضافية." }}
+                
+                <!-- Left chat bubbles mockup -->
+                <div class="section-left-graphic">
+                    <div class="section-left-graphic-inner">
+                        <i class="fas fa-comment-dots"></i>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Signatures Section -->
-            <div class="signatures-block">
-                <div class="signatures-grid">
-                    <div class="sig-box">
-                        <div class="sig-box-title"><i class="fas fa-pen-fancy"></i> إعداد الموظف</div>
-                        <div class="sig-box-line"></div>
-                        <div>الاسم: ________________</div>
-                        <div class="mt-1">التاريخ: ____ / ____ / ______</div>
-                    </div>
-                    <div class="sig-box">
-                        <div class="sig-box-title"><i class="fas fa-user-check"></i> مراجعة المدير المباشر</div>
-                        <div class="sig-box-line"></div>
-                        <div>الاسم: ________________</div>
-                        <div class="mt-1">التاريخ: ____ / ____ / ______</div>
-                    </div>
-                    <div class="sig-box">
-                        <div class="sig-box-title"><i class="fas fa-stamp"></i> اعتماد الإدارة</div>
-                        <div class="sig-box-line"></div>
-                        <div>الاسم: ________________</div>
-                        <div class="mt-1">التاريخ: ____ / ____ / ______</div>
-                    </div>
+                
+                <!-- Right recommendations -->
+                <div class="section-right-text">
+                    <div class="text-muted font-size-xs mb-1 font-weight-bold">أي توصيات لتحسين النظام أو لتفادي مشاكل مشابهة مستقبلاً:</div>
+                    <div>{{ report.recommendations|default:"لا توجد توصيات إضافية." }}</div>
                 </div>
             </div>
 
-            <!-- Footer of Page 3 -->
-            <div class="page-footer">
-                <span class="page-footer-logo">معاً نحو أداء تقني أفضل</span>
-                <span>02</span>
+            <!-- Signatures Block -->
+            <div class="sigs-card-block">
+                <div class="sigs-card-grid">
+                    <div class="sig-card-item">
+                        <div class="sig-card-header">
+                            <i class="fas fa-pen-nib"></i> إعداد الموظف
+                        </div>
+                        <div class="sig-card-line"></div>
+                        <div class="text-right">الاسم: _________________</div>
+                        <div class="text-right mt-1">التاريخ: ____ / ____ / ______</div>
+                    </div>
+                    <div class="sig-card-item">
+                        <div class="sig-card-header">
+                            <i class="fas fa-user-shield"></i> مراجعة المدير المباشر
+                        </div>
+                        <div class="sig-card-line"></div>
+                        <div class="text-right">الاسم: _________________</div>
+                        <div class="text-right mt-1">التاريخ: ____ / ____ / ______</div>
+                    </div>
+                    <div class="sig-card-item">
+                        <div class="sig-card-header">
+                            <i class="fas fa-check-double"></i> اعتماد الإدارة
+                        </div>
+                        <div class="sig-card-line"></div>
+                        <div class="text-right">الاسم: _________________</div>
+                        <div class="text-right mt-1">التاريخ: ____ / ____ / ______</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slanted page footer -->
+            <div class="page-slant-footer">
+                <div class="footer-left-slant"></div>
+                <div class="footer-center-txt">معاً نحو أداء تقني أفضل</div>
+                <div class="footer-right-slant-tab">
+                    <span>02</span>
+                </div>
             </div>
         </div>
     </div>
