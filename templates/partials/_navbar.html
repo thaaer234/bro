@@ -81,6 +81,13 @@
         </a>
         {% endif %}
 
+        {% if user.is_staff or user.is_superuser %}
+        <a href="{% url 'technical_services:report_list' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'technical_services' %}active{% endif %}">
+            <i class="fas fa-screwdriver-wrench"></i>
+            <span>خدمات تقنية</span>
+        </a>
+        {% endif %}
+
         {% if user.username == 'thaaer' %}
         <a href="{% url 'manuals:home' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' %}active{% endif %}">
             <i class="fas fa-book-open-reader"></i>
