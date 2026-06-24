@@ -101,6 +101,7 @@ urlpatterns = [
     path('academic-years/', include('academic_years.urls')),
     path('errors/', include('errors.urls')),
     path('quick/', include('quick.urls')),
+    path('technical-services/', include('technical_services.urls')),
     # API endpoints (v1 and legacy)
     path('api/', include('api.urls')),   # legacy prefix
     path('api/v1/', include('api.urls')),

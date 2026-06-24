@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}معالجة تقرير المشكلة بالذكاء الاصطناعي | خدمات تقنية{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wizard-steps {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 3rem;
+        position: relative;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .wizard-steps::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background-color: #cbd5e1;
+        z-index: 1;
+        transform: translateY(-50%);
+    }
+    .wizard-step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #f1f5f9;
+        border: 3px solid #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        z-index: 2;
+        color: #64748b;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    .wizard-step.active {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+    }
+    .wizard-step.completed {
+        background-color: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+    .wizard-step-label {
+        position: absolute;
+        top: 45px;
+        white-space: nowrap;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+    .wizard-step.active .wizard-step-label {
+        color: #3b82f6;
+    }
+    
+    /* Layout styling */
+    .prompt-box {
+        background-color: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        padding: 1.25rem;
+        font-family: inherit;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: #334155;
+        white-space: pre-wrap;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .split-card-container {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    .panel-header {
+        border-bottom: 1px solid #e2e8f0;
+        background-color: #f8fafc;
+        padding: 1.25rem 1.5rem;
+    }
+    .panel-body {
+        padding: 1.5rem;
+    }
+    .btn-copy {
+        background-color: #1e293b;
+        color: white;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .btn-copy:hover {
+        background-color: #0f172a;
+    }
+    .btn-submit {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .btn-submit:hover {
+        background: linear-gradient(135deg, #059669, #047857);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+    }
+    .autofill-section {
+        background-color: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Wizard Progress Tracker -->
+    <div class="wizard-steps my-4">
+        <div class="wizard-step completed">
+            <i class="fas fa-check"></i>
+            <span class="wizard-step-label">تفاصيل المشكلة</span>
+        </div>
+        <div class="wizard-step active">
+            2
+            <span class="wizard-step-label">معالجة الذكاء الاصطناعي</span>
+        </div>
+        <div class="wizard-step">
+            3
+            <span class="wizard-step-label">التقرير النهائي المعتمد</span>
+        </div>
+    </div>
+
+    <!-- Details card of Step 1 -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px; border: 1px solid #e2e8f0;">
+        <div class="card-body p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <span class="badge badge-secondary py-1 px-2 mb-1">بيانات البلاغ الأولي</span>
+                <h5 class="font-weight-bold text-slate-800 mb-0">المشتكي: {{ report.employee.get_full_name|default:report.employee.username }} - {{ report.job_title }} ({{ report.department }})</h5>
+            </div>
+            <div class="text-muted font-size-sm">
+                <i class="fas fa-calendar-alt mr-1"></i> تاريخ الحدث: {{ report.incident_date|date:"Y/m/d" }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Left Column: Prompt Copier (5 columns) -->
+        <div class="col-lg-5 mb-4">
+            <div class="split-card-container h-100 d-flex flex-column">
+                <div class="panel-header d-flex justify-content-between align-items-center">
+                    <h5 class="font-weight-bold mb-0 text-slate-700">
+                        <i class="fas fa-terminal text-slate-600 mr-1"></i> موجه الذكاء الاصطناعي (Prompt)
+                    </h5>
+                    <button type="button" id="copy-prompt-btn" class="btn btn-copy btn-sm d-flex align-items-center gap-2">
+                        <i class="fas fa-copy" id="copy-icon"></i> <span id="copy-text">نسخ النص</span>
+                    </button>
+                </div>
+                <div class="panel-body flex-grow-1 d-flex flex-column">
+                    <p class="text-muted font-size-xs mb-3">انسخ الموجه البرمجي أدناه والصقه في نموذج الذكاء الاصطناعي (مثل ChatGPT او Gemini) للحصول على الحل التقني بالهيكلية المطلوبة.</p>
+                    <textarea id="prompt-textarea" class="d-none">{{ ai_prompt }}</textarea>
+                    <div class="prompt-box flex-grow-1" id="prompt-display">{{ ai_prompt }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Verification & AI Field Entry (7 columns) -->
+        <div class="col-lg-7 mb-4">
+            <div class="split-card-container">
+                <div class="panel-header">
+                    <h5 class="font-weight-bold mb-0 text-slate-700">
+                        <i class="fas fa-magic text-emerald-600 mr-1"></i> الخطوة الثانية: الحلول والتحليلات الفنية
+                    </h5>
+                </div>
+                <div class="panel-body">
+                    <!-- JSON Auto-fill Assistant -->
+                    <div class="autofill-section">
+                        <h6 class="font-weight-bold text-blue-800 mb-2"><i class="fas fa-robot"></i> مساعد التعبئة التلقائية الذكي</h6>
+                        <p class="font-size-xs text-blue-700 mb-2">انسخ استجابة الـ JSON الكاملة الناتجة من الذكاء الاصطناعي والصقها هنا لتعبئة الحقول الأربعة أدناه تلقائياً بضغطة زر واحدة.</p>
+                        <div class="input-group">
+                            <textarea id="json-pastebox" class="form-control font-monospace font-size-xs" rows="2" placeholder='ألصق كود الـ JSON هنا... {"issue_impact": ...}' dir="ltr" style="text-align: left;"></textarea>
+                            <div class="input-group-append">
+                                <button type="button" id="autofill-btn" class="btn btn-primary font-weight-bold px-3 d-flex align-items-center">
+                                    تعبئة الحقول <i class="fas fa-bolt ml-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="autofill-error" class="text-danger font-size-xs mt-2 d-none">كود الـ JSON غير صالح! يرجى التأكد من نسخه بالكامل والمحاولة مجدداً.</div>
+                        <div id="autofill-success" class="text-success font-size-xs mt-2 d-none">تمت تعبئة الحقول الأربعة بنجاح! يرجى مراجعتها وتعديلها إذا لزم الأمر قبل الحفظ النهائي.</div>
+                    </div>
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <!-- Issue Impact -->
+                        <div class="form-group mb-4">
+                            <label for="{{ form.issue_impact.id_for_label }}" class="font-weight-bold">
+                                1. تأثير المشكلة (Issue Impact)
+                            </label>
+                            {{ form.issue_impact }}
+                            {% if form.issue_impact.errors %}
+                                <div class="text-danger font-size-sm mt-1">{{ form.issue_impact.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">كيف تؤثر هذه المشكلة على استقرار النظام أو المعاملات؟</small>
+                        </div>
+
+                        <!-- Code Solution -->
+                        <div class="form-group mb-4">
+                            <label for="{{ form.code_solution.id_for_label }}" class="font-weight-bold">
+                                2. الحل البرمجي المطبق (Code Solution)
+                            </label>
+                            {{ form.code_solution }}
+                            {% if form.code_solution.errors %}
+                                <div class="text-danger font-size-sm mt-1">{{ form.code_solution.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">التعديلات التقنية أو الأكواد المضافة/المعدلة لإصلاح المشكلة.</small>
+                        </div>
+
+                        <!-- Employee Instructions -->
+                        <div class="form-group mb-4">
+                            <label for="{{ form.employee_instructions.id_for_label }}" class="font-weight-bold">
+                                3. ما يجب على الموظف القيام به (Employee Instructions)
+                            </label>
+                            {{ form.employee_instructions }}
+                            {% if form.employee_instructions.errors %}
+                                <div class="text-danger font-size-sm mt-1">{{ form.employee_instructions.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">تعليمات واضحة للموظف لتفادي المشكلة في عمله اليومي.</small>
+                        </div>
+
+                        <!-- Recommendations -->
+                        <div class="form-group mb-4">
+                            <label for="{{ form.recommendations.id_for_label }}" class="font-weight-bold">
+                                4. توصيات وملاحظات (Recommendations)
+                            </label>
+                            {{ form.recommendations }}
+                            {% if form.recommendations.errors %}
+                                <div class="text-danger font-size-sm mt-1">{{ form.recommendations.errors.0 }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">مقترحات مستقبلية لتطوير هيكلية النظام وضمان استقرار أطول.</small>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'technical_services:report_list' %}" class="btn btn-outline-secondary font-weight-bold px-4">
+                                إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-submit shadow-sm font-weight-bold px-5">
+                                حفظ البلاغ واعتماد التقرير التقني النهائي <i class="fas fa-check-double ml-1"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Clipboard Copier and JSON Auto-fill Assistant -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Clipboard Copier
+        const copyBtn = document.getElementById("copy-prompt-btn");
+        const copyIcon = document.getElementById("copy-icon");
+        const copyText = document.getElementById("copy-text");
+        const promptText = document.getElementById("prompt-textarea");
+
+        copyBtn.addEventListener("click", function() {
+            promptText.select();
+            promptText.setSelectionRange(0, 99999); // For mobile devices
+
+            navigator.clipboard.writeText(promptText.value).then(function() {
+                // Success feedback with animations
+                copyIcon.className = "fas fa-check";
+                copyText.innerText = "تم النسخ!";
+                copyBtn.style.backgroundColor = "#10b981";
+                
+                setTimeout(function() {
+                    copyIcon.className = "fas fa-copy";
+                    copyText.innerText = "نسخ النص";
+                    copyBtn.style.backgroundColor = "#1e293b";
+                }, 2000);
+            }).catch(function(err) {
+                console.error("فشل نسخ النص: ", err);
+            });
+        });
+
+        // JSON Autofill Assistant
+        const autofillBtn = document.getElementById("autofill-btn");
+        const pastebox = document.getElementById("json-pastebox");
+        const errorMsg = document.getElementById("autofill-error");
+        const successMsg = document.getElementById("autofill-success");
+
+        // Form Fields
+        const impactField = document.getElementById("id_issue_impact");
+        const solutionField = document.getElementById("id_code_solution");
+        const instructionsField = document.getElementById("id_employee_instructions");
+        const recsField = document.getElementById("id_recommendations");
+
+        autofillBtn.addEventListener("click", function() {
+            errorMsg.classList.add("d-none");
+            successMsg.classList.add("d-none");
+
+            let jsonText = pastebox.value.trim();
+            if (!jsonText) {
+                errorMsg.innerText = "يرجى لصق نص استجابة الـ JSON أولاً.";
+                errorMsg.classList.remove("d-none");
+                return;
+            }
+
+            // Simple cleaning: if user pasted ```json ... ``` wrapper, strip it
+            if (jsonText.startsWith("```")) {
+                // remove first line and last line if they are ``` or ```json
+                let lines = jsonText.split("\n");
+                if (lines[0].includes("```")) lines.shift();
+                if (lines[lines.length - 1].includes("```")) lines.pop();
+                jsonText = lines.join("\n").trim();
+            }
+
+            try {
+                const parsedData = JSON.parse(jsonText);
+                
+                // Populate fields, checking for multiple possible JSON field keys
+                impactField.value = parsedData.issue_impact || parsedData.impact || "";
+                solutionField.value = parsedData.code_solution || parsedData.solution || "";
+                instructionsField.value = parsedData.employee_instructions || parsedData.instructions || "";
+                recsField.value = parsedData.recommendations || parsedData.recommendation || "";
+
+                // Show success
+                successMsg.classList.remove("d-none");
+                pastebox.value = ""; // Clear pastebox
+            } catch (err) {
+                console.error(err);
+                errorMsg.innerText = "كود الـ JSON غير صالح! يرجى التأكد من نسخه بالكامل والمحاولة مجدداً.";
+                errorMsg.classList.remove("d-none");
+            }
+        });
+    });
+</script>
+{% endblock %}

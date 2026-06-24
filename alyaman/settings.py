@@ -113,6 +113,7 @@ INSTALLED_APPS = [
     "mobile.apps.MobileConfig",
     "errors",
     'quick',
+    "technical_services.apps.TechnicalServicesConfig",
     
     # Additional third-party apps
     "mptt",
@@ -520,15 +521,6 @@ REPORTS_PER_PAGE = 50
 MAX_EXPORT_RECORDS = 10000
 
 # ==============================
-# Push Notifications (FCM)
-# ==============================
-# FCM_SERVER_KEY = os.getenv("FCM_SERVER_KEY", "")
-# FIREBASE_SERVICE_ACCOUNT = os.getenv(
-#     "FIREBASE_SERVICE_ACCOUNT",
-#     os.path.join(BASE_DIR, "serviceAccountKey.json"),
-# )
-
-# ==============================
 # Cache
 # ==============================
 CACHES = {
@@ -614,4 +606,3 @@ SECURITY_MONITORING = {
     'ENABLE_EMAIL_ALERTS': env_bool('SECURITY_EMAIL_ALERTS_ENABLED', False),
     'ENABLE_LOGIN_EVENT_EMAILS': env_bool('SECURITY_LOGIN_EVENT_EMAILS_ENABLED', False),
 }
-

@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}إدارة التقارير الفنية | خدمات تقنية{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Premium visual overrides tailored for the dashboard */
+    .dashboard-header {
+        background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+        border-radius: 16px;
+        color: white;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
+    }
+    .stats-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .report-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+    .report-table th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        border-bottom: 2px solid #e2e8f0;
+        padding: 1rem 1.5rem;
+    }
+    .report-table td {
+        padding: 1.2rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #edf2f7;
+    }
+    .status-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .status-resolved {
+        background-color: #dcfce7;
+        color: #15803d;
+    }
+    .status-pending {
+        background-color: #fef9c3;
+        color: #a16207;
+    }
+    .search-input {
+        border-radius: 8px 0 0 8px !important;
+        border: 1px solid #cbd5e1;
+        padding: 0.6rem 1rem;
+    }
+    .search-btn {
+        border-radius: 0 8px 8px 0 !important;
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+        padding: 0 1.5rem;
+    }
+    .action-btn {
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Dashboard Header Banner -->
+    <div class="dashboard-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4">
+        <div>
+            <h1 class="h3 font-weight-bold mb-2">أتمتة التقارير الفنية والمشاكل التقنية</h1>
+            <p class="mb-0 opacity-75">سجل البلاغات البرمجية، وولد الحلول التقنية باستخدام الذكاء الاصطناعي، وأصدر تقارير صيانة رسمية بضغطة زر.</p>
+        </div>
+        <div>
+            <a href="{% url 'technical_services:report_create' %}" class="btn btn-warning btn-lg font-weight-bold shadow-sm px-4">
+                <i class="fas fa-plus-circle mr-2"></i> تسجيل بلاغ مشكلة جديدة
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Statistics Row -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3 mb-md-0">
+            <div class="stats-card d-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="text-muted text-uppercase font-size-xs mb-1">إجمالي البلاغات التقنية</h6>
+                    <h3 class="font-weight-bold mb-0 text-slate-800">{{ reports.count }}</h3>
+                </div>
+                <div class="bg-blue-50 text-blue-600 rounded-circle p-3" style="background: #eff6ff; color: #2563eb; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-file-invoice fa-lg"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3 mb-md-0">
+            <div class="stats-card d-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="text-muted text-uppercase font-size-xs mb-1">التقارير المعتمدة والمحلولة</h6>
+                    <h3 class="font-weight-bold mb-0 text-emerald-600">{{ resolved_count }}</h3>
+                </div>
+                <div class="bg-green-50 text-green-600 rounded-circle p-3" style="background: #ecfdf5; color: #059669; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-check-circle fa-lg"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card d-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="text-muted text-uppercase font-size-xs mb-1">مشاكل قيد المعالجة والربط</h6>
+                    <h3 class="font-weight-bold mb-0 text-amber-600">{{ pending_count }}</h3>
+                </div>
+                <div class="bg-amber-50 text-amber-600 rounded-circle p-3" style="background: #fffbeb; color: #d97706; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-clock fa-lg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtering & Searching Bar -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+        <div class="card-body p-3">
+            <form method="GET" class="row align-items-center gap-3 gap-md-0">
+                <!-- Search input -->
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" name="q" value="{{ query }}" class="form-control search-input" placeholder="ابحث برقم التقرير، اسم الموظف، المسمى الوظيفي، أو تفاصيل الشكوى...">
+                        <div class="input-group-append">
+                            <button class="btn search-btn" type="submit">
+                                <i class="fas fa-search"></i> بحث
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Status filter pills -->
+                <div class="col-md-6 d-flex justify-content-md-end align-items-center gap-2">
+                    <span class="text-muted mr-2 font-size-sm">التصفية حسب الحالة:</span>
+                    <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                        <a href="?status=" class="btn btn-outline-secondary btn-sm {% if not status_filter %}active{% endif %}">الكل</a>
+                        <a href="?status=resolved" class="btn btn-outline-success btn-sm {% if status_filter == 'resolved' %}active{% endif %}">تم الحل</a>
+                        <a href="?status=unresolved" class="btn btn-outline-warning btn-sm {% if status_filter == 'unresolved' %}active{% endif %}">قيد الانتظار</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reports Table Card -->
+    <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+            <h5 class="card-title mb-0 font-weight-bold text-slate-700">سجل بلاغات وتقارير الصيانة التقنية</h5>
+            <span class="badge badge-secondary py-2 px-3 font-size-sm" style="border-radius: 8px;">عدد السجلات: {{ reports.count }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table report-table mb-0">
+                <thead>
+                    <tr>
+                        <th>رقم التقرير</th>
+                        <th>الموظف</th>
+                        <th>المسمى / القسم</th>
+                        <th>تاريخ الوقوع</th>
+                        <th>الحالة</th>
+                        <th class="text-center" style="width: 250px;">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td class="font-weight-bold text-blue-600">
+                            {% if report.report_number %}
+                                {{ report.report_number }}
+                            {% else %}
+                                <span class="text-muted">بلاغ جديد #{{ report.id }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-secondary font-weight-bold" style="width: 36px; height: 36px; border: 1px solid #e2e8f0;">
+                                    {{ report.employee.first_name|slice:":1"|default:report.employee.username|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <div class="font-weight-bold text-slate-800">{{ report.employee.get_full_name|default:report.employee.username }}</div>
+                                    <small class="text-muted">{{ report.employee.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>{{ report.job_title }}</div>
+                            <small class="text-muted">{{ report.department }}</small>
+                        </td>
+                        <td>
+                            <div class="text-slate-700">{{ report.incident_date|date:"Y/m/d" }}</div>
+                            <small class="text-muted">تم الرفع: {{ report.report_date|date:"Y/m/d" }}</small>
+                        </td>
+                        <td>
+                            {% if report.is_resolved %}
+                                <span class="status-badge status-resolved">
+                                    <i class="fas fa-check-circle"></i> معتمد ومحلول
+                                </span>
+                            {% else %}
+                                <span class="status-badge status-pending">
+                                    <i class="fas fa-spinner fa-spin"></i> بانتظار الحل (خطوة 2)
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-2">
+                                {% if report.is_resolved %}
+                                    <a href="{% url 'technical_services:report_detail' report.pk %}" class="btn btn-outline-primary btn-sm action-btn">
+                                        <i class="fas fa-eye"></i> عرض التقرير
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'technical_services:report_process' report.pk %}" class="btn btn-warning btn-sm action-btn font-weight-bold">
+                                        <i class="fas fa-magic"></i> إكمال بالذكاء الاصطناعي
+                                    </a>
+                                {% endif %}
+                                <a href="{% url 'technical_services:report_delete' report.pk %}" class="btn btn-outline-danger btn-sm action-btn">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <div class="mb-3"><i class="fas fa-folder-open fa-3x text-slate-300"></i></div>
+                            <p class="font-size-md mb-0">لا توجد بلاغات أو تقارير فنية مسجلة حالياً.</p>
+                            <a href="{% url 'technical_services:report_create' %}" class="btn btn-primary btn-sm mt-3">سجل أول بلاغ الآن</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}تأكيد حذف التقرير الفني | خدمات تقنية{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow-sm border-0 mx-auto p-4 text-center" style="max-width: 500px; border-radius: 12px; border: 1px solid #e2e8f0;">
+        <div class="mb-3 text-danger"><i class="fas fa-exclamation-triangle fa-3x"></i></div>
+        <h4 class="font-weight-bold text-slate-800 mb-3">تأكيد حذف التقرير الفني</h4>
+        
+        <p class="text-muted font-size-md">
+            هل أنت متأكد من رغبتك في حذف التقرير الفني ذو الرقم:
+            <br>
+            <strong class="text-danger font-size-lg">
+                {% if report.report_number %}
+                    {{ report.report_number }}
+                {% else %}
+                    بلاغ جديد #{{ report.id }}
+                {% endif %}
+            </strong>
+            <br>
+            للموظف: <strong>{{ report.employee.get_full_name|default:report.employee.username }}</strong>؟
+        </p>
+        
+        <div class="alert alert-warning text-right font-size-sm mt-3" role="alert">
+            <i class="fas fa-info-circle"></i>
+            تنبيــه: هذا الإجراء نهائي وسوف يقوم بحذف جميع بيانات البلاغ والحلول البرمجية المسجلة بشكل كامل من قاعدة البيانات. ولا يمكن التراجع عن الحذف لاحقاً.
+        </div>
+
+        <form method="POST" class="mt-4 d-flex justify-content-center gap-3">
+            {% csrf_token %}
+            <a href="{% url 'technical_services:report_list' %}" class="btn btn-outline-secondary font-weight-bold px-4">
+                تراجع وإلغاء
+            </a>
+            <button type="submit" class="btn btn-danger font-weight-bold px-4">
+                <i class="fas fa-trash-alt mr-1"></i> تأكيد الحذف النهائي
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}تسجيل بلاغ مشكلة جديدة | خدمات تقنية{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wizard-steps {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 3rem;
+        position: relative;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .wizard-steps::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background-color: #cbd5e1;
+        z-index: 1;
+        transform: translateY(-50%);
+    }
+    .wizard-step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #f1f5f9;
+        border: 3px solid #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        z-index: 2;
+        color: #64748b;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+    .wizard-step.active {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+        color: white;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
+    }
+    .wizard-step.completed {
+        background-color: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+    .wizard-step-label {
+        position: absolute;
+        top: 45px;
+        white-space: nowrap;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+    .wizard-step.active .wizard-step-label {
+        color: #3b82f6;
+    }
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+    }
+    .form-group label {
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 0.5rem;
+    }
+    .btn-submit {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .btn-submit:hover {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Wizard Progress Tracker -->
+    <div class="wizard-steps my-4">
+        <div class="wizard-step active">
+            1
+            <span class="wizard-step-label">تفاصيل المشكلة</span>
+        </div>
+        <div class="wizard-step">
+            2
+            <span class="wizard-step-label">توليد ومعالجة الذكاء الاصطناعي</span>
+        </div>
+        <div class="wizard-step">
+            3
+            <span class="wizard-step-label">التقرير النهائي المعتمد</span>
+        </div>
+    </div>
+
+    <!-- Form Container -->
+    <div class="form-container card border-0">
+        <div class="card-header bg-white border-bottom p-4">
+            <h4 class="card-title font-weight-bold text-slate-800 mb-1">
+                <i class="fas fa-file-signature text-blue-600 mr-2"></i> الخطوة الأولى: تسجيل بلاغ فني جديد
+            </h4>
+            <p class="text-muted mb-0 font-size-sm">أدخل تفاصيل الشكوى الأولية المقدمة من قبل الموظف مع تفاصيل وظيفته وتاريخ وقوع المشكلة.</p>
+        </div>
+        <div class="card-body p-4 p-md-5">
+            <form method="POST" novalidate>
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- Employee choice -->
+                    <div class="col-md-12 form-group mb-4">
+                        <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
+                        {{ form.employee }}
+                        {% if form.employee.errors %}
+                            <div class="text-danger font-size-sm mt-1">{{ form.employee.errors.0 }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">اختر اسم الموظف الذي يواجه المشكلة التقنية حالياً.</small>
+                    </div>
+
+                    <!-- Job Title -->
+                    <div class="col-md-6 form-group mb-4">
+                        <label for="{{ form.job_title.id_for_label }}">{{ form.job_title.label }}</label>
+                        {{ form.job_title }}
+                        {% if form.job_title.errors %}
+                            <div class="text-danger font-size-sm mt-1">{{ form.job_title.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Department -->
+                    <div class="col-md-6 form-group mb-4">
+                        <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+                        {{ form.department }}
+                        {% if form.department.errors %}
+                            <div class="text-danger font-size-sm mt-1">{{ form.department.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Incident Date -->
+                    <div class="col-md-12 form-group mb-4">
+                        <label for="{{ form.incident_date.id_for_label }}">{{ form.incident_date.label }}</label>
+                        {{ form.incident_date }}
+                        {% if form.incident_date.errors %}
+                            <div class="text-danger font-size-sm mt-1">{{ form.incident_date.errors.0 }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">تاريخ حدوث المشكلة أو تاريخ تبليغ الموظف عنها.</small>
+                    </div>
+
+                    <!-- Issue Description -->
+                    <div class="col-md-12 form-group mb-4">
+                        <label for="{{ form.issue_description.id_for_label }}">{{ form.issue_description.label }}</label>
+                        {{ form.issue_description }}
+                        {% if form.issue_description.errors %}
+                            <div class="text-danger font-size-sm mt-1">{{ form.issue_description.errors.0 }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">اكتب المشكلة بالتفصيل، الأخطاء الظاهرة، أو العمليات المتوقفة بسببها.</small>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Navigation buttons -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'technical_services:report_list' %}" class="btn btn-outline-secondary font-weight-bold px-4">
+                        <i class="fas fa-arrow-right mr-1"></i> إلغاء والعودة
+                    </a>
+                    <button type="submit" class="btn btn-submit shadow-sm font-weight-bold px-5">
+                        حفظ ومتابعة للخطوة الثانية <i class="fas fa-magic ml-1"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
