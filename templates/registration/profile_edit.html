@@ -3,33 +3,559 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/registration.css' %}">
+<style>
+    /* Reuse variables and background from profile.html */
+    .profile-shell {
+        --profile-bg: linear-gradient(180deg, #f5efe5 0%, #fcfaf6 42%, #ffffff 100%);
+        --profile-ink: #1f2937;
+        --profile-muted: #6b7280;
+        --profile-line: rgba(31, 41, 55, 0.1);
+        --profile-card: rgba(255, 255, 255, 0.82);
+        --profile-shadow: 0 24px 60px rgba(35, 31, 32, 0.12);
+        --profile-accent: #a3472f;
+        --profile-accent-2: #1d6b63;
+        background:
+            radial-gradient(circle at top right, rgba(163, 71, 47, 0.16), transparent 26%),
+            radial-gradient(circle at top left, rgba(29, 107, 99, 0.12), transparent 28%),
+            var(--profile-bg);
+        min-height: calc(100vh - 80px);
+        padding: 32px 0 48px;
+        color: var(--profile-ink);
+    }
+
+    .profile-shell,
+    .profile-shell * {
+        box-sizing: border-box;
+    }
+
+    .profile-shell .container {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+    }
+
+    .profile-hero-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        background:
+            linear-gradient(135deg, rgba(27, 34, 51, 0.96), rgba(27, 34, 51, 0.78)),
+            linear-gradient(135deg, #1d6b63, #a3472f);
+        color: #fff8ef;
+        box-shadow: var(--profile-shadow);
+        padding: 36px;
+    }
+
+    .profile-hero-card::before,
+    .profile-hero-card::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        pointer-events: none;
+    }
+
+    .profile-hero-card::before {
+        width: 320px;
+        height: 320px;
+        background: rgba(231, 184, 93, 0.12);
+        top: -140px;
+        left: -70px;
+    }
+
+    .profile-hero-card::after {
+        width: 260px;
+        height: 260px;
+        background: rgba(255, 255, 255, 0.08);
+        bottom: -140px;
+        right: -80px;
+    }
+
+    .profile-hero-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 28px;
+        align-items: center;
+    }
+
+    .profile-title {
+        margin: 0 0 10px;
+        font-size: clamp(28px, 5vw, 42px);
+        line-height: 1.08;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    .profile-subtitle {
+        margin: 0 0 22px;
+        color: rgba(255, 248, 239, 0.82);
+        font-size: 16px;
+        line-height: 1.8;
+        max-width: 60ch;
+    }
+
+    .profile-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 13px;
+        margin-bottom: 14px;
+    }
+
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 18px;
+        border-radius: 16px;
+        text-decoration: none;
+        font-weight: 700;
+        color: var(--profile-ink);
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid var(--profile-line);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+        color: var(--profile-ink);
+    }
+
+    .profile-grid {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 24px;
+        margin-top: 28px;
+        align-items: start;
+    }
+
+    .profile-panel {
+        background: var(--profile-card);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        border-radius: 28px;
+        box-shadow: var(--profile-shadow);
+        backdrop-filter: blur(12px);
+        overflow: hidden;
+    }
+
+    .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 26px 28px 0;
+    }
+
+    .panel-title {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .panel-title i {
+        color: var(--profile-accent);
+    }
+
+    .panel-subtitle {
+        margin: 8px 0 0;
+        color: var(--profile-muted);
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .panel-body {
+        padding: 24px 28px 28px;
+    }
+
+    /* Drag and Drop Zone styling */
+    .image-preview-wrapper {
+        width: 160px;
+        height: 160px;
+        border-radius: 32px;
+        border: 2px dashed rgba(31, 41, 55, 0.2);
+        background: rgba(255, 255, 255, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        margin: 0 auto 20px auto;
+    }
+
+    .image-preview-wrapper:hover {
+        border-color: var(--profile-accent-2);
+        background: rgba(255, 255, 255, 0.8);
+        transform: scale(1.02);
+    }
+
+    /* Drag-active border animation (triggers when dragging anywhere on window) */
+    .image-preview-wrapper.drag-active {
+        border-color: var(--profile-accent-2);
+        background: rgba(29, 107, 99, 0.03);
+        border-style: dashed;
+        animation: borderPulse 1.2s infinite alternate;
+    }
+
+    @keyframes borderPulse {
+        0% { border-color: rgba(29, 107, 99, 0.3); box-shadow: 0 0 0 2px rgba(29, 107, 99, 0.05); }
+        100% { border-color: var(--profile-accent-2); box-shadow: 0 0 0 6px rgba(29, 107, 99, 0.15); }
+    }
+
+    /* Dragover active highlight (triggers when directly over the dropzone) */
+    .image-preview-wrapper.dragover {
+        border-color: var(--profile-accent);
+        background: rgba(163, 71, 47, 0.08);
+        border-style: solid;
+        box-shadow: 0 0 0 6px rgba(163, 71, 47, 0.2);
+        transform: scale(1.05);
+    }
+
+    .image-preview-wrapper.dragover::after {
+        content: "\f093"; /* upload icon */
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        position: absolute;
+        inset: 0;
+        background: rgba(29, 107, 99, 0.85);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        backdrop-filter: blur(2px);
+        animation: pulseIcon 1.5s infinite;
+    }
+
+    @keyframes pulseIcon {
+        0% { opacity: 0.9; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.1); }
+        100% { opacity: 0.9; transform: scale(1); }
+    }
+
+    .profile-preview-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .default-profile-image {
+        font-size: 56px;
+        color: var(--profile-muted);
+    }
+
+    .image-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    .image-preview-wrapper:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .image-overlay i {
+        font-size: 24px;
+    }
+
+    .upload-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .upload-controls input[type="file"] {
+        display: none;
+    }
+
+    .upload-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 18px;
+        border-radius: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        color: #fff;
+        background: linear-gradient(135deg, var(--profile-accent-2), #2e9085);
+        box-shadow: 0 10px 20px rgba(29, 107, 99, 0.15);
+        transition: all 0.25s ease;
+        border: none;
+    }
+
+    .upload-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 24px rgba(29, 107, 99, 0.25);
+    }
+
+    .remove-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 18px;
+        border-radius: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        color: #b91c1c;
+        background: rgba(185, 28, 28, 0.08);
+        transition: all 0.25s ease;
+        border: none;
+    }
+
+    .remove-btn:hover {
+        background: rgba(185, 28, 28, 0.15);
+    }
+
+    .image-info {
+        margin-top: 15px;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.02);
+        border-radius: 16px;
+        font-size: 13px;
+        color: var(--profile-muted);
+        line-height: 1.6;
+        text-align: right;
+    }
+
+    /* Form Styles */
+    .form-section {
+        margin-bottom: 24px;
+    }
+
+    .form-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-label {
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--profile-ink);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 0;
+    }
+
+    .form-label i {
+        color: var(--profile-accent);
+    }
+
+    .input-with-icon {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-with-icon input,
+    .input-with-icon textarea {
+        width: 100%;
+        padding: 12px 40px 12px 16px; /* Padding for RTL icon on the right */
+        border: 1px solid var(--profile-line);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--profile-ink);
+        font-family: inherit;
+        font-size: 15px;
+        transition: all 0.25s ease;
+    }
+
+    .input-with-icon input:focus,
+    .input-with-icon textarea:focus {
+        outline: none;
+        border-color: var(--profile-accent-2);
+        box-shadow: 0 0 0 4px rgba(29, 107, 99, 0.15);
+        background: #fff;
+    }
+
+    .input-with-icon .input-icon {
+        position: absolute;
+        right: 14px;
+        color: var(--profile-muted);
+        font-size: 16px;
+    }
+
+    .readonly-field {
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px dashed var(--profile-line);
+        padding: 12px 16px;
+        border-radius: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--profile-muted);
+        font-size: 15px;
+    }
+
+    .readonly-icon {
+        opacity: 0.5;
+    }
+
+    .field-hint {
+        font-size: 13px;
+        color: var(--profile-muted);
+        margin-top: 4px;
+    }
+
+    .field-errors {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 4px;
+    }
+
+    .error-item {
+        color: #b91c1c;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid var(--profile-line);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 13px 22px;
+        border-radius: 16px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        border: none;
+    }
+
+    .btn-save {
+        color: #fff;
+        background: linear-gradient(135deg, var(--profile-accent), #d17b43);
+        box-shadow: 0 10px 20px rgba(163, 71, 47, 0.15);
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 24px rgba(163, 71, 47, 0.25);
+    }
+
+    .btn-reset {
+        color: var(--profile-ink);
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid var(--profile-line);
+    }
+
+    .btn-reset:hover {
+        transform: translateY(-2px);
+        background: #fff;
+    }
+
+    @media (max-width: 1100px) {
+        .profile-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .profile-hero-grid {
+            grid-template-columns: 1fr;
+            text-align: center;
+        }
+
+        .back-btn {
+            justify-content: center;
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .profile-shell .container {
+            width: min(100% - 20px, 100%);
+        }
+
+        .panel-body,
+        .panel-head {
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+    }
+</style>
 {% endblock %}
 
 
 {% block content %}
-<div class="profile-edit-container">
-    <div class="edit-profile-card">
-        <div class="edit-header">
-            <div class="header-content">
-                <i class="fas fa-user-cog header-icon"></i>
-                <h1 class="header-title">تعديل الملف الشخصي</h1>
-                <p class="header-subtitle">قم بتحديث معلوماتك الشخصية</p>
-            </div>
-            <div class="header-actions">
-                <a href="{% url 'registration:profile' %}" class="back-btn">
-                    <i class="fas fa-arrow-right"></i>
-                    العودة للبروفايل
-                </a>
+<section class="profile-shell" dir="rtl">
+    <div class="container">
+        <!-- Hero Header Card -->
+        <div class="profile-hero-card">
+            <div class="profile-hero-grid">
+                <div>
+                    <span class="profile-eyebrow">
+                        <i class="fas fa-user-cog"></i>
+                        تعديل البيانات
+                    </span>
+                    <h1 class="profile-title">تعديل الملف الشخصي</h1>
+                    <p class="profile-subtitle">قم بتحديث صورتك الشخصية، معلومات الاتصال والبيانات الأساسية لملفك.</p>
+                </div>
+                <div>
+                    <a href="{% url 'registration:profile' %}" class="back-btn">
+                        <i class="fas fa-arrow-right"></i>
+                        العودة للبروفايل
+                    </a>
+                </div>
             </div>
         </div>
 
-        <form method="post" enctype="multipart/form-data" class="edit-profile-form">
+        <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            
-            <div class="form-grid">
-                <!-- الصورة الجانبية -->
-                <div class="profile-image-section">
-                    <div class="image-upload-card">
+            <div class="profile-grid">
+                <!-- Image Panel (Sidebar) -->
+                <div class="profile-panel">
+                    <div class="panel-head">
+                        <h2 class="panel-title">
+                            <i class="fas fa-camera"></i>
+                            الصورة الشخصية
+                        </h2>
+                    </div>
+                    <div class="panel-body">
                         <div class="image-preview-wrapper">
                             {% if form.instance.profile_picture %}
                                 <img src="{{ form.instance.profile_picture.url }}" alt="صورة البروفايل" class="profile-preview-image" id="imagePreview">
@@ -42,7 +568,7 @@
                                 <i class="fas fa-camera"></i>
                             </div>
                         </div>
-                        
+
                         <div class="upload-controls">
                             <label for="{{ form.profile_picture.id_for_label }}" class="upload-btn">
                                 <i class="fas fa-cloud-upload-alt"></i>
@@ -51,10 +577,10 @@
                             {{ form.profile_picture }}
                             <button type="button" class="remove-btn" id="removeImage">
                                 <i class="fas fa-trash"></i>
-                                إزالة
+                                إزالة الصورة
                             </button>
                         </div>
-                        
+
                         {% if form.profile_picture.errors %}
                         <div class="field-errors">
                             {% for error in form.profile_picture.errors %}
@@ -62,217 +588,165 @@
                             {% endfor %}
                         </div>
                         {% endif %}
-                        
-                        <div class="image-info">
-                            <p><i class="fas fa-info-circle"></i> الصور المسموح بها: JPG, PNG, GIF</p>
-                            <p><i class="fas fa-weight"></i> الحجم الأقصى: 5MB</p>
-                        </div>
-                    </div>
 
-                    <div class="user-quick-info">
-                        <h3 class="quick-info-title">معلومات سريعة</h3>
-                        <div class="info-item">
-                            <i class="fas fa-user"></i>
-                            <div class="info-content">
-                                <span class="info-label">اسم المستخدم</span>
-                                <span class="info-value">{{ user.username }}</span>
-                            </div>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-envelope"></i>
-                            <div class="info-content">
-                                <span class="info-label">البريد الإلكتروني</span>
-                                <span class="info-value">{{ user.email|default:'غير محدد' }}</span>
-                            </div>
-                        </div>
-                        <div class="info-item">
-                            <i class="fas fa-calendar"></i>
-                            <div class="info-content">
-                                <span class="info-label">تاريخ الانضمام</span>
-                                <span class="info-value">{{ user.date_joined|date:"Y/m/d" }}</span>
-                            </div>
+                        <div class="image-info">
+                            <p style="margin:0 0 6px 0;"><i class="fas fa-info-circle"></i> صيغ الصور: JPG, PNG, GIF</p>
+                            <p style="margin:0;"><i class="fas fa-weight"></i> الحجم الأقصى: 5MB</p>
+                            <p style="margin:10px 0 0 0; font-weight:700; color:var(--profile-accent-2);"><i class="fas fa-hand-pointer"></i> يمكنك سحب وإفلات صورتك هنا!</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- معلومات المستخدم -->
-                <div class="profile-form-section">
-                    <div class="form-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-id-card"></i>
-                            المعلومات الشخصية
-                        </h3>
-                        <p class="field-hint">يمكنك تعديل اسم المستخدم والبريد الإلكتروني من القسم العلوي ثم حفظ التغييرات.</p>
-                        
-                        <div class="form-row">
-                            <div class="form-group full-width">
-                                <label for="{{ form.username.id_for_label }}" class="form-label">
-                                    <i class="fas fa-user-circle"></i>
-                                    اسم المستخدم
-                                </label>
-                                <div class="input-with-icon">
-                                    {{ form.username }}
-                                    <i class="input-icon fas fa-user"></i>
-                                </div>
-                                {% if form.username.errors %}
-                                <div class="field-errors">
-                                    {% for error in form.username.errors %}
-                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
-                                    <i class="fas fa-user"></i>
-                                    الاسم الأول
-                                </label>
-                                <div class="input-with-icon">
-                                    {{ form.first_name }}
-                                    <i class="input-icon fas fa-id-badge"></i>
-                                </div>
-                                {% if form.first_name.errors %}
-                                <div class="field-errors">
-                                    {% for error in form.first_name.errors %}
-                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="form-group">
-                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
-                                    <i class="fas fa-user-tag"></i>
-                                    اسم العائلة
-                                </label>
-                                <div class="input-with-icon">
-                                    {{ form.last_name }}
-                                    <i class="input-icon fas fa-address-card"></i>
-                                </div>
-                                {% if form.last_name.errors %}
-                                <div class="field-errors">
-                                    {% for error in form.last_name.errors %}
-                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group full-width">
-                                <label for="{{ form.email.id_for_label }}" class="form-label">
-                                    <i class="fas fa-envelope"></i>
-                                    البريد الإلكتروني
-                                </label>
-                                <div class="input-with-icon">
-                                    {{ form.email }}
-                                    <i class="input-icon fas fa-at"></i>
-                                </div>
-                                {% if form.email.errors %}
-                                <div class="field-errors">
-                                    {% for error in form.email.errors %}
-                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group full-width">
-                                <label for="{{ form.phone.id_for_label }}" class="form-label">
-                                    <i class="fas fa-mobile-alt"></i>
-                                    رقم الهاتف
-                                </label>
-                                <div class="input-with-icon">
-                                    {{ form.phone }}
-                                    <i class="input-icon fas fa-phone"></i>
-                                </div>
-                                {% if form.phone.errors %}
-                                <div class="field-errors">
-                                    {% for error in form.phone.errors %}
-                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group full-width">
-                                <label for="{{ form.address.id_for_label }}" class="form-label">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    العنوان
-                                </label>
-                                <div class="input-with-icon">
-                                    {{ form.address }}
-                                    <i class="input-icon fas fa-home"></i>
-                                </div>
-                                {% if form.address.errors %}
-                                <div class="field-errors">
-                                    {% for error in form.address.errors %}
-                                    <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
+                <!-- Info Panel (Main content) -->
+                <div class="profile-panel">
+                    <div class="panel-head">
+                        <h2 class="panel-title">
+                            <i class="fas fa-address-card"></i>
+                            البيانات الأساسية
+                        </h2>
                     </div>
+                    <div class="panel-body">
+                        <!-- Personal Info -->
+                        <div class="form-section">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                        <i class="fas fa-user"></i>
+                                        الاسم الأول
+                                    </label>
+                                    <div class="input-with-icon">
+                                        {{ form.first_name }}
+                                        <i class="input-icon fas fa-id-badge"></i>
+                                    </div>
+                                    {% if form.first_name.errors %}
+                                    <div class="field-errors">
+                                        {% for error in form.first_name.errors %}
+                                        <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
 
-                    <!-- معلومات الحساب -->
-                    <div class="form-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-user-shield"></i>
-                            معلومات الحساب
-                        </h3>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-user"></i>
-                                    اسم المستخدم
-                                </label>
-                                <div class="readonly-field">
-                                    <span class="field-value">{{ user.username }}</span>
-                                    <i class="fas fa-pen readonly-icon"></i>
+                                <div class="form-group">
+                                    <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                        <i class="fas fa-user-tag"></i>
+                                        اسم العائلة
+                                    </label>
+                                    <div class="input-with-icon">
+                                        {{ form.last_name }}
+                                        <i class="input-icon fas fa-address-card"></i>
+                                    </div>
+                                    {% if form.last_name.errors %}
+                                    <div class="field-errors">
+                                        {% for error in form.last_name.errors %}
+                                        <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                <span class="field-hint">يمكنك تعديل اسم المستخدم من القسم العلوي ثم حفظ التغييرات</span>
                             </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-envelope"></i>
-                                    البريد الإلكتروني
-                                </label>
-                                <div class="readonly-field">
-                                    <span class="field-value">{{ user.email|default:'غير محدد' }}</span>
-                                    <i class="fas fa-pen readonly-icon"></i>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                        <i class="fas fa-mobile-alt"></i>
+                                        رقم الهاتف
+                                    </label>
+                                    <div class="input-with-icon">
+                                        {{ form.phone }}
+                                        <i class="input-icon fas fa-phone"></i>
+                                    </div>
+                                    {% if form.phone.errors %}
+                                    <div class="field-errors">
+                                        {% for error in form.phone.errors %}
+                                        <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                <span class="field-hint">يمكنك تعديل البريد الإلكتروني من القسم العلوي ثم حفظ التغييرات</span>
+
+                                <div class="form-group">
+                                    <label for="{{ form.address.id_for_label }}" class="form-label">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        العنوان
+                                    </label>
+                                    <div class="input-with-icon">
+                                        {{ form.address }}
+                                        <i class="input-icon fas fa-home"></i>
+                                    </div>
+                                    {% if form.address.errors %}
+                                    <div class="field-errors">
+                                        {% for error in form.address.errors %}
+                                        <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- الأزرار -->
-                    <div class="form-actions">
-                        <button type="reset" class="btn btn-secondary">
-                            <i class="fas fa-undo"></i>
-                            إعادة تعيين
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i>
-                            حفظ التغييرات
-                        </button>
+                        <!-- Account Info -->
+                        <div class="form-section">
+                            <h3 class="panel-title" style="font-size:18px; margin-bottom:14px;">
+                                <i class="fas fa-user-shield" style="font-size:16px;"></i>
+                                معلومات الحساب الأساسية
+                            </h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="{{ form.username.id_for_label }}" class="form-label">
+                                        <i class="fas fa-user-circle"></i>
+                                        اسم المستخدم
+                                    </label>
+                                    <div class="input-with-icon">
+                                        {{ form.username }}
+                                        <i class="input-icon fas fa-user"></i>
+                                    </div>
+                                    {% if form.username.errors %}
+                                    <div class="field-errors">
+                                        {% for error in form.username.errors %}
+                                        <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="{{ form.email.id_for_label }}" class="form-label">
+                                        <i class="fas fa-envelope"></i>
+                                        البريد الإلكتروني
+                                    </label>
+                                    <div class="input-with-icon">
+                                        {{ form.email }}
+                                        <i class="input-icon fas fa-at"></i>
+                                    </div>
+                                    {% if form.email.errors %}
+                                    <div class="field-errors">
+                                        {% for error in form.email.errors %}
+                                        <span class="error-item"><i class="fas fa-exclamation-circle"></i> {{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="form-actions">
+                            <button type="reset" class="btn btn-reset">
+                                <i class="fas fa-undo"></i>
+                                إعادة تعيين
+                            </button>
+                            <button type="submit" class="btn btn-save">
+                                <i class="fas fa-save"></i>
+                                حفظ التغييرات
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </form>
     </div>
-</div>
+</section>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -280,9 +754,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const removeBtn = document.getElementById('removeImage');
     const uploadWrapper = document.querySelector('.image-preview-wrapper');
 
-    // Drag and Drop functionality
+    // Prevent default drag behaviors
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        uploadWrapper.addEventListener(eventName, preventDefaults, false);
+        document.addEventListener(eventName, preventDefaults, false);
     });
 
     function preventDefaults(e) {
@@ -290,22 +764,34 @@ document.addEventListener('DOMContentLoaded', function() {
         e.stopPropagation();
     }
 
+    // Highlight drop area when item enters the window
     ['dragenter', 'dragover'].forEach(eventName => {
-        uploadWrapper.addEventListener(eventName, highlight, false);
+        document.addEventListener(eventName, () => {
+            uploadWrapper.classList.add('drag-active');
+        }, false);
+    });
+
+    // Unhighlight drop area when item leaves the window or is dropped
+    ['dragleave', 'drop'].forEach(eventName => {
+        document.addEventListener(eventName, () => {
+            uploadWrapper.classList.remove('drag-active');
+        }, false);
+    });
+
+    // Handle drag events on the wrapper itself
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadWrapper.addEventListener(eventName, () => {
+            uploadWrapper.classList.add('dragover');
+        }, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
-        uploadWrapper.addEventListener(eventName, unhighlight, false);
+        uploadWrapper.addEventListener(eventName, () => {
+            uploadWrapper.classList.remove('dragover');
+        }, false);
     });
 
-    function highlight(e) {
-        uploadWrapper.classList.add('dragover');
-    }
-
-    function unhighlight(e) {
-        uploadWrapper.classList.remove('dragover');
-    }
-
+    // Handle dropped files
     uploadWrapper.addEventListener('drop', handleDrop, false);
 
     function handleDrop(e) {
@@ -320,7 +806,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // معاينة الصورة
+    // Image preview
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -328,7 +814,6 @@ document.addEventListener('DOMContentLoaded', function() {
             reader.onload = function(e) {
                 let imagePreview = document.getElementById('imagePreview');
                 if (imagePreview.classList.contains('default-profile-image')) {
-                    // استبدال العنصر الافتراضي بصورة
                     const newImg = document.createElement('img');
                     newImg.src = e.target.result;
                     newImg.alt = 'معاينة الصورة';
@@ -336,7 +821,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     newImg.id = 'imagePreview';
                     imagePreview.parentNode.replaceChild(newImg, imagePreview);
                 } else {
-                    // تحديث الصورة الحالية
                     imagePreview.src = e.target.result;
                 }
             }
@@ -344,12 +828,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // إزالة الصورة
+    // Remove image
     removeBtn.addEventListener('click', function() {
         fileInput.value = '';
         let currentPreview = document.getElementById('imagePreview');
         if (currentPreview.tagName === 'IMG') {
-            // استبدال الصورة بالعنصر الافتراضي
             const defaultDiv = document.createElement('div');
             defaultDiv.className = 'default-profile-image';
             defaultDiv.id = 'imagePreview';
@@ -358,15 +841,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // فتح محدد الملفات عند النقر على المعاينة
+    // Open file dialog when clicking wrapper
     uploadWrapper.addEventListener('click', function() {
         fileInput.click();
     });
 
-    // إعادة تعيين النموذج
+    // Reset form
     document.querySelector('button[type="reset"]').addEventListener('click', function() {
         setTimeout(() => {
-            // إعادة تحميل الصورة الأصلية بعد الإعادة
             location.reload();
         }, 100);
     });

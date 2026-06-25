@@ -44,6 +44,21 @@ class UserProfile(models.Model):
             else:
                 print("image path: missing file")
 
+        # Sync to Employee profile if it exists
+        try:
+            employee = getattr(self.user, 'employee_profile', None)
+            if employee:
+                if self.profile_picture:
+                    if employee.profile_photo != self.profile_picture:
+                        employee.profile_photo = self.profile_picture
+                        employee.save()
+                else:
+                    if employee.profile_photo:
+                        employee.profile_photo = None
+                        employee.save()
+        except Exception as e:
+            print(f"Error syncing profile photo to employee profile: {e}")
+
         print("=== profile save done ===")
 
     def get_optimized_picture_url(self):
