@@ -95,8 +95,8 @@
     }
 
     .cover-divider-line {
-        width: 1px;
-        height: 50px;
+        width: 1.5px;
+        height: 70px;
         background-color: #cbd5e1;
         margin: 0;
         position: relative;
@@ -526,46 +526,110 @@
     /* Premium Slanted Page Footers */
     .page-footer-slant-row {
         height: 40px;
+        background-color: #0b1b32;
         position: relative;
         margin: auto -50px -40px -50px;
+        width: calc(100% + 100px) !important;
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
+        align-items: center;
+        box-sizing: border-box;
+        overflow: hidden;
+        direction: rtl;
     }
-    
-    .footer-left-orange-slant {
-        width: 120px;
-        height: 40px;
+
+    /* Left Group */
+    .footer-left-container {
+        position: relative;
+        height: 100%;
+        width: 75px;
+        flex-shrink: 0;
+    }
+    .footer-left-navy-slant {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #0b1b32;
+        clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 100%, 0 100%);
+        z-index: 2;
+    }
+    .footer-left-white-slant {
+        position: absolute;
+        top: 0;
+        left: 4px;
+        right: -4px;
+        bottom: 0;
+        background-color: #ffffff;
+        clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 100%, 0 100%);
+        z-index: 1;
+    }
+
+    /* Right Group */
+    .footer-right-container {
+        position: relative;
+        height: 100%;
+        width: 75px;
+        flex-shrink: 0;
+    }
+    .footer-right-orange-slant {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background-color: #e07a2c;
-        clip-path: polygon(0 0, 100% 100%, 0 100%);
-    }
-    
-    .footer-center-slogan {
-        color: #64748b;
-        font-size: 0.82rem;
-        font-weight: 700;
-        margin-bottom: 8px;
-        border-bottom: 2px solid #e07a2c;
-        padding-bottom: 3px;
-        letter-spacing: 0.5px;
-    }
-    
-    .footer-right-navy-slant {
-        width: 140px;
-        height: 40px;
-        background-color: #112d4e;
-        clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);
-        color: white;
+        clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%);
+        z-index: 2;
         display: flex;
         align-items: center;
-        justify-content: flex-end;
-        padding-left: 25px;
-        box-sizing: border-box;
+        justify-content: center;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 1.1rem;
+        padding-left: 10px; /* offset for visual centering */
     }
-    .footer-right-navy-slant span {
-        font-size: 1.15rem;
-        font-weight: 900;
-        letter-spacing: 1px;
+    .footer-right-white-slant {
+        position: absolute;
+        top: 0;
+        left: -4px;
+        right: 4px;
+        bottom: 0;
+        background-color: #ffffff;
+        clip-path: polygon(15px 0, 100% 0, 100% 100%, 0 100%);
+        z-index: 1;
+    }
+
+    /* Center Slogan */
+    .footer-center-slogan {
+        color: #ffffff !important;
+        font-size: 0.9rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: center;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0 !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+    .footer-center-line {
+        width: 40px;
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.4);
+    }
+    .footer-center-dot {
+        width: 6px;
+        height: 6px;
+        background-color: #e07a2c;
+        border-radius: 50%;
+    }
+    .footer-slogan-text {
+        color: #ffffff !important;
     }
 
     /* Digital Signature Cards Block */
@@ -671,7 +735,11 @@
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
-        .footer-left-orange-slant, .footer-right-navy-slant {
+        .page-footer-slant-row,
+        .footer-left-navy-slant,
+        .footer-left-white-slant,
+        .footer-right-orange-slant,
+        .footer-right-white-slant {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
@@ -722,17 +790,17 @@
         <!-- Left Column Content (White Space) -->
         <div class="cover-left-content">
             <!-- Header Section (Logos) -->
-            <header class="cover-header-section">
+            <div class="cover-header-section">
                 <div class="logo-mahwar" style="display: flex; align-items: center;">
-                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 80px; object-fit: contain; max-width: 180px;">
+                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 105px; object-fit: contain; max-width: 220px;">
                 </div>
                 
-                <div class="cover-divider-line"></div>
+                <div class="cover-divider-line" style="height: 90px;"></div>
                 
                 <div class="cover-logo-aliman" style="display: flex; align-items: center;">
-                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 80px; object-fit: contain; max-width: 180px;">
+                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 105px; object-fit: contain; max-width: 220px;">
                 </div>
-            </header>
+            </div>
 
             <!-- Main Title Content -->
             <main class="cover-main-content">
@@ -803,7 +871,7 @@
         </div>
 
         <!-- Bottom Footer -->
-        <footer class="cover-footer-section">
+        <div class="cover-footer-section">
             <div class="cover-footer-text">
                 <span class="cover-orange-dash"></span> معاً نحو أداء تقني أفضل <span class="cover-orange-dash"></span>
             </div>
@@ -813,7 +881,7 @@
                 <div class="cover-f-icon"><i class="fa-solid fa-gear"></i></div>
                 <div class="cover-f-icon"><i class="fa-solid fa-laptop-code"></i></div>
             </div>
-        </footer>
+        </div>
     </div>
 
     <!-- ===================================================================
@@ -910,10 +978,27 @@
 
             <!-- Slanted page footer -->
             <div class="page-footer-slant-row">
-                <div class="footer-left-orange-slant"></div>
-                <div class="footer-center-slogan">معاً نحو أداء تقني أفضل</div>
-                <div class="footer-right-navy-slant">
-                    <span>01</span>
+                <!-- Left Accent -->
+                <div class="footer-left-container">
+                    <div class="footer-left-white-slant"></div>
+                    <div class="footer-left-navy-slant"></div>
+                </div>
+                
+                <!-- Center Slogan -->
+                <div class="footer-center-slogan">
+                    <span class="footer-center-line"></span>
+                    <span class="footer-center-dot"></span>
+                    <span class="footer-slogan-text">معاً نحو أداء تقني أفضل</span>
+                    <span class="footer-center-dot"></span>
+                    <span class="footer-center-line"></span>
+                </div>
+                
+                <!-- Right Page Number -->
+                <div class="footer-right-container">
+                    <div class="footer-right-white-slant"></div>
+                    <div class="footer-right-orange-slant">
+                        <span>01</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1028,10 +1113,27 @@
 
             <!-- Slanted page footer -->
             <div class="page-footer-slant-row">
-                <div class="footer-left-orange-slant"></div>
-                <div class="footer-center-slogan">معاً نحو أداء تقني أفضل</div>
-                <div class="footer-right-navy-slant">
-                    <span>02</span>
+                <!-- Left Accent -->
+                <div class="footer-left-container">
+                    <div class="footer-left-white-slant"></div>
+                    <div class="footer-left-navy-slant"></div>
+                </div>
+                
+                <!-- Center Slogan -->
+                <div class="footer-center-slogan">
+                    <span class="footer-center-line"></span>
+                    <span class="footer-center-dot"></span>
+                    <span class="footer-slogan-text">معاً نحو أداء تقني أفضل</span>
+                    <span class="footer-center-dot"></span>
+                    <span class="footer-center-line"></span>
+                </div>
+                
+                <!-- Right Page Number -->
+                <div class="footer-right-container">
+                    <div class="footer-right-white-slant"></div>
+                    <div class="footer-right-orange-slant">
+                        <span>02</span>
+                    </div>
                 </div>
             </div>
         </div>
