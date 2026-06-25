@@ -377,25 +377,25 @@
         background-color: #fcfdfe;
         border: 1.5px solid #112d4e;
         border-radius: 12px;
-        padding: 1.25rem 1.25rem 1rem 1.25rem;
-        margin-bottom: 1rem;
+        padding: 1.1rem 1.1rem 0.9rem 1.1rem;
+        margin-bottom: 0.85rem;
         position: relative;
-        margin-top: 0.75rem;
+        margin-top: 0.65rem;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
     }
     
     .info-card-header-tab {
         background-color: #112d4e;
         color: white;
-        padding: 0.4rem 1.25rem;
+        padding: 0.35rem 1.1rem;
         border-radius: 10px 0 10px 10px; /* Slanted corner tab */
         font-weight: 700;
-        font-size: 0.9rem;
+        font-size: 0.82rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
         position: absolute;
-        top: -16px;
+        top: -15px;
         right: -1.5px;
         box-shadow: 0 4px 8px rgba(17, 45, 78, 0.2);
     }
@@ -403,20 +403,20 @@
     .info-card-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem 2.5rem;
-        margin-top: 0.25rem;
+        gap: 0.6rem 2rem;
+        margin-top: 0.2rem;
     }
     
     .info-card-item {
         display: flex;
         align-items: center;
-        font-size: 0.9rem;
+        font-size: 0.8rem;
     }
     
     .info-card-label {
         font-weight: 700;
         color: #475569;
-        width: 120px;
+        width: 105px;
         flex-shrink: 0;
     }
     
@@ -424,7 +424,7 @@
         color: #112d4e;
         border-bottom: 1.5px dotted #a0a0a0;
         flex-grow: 1;
-        padding-bottom: 0.15rem;
+        padding-bottom: 0.1rem;
         font-weight: 700;
     }
 
@@ -432,14 +432,14 @@
     .section-card {
         border: 1.5px solid #112d4e; /* Default Navy Frame */
         border-radius: 12px;
-        margin-bottom: 1rem;
+        margin-bottom: 1.1rem;
         position: relative;
         background-color: #ffffff;
-        padding: 1.25rem 1.25rem 1rem 1.25rem;
+        padding: 2.5rem 1.25rem 1.1rem 1.25rem; /* Sufficient top padding to clear absolute tab overlap */
         display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        min-height: 100px;
+        align-items: flex-start; /* Align to top to prevent vertical centering overlaps */
+        gap: 1.25rem;
+        min-height: 90px;
         box-sizing: border-box;
         box-shadow: 0 4px 10px rgba(0,0,0,0.02);
     }
@@ -447,15 +447,15 @@
     .section-card-tab {
         background-color: #112d4e;
         color: white;
-        padding: 0.4rem 1.25rem;
+        padding: 0.35rem 1.1rem; /* Safer padding to reduce horizontal width */
         border-radius: 10px 0 10px 10px;
         font-weight: 700;
-        font-size: 0.9rem;
+        font-size: 0.82rem; /* Reduced font size to make tabs more elegant and prevent overlap */
         display: flex;
         align-items: center;
         gap: 0.5rem;
         position: absolute;
-        top: -16px;
+        top: -15px;
         right: -1.5px;
         box-shadow: 0 3px 6px rgba(17, 45, 78, 0.15);
     }
@@ -473,10 +473,10 @@
     .section-card.recommendations-theme { border-color: #0d2240; }
     .section-card.recommendations-theme .section-card-tab { background-color: #0d2240; }
     
-    /* Left-hand round graphic badges (scaled down to 75px) */
+    /* Left-hand round graphic badges (scaled down to 70px) */
     .graphic-badge-circle {
-        width: 75px;
-        height: 75px;
+        width: 70px;
+        height: 70px;
         border-radius: 50%;
         background-color: #eff6ff; /* light blue */
         display: flex;
@@ -485,22 +485,23 @@
         flex-shrink: 0;
         border: 1px solid #bfdbfe;
         box-shadow: 0 2px 8px rgba(37, 99, 235, 0.05);
+        margin-top: 0.15rem; /* Slight shift to align with top-aligned text title */
     }
     .impact-theme .graphic-badge-circle { background-color: #fff7ed; border-color: #ffedd5; }
     .solution-theme .graphic-badge-circle { background-color: #faf5ff; border-color: #f3e8ff; }
     .instructions-theme .graphic-badge-circle { background-color: #ecfdf5; border-color: #d1fae5; }
     .recommendations-theme .graphic-badge-circle { background-color: #f0f9ff; border-color: #e0f2fe; }
-
+ 
     .graphic-badge-inner {
-        width: 60px;
-        height: 60px;
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
         background-color: white;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #112d4e;
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         box-shadow: 0 4px 10px rgba(0,0,0,0.06);
         flex-shrink: 0;
     }
@@ -508,24 +509,32 @@
     .solution-theme .graphic-badge-inner { color: #51328c; }
     .instructions-theme .graphic-badge-inner { color: #10b981; }
     .recommendations-theme .graphic-badge-inner { color: #0d2240; }
-
+ 
     .section-content-text {
         flex-grow: 1;
         min-width: 0; /* Crucial to prevent flex items from exploding with pre/code */
-        font-size: 0.92rem;
-        line-height: 1.7;
+        font-size: 0.78rem; /* Scaled down for high-end professional report aesthetic */
+        line-height: 1.55;
         color: #334155;
         text-align: justify;
     }
-
+    
+    .section-content-title {
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.82rem; /* Scaled down */
+        margin-bottom: 0.25rem;
+    }
+ 
     /* Terminal console inside code solution (Safe wordwrap and layout) */
     .terminal-display {
         background-color: #1e293b;
         color: #f8fafc;
         border-radius: 8px;
-        padding: 0.8rem 1rem;
+        padding: 0.65rem 0.9rem;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 0.82rem;
+        font-size: 0.76rem; /* Scaled down */
+        line-height: 1.4;
         direction: ltr;
         text-align: left;
         overflow-x: auto;
@@ -533,7 +542,7 @@
         word-wrap: break-word; /* IE-5.5+ wrapping */
         word-break: break-all; /* Break long variables if necessary */
         border: 1px solid #0f172a;
-        margin-top: 0.5rem;
+        margin-top: 0.4rem;
         box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
         max-width: 100%;
         box-sizing: border-box;
@@ -651,14 +660,14 @@
     /* Digital Signature Cards Block */
     .signatures-block {
         border-top: 1.5px solid #cbd5e1;
-        padding-top: 1rem;
-        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        margin-top: 0.5rem;
     }
     
     .signatures-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
+        gap: 0.75rem;
         text-align: center;
     }
     
@@ -666,25 +675,25 @@
         background-color: #f8fafc;
         border: 1.5px dashed #cbd5e1;
         border-radius: 10px;
-        padding: 0.8rem 0.6rem;
-        font-size: 0.8rem;
+        padding: 0.6rem 0.5rem;
+        font-size: 0.72rem;
         color: #64748b;
     }
     
     .signature-card-title {
         font-weight: 800;
         color: #112d4e;
-        margin-bottom: 1rem;
+        margin-bottom: 0.6rem;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 0.4rem;
-        font-size: 0.85rem;
+        font-size: 0.76rem;
     }
     
     .signature-card-line {
         border-top: 1px dashed #cbd5e1;
-        margin: 0.5rem 0;
+        margin: 0.4rem 0;
     }
 
     /* PRINT MEDIA RULES */
@@ -967,7 +976,7 @@
                 </div>
                 <!-- Right Text Content -->
                 <div class="section-content-text">
-                    <div style="font-weight: 700; color: #475569; font-size: 0.9rem; margin-bottom: 0.25rem;">وصف تفصيلي للمشكلة التي واجهت الموظف:</div>
+                    <div class="section-content-title">وصف تفصيلي للمشكلة التي واجهت الموظف:</div>
                     <div>{{ report.issue_description }}</div>
                 </div>
             </div>
@@ -985,7 +994,7 @@
                 </div>
                 <!-- Right Text Content -->
                 <div class="section-content-text">
-                    <div style="font-weight: 700; color: #475569; font-size: 0.9rem; margin-bottom: 0.25rem;">شرح تأثير المشكلة على سير العمل أو النظام أو العملاء:</div>
+                    <div class="section-content-title">شرح تأثير المشكلة على سير العمل أو النظام أو العملاء:</div>
                     <div>{{ report.issue_impact|default:"لم يتم تحديد تأثير للمشكلة حالياً." }}</div>
                 </div>
             </div>
@@ -1034,7 +1043,7 @@
             </div>
 
             <!-- 3. الحل البرمجي المطبق (Code Solution) -->
-            <div class="section-card solution-theme" style="min-height: 240px;">
+            <div class="section-card solution-theme" style="min-height: 180px;">
                 <div class="section-card-tab">
                     <i class="fa-solid fa-code"></i> 3. الحل البرمجي المطبق
                 </div>
@@ -1046,7 +1055,7 @@
                 </div>
                 <!-- Right Text Content -->
                 <div class="section-content-text">
-                    <div style="font-weight: 700; color: #475569; font-size: 0.9rem;">تفاصيل التعديل البرمجي وكود الحل المطبق:</div>
+                    <div class="section-content-title">تفاصيل التعديل البرمجي وكود الحل المطبق:</div>
                     {% if report.code_solution %}
                         <pre class="terminal-display"><code>{{ report.code_solution|truncatechars:350 }}{% if report.code_solution|length > 350 %}
 ... [تم اختصار الكود - الحل الكامل متوفر في قاعدة البيانات]
@@ -1070,7 +1079,7 @@
                 </div>
                 <!-- Right Text Content -->
                 <div class="section-content-text">
-                    <div style="font-weight: 700; color: #475569; font-size: 0.9rem; margin-bottom: 0.25rem;">الإجراءات أو التعليمات التي يجب على الموظف اتباعها لتجنب تكرار المشكلة:</div>
+                    <div class="section-content-title">الإجراءات أو التعليمات التي يجب على الموظف اتباعها لتجنب تكرار المشكلة:</div>
                     <div>{{ report.employee_instructions|default:"لا توجد تعليمات خاصة للموظف حالياً." }}</div>
                 </div>
             </div>
@@ -1088,7 +1097,7 @@
                 </div>
                 <!-- Right Text Content -->
                 <div class="section-content-text">
-                    <div style="font-weight: 700; color: #475569; font-size: 0.9rem; margin-bottom: 0.25rem;">توصيات ومقترحات لتحسين أداء وهيكلية النظام مستقبلاً:</div>
+                    <div class="section-content-title">توصيات ومقترحات لتحسين أداء وهيكلية النظام مستقبلاً:</div>
                     <div>{{ report.recommendations|default:"لا توجد توصيات إضافية حالياً." }}</div>
                 </div>
             </div>
