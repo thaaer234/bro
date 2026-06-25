@@ -985,6 +985,8 @@
                 <div class="employee-card-avatar-wrapper">
                     {% if report.employee.employee_profile.profile_photo %}
                         <img src="{{ report.employee.employee_profile.profile_photo.url }}" alt="{{ report.employee.get_full_name }}" class="employee-card-avatar">
+                    {% elif report.employee.profile.profile_picture %}
+                        <img src="{{ report.employee.profile.profile_picture.url }}" alt="{{ report.employee.get_full_name }}" class="employee-card-avatar">
                     {% else %}
                         <div class="employee-card-avatar-placeholder">
                             <i class="fa-solid fa-user-tie"></i>

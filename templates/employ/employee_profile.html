@@ -26,6 +26,8 @@
             <div class="card-body text-center">
                 {% if employee.profile_photo %}
                 <img src="{{ employee.profile_photo.url }}" alt="{{ employee.full_name }}" class="img-fluid rounded-circle mb-3" style="width:140px;height:140px;object-fit:cover;">
+                {% elif employee.user.profile.profile_picture %}
+                <img src="{{ employee.user.profile.profile_picture.url }}" alt="{{ employee.full_name }}" class="img-fluid rounded-circle mb-3" style="width:140px;height:140px;object-fit:cover;">
                 {% else %}
                 <div class="mb-3" style="font-size:5rem;color:#9aa7bd;"><i class="fas fa-user-circle"></i></div>
                 {% endif %}
