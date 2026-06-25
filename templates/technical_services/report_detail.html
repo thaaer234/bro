@@ -47,7 +47,10 @@
         right: -200px;
         width: 500px;
         height: 100%;
-        background: radial-gradient(circle at right, #112d4e 40%, #04152d 100%);
+        background-color: #04152d;
+        background-image: url("{% static 'img/ChatGPT Image 25 يونيو 2026، 03_14_23 ص.png' %}");
+        background-size: cover;
+        background-position: right center;
         border-bottom-left-radius: 65% 50%;
         border-top-left-radius: 20% 50%;
         z-index: 1;
@@ -72,7 +75,7 @@
         position: absolute;
         left: 50px;
         top: 50px;
-        width: 380px;
+        width: 420px;
         bottom: 120px;
         display: flex;
         flex-direction: column;
@@ -85,14 +88,17 @@
     .cover-header-section {
         display: flex;
         align-items: center;
+        justify-content: center;
+        width: 100%;
+        gap: 20px;
         z-index: 3;
     }
 
     .cover-divider-line {
         width: 1px;
-        height: 40px;
+        height: 50px;
         background-color: #cbd5e1;
-        margin: 0 15px;
+        margin: 0;
         position: relative;
     }
 
@@ -108,44 +114,42 @@
         border-radius: 50%;
     }
 
-    /* Titles area (Absolute in Navy Area) */
+    /* Titles area (Nested in White Space) */
     .cover-main-content {
-        position: absolute;
-        right: 60px;
-        top: 240px;
-        width: 280px;
         z-index: 3;
-        text-align: right;
-        direction: rtl;
+        width: 100%;
+        text-align: center;
+        margin-top: 10px;
+        margin-bottom: 10px;
     }
 
     .cover-main-title {
-        font-size: 75px;
+        font-size: 55px;
         font-weight: 900;
-        color: #ffffff !important;
-        line-height: 1;
+        color: #112d4e !important;
+        line-height: 1.1;
     }
 
     .cover-sub-title {
-        font-size: 46px;
+        font-size: 38px;
         font-weight: 700;
         color: #e07a2c !important;
-        margin-top: -10px;
-        margin-bottom: 15px;
+        margin-top: 0px;
+        margin-bottom: 10px;
     }
 
     .cover-description {
-        font-size: 18px;
-        color: rgba(255, 255, 255, 0.9) !important;
+        font-size: 15px;
+        color: #475569 !important;
         font-weight: 600;
-        line-height: 1.5;
+        line-height: 1.4;
     }
 
     .cover-horizontal-separator {
-        width: 100%;
+        width: 80%;
         height: 1px;
-        background-color: rgba(255, 255, 255, 0.3) !important;
-        margin-top: 25px;
+        background-color: #cbd5e1 !important;
+        margin: 15px auto 0 auto;
         position: relative;
     }
 
@@ -301,8 +305,10 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-right: auto;
-        margin-left: auto;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0;
     }
 
     .cover-orange-dash {
@@ -679,79 +685,20 @@
         <div class="right-curve-bg"></div>
         <div class="orange-border-line"></div>
 
-        <!-- Left Column Content (White Space) -->
-        <div class="cover-left-content">
-            <!-- Header Section (Logos) -->
-            <header class="cover-header-section">
-                <div class="logo-mahwar" style="display: flex; align-items: center;">
-                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 50px; object-fit: contain; max-width: 120px;">
-                </div>
-                
-                <div class="cover-divider-line"></div>
-                
-                <div class="cover-logo-aliman" style="display: flex; align-items: center;">
-                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 50px; object-fit: contain; max-width: 120px;">
-                </div>
-            </header>
+        <!-- Header Section (Logos) -->
+        <header class="cover-header-section">
+            <div class="logo-mahwar" style="display: flex; align-items: center;">
+                <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 60px; object-fit: contain; max-width: 140px;">
+            </div>
+            
+            <div class="cover-divider-line"></div>
+            
+            <div class="cover-logo-aliman" style="display: flex; align-items: center;">
+                <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 60px; object-fit: contain; max-width: 140px;">
+            </div>
+        </header>
 
-            <!-- Three Columns Features Section -->
-            <section class="cover-features-section">
-                <div class="cover-feature-item">
-                    <div class="cover-icon-wrapper">
-                        <i class="fa-solid fa-clipboard-list"></i>
-                    </div>
-                    <p>الإجراءات<br>المطلوبة</p>
-                </div>
-                <div class="cover-feature-vertical-line"></div>
-                <div class="cover-feature-item">
-                    <div class="cover-icon-wrapper">
-                        <i class="fa-solid fa-code"></i>
-                    </div>
-                    <p>الحلول البرمجية<br>المطبقة</p>
-                </div>
-                <div class="cover-feature-vertical-line"></div>
-                <div class="cover-feature-item">
-                    <div class="cover-icon-wrapper">
-                        <i class="fa-solid fa-gears"></i>
-                    </div>
-                    <p>تحديد المشكلات<br>وتحليل الأسباب</p>
-                </div>
-            </section>
-
-            <!-- Dynamic Form Fields in White Space -->
-            <section class="cover-info-form-section">
-                <div class="cover-form-group">
-                    <span class="cover-form-label"><i class="fa-solid fa-user"></i> اسم الموظف :</span>
-                    <div class="cover-value-wrapper">
-                        <span class="cover-value-text">{{ report.employee.get_full_name|default:report.employee.username }}</span>
-                        <div class="cover-dotted-line"></div>
-                    </div>
-                </div>
-                <div class="cover-form-group">
-                    <span class="cover-form-label"><i class="fa-solid fa-building"></i> القســــــــم :</span>
-                    <div class="cover-value-wrapper">
-                        <span class="cover-value-text">{{ report.department }}</span>
-                        <div class="cover-dotted-line"></div>
-                    </div>
-                </div>
-                <div class="cover-form-group">
-                    <span class="cover-form-label"><i class="fa-solid fa-calendar-days"></i> تاريخ التقرير :</span>
-                    <div class="cover-value-wrapper">
-                        <span class="cover-value-text">{{ report.report_date|date:"Y/m/d" }}</span>
-                        <div class="cover-dotted-line"></div>
-                    </div>
-                </div>
-                <div class="cover-form-group">
-                    <span class="cover-form-label"><i class="fa-solid fa-file-invoice"></i> رقم التقرير :</span>
-                    <div class="cover-value-wrapper">
-                        <span class="cover-value-text">{{ report.report_number|default:"غير محدد" }}</span>
-                        <div class="cover-dotted-line"></div>
-                    </div>
-                </div>
-            </section>
-        </div>
-
-        <!-- Main Title Content (Absolute in Navy Area) -->
+        <!-- Main Title Content -->
         <main class="cover-main-content">
             <h1 class="cover-main-title">تقرير</h1>
             <h2 class="cover-sub-title">المشكلات التقنية</h2>
@@ -761,6 +708,61 @@
                 <span class="dot"></span>
             </div>
         </main>
+
+        <!-- Three Columns Features Section -->
+        <section class="cover-features-section">
+            <div class="cover-feature-item">
+                <div class="cover-icon-wrapper">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+                <p>الإجراءات<br>المطلوبة</p>
+            </div>
+            <div class="cover-feature-vertical-line"></div>
+            <div class="cover-feature-item">
+                <div class="cover-icon-wrapper">
+                    <i class="fa-solid fa-code"></i>
+                </div>
+                <p>الحلول البرمجية<br>المطبقة</p>
+            </div>
+            <div class="cover-feature-vertical-line"></div>
+            <div class="cover-feature-item">
+                <div class="cover-icon-wrapper">
+                    <i class="fa-solid fa-gears"></i>
+                </div>
+                <p>تحديد المشكلات<br>وتحليل الأسباب</p>
+            </div>
+        </section>
+
+        <!-- Dynamic Form Fields in White Space -->
+        <section class="cover-info-form-section">
+            <div class="cover-form-group">
+                <span class="cover-form-label"><i class="fa-solid fa-user"></i> اسم الموظف :</span>
+                <div class="cover-value-wrapper">
+                    <span class="cover-value-text">{{ report.employee.get_full_name|default:report.employee.username }}</span>
+                    <div class="cover-dotted-line"></div>
+                </div>
+            </div>
+            <div class="cover-form-group">
+                <span class="cover-form-label"><i class="fa-solid fa-building"></i> القســــــــم :</span>
+                <div class="cover-value-wrapper">
+                    <span class="cover-value-text">{{ report.department }}</span>
+                    <div class="cover-dotted-line"></div>
+                </div>
+            </div>
+            <div class="cover-form-group">
+                <span class="cover-form-label"><i class="fa-solid fa-calendar-days"></i> تاريخ التقرير :</span>
+                <div class="cover-value-wrapper">
+                    <span class="cover-value-text">{{ report.report_date|date:"Y/m/d" }}</span>
+                </div>
+            </div>
+            <div class="cover-form-group">
+                <span class="cover-form-label"><i class="fa-solid fa-file-invoice"></i> رقم التقرير :</span>
+                <div class="cover-value-wrapper">
+                    <span class="cover-value-text">{{ report.report_number|default:"غير محدد" }}</span>
+                    <div class="cover-dotted-line"></div>
+                </div>
+            </div>
+        </section>
 
         <!-- Bottom Footer -->
         <footer class="cover-footer-section">
@@ -911,7 +913,9 @@
                 <div class="section-content-text">
                     <div style="font-weight: 700; color: #475569; font-size: 0.9rem;">تفاصيل التعديل البرمجي وكود الحل المطبق:</div>
                     {% if report.code_solution %}
-                        <pre class="terminal-display"><code>{{ report.code_solution }}</code></pre>
+                        <pre class="terminal-display"><code>{{ report.code_solution|truncatechars:350 }}{% if report.code_solution|length > 350 %}
+... [تم اختصار الكود - الحل الكامل متوفر في قاعدة البيانات]
+{% endif %}</code></pre>
                     {% else %}
                         <div class="text-muted font-size-sm mt-2">لم يتم تحديد كود حل برمجي.</div>
                     {% endif %}
