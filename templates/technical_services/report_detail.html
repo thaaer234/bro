@@ -32,12 +32,12 @@
         box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         display: flex;
         flex-direction: column;
-        padding: 50px 60px;
+        padding: 40px 50px;
         box-sizing: border-box;
     }
 
     /* ===================================================================
-       COVER PAGE STYLES (from your code, aligned dynamically)
+       COVER PAGE STYLES
        =================================================================== */
     
     /* Curved navy background on the right side */
@@ -67,49 +67,32 @@
         pointer-events: none;
     }
 
-    /* Header structure */
+    /* Cover left column content */
+    .cover-left-content {
+        position: absolute;
+        left: 50px;
+        top: 50px;
+        width: 380px;
+        bottom: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        z-index: 3;
+        direction: rtl;
+    }
+
+    /* Header structure inside Cover */
     .cover-header-section {
         display: flex;
         align-items: center;
         z-index: 3;
-        margin-bottom: 70px;
-        width: 60%;
-    }
-
-    .cover-logo-mahwar {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .cover-logo-mahwar .logo-icon-placeholder {
-        font-size: 45px;
-        color: #112d4e;
-        position: relative;
-    }
-
-    .cover-logo-mahwar .logo-icon-placeholder::after {
-        content: '●';
-        color: #e07a2c;
-        position: absolute;
-        font-size: 14px;
-        top: 10px;
-        right: -5px;
-    }
-
-    .cover-logo-text {
-        font-weight: 900;
-        font-size: 26px;
-        color: #112d4e;
-        letter-spacing: 1px;
-        margin-top: -5px;
     }
 
     .cover-divider-line {
         width: 1px;
-        height: 60px;
-        background-color: #a0a0a0;
-        margin: 0 30px;
+        height: 40px;
+        background-color: #cbd5e1;
+        margin: 0 15px;
         position: relative;
     }
 
@@ -117,7 +100,7 @@
         content: '';
         width: 6px;
         height: 6px;
-        background-color: #112d4e;
+        background-color: #e07a2c;
         position: absolute;
         top: 50%;
         left: 50%;
@@ -125,58 +108,43 @@
         border-radius: 50%;
     }
 
-    .cover-logo-aliman {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .cover-aliman-icon {
-        font-size: 35px;
-        color: #51328c;
-    }
-
-    .cover-aliman-text {
-        display: flex;
-        flex-direction: column;
-        font-size: 16px;
-        font-weight: 700;
-        color: #51328c;
-        line-height: 1.3;
-    }
-
-    /* Titles area */
+    /* Titles area (Absolute in Navy Area) */
     .cover-main-content {
+        position: absolute;
+        right: 60px;
+        top: 240px;
+        width: 280px;
         z-index: 3;
-        width: 60%;
-        margin-bottom: 50px;
+        text-align: right;
+        direction: rtl;
     }
 
     .cover-main-title {
         font-size: 75px;
         font-weight: 900;
-        color: #112d4e;
+        color: #ffffff !important;
         line-height: 1;
     }
 
     .cover-sub-title {
-        font-size: 50px;
+        font-size: 46px;
         font-weight: 700;
-        color: #e07a2c;
+        color: #e07a2c !important;
         margin-top: -10px;
         margin-bottom: 15px;
     }
 
     .cover-description {
-        font-size: 20px;
-        color: #112d4e;
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.9) !important;
         font-weight: 600;
+        line-height: 1.5;
     }
 
     .cover-horizontal-separator {
         width: 100%;
         height: 1px;
-        background-color: #b0b0b0;
+        background-color: rgba(255, 255, 255, 0.3) !important;
         margin-top: 25px;
         position: relative;
     }
@@ -195,11 +163,10 @@
     /* Three icons */
     .cover-features-section {
         display: flex;
-        width: 60%;
         justify-content: space-between;
         align-items: flex-start;
         z-index: 3;
-        margin-bottom: 70px;
+        width: 100%;
     }
 
     .cover-feature-item {
@@ -211,13 +178,21 @@
     }
 
     .cover-icon-wrapper {
-        font-size: 32px;
+        font-size: 20px;
         color: #112d4e;
-        margin-bottom: 12px;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background-color: #eff6ff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 8px;
+        border: 1px solid #dbeafe;
     }
 
     .cover-feature-item p {
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 700;
         color: #112d4e;
         line-height: 1.4;
@@ -225,19 +200,18 @@
 
     .cover-feature-vertical-line {
         width: 1px;
-        height: 50px;
-        background-color: #d0d0d0;
+        height: 40px;
+        background-color: #cbd5e1;
         align-self: center;
     }
 
-    /* Dotted form input section in White Space */
+    /* Form input section in White Space */
     .cover-info-form-section {
         z-index: 3;
-        width: 55%;
+        width: 100%;
         display: flex;
         flex-direction: column;
-        gap: 22px;
-        margin-bottom: auto; /* Push footer down */
+        gap: 16px;
     }
 
     .cover-form-group {
@@ -248,20 +222,20 @@
     }
 
     .cover-form-label {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 700;
         color: #112d4e;
         white-space: nowrap;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         z-index: 5;
     }
 
     .cover-form-label i {
         color: #e07a2c;
-        font-size: 14px;
-        width: 20px;
+        font-size: 12px;
+        width: 18px;
         text-align: center;
     }
 
@@ -280,7 +254,7 @@
         right: 0;
         font-weight: 800;
         color: #112d4e;
-        font-size: 16px;
+        font-size: 14px;
         background-color: #ffffff; /* Masks dots behind text */
         padding-left: 8px;
         z-index: 4;
@@ -288,7 +262,7 @@
 
     .cover-dotted-line {
         width: 100%;
-        border-bottom: 2px dotted #a0a0a0;
+        border-bottom: 2px dotted #cbd5e1;
         margin-bottom: 5px;
         z-index: 2;
     }
@@ -305,7 +279,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 60px;
+        padding: 0 50px;
         border-top: 4px solid #e07a2c;
     }
 
@@ -322,7 +296,7 @@
 
     .cover-footer-text {
         color: #ffffff;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 600;
         display: flex;
         align-items: center;
@@ -340,7 +314,7 @@
 
     .cover-footer-icons {
         display: flex;
-        gap: 20px;
+        gap: 15px;
     }
 
     .cover-f-icon {
@@ -363,9 +337,9 @@
         display: flex;
         align-items: center;
         gap: 1rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
         border-bottom: 1.5px solid #cbd5e1;
-        padding-bottom: 0.8rem;
+        padding-bottom: 0.5rem;
     }
     
     /* General Info Box (General information) */
@@ -373,25 +347,25 @@
         background-color: #fcfdfe;
         border: 1.5px solid #112d4e;
         border-radius: 12px;
-        padding: 1.75rem 1.5rem 1.25rem 1.5rem;
-        margin-bottom: 2.25rem;
+        padding: 1.25rem 1.25rem 1rem 1.25rem;
+        margin-bottom: 1rem;
         position: relative;
-        margin-top: 1.5rem;
+        margin-top: 0.75rem;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
     }
     
     .info-card-header-tab {
         background-color: #112d4e;
         color: white;
-        padding: 0.5rem 1.5rem;
+        padding: 0.4rem 1.25rem;
         border-radius: 10px 0 10px 10px; /* Slanted corner tab */
         font-weight: 700;
-        font-size: 1rem;
+        font-size: 0.9rem;
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: 0.5rem;
         position: absolute;
-        top: -19px;
+        top: -16px;
         right: -1.5px;
         box-shadow: 0 4px 8px rgba(17, 45, 78, 0.2);
     }
@@ -399,20 +373,20 @@
     .info-card-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 1rem 3rem;
-        margin-top: 0.5rem;
+        gap: 0.75rem 2.5rem;
+        margin-top: 0.25rem;
     }
     
     .info-card-item {
         display: flex;
         align-items: center;
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
     
     .info-card-label {
         font-weight: 700;
         color: #475569;
-        width: 140px;
+        width: 120px;
         flex-shrink: 0;
     }
     
@@ -428,14 +402,14 @@
     .section-card {
         border: 1.5px solid #112d4e; /* Default Navy Frame */
         border-radius: 12px;
-        margin-bottom: 2.25rem;
+        margin-bottom: 1rem;
         position: relative;
         background-color: #ffffff;
-        padding: 1.75rem 1.5rem 1.5rem 1.5rem;
+        padding: 1.25rem 1.25rem 1rem 1.25rem;
         display: flex;
         align-items: center;
-        gap: 2rem;
-        min-height: 190px;
+        gap: 1.5rem;
+        min-height: 100px;
         box-sizing: border-box;
         box-shadow: 0 4px 10px rgba(0,0,0,0.02);
     }
@@ -443,15 +417,15 @@
     .section-card-tab {
         background-color: #112d4e;
         color: white;
-        padding: 0.5rem 1.5rem;
+        padding: 0.4rem 1.25rem;
         border-radius: 10px 0 10px 10px;
         font-weight: 700;
-        font-size: 1rem;
+        font-size: 0.9rem;
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: 0.5rem;
         position: absolute;
-        top: -19px;
+        top: -16px;
         right: -1.5px;
         box-shadow: 0 3px 6px rgba(17, 45, 78, 0.15);
     }
@@ -469,10 +443,10 @@
     .section-card.recommendations-theme { border-color: #0d2240; }
     .section-card.recommendations-theme .section-card-tab { background-color: #0d2240; }
     
-    /* Left-hand round graphic badges */
+    /* Left-hand round graphic badges (scaled down to 75px) */
     .graphic-badge-circle {
-        width: 100px;
-        height: 100px;
+        width: 75px;
+        height: 75px;
         border-radius: 50%;
         background-color: #eff6ff; /* light blue */
         display: flex;
@@ -488,16 +462,17 @@
     .recommendations-theme .graphic-badge-circle { background-color: #f0f9ff; border-color: #e0f2fe; }
 
     .graphic-badge-inner {
-        width: 80px;
-        height: 80px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
         background-color: white;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #112d4e;
-        font-size: 2.2rem;
+        font-size: 1.5rem;
         box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        flex-shrink: 0;
     }
     .impact-theme .graphic-badge-inner { color: #e07a2c; }
     .solution-theme .graphic-badge-inner { color: #51328c; }
@@ -506,33 +481,39 @@
 
     .section-content-text {
         flex-grow: 1;
-        font-size: 1rem;
-        line-height: 1.8;
+        min-width: 0; /* Crucial to prevent flex items from exploding with pre/code */
+        font-size: 0.92rem;
+        line-height: 1.7;
         color: #334155;
         text-align: justify;
     }
 
-    /* Terminal console inside code solution */
+    /* Terminal console inside code solution (Safe wordwrap and layout) */
     .terminal-display {
         background-color: #1e293b;
         color: #f8fafc;
         border-radius: 8px;
-        padding: 1.2rem;
+        padding: 0.8rem 1rem;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 0.9rem;
+        font-size: 0.82rem;
         direction: ltr;
         text-align: left;
         overflow-x: auto;
+        white-space: pre-wrap; /* CSS-3 wrapping */
+        word-wrap: break-word; /* IE-5.5+ wrapping */
+        word-break: break-all; /* Break long variables if necessary */
         border: 1px solid #0f172a;
-        margin-top: 0.75rem;
+        margin-top: 0.5rem;
         box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+        max-width: 100%;
+        box-sizing: border-box;
     }
     
     /* Premium Slanted Page Footers */
     .page-footer-slant-row {
-        height: 45px;
+        height: 40px;
         position: relative;
-        margin: auto -60px -50px -60px;
+        margin: auto -50px -40px -50px;
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
@@ -540,24 +521,24 @@
     
     .footer-left-orange-slant {
         width: 120px;
-        height: 45px;
+        height: 40px;
         background-color: #e07a2c;
         clip-path: polygon(0 0, 100% 100%, 0 100%);
     }
     
     .footer-center-slogan {
         color: #64748b;
-        font-size: 0.9rem;
+        font-size: 0.82rem;
         font-weight: 700;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         border-bottom: 2px solid #e07a2c;
-        padding-bottom: 5px;
+        padding-bottom: 3px;
         letter-spacing: 0.5px;
     }
     
     .footer-right-navy-slant {
         width: 140px;
-        height: 45px;
+        height: 40px;
         background-color: #112d4e;
         clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);
         color: white;
@@ -568,7 +549,7 @@
         box-sizing: border-box;
     }
     .footer-right-navy-slant span {
-        font-size: 1.25rem;
+        font-size: 1.15rem;
         font-weight: 900;
         letter-spacing: 1px;
     }
@@ -576,14 +557,14 @@
     /* Digital Signature Cards Block */
     .signatures-block {
         border-top: 1.5px solid #cbd5e1;
-        padding-top: 1.75rem;
-        margin-top: 1.5rem;
+        padding-top: 1rem;
+        margin-top: 0.75rem;
     }
     
     .signatures-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem;
+        gap: 1rem;
         text-align: center;
     }
     
@@ -591,25 +572,25 @@
         background-color: #f8fafc;
         border: 1.5px dashed #cbd5e1;
         border-radius: 10px;
-        padding: 1.25rem 1rem;
-        font-size: 0.85rem;
+        padding: 0.8rem 0.6rem;
+        font-size: 0.8rem;
         color: #64748b;
     }
     
     .signature-card-title {
         font-weight: 800;
         color: #112d4e;
-        margin-bottom: 1.75rem;
+        margin-bottom: 1rem;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 0.4rem;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
     }
     
     .signature-card-line {
         border-top: 1px dashed #cbd5e1;
-        margin: 0.75rem 0;
+        margin: 0.5rem 0;
     }
 
     /* PRINT MEDIA RULES */
@@ -698,20 +679,79 @@
         <div class="right-curve-bg"></div>
         <div class="orange-border-line"></div>
 
-        <!-- Header Section (Logos) -->
-        <header class="cover-header-section">
-            <div class="logo-mahwar" style="display: flex; align-items: center;">
-                <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 60px; object-fit: contain; max-width: 140px;">
-            </div>
-            
-            <div class="cover-divider-line"></div>
-            
-            <div class="cover-logo-aliman" style="display: flex; align-items: center;">
-                <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 60px; object-fit: contain; max-width: 140px;">
-            </div>
-        </header>
+        <!-- Left Column Content (White Space) -->
+        <div class="cover-left-content">
+            <!-- Header Section (Logos) -->
+            <header class="cover-header-section">
+                <div class="logo-mahwar" style="display: flex; align-items: center;">
+                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 50px; object-fit: contain; max-width: 120px;">
+                </div>
+                
+                <div class="cover-divider-line"></div>
+                
+                <div class="cover-logo-aliman" style="display: flex; align-items: center;">
+                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 50px; object-fit: contain; max-width: 120px;">
+                </div>
+            </header>
 
-        <!-- Main Title Content -->
+            <!-- Three Columns Features Section -->
+            <section class="cover-features-section">
+                <div class="cover-feature-item">
+                    <div class="cover-icon-wrapper">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </div>
+                    <p>الإجراءات<br>المطلوبة</p>
+                </div>
+                <div class="cover-feature-vertical-line"></div>
+                <div class="cover-feature-item">
+                    <div class="cover-icon-wrapper">
+                        <i class="fa-solid fa-code"></i>
+                    </div>
+                    <p>الحلول البرمجية<br>المطبقة</p>
+                </div>
+                <div class="cover-feature-vertical-line"></div>
+                <div class="cover-feature-item">
+                    <div class="cover-icon-wrapper">
+                        <i class="fa-solid fa-gears"></i>
+                    </div>
+                    <p>تحديد المشكلات<br>وتحليل الأسباب</p>
+                </div>
+            </section>
+
+            <!-- Dynamic Form Fields in White Space -->
+            <section class="cover-info-form-section">
+                <div class="cover-form-group">
+                    <span class="cover-form-label"><i class="fa-solid fa-user"></i> اسم الموظف :</span>
+                    <div class="cover-value-wrapper">
+                        <span class="cover-value-text">{{ report.employee.get_full_name|default:report.employee.username }}</span>
+                        <div class="cover-dotted-line"></div>
+                    </div>
+                </div>
+                <div class="cover-form-group">
+                    <span class="cover-form-label"><i class="fa-solid fa-building"></i> القســــــــم :</span>
+                    <div class="cover-value-wrapper">
+                        <span class="cover-value-text">{{ report.department }}</span>
+                        <div class="cover-dotted-line"></div>
+                    </div>
+                </div>
+                <div class="cover-form-group">
+                    <span class="cover-form-label"><i class="fa-solid fa-calendar-days"></i> تاريخ التقرير :</span>
+                    <div class="cover-value-wrapper">
+                        <span class="cover-value-text">{{ report.report_date|date:"Y/m/d" }}</span>
+                        <div class="cover-dotted-line"></div>
+                    </div>
+                </div>
+                <div class="cover-form-group">
+                    <span class="cover-form-label"><i class="fa-solid fa-file-invoice"></i> رقم التقرير :</span>
+                    <div class="cover-value-wrapper">
+                        <span class="cover-value-text">{{ report.report_number|default:"غير محدد" }}</span>
+                        <div class="cover-dotted-line"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Main Title Content (Absolute in Navy Area) -->
         <main class="cover-main-content">
             <h1 class="cover-main-title">تقرير</h1>
             <h2 class="cover-sub-title">المشكلات التقنية</h2>
@@ -721,61 +761,6 @@
                 <span class="dot"></span>
             </div>
         </main>
-
-        <!-- Three Columns Features Section -->
-        <section class="cover-features-section">
-            <div class="cover-feature-item">
-                <div class="cover-icon-wrapper">
-                    <i class="fa-solid fa-clipboard-list"></i>
-                </div>
-                <p>الإجراءات<br>المطلوبة</p>
-            </div>
-            <div class="cover-feature-vertical-line"></div>
-            <div class="cover-feature-item">
-                <div class="cover-icon-wrapper">
-                    <i class="fa-solid fa-code"></i>
-                </div>
-                <p>الحلول البرمجية<br>المطبقة</p>
-            </div>
-            <div class="cover-feature-vertical-line"></div>
-            <div class="cover-feature-item">
-                <div class="cover-icon-wrapper">
-                    <i class="fa-solid fa-gears"></i>
-                </div>
-                <p>تحديد المشكلات<br>وتحليل الأسباب</p>
-            </div>
-        </section>
-
-        <!-- Dynamic Form Fields in White Space -->
-        <section class="cover-info-form-section">
-            <div class="cover-form-group">
-                <span class="cover-form-label"><i class="fa-solid fa-user"></i> اسم الموظف :</span>
-                <div class="cover-value-wrapper">
-                    <span class="cover-value-text">{{ report.employee.get_full_name|default:report.employee.username }}</span>
-                    <div class="cover-dotted-line"></div>
-                </div>
-            </div>
-            <div class="cover-form-group">
-                <span class="cover-form-label"><i class="fa-solid fa-building"></i> القســــــــم :</span>
-                <div class="cover-value-wrapper">
-                    <span class="cover-value-text">{{ report.department }}</span>
-                    <div class="cover-dotted-line"></div>
-                </div>
-            </div>
-            <div class="cover-form-group">
-                <span class="cover-form-label"><i class="fa-solid fa-calendar-days"></i> تاريخ التقرير :</span>
-                <div class="cover-value-wrapper">
-                    <span class="cover-value-text">{{ report.report_date|date:"Y/m/d" }}</span>
-                </div>
-            </div>
-            <div class="cover-form-group">
-                <span class="cover-form-label"><i class="fa-solid fa-file-invoice"></i> رقم التقرير :</span>
-                <div class="cover-value-wrapper">
-                    <span class="cover-value-text">{{ report.report_number|default:"غير محدد" }}</span>
-                    <div class="cover-dotted-line"></div>
-                </div>
-            </div>
-        </section>
 
         <!-- Bottom Footer -->
         <footer class="cover-footer-section">
