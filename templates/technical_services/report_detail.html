@@ -442,6 +442,7 @@
         height: auto !important;
         min-height: 297mm;
         overflow: visible !important;
+        padding-top: 20px !important;
     }
     
     .a4-container.dynamic-page .content-page-container {
@@ -861,6 +862,7 @@
             min-height: 297mm !important;
             overflow: visible !important;
             page-break-inside: auto !important;
+            padding-top: 20px !important;
         }
         /* Printing alignments */
         .right-curve-bg {
@@ -1154,18 +1156,8 @@
          =================================================================== -->
     <div class="a4-container dynamic-page">
         <div class="content-page-container">
-            <!-- Header Group -->
-            <div class="page-header-logo-group">
-                <div class="cover-logo-aliman">
-                    <img src="{% static 'img/alyama.png' %}?v=3" alt="معهد اليمان">
-                </div>
-                <div class="logo-mahwar">
-                    <img src="{% static 'img/mahwar.png' %}?v=3" alt="MAHWAR">
-                </div>
-            </div>
-
             <!-- Page Title -->
-            <div class="text-center mb-3">
+            <div class="text-center mb-3" style="margin-top: 1rem;">
                 <h5 class="font-weight-bold text-slate-800 mb-1" style="font-size: 1.15rem; color: #112d4e;">الحلول البرمجية وتحليل المشكلات</h5>
                 <div style="width: 100px; height: 2px; background-color: #e07a2c; margin: 0 auto;"></div>
             </div>
