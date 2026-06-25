@@ -123,8 +123,8 @@ def report_process(request, pk):
     return render(request, 'technical_services/report_process.html', context)
 
 
-@login_required
-@staff_member_required
+# @login_required
+# @staff_member_required
 def report_detail(request, pk):
     """
     Step 3 / Detail: Render the completed high-fidelity printable technical report.
