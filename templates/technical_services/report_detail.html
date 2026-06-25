@@ -73,9 +73,9 @@
     /* Cover left column content */
     .cover-left-content {
         position: absolute;
-        left: 50px;
+        left: 40px;
         top: 50px;
-        width: 420px;
+        width: 440px;
         bottom: 120px;
         display: flex;
         flex-direction: column;
@@ -685,84 +685,88 @@
         <div class="right-curve-bg"></div>
         <div class="orange-border-line"></div>
 
-        <!-- Header Section (Logos) -->
-        <header class="cover-header-section">
-            <div class="logo-mahwar" style="display: flex; align-items: center;">
-                <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 60px; object-fit: contain; max-width: 140px;">
-            </div>
-            
-            <div class="cover-divider-line"></div>
-            
-            <div class="cover-logo-aliman" style="display: flex; align-items: center;">
-                <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 60px; object-fit: contain; max-width: 140px;">
-            </div>
-        </header>
+        <!-- Left Column Content (White Space) -->
+        <div class="cover-left-content">
+            <!-- Header Section (Logos) -->
+            <header class="cover-header-section">
+                <div class="logo-mahwar" style="display: flex; align-items: center;">
+                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 80px; object-fit: contain; max-width: 180px;">
+                </div>
+                
+                <div class="cover-divider-line"></div>
+                
+                <div class="cover-logo-aliman" style="display: flex; align-items: center;">
+                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 80px; object-fit: contain; max-width: 180px;">
+                </div>
+            </header>
 
-        <!-- Main Title Content -->
-        <main class="cover-main-content">
-            <h1 class="cover-main-title">تقرير</h1>
-            <h2 class="cover-sub-title">المشكلات التقنية</h2>
-            <p class="cover-description">التي واجهت الموظف وكيف تم حلها برمجياً</p>
-            
-            <div class="cover-horizontal-separator">
-                <span class="dot"></span>
-            </div>
-        </main>
+            <!-- Main Title Content -->
+            <main class="cover-main-content">
+                <h1 class="cover-main-title">تقرير</h1>
+                <h2 class="cover-sub-title">المشكلات التقنية</h2>
+                <p class="cover-description">التي واجهت الموظف وكيف تم حلها برمجياً</p>
+                
+                <div class="cover-horizontal-separator">
+                    <span class="dot"></span>
+                </div>
+            </main>
 
-        <!-- Three Columns Features Section -->
-        <section class="cover-features-section">
-            <div class="cover-feature-item">
-                <div class="cover-icon-wrapper">
-                    <i class="fa-solid fa-clipboard-list"></i>
+            <!-- Three Columns Features Section -->
+            <section class="cover-features-section">
+                <div class="cover-feature-item">
+                    <div class="cover-icon-wrapper">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </div>
+                    <p>الإجراءات<br>المطلوبة</p>
                 </div>
-                <p>الإجراءات<br>المطلوبة</p>
-            </div>
-            <div class="cover-feature-vertical-line"></div>
-            <div class="cover-feature-item">
-                <div class="cover-icon-wrapper">
-                    <i class="fa-solid fa-code"></i>
+                <div class="cover-feature-vertical-line"></div>
+                <div class="cover-feature-item">
+                    <div class="cover-icon-wrapper">
+                        <i class="fa-solid fa-code"></i>
+                    </div>
+                    <p>الحلول البرمجية<br>المطبقة</p>
                 </div>
-                <p>الحلول البرمجية<br>المطبقة</p>
-            </div>
-            <div class="cover-feature-vertical-line"></div>
-            <div class="cover-feature-item">
-                <div class="cover-icon-wrapper">
-                    <i class="fa-solid fa-gears"></i>
+                <div class="cover-feature-vertical-line"></div>
+                <div class="cover-feature-item">
+                    <div class="cover-icon-wrapper">
+                        <i class="fa-solid fa-gears"></i>
+                    </div>
+                    <p>تحديد المشكلات<br>وتحليل الأسباب</p>
                 </div>
-                <p>تحديد المشكلات<br>وتحليل الأسباب</p>
-            </div>
-        </section>
+            </section>
 
-        <!-- Dynamic Form Fields in White Space -->
-        <section class="cover-info-form-section">
-            <div class="cover-form-group">
-                <span class="cover-form-label"><i class="fa-solid fa-user"></i> اسم الموظف :</span>
-                <div class="cover-value-wrapper">
-                    <span class="cover-value-text">{{ report.employee.get_full_name|default:report.employee.username }}</span>
-                    <div class="cover-dotted-line"></div>
+            <!-- Dynamic Form Fields in White Space -->
+            <section class="cover-info-form-section">
+                <div class="cover-form-group">
+                    <span class="cover-form-label"><i class="fa-solid fa-user"></i> اسم الموظف :</span>
+                    <div class="cover-value-wrapper">
+                        <span class="cover-value-text">{{ report.employee.get_full_name|default:report.employee.username }}</span>
+                        <div class="cover-dotted-line"></div>
+                    </div>
                 </div>
-            </div>
-            <div class="cover-form-group">
-                <span class="cover-form-label"><i class="fa-solid fa-building"></i> القســــــــم :</span>
-                <div class="cover-value-wrapper">
-                    <span class="cover-value-text">{{ report.department }}</span>
-                    <div class="cover-dotted-line"></div>
+                <div class="cover-form-group">
+                    <span class="cover-form-label"><i class="fa-solid fa-building"></i> القســــــــم :</span>
+                    <div class="cover-value-wrapper">
+                        <span class="cover-value-text">{{ report.department }}</span>
+                        <div class="cover-dotted-line"></div>
+                    </div>
                 </div>
-            </div>
-            <div class="cover-form-group">
-                <span class="cover-form-label"><i class="fa-solid fa-calendar-days"></i> تاريخ التقرير :</span>
-                <div class="cover-value-wrapper">
-                    <span class="cover-value-text">{{ report.report_date|date:"Y/m/d" }}</span>
+                <div class="cover-form-group">
+                    <span class="cover-form-label"><i class="fa-solid fa-calendar-days"></i> تاريخ التقرير :</span>
+                    <div class="cover-value-wrapper">
+                        <span class="cover-value-text">{{ report.report_date|date:"Y/m/d" }}</span>
+                        <div class="cover-dotted-line"></div>
+                    </div>
                 </div>
-            </div>
-            <div class="cover-form-group">
-                <span class="cover-form-label"><i class="fa-solid fa-file-invoice"></i> رقم التقرير :</span>
-                <div class="cover-value-wrapper">
-                    <span class="cover-value-text">{{ report.report_number|default:"غير محدد" }}</span>
-                    <div class="cover-dotted-line"></div>
+                <div class="cover-form-group">
+                    <span class="cover-form-label"><i class="fa-solid fa-file-invoice"></i> رقم التقرير :</span>
+                    <div class="cover-value-wrapper">
+                        <span class="cover-value-text">{{ report.report_number|default:"غير محدد" }}</span>
+                        <div class="cover-dotted-line"></div>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        </div>
 
         <!-- Bottom Footer -->
         <footer class="cover-footer-section">
