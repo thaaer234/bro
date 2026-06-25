@@ -607,6 +607,7 @@
         line-height: 1.55;
         color: #334155;
         text-align: justify;
+        white-space: pre-line; /* Preserves user-entered line breaks */
     }
     
     .section-content-title {
@@ -1252,5 +1253,18 @@
         </div>
     </div>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Auto-wrap numbered lists (e.g. 1-, 2-, 3- or 1:, 2: or 1., 2.) with newlines
+        document.querySelectorAll(".section-content-text > div:not(.section-content-title)").forEach(function(el) {
+            let originalHtml = el.innerHTML;
+            // Match spaces followed by a number (1-2 digits) and a dash, dot, or colon
+            let formattedHtml = originalHtml.replace(/\s+(\d{1,2}[-.:])\s*/g, '<br>$1 ');
+            if (formattedHtml !== originalHtml) {
+                el.innerHTML = formattedHtml;
+            }
+        });
+    });
+</script>
 </div>
 {% endblock %}
