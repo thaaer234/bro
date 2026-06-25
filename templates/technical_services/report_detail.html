@@ -73,9 +73,9 @@
     /* Cover left column content */
     .cover-left-content {
         position: absolute;
-        left: 40px;
-        top: 50px;
-        width: 440px;
+        left: 20px;
+        top: 30px;
+        width: 460px;
         bottom: 120px;
         display: flex;
         flex-direction: column;
@@ -349,11 +349,27 @@
 
     .page-header-logo-group {
         display: flex;
-        align-items: center;
-        gap: 1rem;
+        justify-content: space-between;
+        align-items: flex-end;
         margin-bottom: 1rem;
-        border-bottom: 1.5px solid #cbd5e1;
-        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #0b1b32;
+        padding-bottom: 8px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .page-header-logo-group .logo-mahwar img {
+        height: 55px;
+        object-fit: contain;
+        max-width: 150px;
+        display: block;
+    }
+    
+    .page-header-logo-group .cover-logo-aliman img {
+        height: 55px;
+        object-fit: contain;
+        max-width: 165px;
+        display: block;
     }
     
     /* General Info Box (General information) */
@@ -790,15 +806,15 @@
         <!-- Left Column Content (White Space) -->
         <div class="cover-left-content">
             <!-- Header Section (Logos) -->
-            <div class="cover-header-section">
-                <div class="logo-mahwar" style="display: flex; align-items: center;">
-                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 105px; object-fit: contain; max-width: 220px;">
+            <div class="cover-header-section" style="width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: -10px;">
+                <div class="cover-logo-aliman" style="display: flex; align-items: center; justify-content: center; flex: 1;">
+                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 125px; object-fit: contain; max-width: 215px; width: 100%;">
                 </div>
                 
-                <div class="cover-divider-line" style="height: 90px;"></div>
+                <div class="cover-divider-line" style="height: 105px; flex-shrink: 0;"></div>
                 
-                <div class="cover-logo-aliman" style="display: flex; align-items: center;">
-                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 105px; object-fit: contain; max-width: 220px;">
+                <div class="logo-mahwar" style="display: flex; align-items: center; justify-content: center; flex: 1;">
+                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 125px; object-fit: contain; max-width: 215px; width: 100%;">
                 </div>
             </div>
 
@@ -891,14 +907,12 @@
         <div class="content-page-container">
             <!-- Header Group -->
             <div class="page-header-logo-group">
-                <div class="logo-mahwar" style="scale: 0.8; transform-origin: right center; display: flex; align-items: center;">
-                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 40px; object-fit: contain; max-width: 110px;">
+                <div class="cover-logo-aliman">
+                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان">
                 </div>
-                <div class="cover-divider-line" style="height: 40px; margin: 0 15px;"></div>
-                <div class="cover-logo-aliman" style="scale: 0.8; transform-origin: left center; display: flex; align-items: center;">
-                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 40px; object-fit: contain; max-width: 110px;">
+                <div class="logo-mahwar">
+                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR">
                 </div>
-                <span style="margin-right: auto; font-size: 0.95rem; font-weight: 700; color: #e07a2c;">تقرير المشكلات التقنية وكيفية حلها</span>
             </div>
 
             <!-- Page Title -->
@@ -1011,14 +1025,12 @@
         <div class="content-page-container">
             <!-- Header Group -->
             <div class="page-header-logo-group">
-                <div class="logo-mahwar" style="scale: 0.8; transform-origin: right center; display: flex; align-items: center;">
-                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR" style="height: 40px; object-fit: contain; max-width: 110px;">
+                <div class="cover-logo-aliman">
+                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان">
                 </div>
-                <div class="cover-divider-line" style="height: 40px; margin: 0 15px;"></div>
-                <div class="cover-logo-aliman" style="scale: 0.8; transform-origin: left center; display: flex; align-items: center;">
-                    <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" style="height: 40px; object-fit: contain; max-width: 110px;">
+                <div class="logo-mahwar">
+                    <img src="{% static 'img/default-logo.png' %}" alt="MAHWAR">
                 </div>
-                <span style="margin-right: auto; font-size: 0.95rem; font-weight: 700; color: #e07a2c;">تقرير المشكلات التقنية وكيفية حلها</span>
             </div>
 
             <!-- 3. الحل البرمجي المطبق (Code Solution) -->
