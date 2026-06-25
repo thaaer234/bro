@@ -446,6 +446,7 @@
         padding-bottom: 8px;
         width: 100%;
         box-sizing: border-box;
+        flex-shrink: 0; /* Prevent shrinking in rigid A4 page flex containers */
     }
     
     .page-header-logo-group .logo-mahwar img {
@@ -472,6 +473,7 @@
         position: relative;
         margin-top: 0.65rem;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+        flex-shrink: 0; /* Prevent shrinking in rigid A4 page flex containers */
     }
     
     .info-card-header-tab {
@@ -532,6 +534,7 @@
         min-height: 90px;
         box-sizing: border-box;
         box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        flex-shrink: 0; /* Prevent shrinking in rigid A4 page flex containers */
     }
     
     .section-card-tab {
@@ -652,6 +655,7 @@
         box-sizing: border-box;
         overflow: hidden;
         direction: rtl;
+        flex-shrink: 0; /* Prevent shrinking in rigid A4 page flex containers */
     }
 
     /* Left Group */
@@ -753,6 +757,7 @@
         border-top: 1.5px solid #cbd5e1;
         padding-top: 0.75rem;
         margin-top: 0.5rem;
+        flex-shrink: 0; /* Prevent shrinking in rigid A4 page flex containers */
     }
     
     .signatures-grid {
@@ -1136,7 +1141,7 @@
             </div>
 
             <!-- 3. الحل البرمجي المطبق (Code Solution) -->
-            <div class="section-card solution-theme" style="min-height: 240px;">
+            <div class="section-card solution-theme" style="min-height: 180px;">
                 <div class="section-card-tab">
                     <i class="fa-solid fa-code"></i> 3. الحل البرمجي المطبق
                 </div>
