@@ -601,8 +601,9 @@
 
     /* PRINT MEDIA RULES */
     @media print {
-        header, footer, nav, .sidebar, .print-action-bar, .base-admin-actions, .skip-link, .btn, hr.my-4 {
-            display: none !important;
+        @page {
+            margin: 0;
+            size: A4;
         }
         body {
             background-color: #ffffff !important;
@@ -610,6 +611,11 @@
             padding: 0 !important;
             margin: 0 !important;
             direction: rtl !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        header, footer, nav, .sidebar, .print-action-bar, .base-admin-actions, .skip-link, .btn, hr.my-4 {
+            display: none !important;
         }
         .main-content {
             margin: 0 !important;
@@ -625,6 +631,7 @@
         .report-viewport {
             background-color: transparent !important;
             padding: 0 !important;
+            margin: 0 !important;
         }
         .a4-container {
             box-shadow: none !important;
@@ -637,23 +644,42 @@
             box-sizing: border-box !important;
             border-radius: 0 !important;
             overflow: hidden !important;
+            position: relative !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         /* Printing alignments */
         .right-curve-bg {
             right: -200px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         .orange-border-line {
             right: -185px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .cover-footer-section {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .footer-left-orange-slant, .footer-right-navy-slant {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         .terminal-display {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            border: 1px solid #cbd5e1 !important;
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border: 1px solid #0f172a !important;
             white-space: pre-wrap !important;
             box-shadow: none !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         .signature-card {
-            background-color: #ffffff !important;
+            background-color: #f8fafc !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
     }
 </style>
