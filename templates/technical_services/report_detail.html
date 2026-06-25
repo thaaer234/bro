@@ -437,6 +437,15 @@
         box-sizing: border-box;
     }
 
+    /* Dynamic page container modifier for high-density content pages (like Page 3) */
+    .content-page-container.dynamic-page-container {
+        height: auto !important;
+    }
+
+    .dynamic-page-container .page-footer-slant-row {
+        margin-top: 1.5rem !important; /* Override margin-top auto with fixed margin */
+    }
+
     .page-header-logo-group {
         display: flex;
         justify-content: space-between;
@@ -1129,7 +1138,7 @@
          PAGE 3: CONTENT PAGE 2 (صفحة المحتوى الثانية)
          =================================================================== -->
     <div class="a4-container">
-        <div class="content-page-container">
+        <div class="content-page-container dynamic-page-container">
             <!-- Header Group -->
             <div class="page-header-logo-group">
                 <div class="cover-logo-aliman">
