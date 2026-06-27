@@ -211,26 +211,15 @@ class Account(models.Model):
                 enrollment = Studentenrollment.objects.filter(student=student, is_completed=False).first()
                 if enrollment:
                     course = enrollment.course
+                else:
+                    enrollment = Studentenrollment.objects.filter(student=student).first()
+                    if enrollment:
+                        course = enrollment.course
             except Exception:
                 pass
 
-        # if not course:
-        #     student_id_val = student.id if getattr(student, 'id', None) else 0
-        #     student_code = f"1251-000-{student_id_val:03d}"
-        #     student_account, created = cls.objects.get_or_create(
-        #         code=student_code,
-        #         defaults={
-        #             'name': f"AR - {student_name} - General",
-        #             'name_ar': f"ذمة {student_name} - عام",
-        #             'account_type': 'ASSET',
-        #             'parent': ar_parent,
-        #             'is_student_account': True,
-        #             'student_name': student_name,
-        #             'course_name': 'General / عام',
-        #             'is_active': True,
-        #         }
-        #     )
-        #     return student_account
+        if not course:
+            return None
             
         # Resolve course names
         course_name = getattr(course, 'name', '')
@@ -270,6 +259,14 @@ class Account(models.Model):
                 'is_active': True,
             }
         )
+        
+        # Automatically update the student profile's account link to this main student account!
+        if student and hasattr(student, 'account_id') and getattr(student, 'account_id', None) != student_account.id:
+            try:
+                student.account_id = student_account.id
+                student.save(update_fields=['account'])
+            except Exception:
+                pass
         
         return student_account
     @classmethod
