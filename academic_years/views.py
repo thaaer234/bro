@@ -315,9 +315,13 @@ class AcademicYearTransferBatchExecuteView(LoginRequiredMixin, SuperuserRequired
         try:
             summary = service.execute()
         except Exception as exc:
-            batch.status = AcademicYearTransferBatch.STATUS_FAILED
-            batch.failure_reason = str(exc)
-            batch.save(update_fields=["status", "failure_reason", "updated_at"])
+            try:
+                batch.status = AcademicYearTransferBatch.STATUS_FAILED
+                batch.failure_reason = str(exc)
+                batch.save(update_fields=["status", "failure_reason", "updated_at"])
+            except Exception:
+                # Ignore database write failures when connection is in rollback-only state
+                pass
             messages.error(request, f"فشل تنفيذ الترحيل: {exc}")
             return redirect("academic_years:transfer_detail", pk=batch.pk)
 
