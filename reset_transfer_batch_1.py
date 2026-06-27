@@ -13,10 +13,15 @@ django.setup()
 from academic_years.models import AcademicYearTransferBatch
 from accounts.models import Studentenrollment, StudentReceipt, JournalEntry, Transaction, Account
 from students.models import Student as StudentProfile
+from django.conf import settings
 
 def main():
     print("🔄 البدء في إلغاء وتصفير دفعة الترحيل رقم 1 لتنظيف الفصل الجديد...")
+    print(f"📍 مسار قاعدة البيانات المستخدم حالياً: {settings.DATABASES['default']['NAME']}")
     try:
+        all_ids = list(AcademicYearTransferBatch.objects.values_list('id', flat=True))
+        print(f"📋 معرفات دفعات الترحيل المتاحة في قاعدة البيانات هذه: {all_ids}")
+        
         batch = AcademicYearTransferBatch.objects.get(id=1)
         target_ay = batch.target_academic_year
         print(f"الفصل المستهدف بالتنظيف: {target_ay}")
