@@ -200,12 +200,8 @@ class AcademicYearTransferService:
             # 5. Delete the source student profile from the source year if they have no other enrollments left
             if source_student:
                 from accounts.models import Studentenrollment, StudentReceipt
-                from quick.models import QuickEnrollment, QuickStudentReceipt
                 if (not Studentenrollment.objects.filter(student=source_student).exists() and
-                    not StudentReceipt.objects.filter(student=source_student).exists() and
-                    not StudentReceipt.objects.filter(student_profile=source_student).exists() and
-                    not QuickEnrollment.objects.filter(student=source_student).exists() and
-                    not QuickStudentReceipt.objects.filter(student=source_student).exists()):
+                    not StudentReceipt.objects.filter(student_profile=source_student).exists()):
                     try:
                         source_student._skip_linked_cleanup = True
                         source_student.delete()
