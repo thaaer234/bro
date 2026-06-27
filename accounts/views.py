@@ -1387,12 +1387,7 @@ def _calculate_trial_balance_amounts(account, start_date=None, end_date=None, ac
         account_ids = student_accounts.values_list('id', flat=True)
         transactions = Transaction.objects.filter(account_id__in=account_ids)
     else:
-        if academic_year is None:
-            from academic_years.middleware import get_current_academic_year_thread
-            academic_year = get_current_academic_year_thread()
         transactions = account.transactions.all()
-        if academic_year:
-            transactions = transactions.filter(journal_entry__academic_year=academic_year)
         if start_date:
             transactions = transactions.filter(journal_entry__date__gte=start_date)
         if end_date:
