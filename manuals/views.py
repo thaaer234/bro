@@ -277,10 +277,6 @@ def _build_user_handbook_content_pages(manual_workflows, manual_screens, manual_
     pages = []
 
     for workflow_index, workflow in enumerate(manual_workflows, start=1):
-<<<<<<< Updated upstream
-=======
-        # Keep a wider safety margin so generated A4 pages never become visually cramped.
->>>>>>> Stashed changes
         step_chunks = _chunk_weighted_progressive(workflow["steps"], 20, 26, _workflow_step_weight)
         step_counter = 1
         for chunk_index, steps in enumerate(step_chunks, start=1):
@@ -334,12 +330,7 @@ def _build_user_handbook_content_pages(manual_workflows, manual_screens, manual_
             step_counter += len(steps)
 
     for screen in manual_screens:
-<<<<<<< Updated upstream
         button_chunks = _chunk_weighted_progressive(screen["buttons"], 46, 58, _action_weight)
-=======
-        # Screen detail cards can grow quickly in Arabic RTL, so split earlier.
-        button_chunks = _chunk_weighted_progressive(screen["buttons"], 50, 66, _action_weight)
->>>>>>> Stashed changes
         button_counter = 1
         for chunk_index, buttons in enumerate(button_chunks, start=1):
             chunk_items = [
@@ -400,12 +391,7 @@ def _build_user_handbook_content_pages(manual_workflows, manual_screens, manual_
             button_counter += len(buttons)
 
     for error_page in manual_error_pages:
-<<<<<<< Updated upstream
         button_chunks = _chunk_weighted_progressive(error_page["buttons"], 42, 54, _action_weight)
-=======
-        # Error pages include denser explanatory copy, so use a stricter split threshold.
-        button_chunks = _chunk_weighted_progressive(error_page["buttons"], 48, 62, _action_weight)
->>>>>>> Stashed changes
         button_counter = 1
         for chunk_index, buttons in enumerate(button_chunks, start=1):
             chunk_items = [
