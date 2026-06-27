@@ -214,23 +214,23 @@ class Account(models.Model):
             except Exception:
                 pass
 
-        if not course:
-            student_id_val = student.id if getattr(student, 'id', None) else 0
-            student_code = f"1251-000-{student_id_val:03d}"
-            student_account, created = cls.objects.get_or_create(
-                code=student_code,
-                defaults={
-                    'name': f"AR - {student_name} - General",
-                    'name_ar': f"ذمة {student_name} - عام",
-                    'account_type': 'ASSET',
-                    'parent': ar_parent,
-                    'is_student_account': True,
-                    'student_name': student_name,
-                    'course_name': 'General / عام',
-                    'is_active': True,
-                }
-            )
-            return student_account
+        # if not course:
+        #     student_id_val = student.id if getattr(student, 'id', None) else 0
+        #     student_code = f"1251-000-{student_id_val:03d}"
+        #     student_account, created = cls.objects.get_or_create(
+        #         code=student_code,
+        #         defaults={
+        #             'name': f"AR - {student_name} - General",
+        #             'name_ar': f"ذمة {student_name} - عام",
+        #             'account_type': 'ASSET',
+        #             'parent': ar_parent,
+        #             'is_student_account': True,
+        #             'student_name': student_name,
+        #             'course_name': 'General / عام',
+        #             'is_active': True,
+        #         }
+        #     )
+        #     return student_account
             
         # Resolve course names
         course_name = getattr(course, 'name', '')
