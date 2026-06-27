@@ -67,17 +67,21 @@ def _get_parent_device_tokens(student) -> set[str]:
 
 def notify_student_parents(student, title: str, body: str, data: Optional[Mapping[str, Any]] = None) -> int:
     """Send a push notification to every parent token registered for a student."""
-    if not student:
-        logger.debug('Skipping notification because student is missing')
-        return 0
+    try:
+        if not student:
+            logger.debug('Skipping notification because student is missing')
+            return 0
 
-    tokens = _get_parent_device_tokens(student)
-    if not tokens:
-        logger.debug('No device tokens registered for student id %s', getattr(student, 'id', None))
-        return 0
+        tokens = _get_parent_device_tokens(student)
+        if not tokens:
+            logger.debug('No device tokens registered for student id %s', getattr(student, 'id', None))
+            return 0
 
-    sent = 0
-    for token in tokens:
-        if send_expo_push(token, title, body, data=data):
-            sent += 1
-    return sent
+        sent = 0
+        for token in tokens:
+            if send_expo_push(token, title, body, data=data):
+                sent += 1
+        return sent
+    except Exception as exc:
+        logger.error('Failed to notify parents for student %s: %s', getattr(student, 'id', None), exc, exc_info=True)
+        return 0

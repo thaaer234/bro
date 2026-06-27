@@ -129,12 +129,8 @@
                             <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td class="text-end fw-bold {% if account.code|slice:':4' == '121-' %}{% if account.get_net_balance_all_years < 0 %}text-danger{% else %}text-success{% endif %}{% else %}{% if account.rollup_balance < 0 %}text-danger{% else %}text-success{% endif %}{% endif %}">
-                            {% if account.code|slice:':4' == '121-' %}
-                                {{ account.get_net_balance_all_years|money }}
-                            {% else %}
-                                {{ account.rollup_balance|money }}
-                            {% endif %}
+                        <td class="text-end fw-bold {% if account.rollup_balance < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ account.rollup_balance|money }}
                         </td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm" role="group">

@@ -518,8 +518,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 {
                     'code': account.code,
                     'title': account.name_ar or account.name,
-                    # الصناديق تُعرض برصيدها الكلي عبر كل السنوات لأنها نقدية فعلية
-                    'balance': account.get_net_balance_all_years()
+                    'balance': account.get_rollup_balance(academic_year=academic_year)
                 }
                 for account in employee_cash_accounts_qs
             ]
@@ -812,10 +811,8 @@ class ChartOfAccountsView(LoginRequiredMixin, ListView):
             level = account.code.count('-') + 1
             
             # تحديث الإحصائيات المتقدمة
-            if account.code.startswith('121-'):
-                balance = account.get_net_balance_all_years()
-            else:
-                balance = account.get_net_balance()
+            academic_year = _current_academic_year(self.request)
+            balance = account.get_rollup_balance(academic_year=academic_year)
             total_balance += balance
             
             account_type = account.account_type
