@@ -125,34 +125,47 @@ class AcademicYearTransferService:
         # Collect receipts and their journal entries
         receipts = list(StudentReceipt.objects.filter(enrollment=enrollment).select_related("journal_entry"))
         
+        # Collect touched accounts from receipt journal entries
+        for receipt in receipts:
+            if receipt.journal_entry_id:
+                for tx in receipt.journal_entry.transactions.all():
+                    touched_accounts.add(tx.account)
+                    
+        # Collect touched accounts from enrollment journal entries
+        for je in [enrollment.enrollment_journal_entry, enrollment.completion_journal_entry]:
+            if je:
+                for tx in je.transactions.all():
+                    touched_accounts.add(tx.account)
+
         try:
             # 1. Delete source receipt journal entries
             for receipt in receipts:
                 if receipt.journal_entry_id:
                     je = receipt.journal_entry
-                    for tx in je.transactions.all():
-                        touched_accounts.add(tx.account)
                     je.transactions.all().delete()
+                    je._skip_linked_cleanup = True
                     je.delete()
                     self.log(f"تم حذف قيد الدفع الأصلي رقم {je.id} للفصل الأول.")
 
             # 2. Delete source StudentReceipts
             for receipt in receipts:
                 receipt_id = receipt.id
+                receipt._skip_linked_cleanup = True
                 receipt.delete()
                 self.log(f"تم حذف إيصال الدفع الأصلي رقم {receipt_id} للفصل الأول.")
 
-            # 3. Delete source enrollment journal entry
-            if enrollment.enrollment_journal_entry_id:
-                je = enrollment.enrollment_journal_entry
-                for tx in je.transactions.all():
-                    touched_accounts.add(tx.account)
-                je.transactions.all().delete()
-                je.delete()
-                self.log(f"تم حذف قيد التسجيل الأصلي رقم {je.id} للفصل الأول.")
+            # 3. Delete enrollment journal entries (both enrollment and completion)
+            for je in [enrollment.enrollment_journal_entry, enrollment.completion_journal_entry]:
+                if je:
+                    je_id = je.id
+                    je.transactions.all().delete()
+                    je._skip_linked_cleanup = True
+                    je.delete()
+                    self.log(f"تم حذف قيد التسجيل الأصلي رقم {je_id} للفصل الأول.")
 
             # 4. Delete source enrollment itself
             enrollment_id = enrollment.id
+            enrollment._skip_linked_cleanup = True
             enrollment.delete()
             self.log(f"تم حذف تسجيل الطالب رقم {enrollment_id} للفصل الأول بشكل نهائي.")
 
