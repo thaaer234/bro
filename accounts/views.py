@@ -4220,6 +4220,7 @@ from .models import Account
 class TrialBalanceExportExcelView(LoginRequiredMixin, View):
     def get(self, request):
         settings = _parse_trial_balance_settings(request.GET)
+        academic_year = _current_academic_year(request)
         summary = _build_trial_balance_dataset(
             start_date=settings['start_date'],
             end_date=settings['end_date'],
@@ -4228,6 +4229,7 @@ class TrialBalanceExportExcelView(LoginRequiredMixin, View):
             account_type=settings['account_type'],
             hierarchy_mode=settings['hierarchy_mode'],
             sort_by=settings['sort_by'],
+            academic_year=academic_year,
         )
 
         # إنشاء workbook جديد
