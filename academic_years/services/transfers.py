@@ -177,20 +177,20 @@ class AcademicYearTransferService:
                 touched_accounts.add(tx.account)
 
         try:
-            # 1. Delete all transferred journal entries (this also deletes their transactions)
-            for je in journal_entries_to_transfer:
-                je.transactions.all().delete()
-                je._skip_linked_cleanup = True
-                je.delete()
-
-            # 2. Delete source StudentReceipts
+            # 1. Delete source StudentReceipts first
             for receipt in receipts:
                 receipt._skip_linked_cleanup = True
                 receipt.delete()
 
-            # 3. Delete source enrollment itself
+            # 2. Delete source enrollment itself
             enrollment._skip_linked_cleanup = True
             enrollment.delete()
+
+            # 3. Delete all transferred journal entries (this also deletes their transactions)
+            for je in journal_entries_to_transfer:
+                je.transactions.all().delete()
+                je._skip_linked_cleanup = True
+                je.delete()
 
             # 4. Delete the student's specific AR account from the source year if it exists and has no remaining transactions
             if source_student_ar_account:
@@ -199,10 +199,18 @@ class AcademicYearTransferService:
 
             # 5. Delete the source student profile from the source year if they have no other enrollments left
             if source_student:
-                from accounts.models import Studentenrollment
-                if not Studentenrollment.objects.filter(student=source_student).exists():
-                    source_student._skip_linked_cleanup = True
-                    source_student.delete()
+                from accounts.models import Studentenrollment, StudentReceipt
+                from quick.models import QuickEnrollment, QuickStudentReceipt
+                if (not Studentenrollment.objects.filter(student=source_student).exists() and
+                    not StudentReceipt.objects.filter(student=source_student).exists() and
+                    not StudentReceipt.objects.filter(student_profile=source_student).exists() and
+                    not QuickEnrollment.objects.filter(student=source_student).exists() and
+                    not QuickStudentReceipt.objects.filter(student=source_student).exists()):
+                    try:
+                        source_student._skip_linked_cleanup = True
+                        source_student.delete()
+                    except Exception:
+                        pass
 
             # 6. Recalculate tree balances for all touched accounts that still exist
             for account in touched_accounts:
