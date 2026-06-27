@@ -1371,27 +1371,11 @@ def _parse_trial_balance_settings(params):
 
 
 def _calculate_trial_balance_amounts(account, start_date=None, end_date=None, academic_year=None):
-    if account.is_student_account:
-        # Get all accounts for the same student, exactly like LedgerView
-        student_name = account.student_name
-        parts = account.code.split('-')
-        student_id = parts[-1] if len(parts) > 1 else None
-        
-        if student_name:
-            student_accounts = Account.objects.filter(is_student_account=True, student_name=student_name)
-        elif student_id:
-            student_accounts = Account.objects.filter(is_student_account=True, code__endswith=f'-{student_id}')
-        else:
-            student_accounts = Account.objects.filter(id=account.id)
-            
-        account_ids = student_accounts.values_list('id', flat=True)
-        transactions = Transaction.objects.filter(account_id__in=account_ids)
-    else:
-        transactions = account.transactions.all()
-        if start_date:
-            transactions = transactions.filter(journal_entry__date__gte=start_date)
-        if end_date:
-            transactions = transactions.filter(journal_entry__date__lte=end_date)
+    transactions = account.transactions.all()
+    if start_date:
+        transactions = transactions.filter(journal_entry__date__gte=start_date)
+    if end_date:
+        transactions = transactions.filter(journal_entry__date__lte=end_date)
 
     debit_total = transactions.filter(is_debit=True).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     credit_total = transactions.filter(is_debit=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
