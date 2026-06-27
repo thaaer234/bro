@@ -85,7 +85,7 @@
                 <p>ملخص سريع لكل صندوق تابع للموظفين.</p>
             </div>
         </div>
-        <div class="cashboxes-grid">
+        <div class="accounts-summary-grid">
             {% for account in employee_cash_accounts %}
             <article class="accounts-summary-card">
                 <span class="accounts-summary-card__icon"><i class="fas fa-vault"></i></span>
@@ -279,9 +279,6 @@
         </div>
     </div>
 
-    <div class="alert alert-info">
-        <strong>نظام الاستحقاق المحاسبي:</strong>
-        جميع العمليات تعمل على أساس الاستحقاق مع إعادة بناء أرصدة الحسابات المرتبطة تلقائياً.
     </div>
 
     {% if request.user.is_superuser and request.user.username == 'thaaer' %}
@@ -377,18 +374,16 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.forEach(el => {
             const text = el.textContent.trim();
             const len = text.length;
-            if (len > 20) {
-                el.style.fontSize = '0.95rem';
-            } else if (len > 15) {
-                el.style.fontSize = '1.05rem';
+            if (len > 15) {
+                el.style.fontSize = '1.15rem';
             } else if (len > 12) {
-                el.style.fontSize = '1.2rem';
+                el.style.fontSize = '1.3rem';
             } else if (len > 10) {
-                el.style.fontSize = '1.4rem';
+                el.style.fontSize = '1.5rem';
             } else if (len > 8) {
-                el.style.fontSize = '1.6rem';
+                el.style.fontSize = '1.75rem';
             } else {
-                el.style.fontSize = '';
+                el.style.fontSize = ''; // use CSS default
             }
         });
     }
@@ -436,35 +431,44 @@ document.addEventListener('DOMContentLoaded', function() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', rtl: true } },
+                cutout: '68%'
             }
         });
     }
-});
 
-// Global helper - must be outside DOMContentLoaded so other scripts can call it
-function autoScaleModalNumbers() {
-    const cells = document.querySelectorAll('#zeroCashboxPreviewModal td');
-    cells.forEach(function(el) {
-        const text = el.textContent.trim();
-        const len = text.length;
-        if (len > 20) {
-            el.style.fontSize = '0.85rem';
-        } else if (len > 15) {
-            el.style.fontSize = '0.95rem';
-        } else if (len > 12) {
-            el.style.fontSize = '1.05rem';
-        } else if (len > 10) {
-            el.style.fontSize = '1.15rem';
-        } else {
-            el.style.fontSize = '';
-        }
-    });
-}
-</script>
+    const revenueCtx = document.getElementById('revenueExpenseChart');
+    if (revenueCtx) {
+        new Chart(revenueCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['هذا الشهر', 'الشهر الماضي'],
+                datasets: [
+                    {
+                        label: 'الإيرادات',
+                        data: [{{ current_month_revenue|default:0 }}, {{ last_month_revenue|default:0 }}],
+                        backgroundColor: '#2f6bff',
+                        borderRadius: 10
+                    },
+                    {
+                        label: 'المصروفات',
+                        data: [{{ current_month_expenses|default:0 }}, {{ last_month_expenses|default:0 }}],
+                        backgroundColor: '#ff6b7d',
+                        borderRadius: 10
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { drawBorder: false } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
 
-{% if request.user.is_superuser and request.user.username == 'thaaer' %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
     // Zero Cashbox Modal Logic
     const triggerBtn = document.getElementById('zeroCashboxPreviewTrigger');
     const modal = document.getElementById('zeroCashboxPreviewModal');
@@ -599,8 +603,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Set totals
                     totalDebitsEl.textContent = formatCurrency(data.total_debits);
                     totalCreditsEl.textContent = formatCurrency(data.total_credits);
+                    
                     // Show modal
-                    autoScaleModalNumbers();
                     modal.style.display = 'flex';
                 })
                 .catch(err => {
@@ -633,5 +637,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-{% endif %}
 {% endblock %}

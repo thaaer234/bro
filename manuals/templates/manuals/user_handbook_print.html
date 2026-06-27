@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>طباعة دليل {{ manual_target_name }} | معهد اليمان</title>
+    <title>طباعة دليل المستخدم الفردي | {{ manual_target_name }}</title>
     <link rel="icon" type="image/x-icon" href="{% static 'img/logo.png' %}">
     <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
+<<<<<<< Updated upstream
     <link rel="stylesheet" href="{% static 'css/manuals-user-handbook-redesign.css' %}?v=1">
     <style>
         .print-page-shell {
@@ -79,9 +80,12 @@
         }
         {% endif %}
     </style>
+=======
+    <link rel="stylesheet" href="{% static 'css/manuals-handbook-a4.css' %}?v=20260418">
+>>>>>>> Stashed changes
 </head>
-<body>
-    <main class="print-page-shell">
+<body class="uhb-app uhb-app--print">
+    <main class="uhb-app__viewport">
         {% include "manuals/_user_handbook_content.html" %}
     </main>
 </body>

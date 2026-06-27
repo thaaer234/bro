@@ -70,6 +70,21 @@ html {
     direction: rtl;
 }
 
+<<<<<<< Updated upstream
+=======
+h1,
+h2,
+h3,
+h4,
+p,
+li,
+dt,
+dd {
+    orphans: 3;
+    widows: 3;
+}
+
+>>>>>>> Stashed changes
 body.uhb-app {
     margin: 0;
     min-height: 100vh;
@@ -351,12 +366,25 @@ body.uhb-app {
     gap: 12px;
 }
 
+<<<<<<< Updated upstream
 .uhb-sheet-foot {
     min-height: var(--uhb-footer-height);
     padding-top: 10px;
     border-top: 1px solid var(--uhb-color-line);
 }
 
+=======
+.uhb-page__body > * {
+    min-width: 0;
+}
+
+.uhb-sheet-foot {
+    min-height: var(--uhb-footer-height);
+    padding-top: 10px;
+    border-top: 1px solid var(--uhb-color-line);
+}
+
+>>>>>>> Stashed changes
 .uhb-sheet-foot__page::before {
     content: "صفحة " counter(uhb-page);
     color: var(--uhb-color-primary);
@@ -369,6 +397,11 @@ body.uhb-app {
 .uhb-section-head {
     display: grid;
     gap: 8px;
+<<<<<<< Updated upstream
+=======
+    break-after: avoid;
+    page-break-after: avoid;
+>>>>>>> Stashed changes
 }
 
 .uhb-page-head h2,
@@ -464,6 +497,10 @@ body.uhb-app {
 .uhb-data-list dd {
     color: var(--uhb-color-ink);
     font-weight: 700;
+<<<<<<< Updated upstream
+=======
+    overflow-wrap: anywhere;
+>>>>>>> Stashed changes
 }
 
 .uhb-data-list--compact dt,
@@ -1030,6 +1067,10 @@ body.uhb-app {
     font-size: 10.2pt;
     font-weight: 700;
     line-height: 1.65;
+<<<<<<< Updated upstream
+=======
+    overflow-wrap: anywhere;
+>>>>>>> Stashed changes
 }
 
 .uhb-cover-card__split {
@@ -1047,6 +1088,15 @@ body.uhb-app {
     background: #fff;
 }
 
+<<<<<<< Updated upstream
+=======
+.uhb-cover-card__split strong,
+.uhb-back-card strong,
+.uhb-cover-summary strong {
+    overflow-wrap: anywhere;
+}
+
+>>>>>>> Stashed changes
 .uhb-cover__footer {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.7fr);
 }

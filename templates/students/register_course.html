@@ -61,96 +61,12 @@
                             <select name="course_id" id="course_id" class="form-control" required>
                                 <option value="">-- اختر الدورة --</option>
                                 {% for course in available_courses %}
-                                <option value="{{ course.id }}" data-price="{{ course.price|stringformat:'.2f' }}">
+                                <option value="{{ course.id }}" data-price="{{ course.price }}">
                                     {{ course.name }}{% if course.name_ar %} - {{ course.name_ar }}{% endif %}
-                                    ({{ course.price|floatformat:0 }} ل.س)
+                                    ({{ course.price|floatformat:2 }} ل.س)
                                 </option>
                                 {% endfor %}
                             </select>
-                        </div>
-
-
-
-                        <!-- خيار تطبيق الحسم -->
-                        <div class="form-group mb-3">
-                            <div class="discount-card d-flex align-items-center justify-content-between p-3" id="discount-card-container">
-                                <div class="d-flex align-items-center">
-                                    <div class="discount-icon-box me-3 ms-2">
-                                        <i class="fas fa-percentage"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1 fw-bold text-dark">
-                                            {% if is_first_enrollment %}
-                                            تطبيق الحسم من الاستمارة
-                                            {% else %}
-                                            تطبيق حسم على هذه الدورة
-                                            {% endif %}
-                                        </h6>
-                                        <p class="text-muted small mb-0">
-                                            {% if is_first_enrollment %}
-                                            تفعيل الحسم التلقائي المعتمد والمثبت في استمارة الطالب
-                                            {% else %}
-                                            تفعيل خيار إدخال حسم مالي مخصص ومستقل لهذه الدورة فقط
-                                            {% endif %}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="custom-checkbox-indicator">
-                                    <span class="custom-check-box"></span>
-                                    <input type="checkbox" name="apply_discount" id="apply_discount" value="true" style="display: none !important;">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- حقول الحسم (مخفية بشكل افتراضي) -->
-                        <div id="discount-fields" style="display: none;" class="discount-fields-box mb-3">
-                            {% if is_first_enrollment %}
-                            <!-- الدورة الأولى: عرض الحسم من الاستمارة -->
-                            <div class="alert alert-success small mb-0">
-                                <h6 class="alert-heading fw-bold mb-2">
-                                    <i class="fas fa-check-circle me-1"></i>
-                                    الحسم المطبق من الاستمارة:
-                                </h6>
-                                <div class="ps-3 border-start border-success border-2">
-                                    {% if student_discount_percent %}النسبة: <strong>{{ student_discount_percent }}%</strong><br>{% endif %}
-                                    {% if student_discount_amount %}المبلغ: <strong>{{ student_discount_amount }} ل.س</strong><br>{% endif %}
-                                    {% if not student_discount_percent and not student_discount_amount %}
-                                    لا يوجد حسم في استمارة الطالب
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% else %}
-                            <!-- دورات أخرى: إدخال حسم جديد -->
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group mb-2">
-                                        <label for="discount_percent" class="form-label small">
-                                            نسبة الحسم (%)
-                                        </label>
-                                        <input type="number" name="discount_percent" id="discount_percent"
-                                               class="form-control form-control-sm" step="0.01" min="0" max="100"
-                                               value="" placeholder="0.00">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group mb-2">
-                                        <label for="discount_amount" class="form-label small">
-                                            قيمة الحسم (ل.س)
-                                        </label>
-                                        <input type="number" name="discount_amount" id="discount_amount"
-                                               class="form-control form-control-sm" step="0.01" min="0"
-                                               value="" placeholder="0.00">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group mb-0">
-                                <label for="discount_reason" class="form-label small">
-                                    سبب الحسم
-                                </label>
-                                <input type="text" name="discount_reason" id="discount_reason"
-                                       class="form-control form-control-sm" placeholder="مثال: حسم إخوة...">
-                            </div>
-                            {% endif %}
                         </div>
 
                         <!-- Course Details Preview -->
@@ -212,117 +128,40 @@ document.addEventListener('DOMContentLoaded', function() {
     const coursePriceSpan = document.getElementById('course-price');
     const finalAmountSpan = document.getElementById('final-amount');
     const enrollmentDatePreview = document.getElementById('enrollment-date-preview');
-    const applyDiscountCheckbox = document.getElementById('apply_discount');
-    const discountFields = document.getElementById('discount-fields');
-    const discountPercentInput = document.getElementById('discount_percent');
-    const discountAmountInput = document.getElementById('discount_amount');
-    const discountCard = document.getElementById('discount-card-container');
-
-    const studentDiscountPercent = parseFloat("{{ student_discount_percent|stringformat:'.2f' }}") || 0;
-    const studentDiscountAmount = parseFloat("{{ student_discount_amount|stringformat:'.2f' }}") || 0;
-    const isFirstEnrollment = {% if is_first_enrollment %}true{% else %}false{% endif %};
-
-
-
+    
+    const studentDiscountPercent = parseFloat("{{ student.discount_percent|stringformat:'.2f' }}") || 0;
+    const studentDiscountAmount = parseFloat("{{ student.discount_amount|stringformat:'.2f' }}") || 0;
+    
     // تحديث معاينة تاريخ التسجيل
     enrollmentDateInput.addEventListener('change', function() {
         enrollmentDatePreview.textContent = this.value;
         updateCourseDetails();
     });
-
+    
     courseSelect.addEventListener('change', updateCourseDetails);
-
-    // إظهار/إخفاء حقول الحسم
-    applyDiscountCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            discountCard.classList.add('active');
-            discountFields.style.display = 'block';
-            updateCourseDetails();
-        } else {
-            discountCard.classList.remove('active');
-            discountFields.style.display = 'none';
-            updateCourseDetails();
-        }
-    });
-
-    // تمكين الضغط على الكرت بأكمله لتشغيل/إيقاف الزر
-    discountCard.addEventListener('click', function() {
-        applyDiscountCheckbox.checked = !applyDiscountCheckbox.checked;
-        applyDiscountCheckbox.dispatchEvent(new Event('change'));
-    });
-
-    // تحديث حساب الحسم عند تغيير قيمه
-    if (discountPercentInput) {
-        discountPercentInput.addEventListener('input', updateCourseDetails);
-        discountPercentInput.addEventListener('change', updateCourseDetails);
-    }
-    if (discountAmountInput) {
-        discountAmountInput.addEventListener('input', updateCourseDetails);
-        discountAmountInput.addEventListener('change', updateCourseDetails);
-    }
-
-    // دالة لتنسيق الأرقام بوضع نقاط لفصل الآلاف
-    function formatPrice(amount) {
-        const integerAmount = Math.round(amount);
-        return integerAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    }
-
+    
     function updateCourseDetails() {
         const selectedOption = courseSelect.options[courseSelect.selectedIndex];
-
+        
         if (selectedOption.value) {
             const coursePrice = parseFloat(selectedOption.dataset.price) || 0;
-
+            
             // Calculate final amount after discounts
-            let discountPercent = 0;
-            let discountAmount = 0;
-
-            if (applyDiscountCheckbox.checked) {
-                if (isFirstEnrollment) {
-                    // استخدام الحسم من الاستمارة
-                    discountPercent = studentDiscountPercent;
-                    discountAmount = studentDiscountAmount;
-                } else {
-                    // استخدام الحسم المدخل من المستخدم
-                    discountPercent = parseFloat(discountPercentInput.value) || 0;
-                    discountAmount = parseFloat(discountAmountInput.value) || 0;
-                }
-            }
-
-            const afterPercent = coursePrice - (coursePrice * (discountPercent / 100));
-            const finalAmount = Math.max(0, afterPercent - discountAmount);
-
-            coursePriceSpan.textContent = formatPrice(coursePrice);
-            finalAmountSpan.textContent = formatPrice(finalAmount);
-
-            // تحديث معلومات الحسم في المعاينة
-            const discountInfoSpan = document.getElementById('discount-info');
-            if (discountInfoSpan) {
-                let discountText = 'لا يوجد';
-                if (applyDiscountCheckbox.checked) {
-                    let parts = [];
-                    if (discountPercent > 0) {
-                        parts.push(discountPercent + '%');
-                    }
-                    if (discountAmount > 0) {
-                        parts.push(formatPrice(discountAmount) + ' ل.س');
-                    }
-                    if (parts.length > 0) {
-                        discountText = parts.join(' + ');
-                    }
-                }
-                discountInfoSpan.textContent = discountText;
-            }
-
+            const afterPercent = coursePrice - (coursePrice * (studentDiscountPercent / 100));
+            const finalAmount = Math.max(0, afterPercent - studentDiscountAmount);
+            
+            coursePriceSpan.textContent = coursePrice.toFixed(2);
+            finalAmountSpan.textContent = finalAmount.toFixed(2);
+            
             // تحديث تاريخ التسجيل في المعاينة
             enrollmentDatePreview.textContent = enrollmentDateInput.value;
-
+            
             courseDetails.style.display = 'block';
         } else {
             courseDetails.style.display = 'none';
         }
     }
-
+    
     // منع اختيار تاريخ مستقبلي
     enrollmentDateInput.max = new Date().toISOString().split('T')[0];
 });
@@ -351,118 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
 .alert-info {
     border-radius: 8px;
     border: none;
-}
-
-/* تصميم كرت الحسم الجديد */
-.discount-card {
-    border: 2px dashed #dee2e6;
-    border-radius: 12px;
-    background-color: #fff;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    user-select: none;
-}
-
-.discount-card:hover {
-    border-color: #198754;
-    background-color: #fcfdfc;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.06);
-}
-
-.discount-card.active {
-    border: 2px solid #198754;
-    background-color: #f4faf6;
-    box-shadow: 0 4px 15px rgba(25, 135, 84, 0.1);
-}
-
-.discount-icon-box {
-    width: 48px;
-    height: 48px;
-    background-color: #f8f9fa;
-    color: #6c757d;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    font-size: 1.25rem;
-}
-
-.discount-card.active .discount-icon-box {
-    background-color: #d1e7dd;
-    color: #198754;
-}
-
-.discount-fields-box {
-    border-right: 4px solid #198754 !important;
-    border-left: none !important;
-    background-color: #f8f9fa;
-    border-radius: 12px;
-    margin-top: 15px;
-    padding: 1.2rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* مؤشر الاختيار المخصص بالكامل باستخدام CSS */
-.custom-checkbox-indicator {
-    width: 26px;
-    height: 26px;
-    position: relative;
-    flex-shrink: 0;
-}
-
-.custom-check-box {
-    width: 26px;
-    height: 26px;
-    border: 2px solid #ced4da;
-    border-radius: 6px;
-    background-color: #fff;
-    position: absolute;
-    top: 0;
-    left: 0;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.discount-card:hover .custom-check-box {
-    border-color: #198754;
-}
-
-.discount-card.active .custom-check-box {
-    border-color: #198754;
-    background-color: #198754;
-}
-
-/* رسم علامة الصح باستخدام CSS نقي */
-.custom-check-box::after {
-    content: "";
-    width: 6px;
-    height: 11px;
-    border: solid white;
-    border-width: 0 2.5px 2.5px 0;
-    transform: rotate(45deg) scale(0);
-    margin-bottom: 2px;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    display: block;
-}
-
-.discount-card.active .custom-check-box::after {
-    transform: rotate(45deg) scale(1);
 }
 </style>
 {% endblock %}
