@@ -303,6 +303,8 @@ class AcademicYearTransferService:
                 source_enrollment.enrollment_journal_entry,
                 target_student=target_student,
                 target_course=target_course,
+                source_student=source_enrollment.student,
+                source_course=source_enrollment.course,
             )
             target_enrollment.enrollment_journal_entry = target_entry
         if source_enrollment.completion_journal_entry_id and not target_enrollment.completion_journal_entry_id:
@@ -310,6 +312,8 @@ class AcademicYearTransferService:
                 source_enrollment.completion_journal_entry,
                 target_student=target_student,
                 target_course=target_course,
+                source_student=source_enrollment.student,
+                source_course=source_enrollment.course,
             )
             target_enrollment.completion_journal_entry = target_entry
         target_enrollment.save(update_fields=["enrollment_journal_entry", "completion_journal_entry"])
@@ -355,4 +359,57 @@ class AcademicYearTransferService:
     def _resolve_target_account(self, source_account, *, target_student, target_course, is_receipt=False, source_student=None, source_course=None):
         if not source_account:
             raise ValueError("Source account is required to clone transactions.")
-        return source_account
+
+        # 1. If it doesn't belong to any academic year (shared/global account like Cash, Bank), return it directly
+        if not source_account.academic_year:
+            return source_account
+
+        # 2. If it's a student AR account (receivable), resolve/create the target student's AR account under the new course
+        if source_account.is_student_account:
+            return Account.get_or_create_student_ar_account(target_student, target_course)
+
+        # 3. If it's a course account (e.g., Course Deferred Revenue or Course Revenue)
+        if source_account.is_course_account:
+            if source_account.account_type == 'LIABILITY':
+                # Deferred Revenue (21001-xxx)
+                return Account.get_or_create_course_deferred_account(target_course)
+            elif source_account.account_type == 'REVENUE':
+                # Course Revenue (4101-xxx)
+                return Account.get_or_create_course_account(target_course)
+
+        # 4. Fallback: general year-scoped accounts, find/create corresponding account in the target year
+        target_year = self.batch.target_academic_year
+        code = source_account.code
+
+        if source_course and target_course:
+            source_course_id_str = f"{source_course.id:03d}"
+            target_course_id_str = f"{target_course.id:03d}"
+            if source_course_id_str in code:
+                code = code.replace(source_course_id_str, target_course_id_str)
+
+        target_parent = None
+        if source_account.parent:
+            target_parent = self._resolve_target_account(
+                source_account.parent,
+                target_student=target_student,
+                target_course=target_course,
+                source_student=source_student,
+                source_course=source_course
+            )
+
+        target_account, created = Account.objects.get_or_create(
+            code=code,
+            defaults={
+                'name': source_account.name,
+                'name_ar': source_account.name_ar,
+                'account_type': source_account.account_type,
+                'parent': target_parent,
+                'is_course_account': source_account.is_course_account,
+                'course_name': source_account.course_name,
+                'is_student_account': source_account.is_student_account,
+                'student_name': source_account.student_name,
+                'academic_year': target_year,
+                'is_active': source_account.is_active,
+            }
+        )
+        return target_account
