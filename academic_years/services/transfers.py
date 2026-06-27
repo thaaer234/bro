@@ -204,12 +204,13 @@ class AcademicYearTransferService:
                     source_student._skip_linked_cleanup = True
                     source_student.delete()
 
-            # 6. Recalculate tree balances for all touched accounts
+            # 6. Recalculate tree balances for all touched accounts that still exist
             for account in touched_accounts:
-                try:
-                    account.recalculate_tree_balances()
-                except Exception:
-                    pass
+                if Account.objects.filter(pk=account.pk).exists():
+                    try:
+                        account.recalculate_tree_balances()
+                    except Exception:
+                        pass
 
         except Exception as e:
             import sys
