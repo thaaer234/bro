@@ -1444,6 +1444,11 @@ def _build_trial_balance_dataset(
     total_credits = Decimal('0.00')
 
     accounts = Account.objects.filter(is_active=True)
+    # تصفية الحسابات حسب السنة الدراسية الحالية فقط (نفس منطق دليل الحسابات)
+    if academic_year:
+        accounts = accounts.filter(
+            Q(academic_year=academic_year) | Q(academic_year__isnull=True)
+        )
     if account_type:
         accounts = accounts.filter(account_type=account_type)
 
