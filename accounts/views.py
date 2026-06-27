@@ -589,7 +589,7 @@ class ChartOfAccountsView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         queryset = Account.objects.select_related('parent', 'cost_center').filter(is_active=True).order_by('code')
-        queryset = _scope_queryset_to_current_year(queryset, self.request, include_null=False)
+        queryset = _scope_queryset_to_current_year(queryset, self.request, include_null=True)
         
         # تطبيق الفلاتر
         search = self.request.GET.get('search', '')
@@ -1444,9 +1444,11 @@ def _build_trial_balance_dataset(
     total_credits = Decimal('0.00')
 
     accounts = Account.objects.filter(is_active=True)
-    # تصفية الحسابات حسب السنة الدراسية الحالية فقط (نفس منطق لوحة الإدارة)
+    # تصفية الحسابات حسب السنة الدراسية الحالية + الحسابات المشتركة بدون سنة (هيكلية)
     if academic_year:
-        accounts = accounts.filter(academic_year=academic_year)
+        accounts = accounts.filter(
+            Q(academic_year=academic_year) | Q(academic_year__isnull=True)
+        )
     if account_type:
         accounts = accounts.filter(account_type=account_type)
 
