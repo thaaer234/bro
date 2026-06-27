@@ -4,6 +4,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import FormView, ListView, TemplateView
+import threading
+from django.db import close_old_connections
 
 from quick.models import AcademicYear
 
@@ -304,6 +306,31 @@ class AcademicYearTransferBatchDetailView(LoginRequiredMixin, SuperuserRequiredM
         return context
 
 
+def execute_transfer_in_background(batch_id, user_id):
+    close_old_connections()
+    try:
+        from academic_years.models import AcademicYearTransferBatch
+        from academic_years.services.transfers import AcademicYearTransferService
+        from django.contrib.auth.models import User
+        
+        batch = AcademicYearTransferBatch.objects.get(pk=batch_id)
+        actor = User.objects.get(pk=user_id)
+        
+        service = AcademicYearTransferService(batch=batch, actor=actor)
+        service.execute()
+    except Exception as exc:
+        try:
+            from academic_years.models import AcademicYearTransferBatch
+            batch = AcademicYearTransferBatch.objects.get(pk=batch_id)
+            batch.status = AcademicYearTransferBatch.STATUS_FAILED
+            batch.failure_reason = str(exc)
+            batch.save(update_fields=["status", "failure_reason", "updated_at"])
+        except Exception:
+            pass
+    finally:
+        close_old_connections()
+
+
 class AcademicYearTransferBatchExecuteView(LoginRequiredMixin, SuperuserRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         batch = get_object_or_404(AcademicYearTransferBatch, pk=kwargs["pk"])
@@ -311,29 +338,22 @@ class AcademicYearTransferBatchExecuteView(LoginRequiredMixin, SuperuserRequired
             messages.info(request, "تم تنفيذ هذه الدفعة سابقًا.")
             return redirect("academic_years:transfer_detail", pk=batch.pk)
 
-        service = AcademicYearTransferService(batch=batch, actor=request.user)
-        try:
-            summary = service.execute()
-        except Exception as exc:
-            try:
-                batch.status = AcademicYearTransferBatch.STATUS_FAILED
-                batch.failure_reason = str(exc)
-                batch.save(update_fields=["status", "failure_reason", "updated_at"])
-            except Exception:
-                # Ignore database write failures when connection is in rollback-only state
-                pass
-            messages.error(request, f"فشل تنفيذ الترحيل: {exc}")
-            return redirect("academic_years:transfer_detail", pk=batch.pk)
+        # Mark as draft/running
+        batch.status = AcademicYearTransferBatch.STATUS_DRAFT
+        batch.failure_reason = "جاري الترحيل في الخلفية..."
+        batch.save(update_fields=["status", "failure_reason", "updated_at"])
+
+        # Start asynchronous thread
+        thread = threading.Thread(
+            target=execute_transfer_in_background,
+            args=(batch.pk, request.user.pk)
+        )
+        thread.daemon = True
+        thread.start()
 
         messages.success(
             request,
-            (
-                f"اكتمل الترحيل بنجاح. "
-                f"دورات: {summary.get('courses', 0)}، "
-                f"تسجيلات: {summary.get('enrollments', 0)}، "
-                f"إيصالات: {summary.get('receipts', 0)}، "
-                f"قيود: {summary.get('journal_entries', 0)}"
-            ),
+            "🔄 تم بدء عملية الترحيل في الخلفية بنجاح! يرجى الانتظار دقيقة وتحديث الصفحة لمشاهدة النتيجة."
         )
         return redirect("academic_years:transfer_detail", pk=batch.pk)
 
