@@ -363,18 +363,100 @@ class AcademicYearTransferService:
         if source_account.academic_year_id is None:
             return source_account
 
+        # 1. Handle student accounts
         if source_account.is_student_account:
-            if source_account.account_type == "ASSET":
-                if getattr(source_account, 'code', '').startswith('1252-'):
-                    return Account.get_or_create_quick_student_ar_account(target_student)
-                return Account.get_or_create_student_ar_account(target_student, target_course)
-            if source_account.account_type == "REVENUE":
-                return Account.get_or_create_withdrawal_revenue_account(target_student, target_course)
+            student_id_val = target_student.id if getattr(target_student, 'id', None) else 0
+            if getattr(source_account, 'code', '').startswith('1252-'):
+                target_code = f"1252-000-{student_id_val:03d}"
+            else:
+                target_code = f"1251-{target_course.id:03d}-{student_id_val:03d}"
+                
+            target_acc = Account.objects.filter(code=target_code).first()
+            if not target_acc:
+                parent_acc = None
+                if source_account.parent:
+                    parent_acc = self._resolve_target_account(
+                        source_account.parent,
+                        target_student=target_student,
+                        target_course=target_course,
+                        is_receipt=is_receipt,
+                        source_student=source_student,
+                        source_course=source_course
+                    )
+                target_acc = Account.objects.create(
+                    code=target_code,
+                    name=source_account.name,
+                    name_ar=source_account.name_ar,
+                    account_type=source_account.account_type,
+                    parent=parent_acc,
+                    academic_year=self.batch.target_academic_year,
+                    is_student_account=True,
+                    student_name=target_student.full_name,
+                    course_name=target_course.name,
+                    is_active=True,
+                )
+            return target_acc
 
+        # 2. Handle course accounts
         if source_account.is_course_account:
             if source_account.account_type == "LIABILITY":
-                return Account.get_or_create_course_deferred_account(target_course)
-            if source_account.account_type == "REVENUE":
-                return Account.get_or_create_course_account(target_course)
+                target_code = f"2511-{target_course.id:03d}"
+            else: # REVENUE
+                target_code = f"411-{target_course.id:03d}"
+                
+            target_acc = Account.objects.filter(code=target_code).first()
+            if not target_acc:
+                parent_acc = None
+                if source_account.parent:
+                    parent_acc = self._resolve_target_account(
+                        source_account.parent,
+                        target_student=target_student,
+                        target_course=target_course,
+                        is_receipt=is_receipt,
+                        source_student=source_student,
+                        source_course=source_course
+                    )
+                target_acc = Account.objects.create(
+                    code=target_code,
+                    name=source_account.name,
+                    name_ar=source_account.name_ar,
+                    account_type=source_account.account_type,
+                    parent=parent_acc,
+                    academic_year=self.batch.target_academic_year,
+                    is_course_account=True,
+                    course_name=target_course.name,
+                    is_active=True,
+                )
+            return target_acc
+
+        # 3. Handle other academic year-specific accounts (e.g. expenses, revenues, etc.)
+        if source_account.academic_year_id:
+            target_acc = Account.objects.filter(
+                code=source_account.code,
+                academic_year=self.batch.target_academic_year
+            ).first()
+            if target_acc:
+                return target_acc
+            
+            parent_acc = None
+            if source_account.parent:
+                parent_acc = self._resolve_target_account(
+                    source_account.parent,
+                    target_student=target_student,
+                    target_course=target_course,
+                    is_receipt=is_receipt,
+                    source_student=source_student,
+                    source_course=source_course
+                )
+            target_acc = Account.objects.create(
+                code=source_account.code,
+                name=source_account.name,
+                name_ar=source_account.name_ar,
+                account_type=source_account.account_type,
+                parent=parent_acc,
+                academic_year=self.batch.target_academic_year,
+                is_active=True,
+            )
+            return target_acc
 
         return source_account
