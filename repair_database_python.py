@@ -161,6 +161,17 @@ def main():
             import time
             current_backup = f"{backup_db_path}_{int(time.time())}"
             os.rename(db_path, current_backup)
+            
+            # حذف ملفات WAL و SHM القديمة لمنع التلف عند التشغيل
+            for suffix in ["-wal", "-shm"]:
+                wal_file = db_path + suffix
+                if os.path.exists(wal_file):
+                    try:
+                        os.remove(wal_file)
+                        print(f"🗑️ تم حذف ملف الكاش: {wal_file}")
+                    except Exception as wal_err:
+                        print(f"⚠️ فشل حذف {wal_file}: {wal_err}")
+                        
             os.rename(fixed_db_path, db_path)
             
             # ضبط الأذونات لتكون قابلة للقراءة والكتابة
