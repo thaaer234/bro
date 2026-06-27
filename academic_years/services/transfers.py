@@ -145,34 +145,26 @@ class AcademicYearTransferService:
                     je.transactions.all().delete()
                     je._skip_linked_cleanup = True
                     je.delete()
-                    self.log(f"تم حذف قيد الدفع الأصلي رقم {je.id} للفصل الأول.")
 
             # 2. Delete source StudentReceipts
             for receipt in receipts:
-                receipt_id = receipt.id
                 receipt._skip_linked_cleanup = True
                 receipt.delete()
-                self.log(f"تم حذف إيصال الدفع الأصلي رقم {receipt_id} للفصل الأول.")
 
             # 3. Delete enrollment journal entries (both enrollment and completion)
             for je in [enrollment.enrollment_journal_entry, enrollment.completion_journal_entry]:
                 if je:
-                    je_id = je.id
                     je.transactions.all().delete()
                     je._skip_linked_cleanup = True
                     je.delete()
-                    self.log(f"تم حذف قيد التسجيل الأصلي رقم {je_id} للفصل الأول.")
 
             # 4. Delete source enrollment itself
-            enrollment_id = enrollment.id
             enrollment._skip_linked_cleanup = True
             enrollment.delete()
-            self.log(f"تم حذف تسجيل الطالب رقم {enrollment_id} للفصل الأول بشكل نهائي.")
 
             # 5. Recalculate tree balances for all touched accounts
             for account in touched_accounts:
                 account.recalculate_tree_balances()
-                self.log(f"تم تحديث رصيد الحساب {account.code} بنجاح.")
 
         except Exception as e:
             # Print the exact exception to sys.stderr so it is visible in the logs
