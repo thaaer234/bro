@@ -1372,6 +1372,8 @@ def _parse_trial_balance_settings(params):
 
 def _calculate_trial_balance_amounts(account, start_date=None, end_date=None, academic_year=None):
     transactions = account.transactions.all()
+    if academic_year:
+        transactions = transactions.filter(journal_entry__academic_year=academic_year)
     if start_date:
         transactions = transactions.filter(journal_entry__date__gte=start_date)
     if end_date:
