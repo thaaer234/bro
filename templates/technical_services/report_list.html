@@ -93,9 +93,12 @@
             <h1 class="h3 font-weight-bold mb-2">أتمتة التقارير الفنية والمشاكل التقنية</h1>
             <p class="mb-0 opacity-75">سجل البلاغات البرمجية، وولد الحلول التقنية باستخدام الذكاء الاصطناعي، وأصدر تقارير صيانة رسمية بضغطة زر.</p>
         </div>
-        <div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'technical_services:student_lifecycle_report_demo' %}" class="btn btn-primary btn-lg font-weight-bold shadow-sm px-4">
+                <i class="fas fa-chart-line mr-1"></i> محاكاة دورة القيود المالية
+            </a>
             <a href="{% url 'technical_services:report_create' %}" class="btn btn-warning btn-lg font-weight-bold shadow-sm px-4">
-                <i class="fas fa-plus-circle mr-2"></i> تسجيل بلاغ مشكلة جديدة
+                <i class="fas fa-plus-circle mr-1"></i> تسجيل بلاغ مشكلة جديدة
             </a>
         </div>
     </div>

@@ -53,6 +53,10 @@
           <i class="fas fa-file-invoice-dollar"></i>
           كشف حساب الطالب
         </a>
+        <a class="btn btn-outline-primary" href="{% url 'technical_services:student_lifecycle_report' student.id %}">
+          <i class="fas fa-chart-line"></i>
+          دورة القيود المالية
+        </a>
         <!-- في student_profile.html - أضف هذا الزر في قسم header-actions -->
 <a href="{% url 'students:update_student' student.id %}" class="btn btn-outline-primary">
     <i class="fas fa-edit"></i>
