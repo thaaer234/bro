@@ -1410,8 +1410,8 @@
                 font-size: 13pt !important;
             }
 
-            /* إجبار الصفحة الثانية على البدء بعد قسم التحميل مباشرة */
-            #download-sec {
+            /* إجبار الصفحة الثانية على البدء بعد قسم البطاقة الذكية مباشرة */
+            #student-card-sec {
                 page-break-after: always !important;
                 break-after: page !important;
             }
@@ -1648,7 +1648,6 @@
         <!-- شريط التنقل السريع -->
         <nav class="nav-strip">
             <a href="#student-card-sec" class="nav-link"><i class="fa-solid fa-id-card"></i> بطاقة الطالب الذكية</a>
-            <a href="#download-sec" class="nav-link"><i class="fa-solid fa-download"></i> تحميل التطبيق</a>
             <a href="#login-sec" class="nav-link"><i class="fa-solid fa-right-to-bracket"></i> طريقة تسجيل الدخول</a>
             <a href="#app-features-sec" class="nav-link"><i class="fa-solid fa-circle-info"></i> ميزات التطبيق</a>
         </nav>
@@ -1806,53 +1805,6 @@
             </div>
         </section>
 
-        <!-- القسم الثاني: كيفية تحميل التطبيق -->
-        <section class="section-card" id="download-sec">
-            <div class="section-header">
-                <div class="section-icon"><i class="fa-solid fa-download"></i></div>
-                <h2 class="section-title">تحميل تطبيق الهاتف المحمول</h2>
-            </div>
-
-            <div class="download-box">
-                <!-- عرض الـ QR الكبير المخصص للتحميل -->
-                <div class="qr-display-card">
-                    <div class="big-qr-wrap">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2Ffu5Voe8s6PSZcG6syBbbZQ.apk" alt="QR التحميل الكبير">
-                    </div>
-                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary);">امسح الكود بكاميرا هاتفك للتحميل</span>
-                </div>
-
-                <!-- خطوات ورابط التحميل المباشر -->
-                <div class="download-info">
-                    <h3>قم بتثبيت التطبيق على جهازك الآن</h3>
-                    <p>يتيح لك تطبيق معهد اليمان للهواتف المحمولة متابعة كل ما يخص الطالب لحظة بلحظة وبواجهة مستخدم عربية غاية في السهولة والسلاسة.</p>
-                    
-                    <ul class="download-steps">
-                        <li>
-                            <i class="fa-solid fa-circle-check"></i>
-                            <strong>الخطوة الأولى:</strong> وجه كاميرا هاتفك المحمول نحو الرمز المقابل (أو الرمز الموجود على بطاقتك).
-                        </li>
-                        <li>
-                            <i class="fa-solid fa-circle-check"></i>
-                            <strong>الخطوة الثانية:</strong> اضغط على الرابط المنبثق لتنزيل ملف التثبيت الخاص بالتطبيق (ملف APK للأندرويد).
-                        </li>
-                        <li>
-                            <i class="fa-solid fa-circle-check"></i>
-                            <strong>الخطوة الثالثة:</strong> افتح الملف الذي قمت بتحميله وقم بتثبيته (إذا ظهر لك تحذير حماية، قم بالسماح بالتثبيت نظراً لأن التطبيق يتم تحميله مباشرة خارج المتجر الرسمي).
-                        </li>
-                    </ul>
-
-                    <div class="btn-group">
-                        <a href="https://expo.dev/artifacts/eas/fu5Voe8s6PSZcG6syBbbZQ.apk" class="btn btn-primary">
-                            <i class="fa-solid fa-cloud-arrow-down"></i> تحميل التطبيق مباشرة (APK)
-                        </a>
-                        <button onclick="document.getElementById('interactive-student-card').scrollIntoView();" class="btn btn-outline">
-                            <i class="fa-solid fa-qrcode"></i> شاهد الـ QR على البطاقة
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
 
         <!-- القسم الثالث: كيفية تسجيل الدخول والتسجيل عبر الـ QR -->
         <section class="section-card" id="login-sec">
