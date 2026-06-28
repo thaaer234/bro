@@ -1854,7 +1854,7 @@ def quick_receipt(request, student_id):
     from django.db.models import Sum
     
     if not request.user.is_authenticated:
-        return JsonResponse({'ok': False, 'error': 'يجب تسجيل الدخول'}, status=401)
+        return JsonResponse({'ok': False, 'error': 'يجب تسجيل الدخول'})
     
     student = get_object_or_404(Student, id=student_id)
     
@@ -1873,12 +1873,12 @@ def quick_receipt(request, student_id):
         if receipt_date_str:
             receipt_date = parse_date(receipt_date_str)
             if not receipt_date:
-                return JsonResponse({'ok': False, 'error': 'صيغة التاريخ غير صحيحة'}, status=400)
+                return JsonResponse({'ok': False, 'error': 'صيغة التاريخ غير صحيحة'})
         else:
             receipt_date = timezone.now().date()
             
     except (ValueError, TypeError, InvalidOperation) as e:
-        return JsonResponse({'ok': False, 'error': f'خطأ في تنسيق الأرقام: {str(e)}'}, status=400)
+        return JsonResponse({'ok': False, 'error': f'خطأ في تنسيق الأرقام: {str(e)}'})
     
     course = None
     remaining_amount = Decimal('0.00')
@@ -1893,11 +1893,11 @@ def quick_receipt(request, student_id):
             if enrollment:
                 target_student = enrollment.student
             else:
-                return JsonResponse({'ok': False, 'error': 'التسجيل غير موجود'}, status=404)
+                return JsonResponse({'ok': False, 'error': 'التسجيل غير موجود'})
             
             # ✅ الإصلاح: التحقق من أن التسجيل نشط
             if enrollment.is_completed:
-                return JsonResponse({'ok': False, 'error': 'لا يمكن قطع إيصال لدورة مسحوبة'}, status=400)
+                return JsonResponse({'ok': False, 'error': 'لا يمكن قطع إيصال لدورة مسحوبة'})
                 
             course = enrollment.course
             
@@ -1980,11 +1980,11 @@ def quick_receipt(request, student_id):
                 remaining_amount = course.price or Decimal('0.00')
                 
     except (Studentenrollment.DoesNotExist, Course.DoesNotExist) as e:
-        return JsonResponse({'ok': False, 'error': 'الدورة أو التسجيل غير موجود'}, status=404)
+        return JsonResponse({'ok': False, 'error': 'الدورة أو التسجيل غير موجود'})
     
     # السماح بدفع 0 ل.س (خصم 100%)
     if paid_amount < 0:
-        return JsonResponse({'ok': False, 'error': 'المبلغ المدفوع غير صالح'}, status=400)
+        return JsonResponse({'ok': False, 'error': 'المبلغ المدفوع غير صالح'})
     
     if is_free:
         amount = Decimal('0.00')
@@ -2002,7 +2002,7 @@ def quick_receipt(request, student_id):
     
     # ✅ الإصلاح: التأكد من أن المبلغ المدفوع لا يتجاوز المتبقي
     if paid_amount > remaining_amount:
-        return JsonResponse({'ok': False, 'error': f'المبلغ المدفوع ({paid_amount}) يتجاوز المبلغ المتبقي ({remaining_amount})'}, status=400)
+        return JsonResponse({'ok': False, 'error': f'المبلغ المدفوع ({paid_amount}) يتجاوز المبلغ المتبقي ({remaining_amount})'})
     
     # Create receipt
     try:
@@ -2022,7 +2022,7 @@ def quick_receipt(request, student_id):
             created_by=request.user,
         )
     except Exception as e:
-        return JsonResponse({'ok': False, 'error': f'فشل في إنشاء الإيصال: {str(e)}'}, status=500)
+        return JsonResponse({'ok': False, 'error': f'فشل في إنشاء الإيصال: {str(e)}'})
     
     journal_warning = None
     try:
