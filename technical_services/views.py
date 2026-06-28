@@ -171,24 +171,24 @@ def student_lifecycle_report(request, student_id=None):
 
     if demo_mode:
         student_info = {
-            'id': 9999,
-            'full_name': 'أحمد محمد المحسن',
-            'branch': 'العلمي',
-            'student_number': 'STU-9999',
-            'registration_date': timezone.now().date(),
-            'phone': '0933333333',
+            'id': 2034,
+            'full_name': 'حلا قاسم',
+            'branch': 'تاسع',
+            'student_number': 'STU-2034',
+            'registration_date': '2026-06-10',
+            'phone': 'N/A',
         }
         
         course_info = {
-            'name': 'دورة اللغة الإنجليزية للمستويات المتقدمة (C1)',
-            'price': Decimal("1000000.00"),
-            'discount_percent': Decimal("10.00"),
-            'discount_amount': Decimal("100000.00"),
-            'net_price': Decimal("900000.00"),
-            'amount_paid': Decimal("400000.00"),
-            'refund_amount': Decimal("250000.00"),
-            'kept_amount': Decimal("150000.00"),
-            'remaining_due': Decimal("500000.00"),
+            'name': 'دورة صيف تاسع 2026-2027',
+            'price': Decimal("3500000.00"),
+            'discount_percent': Decimal("0.00"),
+            'discount_amount': Decimal("0.00"),
+            'net_price': Decimal("3500000.00"),
+            'amount_paid': Decimal("320000.00"),
+            'refund_amount': Decimal("680000.00"),
+            'kept_amount': Decimal("320000.00"),
+            'remaining_due': Decimal("3180000.00"),
         }
         
         steps = [
@@ -197,12 +197,12 @@ def student_lifecycle_report(request, student_id=None):
                 'title': '1. تسجيل الطالب بالدورة (مرحلة الاستحقاق)',
                 'badge_class': 'badge-enrollment',
                 'type_text': 'تسجيل / ENROLLMENT',
-                'desc': 'يتم إثبات مديونية الطالب (ذمم مدينة) وإثبات الإيراد المؤجل (التزام على المركز لحين تقديم الخدمة).',
-                'ref': 'JE-20260601-001',
-                'date': '2026-06-01',
+                'desc': 'Student enrollment - حلا قاسم in دورة صيف تاسع 2026-2027',
+                'ref': 'JE-012242',
+                'date': '2026-06-10',
                 'transactions': [
-                    {'code': '1251-042-999', 'name': 'ذمم الطلاب - أحمد محمد المحسن', 'debit': Decimal('1000000.00'), 'credit': Decimal('0.00'), 'desc': 'إثبات مديونية الطالب'},
-                    {'code': '2150-042', 'name': 'إيرادات مؤجلة - دورة لغة إنجليزية', 'debit': Decimal('0.00'), 'credit': Decimal('1000000.00'), 'desc': 'التزام مقابل تقديم الدورة'},
+                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('2500000.00'), 'credit': Decimal('0.00'), 'desc': 'enrollment - حلا قاسم'},
+                    {'code': '21001-020', 'name': 'إيرادات مؤجلة - دورة صيف تاسع 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('2500000.00'), 'desc': 'Deferred revenue - دورة صيف تاسع 2026-2027'},
                 ]
             },
             {
@@ -210,25 +210,25 @@ def student_lifecycle_report(request, student_id=None):
                 'title': '2. قبض دفعة نقدية (إيصال قبض)',
                 'badge_class': 'badge-payment',
                 'type_text': 'دفعة / PAYMENT',
-                'desc': 'يزيد الصندوق بالدائنية النقدية، وتقل الذمم المدينة المستحقة على الطالب.',
-                'ref': 'JE-20260603-001',
-                'date': '2026-06-03',
+                'desc': 'Student payment - حلا قاسم for دورة صيف تاسع 2026-2027',
+                'ref': 'JE-012243',
+                'date': '2026-06-10',
                 'transactions': [
-                    {'code': '1210', 'name': 'صندوق المركز الرئيسي', 'debit': Decimal('400000.00'), 'credit': Decimal('0.00'), 'desc': 'المبلغ المقبوض بالصندوق'},
-                    {'code': '1251-042-999', 'name': 'ذمم الطلاب - أحمد محمد المحسن', 'debit': Decimal('0.00'), 'credit': Decimal('400000.00'), 'desc': 'تنزيل مديونية الطالب'},
+                    {'code': '121-0008', 'name': 'صندوق رنيم مرعشلي', 'debit': Decimal('1000000.00'), 'credit': Decimal('0.00'), 'desc': 'Cash received - حلا قاسم'},
+                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('1000000.00'), 'desc': 'Payment received - دورة صيف تاسع 2026-2027'},
                 ]
             },
             {
                 'number': 3,
-                'title': '3. تطبيق حسم إضافي (تعديل الاستحقاق)',
+                'title': '3. تعديل استحقاق / زيادة حسم',
                 'badge_class': 'badge-adjustment',
                 'type_text': 'حسم / DISCOUNT',
-                'desc': 'يتم تخفيض قيمة الذمم المستحقة وتخفيض الالتزام (الإيراد المؤجل) بالتساوي.',
-                'ref': 'JE-20260605-001',
-                'date': '2026-06-05',
+                'desc': 'تعديل حسم - حلا قاسم - دورة صيف تاسع 2026-2027',
+                'ref': 'JE-012633',
+                'date': '2026-06-23',
                 'transactions': [
-                    {'code': '2150-042', 'name': 'إيرادات مؤجلة - دورة لغة إنجليزية', 'debit': Decimal('100000.00'), 'credit': Decimal('0.00'), 'desc': 'تخفيض الالتزام بقيمة الحسم'},
-                    {'code': '1251-042-999', 'name': 'ذمم الطلاب - أحمد محمد المحسن', 'debit': Decimal('0.00'), 'credit': Decimal('100000.00'), 'desc': 'تخفيض ذمم الطالب المدينة'},
+                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('1000000.00'), 'credit': Decimal('0.00'), 'desc': 'تعديل زيادة حسم - دورة صيف تاسع 2026-2027'},
+                    {'code': '21001-020', 'name': 'إيرادات مؤجلة - دورة صيف تاسع 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('1000000.00'), 'desc': 'تعديل زيادة حسم - حلا قاسم'},
                 ]
             },
             {
@@ -236,16 +236,14 @@ def student_lifecycle_report(request, student_id=None):
                 'title': '4. انسحاب الطالب وتسوية الحسابات (إلغاء واسترداد)',
                 'badge_class': 'badge-withdrawal',
                 'type_text': 'انسحاب / WITHDRAWAL',
-                'desc': 'يتم عكس الذمم غير المسددة (500,000)، وإثبات المبلغ المسترد نقداً من الصندوق للطالب (250,000)، ونقل المبلغ غير المسترد المتبقي (150,000) كإيراد محقق لصالح المركز التعليمي.',
-                'ref': 'WD-9999-20260610',
-                'date': '2026-06-10',
+                'desc': 'استرداد دفعة مالية عند الانسحاب وعكس الإيرادات المؤجلة وتسوية ذمة الطالب بالكامل لتصبح (صفر).',
+                'ref': 'JE-012634 / WD-REV-861-20260623',
+                'date': '2026-06-23',
                 'transactions': [
-                    {'code': '2150-042', 'name': 'إيرادات مؤجلة - دورة لغة إنجليزية', 'debit': Decimal('500000.00'), 'credit': Decimal('0.00'), 'desc': 'إلغاء الالتزام غير المدفوع'},
-                    {'code': '1251-042-999', 'name': 'ذمم الطلاب - أحمد محمد المحسن', 'debit': Decimal('0.00'), 'credit': Decimal('500000.00'), 'desc': 'تصفير الرصيد المتبقي بذمة الطالب'},
-                    {'code': '4190-042', 'name': 'مرتجعات الإيرادات - دورة لغة إنجليزية', 'debit': Decimal('250000.00'), 'credit': Decimal('0.00'), 'desc': 'إثبات مرتجع الإيرادات (المسترد للطالب)'},
-                    {'code': '1210', 'name': 'صندوق المركز الرئيسي', 'debit': Decimal('0.00'), 'credit': Decimal('250000.00'), 'desc': 'دفع المبلغ المسترد نقداً'},
-                    {'code': '2150-042', 'name': 'إيرادات مؤجلة - دورة لغة إنجليزية', 'debit': Decimal('150000.00'), 'credit': Decimal('0.00'), 'desc': 'إلغاء الجزء المحتفظ به من المؤجل'},
-                    {'code': '4100-042', 'name': 'إيرادات محققة - دورة لغة إنجليزية', 'debit': Decimal('0.00'), 'credit': Decimal('150000.00'), 'desc': 'تحقيق الإيراد للمركز كخدمة مستفاد منها'},
+                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('680000.00'), 'credit': Decimal('0.00'), 'desc': 'استرداد مبلغ - دورة صيف تاسع 2026-2027'},
+                    {'code': '121-0021', 'name': 'رصيد صندوق sedra zarifeh', 'debit': Decimal('0.00'), 'credit': Decimal('680000.00'), 'desc': 'مرتجع نقدي - حلا قاسم'},
+                    {'code': '21001-020', 'name': 'إيرادات مؤجلة - دورة صيف تاسع 2026-2027', 'debit': Decimal('3180000.00'), 'credit': Decimal('0.00'), 'desc': 'عكس إيرادات مؤجلة - حلا قاسم'},
+                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('3180000.00'), 'desc': 'تصفية ذمة - دورة صيف تاسع 2026-2027'},
                 ]
             }
         ]

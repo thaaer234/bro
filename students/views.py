@@ -2329,20 +2329,20 @@ def withdraw_student(request, student_id):
                     journal_entry=entry1,
                     account=account_4201,
                     amount=refund_amount,
-                    is_debit=False,
+                    is_debit=True,
                     description=f"إيرادات سحب: {student.full_name} - {enrollment.course.name}"
                 )
-                print(f"✅ معاملة 1: دائن {account_4201.code} - {refund_amount}")
+                print(f"✅ معاملة 1: مدين {account_4201.code} - {refund_amount}")
                 
                 # المعاملة الثانية: دائن - 121
                 txn2 = Transaction.objects.create(
                     journal_entry=entry1,
                     account=cash_account,
                     amount=refund_amount,
-                    is_debit=True,
+                    is_debit=False,
                     description=f"استرداد نقدي: {student.full_name}"
                 )
-                print(f"✅ معاملة 2: مدين {cash_account.code} - {refund_amount}")
+                print(f"✅ معاملة 2: دائن {cash_account.code} - {refund_amount}")
                 
                 # 7.5 التحقق من المعاملات
                 transaction_count = Transaction.objects.filter(journal_entry=entry1).count()

@@ -1493,9 +1493,14 @@ class JournalEntry(models.Model):
         
         # Create reversing transactions
         for transaction in self.transactions.all():
+            account = transaction.account
+            # Check if this account is a cash/fund account (code starts with 121 or is exactly 121)
+            if account.code == '121' or account.code.startswith('121-'):
+                account = get_user_cash_account(user, fallback_code=account.code)
+
             Transaction.objects.create(
                 journal_entry=reversing_entry,
-                account=transaction.account,
+                account=account,
                 amount=transaction.amount,
                 is_debit=not transaction.is_debit,  # Reverse the debit/credit
                 description=f"Reversal: {transaction.description}",
