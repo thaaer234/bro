@@ -348,6 +348,10 @@ class welcome(TemplateView):
     template_name =   'pages/welcome.html'      
 
 
+class StudentAppGuideView(TemplateView):
+    template_name = 'pages/student_app_guide.html'
+
+
 class UserGuideView(LoginRequiredMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         return redirect('manuals:home')

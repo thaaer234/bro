@@ -18,5 +18,7 @@ urlpatterns = [
     path('system-report/', require_superuser(views.system_report_dashboard), name='system_report'),
     path('system-report/print/<int:report_id>/', require_superuser(views.system_report_print), name='system_report_print'),
     path('app-users-report/', require_superuser(views.app_users_report), name='app_users_report'),
+    path('student-app-guide/', views.StudentAppGuideView.as_view(), name='student_app_guide'),
     path('track-click/', views.track_click_event, name='track_click'),
-]   
+]
+   
