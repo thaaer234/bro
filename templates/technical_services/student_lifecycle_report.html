@@ -783,89 +783,103 @@
     /* PRINT MEDIA RULES */
     @media print {
         @page {
-            margin: 0;
-            size: A4;
+            margin: 0 !important;
+            padding: 0 !important;
+            size: 210mm 297mm !important;
+        }
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        html {
+            width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         body {
             background-color: #ffffff !important;
             color: #000000 !important;
             padding: 0 !important;
             margin: 0 !important;
+            width: 210mm !important;
+            max-width: 210mm !important;
             direction: rtl !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            overflow: visible !important;
+            font-size: 12px !important;
         }
-        header, footer, nav, .sidebar, .print-action-bar, .base-admin-actions, .skip-link, .btn, hr.my-4 {
+        /* Hide ALL base template chrome */
+        header, footer, nav, .sidebar, .print-action-bar, 
+        .base-admin-actions, .skip-link, .btn, hr.my-4,
+        .navbar, .top-bar, .breadcrumb, #web-announcement-overlay {
             display: none !important;
         }
-        .main-content {
+        /* Strip ALL wrappers from base.html */
+        .main-content,
+        .page-shell,
+        .content-stack,
+        .container-fluid,
+        .container,
+        #main-content {
             margin: 0 !important;
             padding: 0 !important;
-            width: 100% !important;
-        }
-        .page-shell, .content-stack, .container-fluid, .container {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: 100% !important;
-            width: 100% !important;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-width: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            display: block !important;
+            float: none !important;
         }
         .report-viewport {
             background-color: transparent !important;
             padding: 0 !important;
             margin: 0 !important;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            gap: 0 !important;
+            display: block !important;
         }
+        /* Force exact A4 on every page container */
         .a4-container {
             box-shadow: none !important;
             border: none !important;
             margin: 0 !important;
+            padding: 40px 50px !important;
             width: 210mm !important;
+            max-width: 210mm !important;
             height: 297mm !important;
+            max-height: 297mm !important;
             page-break-after: always !important;
             page-break-inside: avoid !important;
             box-sizing: border-box !important;
             border-radius: 0 !important;
             overflow: hidden !important;
             position: relative !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+        }
+        .a4-container:last-child {
+            page-break-after: auto !important;
         }
         .a4-container.dynamic-page {
             height: auto !important;
+            max-height: none !important;
             min-height: 297mm !important;
             overflow: visible !important;
             page-break-inside: auto !important;
-            padding-top: 15px !important;
         }
         .right-curve-bg {
             right: -200px !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
         }
         .orange-border-line {
             right: -185px !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
         }
-        .cover-footer-section {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-        .page-footer-slant-row,
-        .footer-left-navy-slant,
-        .footer-left-white-slant,
-        .footer-right-orange-slant,
-        .footer-right-white-slant {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-        .signature-card {
-            background-color: #f8fafc !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-        .summary-card {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+        .page-footer-slant-row {
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
         }
     }
 </style>
