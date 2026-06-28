@@ -845,7 +845,7 @@
             box-shadow: none !important;
             border: none !important;
             margin: 0 !important;
-            padding: 40px 50px !important;
+            padding: 25px 35px !important;
             width: 210mm !important;
             max-width: 210mm !important;
             height: 297mm !important;
@@ -861,11 +861,11 @@
             page-break-after: auto !important;
         }
         .a4-container.dynamic-page {
-            height: auto !important;
-            max-height: none !important;
-            min-height: 297mm !important;
-            overflow: visible !important;
-            page-break-inside: auto !important;
+            /* Force exact A4 dimensions on print to avoid spilling over */
+            height: 297mm !important;
+            max-height: 297mm !important;
+            overflow: hidden !important;
+            page-break-inside: avoid !important;
         }
         .right-curve-bg {
             right: -200px !important;
@@ -880,6 +880,37 @@
             right: 0 !important;
             margin: 0 !important;
             width: 100% !important;
+        }
+
+        /* Spacing and typography optimization for print */
+        .section-card {
+            margin-bottom: 0.6rem !important;
+            padding: 1.6rem 1rem 0.6rem 1rem !important;
+            min-height: 50px !important;
+        }
+        .info-card-box {
+            margin-bottom: 0.5rem !important;
+            padding: 0.8rem 0.8rem 0.6rem 0.8rem !important;
+            margin-top: 0.4rem !important;
+        }
+        .summary-card {
+            margin-top: 0.8rem !important;
+            padding: 0.8rem !important;
+        }
+        .journal-table {
+            margin: 5px 0 !important;
+            font-size: 0.68rem !important;
+        }
+        .journal-table th, .journal-table td {
+            padding: 3px 5px !important;
+        }
+        .page-header-logo-group {
+            margin-bottom: 0.6rem !important;
+            padding-bottom: 4px !important;
+        }
+        .page-header-logo-group .logo-mahwar img,
+        .page-header-logo-group .cover-logo-aliman img {
+            height: 50px !important;
         }
     }
 </style>
