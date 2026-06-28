@@ -1862,6 +1862,13 @@ def quick_receipt(request, student_id):
         # Parse inputs
         course_id = request.POST.get('course_id')
         enrollment_id = request.POST.get('enrollment_id')
+        
+        # تنظيف معرفات الكورس والتسجيل من فواصل الآلاف المضافة بالتنسيق المحلي
+        if course_id:
+            course_id = str(course_id).replace('.', '').replace(',', '').strip()
+        if enrollment_id:
+            enrollment_id = str(enrollment_id).replace('.', '').replace(',', '').strip()
+            
         amount = Decimal(request.POST.get('amount', '0'))
         paid_amount = Decimal(request.POST.get('paid_amount', '0'))
         discount_percent = Decimal(request.POST.get('discount_percent', str(student.discount_percent or 0)))
