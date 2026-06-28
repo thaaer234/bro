@@ -1,0 +1,1977 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دليل تطبيق الطالب والبطاقة الذكية | معهد اليمان</title>
+    <!-- خط القاهرة والتاجوال من جوجل -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- مكتبة أيقونات FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #513996;
+            --primary-dark: #3f2a7a;
+            --primary-light: #6b53b8;
+            --primary-glow: rgba(81, 57, 150, 0.15);
+            --gold: #f0a22b;
+            --gold-dark: #d48716;
+            --gold-light: #f3b95a;
+            --text-main: #2b1f48;
+            --text-muted: #6e6589;
+            --bg-body: #f8f6fc;
+            --bg-card: #ffffff;
+            --success: #10b981;
+            --border-color: #e5def3;
+            --shadow-sm: 0 4px 6px -1px rgba(81, 57, 150, 0.05), 0 2px 4px -1px rgba(81, 57, 150, 0.03);
+            --shadow-md: 0 10px 15px -3px rgba(81, 57, 150, 0.08), 0 4px 6px -2px rgba(81, 57, 150, 0.04);
+            --shadow-lg: 0 20px 25px -5px rgba(81, 57, 150, 0.12), 0 10px 10px -5px rgba(81, 57, 150, 0.06);
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* تنسيقات الهيدر والترحيب */
+        header {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary-light) 100%);
+            color: white;
+            padding: 40px 20px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-bottom-left-radius: var(--radius-lg);
+            border-bottom-right-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(240, 162, 43, 0.15) 0%, transparent 70%);
+            top: -150px;
+            right: -100px;
+            border-radius: 50%;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(107, 83, 184, 0.3) 0%, transparent 70%);
+            bottom: -100px;
+            left: -50px;
+            border-radius: 50%;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo-wrap {
+            margin-bottom: 20px;
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: var(--shadow-md);
+            animation: bounceIn 1s ease-out;
+        }
+
+        .logo-wrap img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .institute-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .main-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1.3;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        /* الحاوية الرئيسية للمحتوى */
+        .container {
+            max-width: 1200px;
+            margin: -30px auto 60px;
+            padding: 0 20px;
+            position: relative;
+            z-index: 3;
+        }
+
+        /* شريط التنقل السريع */
+        .nav-strip {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: 15px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 40px;
+            border: 1px solid var(--border-color);
+        }
+
+        .nav-link {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: var(--primary-glow);
+            color: var(--primary);
+        }
+
+        /* زر طباعة الدليل المباشر */
+        .print-btn-float {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background-color: var(--gold);
+            color: var(--text-main);
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 10px 18px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .print-btn-float:hover {
+            background-color: var(--gold-dark);
+            transform: scale(1.05);
+        }
+
+        /* الأقسام العامة */
+        .section-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        .section-icon {
+            background: var(--primary);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 10px rgba(81, 57, 150, 0.3);
+        }
+
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* البطاقة التفاعلية ثلاثية الأبعاد */
+        .card-demo-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .card-demo-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* محاكي البطاقة ثلاثية الأبعاد */
+        .card-view {
+            perspective: 1200px;
+            width: 100%;
+            max-width: 400px;
+            height: 240px;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--radius-md);
+        }
+
+        .card-view.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #513996;
+        }
+
+        /* تصميم وجه البطاقة */
+        .card-front {
+            background: linear-gradient(135deg, #ffffff 0%, #f6f3fc 100%);
+            padding: 12px 16px;
+            color: var(--text-main);
+        }
+
+        .card-front-content {
+            display: grid;
+            grid-template-columns: 1fr 90px;
+            height: 100%;
+            align-items: center;
+        }
+
+        .card-front-info {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+            gap: 4px;
+        }
+
+        .card-front-header {
+            border-bottom: 2px solid var(--gold);
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .card-front-header h3 {
+            font-size: 1rem;
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        .card-front-header .badge {
+            font-size: 0.7rem;
+            background: var(--primary);
+            color: white;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-right: 4px;
+        }
+
+        .card-student-name {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+            margin-bottom: 6px;
+        }
+
+        .card-info-row {
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-main);
+            background: rgba(81, 57, 150, 0.05);
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-bottom: 3px;
+        }
+
+        .card-info-row strong {
+            color: var(--primary);
+        }
+
+        .card-front-left {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-front-logo {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+        }
+
+        .card-download-qr {
+            width: 80px;
+            height: 80px;
+            background: white;
+            padding: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-download-qr img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .qr-caption {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* تصميم ظهر البطاقة */
+        .card-back {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            transform: rotateY(180deg);
+            padding: 12px;
+            justify-content: space-between;
+        }
+
+        .card-back-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 6px;
+        }
+
+        .card-back-header span {
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .card-back-header .badge {
+            background: var(--gold);
+            color: var(--primary-dark);
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+
+        .card-qr-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .card-qr-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .card-qr-wrapper {
+            position: relative;
+            background: white;
+            padding: 3px;
+            border-radius: 6px;
+            width: 70px;
+            height: 70px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+        }
+
+        .card-qr-wrapper img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .card-qr-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-qr-icon svg {
+            width: 10px;
+            height: 10px;
+            fill: var(--primary);
+        }
+
+        .card-qr-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
+
+        .card-back-footer {
+            font-size: 0.55rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            padding-top: 6px;
+            line-height: 1.3;
+        }
+
+        .card-back-footer .phone {
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        /* تلميح النقر */
+        .flip-hint {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: var(--primary);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        /* نصوص الشرح لبطاقة الطالب */
+        .card-explanation {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .exp-item {
+            display: flex;
+            gap: 15px;
+            background: var(--bg-body);
+            padding: 15px;
+            border-radius: var(--radius-sm);
+            border-right: 4px solid var(--primary);
+            transition: transform 0.2s ease;
+        }
+
+        .exp-item:hover {
+            transform: translateX(-5px);
+        }
+
+        .exp-item.gold-border {
+            border-right-color: var(--gold);
+        }
+
+        .exp-number {
+            background: var(--primary);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .exp-item.gold-border .exp-number {
+            background: var(--gold);
+            color: var(--text-main);
+        }
+
+        .exp-content h4 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 5px;
+        }
+
+        .exp-content p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* قسم التحميل والـ QR الكبار */
+        .download-box {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        @media (max-width: 800px) {
+            .download-box {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+        }
+
+        .qr-display-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f9f7ff 100%);
+            border: 2px dashed var(--primary);
+            padding: 25px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .big-qr-wrap {
+            background: white;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            width: 200px;
+            height: 200px;
+            position: relative;
+        }
+
+        .big-qr-wrap img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .big-qr-wrap::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: var(--gold);
+            animation: scanLine 3s linear infinite;
+            box-shadow: 0 0 10px var(--gold);
+        }
+
+        .download-info h3 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-weight: 800;
+        }
+
+        .download-info p {
+            color: var(--text-muted);
+            margin-bottom: 25px;
+            font-size: 1.05rem;
+        }
+
+        .download-steps {
+            list-style: none;
+            margin-bottom: 30px;
+            text-align: right;
+        }
+
+        .download-steps li {
+            position: relative;
+            padding-right: 30px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        .download-steps li i {
+            position: absolute;
+            right: 0;
+            top: 4px;
+            color: var(--gold);
+            font-size: 1.1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 800px) {
+            .btn-group {
+                justify-content: center;
+            }
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(81, 57, 150, 0.4);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-glow);
+            transform: translateY(-2px);
+        }
+
+        /* محاكي واجهة تسجيل الدخول بالتطبيق */
+        .login-guide-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        @media (max-width: 850px) {
+            .login-guide-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .phone-mockup {
+            width: 100%;
+            max-width: 320px;
+            height: 600px;
+            background: #0f172a;
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: var(--shadow-lg);
+            border: 4px solid #334155;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 25px;
+            background: #334155;
+            border-bottom-left-radius: 18px;
+            border-bottom-right-radius: 18px;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .phone-speaker {
+            width: 40px;
+            height: 4px;
+            background: #1e293b;
+            border-radius: 2px;
+            margin-bottom: 2px;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #f7f2fc;
+            border-radius: 32px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            user-select: none;
+            border: 1px solid #1e293b;
+        }
+
+        /* تصميم شاشة الدخول داخل المحاكي */
+        .mock-app-logo {
+            width: 75px;
+            height: 75px;
+            object-fit: contain;
+            margin-bottom: 8px;
+            background: rgba(81, 57, 150, 0.08);
+            padding: 10px;
+            border-radius: 50%;
+        }
+
+        .mock-app-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+
+        .mock-app-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 25px;
+        }
+
+        .mock-form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mock-field-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            display: block;
+            text-align: right;
+        }
+
+        .mock-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .mock-input {
+            width: 100%;
+            background: white;
+            border: 1.5px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 35px 12px 40px;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            text-align: right;
+            outline: none;
+        }
+
+        .mock-input-icon {
+            position: absolute;
+            right: 12px;
+            color: var(--primary-light);
+            font-size: 0.9rem;
+        }
+
+        /* زر الـ QR المتوهج */
+        .mock-qr-btn {
+            position: absolute;
+            left: 8px;
+            background: var(--primary-glow);
+            border: none;
+            color: var(--primary);
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            animation: mockQrGlow 2s infinite;
+        }
+
+        .mock-submit-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            box-shadow: 0 4px 10px rgba(81, 57, 150, 0.2);
+        }
+
+        .mock-footer {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        /* محاكاة نافذة الكاميرا */
+        .mock-camera-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 32px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .phone-screen.scanning .mock-camera-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mock-camera-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: white;
+            text-align: center;
+        }
+
+        .mock-camera-viewfinder {
+            width: 170px;
+            height: 170px;
+            border: 3px solid var(--gold);
+            border-radius: 16px;
+            position: relative;
+            box-shadow: 0 0 30px rgba(240, 162, 43, 0.4);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1e293b;
+        }
+
+        .mock-camera-viewfinder::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--gold);
+            animation: scanLine 2s linear infinite;
+        }
+
+        .mock-camera-viewfinder i {
+            font-size: 3rem;
+            color: rgba(255,255,255,0.15);
+        }
+
+        .mock-camera-hint {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .mock-camera-close {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        /* نصوص شرح تسجيل الدخول */
+        .login-explanation {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .login-step-card {
+            background: var(--bg-body);
+            border-right: 4px solid var(--gold);
+            padding: 20px;
+            border-radius: var(--radius-sm);
+        }
+
+        .login-step-card h4 {
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .login-step-card p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        /* قسم الميزات التي بداخل التطبيق */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: var(--bg-body);
+            border-radius: var(--radius-md);
+            padding: 30px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: white;
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-light);
+        }
+
+        .feature-icon-wrap {
+            background: var(--primary-glow);
+            color: var(--primary);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin: 0 auto 20px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon-wrap {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .feature-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* حاوية عرض البطاقات الجاهزة للطباعة (تظهر فقط عند الطباعة) */
+        .print-cards-layout {
+            display: none;
+        }
+
+        /* فوتر الصفحة */
+        footer {
+            background-color: var(--text-main);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            border-top-left-radius: var(--radius-lg);
+            border-top-right-radius: var(--radius-lg);
+            margin-top: 60px;
+        }
+
+        .footer-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+        }
+
+        .footer-text {
+            font-size: 0.95rem;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .footer-contacts {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .footer-contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .footer-contact-item i {
+            color: var(--gold);
+        }
+
+        .footer-contact-item a {
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .footer-contact-item a:hover {
+            color: var(--gold);
+        }
+
+        .copyright {
+            font-size: 0.8rem;
+            opacity: 0.5;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 20px;
+        }
+
+        /* تحريكات وحركات */
+        @keyframes scanLine {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                opacity: 0.9;
+                transform: scale(1.1);
+            }
+            80% {
+                transform: scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes mockQrGlow {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(81, 57, 150, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 10px 4px rgba(81, 57, 150, 0.2);
+            }
+        }
+
+        /* ميزة النجم التفاعلي التوضيحي للبطاقات */
+        .tooltip-hotspot {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: var(--gold);
+            color: var(--text-main);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 800;
+            box-shadow: 0 0 0 4px rgba(240, 162, 43, 0.3);
+            cursor: pointer;
+            z-index: 5;
+            animation: pulse 1.5s infinite;
+        }
+
+        .tooltip-hotspot::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 30px;
+            right: 50%;
+            transform: translateX(50%) scale(0);
+            background: #1e293b;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            box-shadow: var(--shadow-md);
+            pointer-events: none;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-weight: 400;
+        }
+
+        .tooltip-hotspot:hover::after {
+            transform: translateX(50%) scale(1);
+        }
+
+        /* ========================================================
+           تنسيقات وإعدادات الطباعة للـ A4 الورقي والملفات
+           ======================================================== */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 15mm 10mm 15mm 10mm;
+            }
+
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                font-size: 11pt !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            header {
+                background: none !important;
+                color: #000000 !important;
+                padding: 15px 0 !important;
+                border-bottom: 2px solid #513996 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                text-align: center !important;
+            }
+
+            header::before, header::after {
+                display: none !important;
+            }
+
+            .logo-wrap {
+                background: none !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin-bottom: 10px !important;
+            }
+
+            .logo-wrap img {
+                width: 70px !important;
+                height: 70px !important;
+                filter: none !important;
+            }
+
+            .main-title {
+                color: #513996 !important;
+                text-shadow: none !important;
+                font-size: 18pt !important;
+                margin-bottom: 5px !important;
+            }
+
+            .subtitle {
+                color: #444444 !important;
+                font-size: 10pt !important;
+            }
+
+            /* إخفاء الأزرار والعناصر التفاعلية وغير المفيدة في الطباعة الورقية */
+            .nav-strip, .flip-hint, .btn-group, .mock-camera-overlay, 
+            .mock-qr-btn, footer, .mock-submit-btn, .mock-footer, .print-btn-float {
+                display: none !important;
+            }
+
+            .container {
+                margin-top: 15px !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+
+            .section-card {
+                box-shadow: none !important;
+                border: none !important;
+                border-bottom: 1.5px dashed #513996 !important;
+                padding: 25px 0 !important;
+                margin-bottom: 20px !important;
+                background: transparent !important;
+                page-break-inside: avoid;
+            }
+
+            .section-header {
+                margin-bottom: 20px !important;
+                padding-bottom: 8px !important;
+                border-color: #513996 !important;
+            }
+
+            .section-icon {
+                background: none !important;
+                color: #513996 !important;
+                box-shadow: none !important;
+                width: auto !important;
+                height: auto !important;
+                font-size: 14pt !important;
+            }
+
+            .section-title {
+                font-size: 14pt !important;
+            }
+
+            /* إخفاء البطاقة التفاعلية الدوارة في الطباعة */
+            .card-view {
+                display: none !important;
+            }
+
+            /* إظهار الوجهين معاً بجانب بعضهما في الطباعة */
+            .print-cards-layout {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 15px !important;
+                margin-top: 15px !important;
+                width: 100% !important;
+                page-break-inside: avoid;
+            }
+
+            .print-cards-layout .card-front,
+            .print-cards-layout .card-back {
+                position: relative !important;
+                transform: none !important;
+                display: flex !important;
+                width: 100% !important;
+                height: 220px !important;
+                border: 1px solid #513996 !important;
+                border-radius: 12px !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+                color: #2b1f48 !important;
+                -webkit-backface-visibility: visible !important;
+                backface-visibility: visible !important;
+                overflow: hidden !important;
+            }
+
+            .print-cards-layout .card-back {
+                background: linear-gradient(135deg, #f6f3fc 0%, #ffffff 100%) !important;
+            }
+
+            .print-cards-layout .card-back-header {
+                border-bottom: 1px solid #e5def3 !important;
+            }
+
+            .print-cards-layout .card-back-header span {
+                color: #2b1f48 !important;
+            }
+
+            .print-cards-layout .card-back-header .badge {
+                background-color: #513996 !important;
+                color: #ffffff !important;
+            }
+
+            .print-cards-layout .card-qr-label {
+                color: #2b1f48 !important;
+            }
+
+            .print-cards-layout .card-back-footer {
+                border-top: 1px solid #e5def3 !important;
+                color: #2b1f48 !important;
+            }
+
+            .print-cards-layout .card-back-footer .phone {
+                color: #513996 !important;
+            }
+
+            .tooltip-hotspot {
+                display: none !important;
+            }
+
+            .card-demo-container, .login-guide-grid {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
+            }
+
+            .download-box {
+                grid-template-columns: 140px 1fr !important;
+                gap: 20px !important;
+            }
+
+            .qr-display-card {
+                padding: 10px !important;
+                border: 1px solid #ccc !important;
+                background: #fff !important;
+            }
+
+            .big-qr-wrap {
+                width: 130px !important;
+                height: 130px !important;
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+            }
+
+            .big-qr-wrap::before {
+                display: none !important;
+            }
+
+            /* تنسيق محاكي الموبايل للطباعة */
+            .phone-mockup {
+                border: 1px solid #ccc !important;
+                height: auto !important;
+                max-width: 100% !important;
+                background: #ffffff !important;
+                padding: 15px !important;
+                box-shadow: none !important;
+                border-radius: 12px !important;
+            }
+
+            .phone-screen {
+                background: #ffffff !important;
+                padding: 0 !important;
+                height: auto !important;
+                border: none !important;
+                border-radius: 0 !important;
+            }
+
+            .phone-notch, .mock-camera-overlay {
+                display: none !important;
+            }
+
+            .mock-input {
+                border: 1px solid #888 !important;
+                background: #fff !important;
+                color: #000 !important;
+            }
+
+            .mock-submit-btn {
+                border: 1px solid #513996 !important;
+                background: #fff !important;
+                color: #513996 !important;
+                box-shadow: none !important;
+            }
+
+            /* ميزات التطبيق ورقة شبكة */
+            .features-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 15px !important;
+            }
+
+            .feature-card {
+                padding: 15px !important;
+                border: 1px solid #ddd !important;
+                background: #ffffff !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+            }
+
+            .feature-icon-wrap {
+                margin-bottom: 10px !important;
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 1.1rem !important;
+                background: #f1eefa !important;
+                color: #513996 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- زر عائم لطباعة الدليل A4 -->
+    <button class="print-btn-float" onclick="window.print()">
+        <i class="fa-solid fa-print"></i> طباعة الدليل الورقي (A4)
+    </button>
+
+    <!-- هيدر الصفحة والترحيب -->
+    <header>
+        <div class="header-container">
+            <div class="logo-wrap">
+                <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار المعهد">
+            </div>
+            <div class="institute-name">
+                <i class="fa-solid fa-graduation-cap"></i> معهد اليمان للعلوم واللغات
+            </div>
+            <h1 class="main-title">دليل استخدام تطبيق المعهد والبطاقة الذكية</h1>
+            <p class="subtitle">كل ما تود معرفته حول كيفية تحميل تطبيق المعهد، الاستفادة من بطاقة الطالب الذكية لتسجيل الدخول الفوري، ومتابعة التحصيل العلمي والمالي للطلاب بسهولة.</p>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="container">
+
+        <!-- شريط التنقل السريع -->
+        <nav class="nav-strip">
+            <a href="#student-card-sec" class="nav-link"><i class="fa-solid fa-id-card"></i> بطاقة الطالب الذكية</a>
+            <a href="#download-sec" class="nav-link"><i class="fa-solid fa-download"></i> تحميل التطبيق</a>
+            <a href="#login-sec" class="nav-link"><i class="fa-solid fa-right-to-bracket"></i> طريقة تسجيل الدخول</a>
+            <a href="#app-features-sec" class="nav-link"><i class="fa-solid fa-circle-info"></i> ميزات التطبيق</a>
+        </nav>
+
+        <!-- القسم الأول: بطاقة الطالب الذكية -->
+        <section class="section-card" id="student-card-sec">
+            <div class="section-header">
+                <div class="section-icon"><i class="fa-solid fa-id-card"></i></div>
+                <h2 class="section-title">بطاقة الطالب الذكية (وجهين)</h2>
+            </div>
+            
+            <p style="margin-bottom: 25px; color: var(--text-muted);">
+                تمنح إدارة معهد اليمان كل طالب بطاقة تعريفية ذكية تحتوي على بياناته الأساسية ورموز استجابة سريعة (QR Codes) فريدة مخصصة للطالب ولوالديه للوصول الفوري إلى حساباتهم في التطبيق.
+            </p>
+
+            <div class="card-demo-container">
+                <!-- المحاكي التفاعلي لقلب البطاقة (للشاشة فقط) -->
+                <div>
+                    <div class="card-view" id="interactive-student-card" onclick="flipCard()">
+                        <div class="card-inner">
+                            
+                            <!-- وجه البطاقة الأمامي -->
+                            <div class="card-front">
+                                <div style="position: absolute; top: 10px; right: 10px;" class="tooltip-hotspot" data-tooltip="هوية المعهد الرسمية">١</div>
+                                <div style="position: absolute; bottom: 10px; left: 10px;" class="tooltip-hotspot" data-tooltip="امسح هنا لتحميل التطبيق مباشرة">٢</div>
+                                
+                                <div class="card-front-content">
+                                    <div class="card-front-info">
+                                        <div class="card-front-header">
+                                            <h3><span class="badge">معهد اليمان</span> بطاقة الطالب</h3>
+                                        </div>
+                                        <div class="card-student-name">محمد بن أحمد اليمان</div>
+                                        <div class="card-info-row">
+                                            <strong>رمز الطالب:</strong>
+                                            <span>202610532</span>
+                                        </div>
+                                        <div class="card-info-row">
+                                            <strong>رمز الأب (الهاتف):</strong>
+                                            <span>0998760194</span>
+                                        </div>
+                                        <div class="card-info-row">
+                                            <strong>رمز الأم (الهاتف):</strong>
+                                            <span>0991234567</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-front-left">
+                                        <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار" class="card-front-logo">
+                                        <div class="card-download-qr">
+                                            <!-- QR كود تحميل التطبيق الافتراضي -->
+                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2Ffu5Voe8s6PSZcG6syBbbZQ.apk" alt="QR التحميل">
+                                        </div>
+                                        <span class="qr-caption">تحميل التطبيق</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ظهر البطاقة الخلفي -->
+                            <div class="card-back">
+                                <div style="position: absolute; top: 15px; left: 15px;" class="tooltip-hotspot" data-tooltip="رموز الدخول السريع الخاصة بالطالب والأب والأم">٣</div>
+                                
+                                <div class="card-back-header">
+                                    <span>تسجيل الدخول عبر الـ</span>
+                                    <span class="badge">QR Code</span>
+                                </div>
+
+                                <div class="card-qr-grid">
+                                    <!-- QR الطالب -->
+                                    <div class="card-qr-box">
+                                        <div class="card-qr-wrapper">
+                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D202610532%26r%3Dstudent" alt="طالب">
+                                            <span class="card-qr-icon">
+                                                <i class="fa-solid fa-graduation-cap" style="font-size: 9px; color: var(--primary);"></i>
+                                            </span>
+                                        </div>
+                                        <span class="card-qr-label">الطالب</span>
+                                    </div>
+
+                                    <!-- QR الأب -->
+                                    <div class="card-qr-box">
+                                        <div class="card-qr-wrapper">
+                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0998760194%26r%3Dfather" alt="أب">
+                                            <span class="card-qr-icon">
+                                                <i class="fa-solid fa-user-tie" style="font-size: 9px; color: var(--primary);"></i>
+                                            </span>
+                                        </div>
+                                        <span class="card-qr-label">الأب</span>
+                                    </div>
+
+                                    <!-- QR الأم -->
+                                    <div class="card-qr-box">
+                                        <div class="card-qr-wrapper">
+                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0991234567%26r%3Dmother" alt="أم">
+                                            <span class="card-qr-icon">
+                                                <i class="fa-solid fa-person-dress" style="font-size: 9px; color: var(--primary);"></i>
+                                            </span>
+                                        </div>
+                                        <span class="card-qr-label">الأم</span>
+                                    </div>
+                                </div>
+
+                                <div class="card-back-footer">
+                                    للاستفسار والدعم، يرجى التواصل مع الدعم الفني للمعهد على الرقم:<br>
+                                    <span class="phone">0998760194</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="flip-hint">
+                        <i class="fa-solid fa-arrows-rotate"></i> انقر فوق البطاقة لرؤية الوجه الآخر
+                    </div>
+                </div>
+
+                <!-- شبكة البطاقات المسطحة (تظهر فقط عند طباعة الورقة A4 لمنع مشاكل التحريك) -->
+                <div class="print-cards-layout">
+                    <!-- وجه البطاقة الأمامي للطباعة -->
+                    <div class="card-front">
+                        <div class="card-front-content">
+                            <div class="card-front-info">
+                                <div class="card-front-header">
+                                    <h3><span class="badge">معهد اليمان</span> بطاقة الطالب</h3>
+                                </div>
+                                <div class="card-student-name">محمد بن أحمد اليمان</div>
+                                <div class="card-info-row">
+                                    <strong>رمز الطالب:</strong>
+                                    <span>202610532</span>
+                                </div>
+                                <div class="card-info-row">
+                                    <strong>رمز الأب (الهاتف):</strong>
+                                    <span>0998760194</span>
+                                </div>
+                                <div class="card-info-row">
+                                    <strong>رمز الأم (الهاتف):</strong>
+                                    <span>0991234567</span>
+                                </div>
+                            </div>
+                            <div class="card-front-left">
+                                <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار" class="card-front-logo">
+                                <div class="card-download-qr">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2Ffu5Voe8s6PSZcG6syBbbZQ.apk" alt="QR التحميل">
+                                </div>
+                                <span class="qr-caption">تحميل التطبيق</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ظهر البطاقة للطباعة -->
+                    <div class="card-back">
+                        <div class="card-back-header">
+                            <span>تسجيل الدخول عبر الـ</span>
+                            <span class="badge">QR Code</span>
+                        </div>
+                        <div class="card-qr-grid">
+                            <div class="card-qr-box">
+                                <div class="card-qr-wrapper">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D202610532%26r%3Dstudent" alt="طالب">
+                                </div>
+                                <span class="card-qr-label">الطالب</span>
+                            </div>
+                            <div class="card-qr-box">
+                                <div class="card-qr-wrapper">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0998760194%26r%3Dfather" alt="أب">
+                                </div>
+                                <span class="card-qr-label">الأب</span>
+                            </div>
+                            <div class="card-qr-box">
+                                <div class="card-qr-wrapper">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0991234567%26r%3Dmother" alt="أم">
+                                </div>
+                                <span class="card-qr-label">الأم</span>
+                            </div>
+                        </div>
+                        <div class="card-back-footer">
+                            للاستفسار والدعم، يرجى التواصل مع الدعم الفني على الرقم: <span class="phone">0998760194</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- نصوص الشرح والتفصيل للبطاقة -->
+                <div class="card-explanation">
+                    <div class="exp-item">
+                        <div class="exp-number">١</div>
+                        <div class="exp-content">
+                            <h4>البيانات التعريفية الأساسية (الوجه الأمامي)</h4>
+                            <p>يحتوي الوجه الأمامي للبطاقة على اسم الطالب، ورقمه الفريد في المعهد، بالإضافة إلى أرقام هواتف الأب والأم المسجلة في قاعدة البيانات والتي تعتبر كلمات مرورهم الافتراضية.</p>
+                        </div>
+                    </div>
+
+                    <div class="exp-item gold-border">
+                        <div class="exp-number">٢</div>
+                        <div class="exp-content">
+                            <h4>رمز QR الخاص بتحميل التطبيق (الوجه الأمامي)</h4>
+                            <p>يوجد رمز استجابة سريع في الزاوية اليسرى السفلية. بمجرد مسحه بكاميرا هاتفك المحمول، سيقوم بتوجيهك فوراً إلى رابط تحميل ملف التطبيق لتثبيته في ثوانٍ معدودة.</p>
+                        </div>
+                    </div>
+
+                    <div class="exp-item">
+                        <div class="exp-number">٣</div>
+                        <div class="exp-content">
+                            <h4>رموز الدخول الفوري السريعة (الوجه الخلفي)</h4>
+                            <p>يحتوي ظهر البطاقة على ثلاثة رموز QR منفصلة. كل رمز مخصص لشخص (الطالب، الأب، أو الأم). مسح الرمز من داخل تطبيق الهاتف يتيح تسجيل دخول فوري ومباشر إلى حسابك المخصص دون الحاجة لكتابة اسم مستخدم أو كلمة مرور.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- القسم الثاني: كيفية تحميل التطبيق -->
+        <section class="section-card" id="download-sec">
+            <div class="section-header">
+                <div class="section-icon"><i class="fa-solid fa-download"></i></div>
+                <h2 class="section-title">تحميل تطبيق الهاتف المحمول</h2>
+            </div>
+
+            <div class="download-box">
+                <!-- عرض الـ QR الكبير المخصص للتحميل -->
+                <div class="qr-display-card">
+                    <div class="big-qr-wrap">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2Ffu5Voe8s6PSZcG6syBbbZQ.apk" alt="QR التحميل الكبير">
+                    </div>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary);">امسح الكود بكاميرا هاتفك للتحميل</span>
+                </div>
+
+                <!-- خطوات ورابط التحميل المباشر -->
+                <div class="download-info">
+                    <h3>قم بتثبيت التطبيق على جهازك الآن</h3>
+                    <p>يتيح لك تطبيق معهد اليمان للهواتف المحمولة متابعة كل ما يخص الطالب لحظة بلحظة وبواجهة مستخدم عربية غاية في السهولة والسلاسة.</p>
+                    
+                    <ul class="download-steps">
+                        <li>
+                            <i class="fa-solid fa-circle-check"></i>
+                            <strong>الخطوة الأولى:</strong> وجه كاميرا هاتفك المحمول نحو الرمز المقابل (أو الرمز الموجود على بطاقتك).
+                        </li>
+                        <li>
+                            <i class="fa-solid fa-circle-check"></i>
+                            <strong>الخطوة الثانية:</strong> اضغط على الرابط المنبثق لتنزيل ملف التثبيت الخاص بالتطبيق (ملف APK للأندرويد).
+                        </li>
+                        <li>
+                            <i class="fa-solid fa-circle-check"></i>
+                            <strong>الخطوة الثالثة:</strong> افتح الملف الذي قمت بتحميله وقم بتثبيته (إذا ظهر لك تحذير حماية، قم بالسماح بالتثبيت نظراً لأن التطبيق يتم تحميله مباشرة خارج المتجر الرسمي).
+                        </li>
+                    </ul>
+
+                    <div class="btn-group">
+                        <a href="https://expo.dev/artifacts/eas/fu5Voe8s6PSZcG6syBbbZQ.apk" class="btn btn-primary">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> تحميل التطبيق مباشرة (APK)
+                        </a>
+                        <button onclick="document.getElementById('interactive-student-card').scrollIntoView();" class="btn btn-outline">
+                            <i class="fa-solid fa-qrcode"></i> شاهد الـ QR على البطاقة
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- القسم الثالث: كيفية تسجيل الدخول والتسجيل عبر الـ QR -->
+        <section class="section-card" id="login-sec">
+            <div class="section-header">
+                <div class="section-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
+                <h2 class="section-title">طريقة تسجيل الدخول الفوري بالتطبيق</h2>
+            </div>
+
+            <div class="login-guide-grid">
+                <!-- محاكي الهاتف الذكي مع شاشة تسجيل الدخول -->
+                <div>
+                    <div class="phone-mockup">
+                        <div class="phone-notch">
+                            <div class="phone-speaker"></div>
+                        </div>
+                        <div class="phone-screen" id="app-screen">
+                            
+                            <!-- شاشة الدخول للمحاكي -->
+                            <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="App Logo" class="mock-app-logo">
+                            <div class="mock-app-title">معهد اليمان</div>
+                            <div class="mock-app-subtitle">أهلاً بك في بوابة الطالب</div>
+                            
+                            <div class="mock-form">
+                                <div>
+                                    <span class="mock-field-label">اسم المستخدم أو الرقم</span>
+                                    <div class="mock-input-wrap">
+                                        <i class="fa-solid fa-user mock-input-icon"></i>
+                                        <input type="text" class="mock-input" id="mock-user" placeholder="اكتب اسم المستخدم" readonly value="محمد بن أحمد اليمان">
+                                        <button class="mock-qr-btn" onclick="toggleMockCamera(true)" title="تسجيل الدخول عبر QR">
+                                            <i class="fa-solid fa-qrcode"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="mock-field-label">كلمة المرور</span>
+                                    <div class="mock-input-wrap">
+                                        <i class="fa-solid fa-lock mock-input-icon"></i>
+                                        <input type="password" class="mock-input" id="mock-pass" placeholder="••••••••" readonly value="202610532">
+                                    </div>
+                                </div>
+                                <button class="mock-submit-btn" onclick="simulateLogin()">تسجيل الدخول</button>
+                            </div>
+                            <div class="mock-footer">بوابة الدخول الذكية السريعة</div>
+
+                            <!-- واجهة محاكاة الكاميرا والمسح -->
+                            <div class="mock-camera-overlay" id="mock-camera">
+                                <div class="mock-camera-title">قم بتوجيه الكاميرا إلى الـ QR على ظهر البطاقة</div>
+                                <div class="mock-camera-viewfinder">
+                                    <i class="fa-solid fa-camera"></i>
+                                </div>
+                                <div class="mock-camera-hint">وجه المربع نحو كود الطالب أو الأب أو الأم لتسجيل الدخول تلقائياً</div>
+                                <button class="mock-camera-close" onclick="toggleMockCamera(false)">إلغاء المسح</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- الشرح والخطوات التفصيلية -->
+                <div class="login-explanation">
+                    <h3>كيف تسجل دخولك بضغطة زر واحدة؟</h3>
+                    <p style="color: var(--text-muted);">يدعم التطبيق ميزة تسجيل الدخول الفوري دون الحاجة لكتابة اسم المستخدم وكلمة المرور يدوياً عن طريق قراءة الـ QR:</p>
+
+                    <div class="login-step-card">
+                        <h4>
+                            <i class="fa-solid fa-1"></i>
+                            الخطوة الأولى: افتح التطبيق وانقر زر الـ QR
+                        </h4>
+                        <p>عند فتح واجهة تسجيل الدخول في التطبيق، ستجد زر QR مخصصاً بجانب حقل "اسم المستخدم" (كما هو موضح في المحاكي المقابل). اضغط عليه لفتح الكاميرا الداخلية للتطبيق.</p>
+                    </div>
+
+                    <div class="login-step-card">
+                        <h4>
+                            <i class="fa-solid fa-2"></i>
+                            الخطوة الثانية: امسح الرمز المخصص لك على ظهر البطاقة
+                        </h4>
+                        <p>اقلب بطاقة الطالب الذكية إلى وجهها الخلفي. وجه كاميرا الهاتف نحو الرمز المخصص لدورك (الطالب أو الأب أو الأم).</p>
+                    </div>
+
+                    <div class="login-step-card">
+                        <h4>
+                            <i class="fa-solid fa-3"></i>
+                            الخطوة الثالثة: تسجيل دخول وتوجيه فوري
+                        </h4>
+                        <p>بمجرد التقاط الرمز، سيتعرف التطبيق على الحساب تلقائياً، ويقوم بملء البيانات وسيقوم بتسجيل دخولك وتوجيهك إلى لوحة التحكم الخاصة بك مباشرة دون الحاجة لأي إدخال يدوي!</p>
+                    </div>
+
+                    <div class="login-step-card" style="border-right-color: var(--primary);">
+                        <h4>
+                            <i class="fa-solid fa-circle-info"></i>
+                            ملاحظة الدخول اليدوي:
+                        </h4>
+                        <p>يمكنك دائماً تسجيل الدخول يدوياً بكتابة اسم الطالب أو رقمه في حقل "اسم المستخدم"، ورقم هاتفك المسجل لدينا (أو رقم الطالب) في حقل "كلمة المرور".</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- القسم الرابع: ماذا يوجد داخل التطبيق؟ -->
+        <section class="section-card" id="app-features-sec">
+            <div class="section-header">
+                <div class="section-icon"><i class="fa-solid fa-circle-info"></i></div>
+                <h2 class="section-title">ماذا يقدم التطبيق للطالب وولي الأمر؟</h2>
+            </div>
+            
+            <p style="text-align: center; max-width: 800px; margin: 0 auto 30px; color: var(--text-muted);">
+                تطبيق معهد اليمان هو وسيلة الاتصال والربط الكاملة بين إدارة المعهد، الكادر التدريسي، والطلاب وأولياء أمورهم لمتابعة المستويات والخدمات التعليمية.
+            </p>
+
+            <div class="features-grid">
+                <!-- الميزة الأولى -->
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <i class="fa-solid fa-clipboard-user"></i>
+                    </div>
+                    <h3>مراقبة الحضور والغياب</h3>
+                    <p>تسجيل حضور وغياب الطالب يومياً وفي كل حصة دراسية مع إرسال إشعارات فورية لولي الأمر عند حضور الطالب أو خروجه من المعهد.</p>
+                </div>
+
+                <!-- الميزة الثانية -->
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <h3>الامتحانات والدرجات</h3>
+                    <p>عرض نتائج الاختبارات الشهرية والامتحانات الدورية والنهائية فور تصحيحها، مع رسم بياني يوضح تقدم مستوى الطالب في كل مادة دراسية.</p>
+                </div>
+
+                <!-- الميزة الثالثة -->
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                    <h3>الحسابات والمدفوعات</h3>
+                    <p>كشف مالي شفاف يوضح أقساط الدورة المستحقة، المبالغ المدفوعة وتاريخها، المتبقي بذمة الطالب، وإيصالات القبض الإلكترونية.</p>
+                </div>
+
+                <!-- الميزة الرابعة -->
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <i class="fa-solid fa-bullhorn"></i>
+                    </div>
+                    <h3>التنبيهات والإعلانات الرسمية</h3>
+                    <p>استلام إعلانات المعهد الرسمية وتنبيهات الإدارة مباشرة عبر إشعارات الهاتف التلقائية (Push Notifications) للبقاء على اطلاع دائم بقرارات المعهد.</p>
+                </div>
+
+                <!-- الميزة الخامسة -->
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <h3>جدول الحصص والبرنامج الأسبوعي</h3>
+                    <p>معرفة جدول الحصص اليومي، أوقات المحاضرات، أسماء قاعات الدراسة، والمدرسين الموكلين لتدريس كل مادة بشكل دقيق.</p>
+                </div>
+
+                <!-- الميزة السادسة -->
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </div>
+                    <h3>سجل التنبيهات والعقوبات</h3>
+                    <p>إشعار أولياء الأمور بأي تنبيهات سلوكية أو إدارية أو أكاديمية تخص الطالب لضمان تواصل وتوجيه وتعديل سلوك مشترك بين المعهد والمنزل.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- فوتر الصفحة -->
+    <footer>
+        <div class="footer-container">
+            <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار المعهد" class="footer-logo">
+            <h3 style="margin-bottom: 10px; color: var(--gold);">معهد اليمان للعلوم واللغات</h3>
+            <p class="footer-text">الرائدون في تقديم أفضل الخدمات التعليمية والمناهج المتقدمة مع الربط البرمجي الذكي لمتابعة الطلاب بأحدث التقنيات.</p>
+            
+            <div class="footer-contacts">
+                <div class="footer-contact-item">
+                    <i class="fa-solid fa-phone"></i>
+                    <span>للاستفسار والدعم الفني:</span>
+                    <a href="tel:0998760194">0998760194</a>
+                </div>
+                <div class="footer-contact-item">
+                    <i class="fa-solid fa-globe"></i>
+                    <span>بوابة الويب:</span>
+                    <a href="https://yaman2.pythonanywhere.com/" target="_blank">yaman2.pythonanywhere.com</a>
+                </div>
+            </div>
+
+            <p class="copyright">معهد اليمان - جميع الحقوق محفوظة &copy; <span id="current-year"></span></p>
+        </div>
+    </footer>
+
+    <!-- سكربت جافا سكربت تفاعلي للمحاكاة والتحكم -->
+    <script>
+        // تعيين السنة الحالية في الفوتر تلقائياً
+        document.getElementById('current-year').innerText = new Date().getFullYear();
+
+        // دالة لقلب بطاقة الطالب التفاعلية
+        function flipCard() {
+            const card = document.getElementById('interactive-student-card');
+            card.classList.toggle('flipped');
+        }
+
+        // دالة فتح/إغلاق كاميرا المحاكاة في الموبايل
+        function toggleMockCamera(show) {
+            const screen = document.getElementById('app-screen');
+            const camera = document.getElementById('mock-camera');
+            if (show) {
+                screen.classList.add('scanning');
+                // محاكاة التقاط الكود بعد ثانيتين
+                setTimeout(() => {
+                    if (screen.classList.contains('scanning')) {
+                        // ملء الحقول تلقائياً
+                        document.getElementById('mock-user').value = "محمد بن أحمد اليمان";
+                        document.getElementById('mock-pass').value = "202610532";
+                        // إغلاق الكاميرا وتنبيه
+                        toggleMockCamera(false);
+                        alert("تم التقاط رمز الـ QR بنجاح! تم تعبئة البيانات تلقائياً.");
+                    }
+                }, 2000);
+            } else {
+                screen.classList.remove('scanning');
+            }
+        }
+
+        // دالة محاكاة الدخول
+        function simulateLogin() {
+            alert("تم تسجيل الدخول بنجاح! جاري الانتقال إلى لوحة تحكم الطالب...");
+        }
+
+        // تفاعل شريط التنقل لتحديد القسم النشط أثناء التمرير
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= (sectionTop - 150)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
