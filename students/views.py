@@ -1725,6 +1725,8 @@ def update_student_discount(request, student_id):
         from accounts.models import Studentenrollment
 
         enrollment_id = request.POST.get('enrollment_id')
+        if enrollment_id:
+            enrollment_id = str(enrollment_id).replace('.', '').replace(',', '').strip()
         discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
         discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
         discount_reason = request.POST.get('discount_reason', '')
@@ -1788,6 +1790,8 @@ def update_enrollment_subjects(request, student_id):
     """تعديل المواد المسجلة للدورة المحددة"""
     student = get_object_or_404(Student, id=student_id)
     enrollment_id = request.POST.get('enrollment_id')
+    if enrollment_id:
+        enrollment_id = str(enrollment_id).replace('.', '').replace(',', '').strip()
     subjects_note = request.POST.get('subjects_note', 'كامل المواد')
 
     if not enrollment_id:
@@ -2239,6 +2243,8 @@ def withdraw_student(request, student_id):
         
         # 3. جلب التسجيل
         enrollment_id = request.POST.get('enrollment_id')
+        if enrollment_id:
+            enrollment_id = str(enrollment_id).replace('.', '').replace(',', '').strip()
         print(f"📌 enrollment_id: {enrollment_id}")
         
         if not enrollment_id:
@@ -2542,6 +2548,8 @@ def refund_student(request, student_id):
     
     try:
         enrollment_id = request.POST.get('enrollment_id')
+        if enrollment_id:
+            enrollment_id = str(enrollment_id).replace('.', '').replace(',', '').strip()
         refund_amount = Decimal(request.POST.get('refund_amount', '0'))
         refund_reason = request.POST.get('refund_reason', '')
         
