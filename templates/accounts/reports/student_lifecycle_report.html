@@ -1,0 +1,818 @@
+{% extends "accounts/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}تقرير القيود المالية ودورة حياة الطالب المالية{% endblock %}
+
+{% block extra_css %}
+<!-- Cairo font for typography -->
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<!-- FontAwesome icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    /* Global report viewport */
+    .report-viewport {
+        background-color: #f8fafc;
+        padding: 2rem 0;
+        direction: rtl;
+        font-family: 'Cairo', sans-serif !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2rem;
+    }
+    
+    /* A4 Containers definition for Screen View */
+    .a4-container {
+        width: 210mm;
+        min-height: 297mm;
+        background-color: #ffffff;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 40px 50px;
+        box-sizing: border-box;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+        border-radius: 4px;
+    }
+
+    /* COVER PAGE STYLES */
+    .right-curve-bg {
+        position: absolute;
+        top: 0;
+        right: -200px;
+        width: 500px;
+        height: 100%;
+        background-color: #04152d;
+        border-bottom-left-radius: 65% 50%;
+        border-top-left-radius: 20% 50%;
+        z-index: 1;
+    }
+
+    .orange-border-line {
+        position: absolute;
+        top: 0;
+        right: -185px;
+        width: 500px;
+        height: 100%;
+        border-left: 12px solid #e07a2c;
+        border-bottom-left-radius: 64% 50%;
+        border-top-left-radius: 21% 50%;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .cover-left-content {
+        position: absolute;
+        left: 50px;
+        top: 50px;
+        width: 440px;
+        bottom: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        z-index: 3;
+        direction: rtl;
+    }
+
+    .cover-header-section {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .cover-divider-line {
+        width: 1.5px;
+        height: 60px;
+        background-color: #cbd5e1;
+        position: relative;
+    }
+
+    .cover-divider-line::after {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background-color: #e07a2c;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+    }
+
+    .logo-text {
+        font-size: 26px;
+        font-weight: 900;
+        color: #112d4e;
+    }
+
+    .logo-text span {
+        color: #e07a2c;
+    }
+
+    .cover-main-content {
+        margin-top: 50px;
+    }
+
+    .cover-main-title {
+        font-size: 42px;
+        font-weight: 900;
+        color: #112d4e !important;
+        line-height: 1.2;
+        margin-bottom: 5px;
+    }
+
+    .cover-sub-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #e07a2c !important;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+
+    .cover-description {
+        font-size: 14px;
+        color: #475569 !important;
+        font-weight: 600;
+        line-height: 1.6;
+    }
+
+    .cover-employee-card {
+        background: linear-gradient(135deg, #ffffff, #f8fafc);
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 25px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.01);
+        margin-top: 30px;
+    }
+
+    .employee-card-avatar {
+        width: 75px;
+        height: 75px;
+        border-radius: 50%;
+        background-color: #eff6ff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 34px;
+        color: #112d4e;
+        border: 2px solid #e2e8f0;
+    }
+
+    .employee-card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-grow: 1;
+    }
+
+    .employee-card-info-item {
+        font-size: 13px;
+        color: #334155;
+    }
+
+    .info-item-label {
+        font-weight: 700;
+        color: #64748b;
+    }
+
+    .info-item-value {
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .cover-footer-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 20px;
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .cover-orange-dash {
+        display: inline-block;
+        width: 15px;
+        height: 3px;
+        background-color: #e07a2c;
+        vertical-align: middle;
+        margin: 0 5px;
+    }
+
+    /* CONTENT PAGE STYLES */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+    }
+
+    .page-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #112d4e;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .page-title i {
+        color: #e07a2c;
+    }
+
+    .info-card-box {
+        background-color: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+    }
+
+    .info-card-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .info-card-item {
+        font-size: 13px;
+    }
+
+    .info-card-label {
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .info-card-value {
+        color: #1e293b;
+        font-weight: 800;
+    }
+
+    /* TIMELINE STYLES */
+    .timeline-container {
+        position: relative;
+        margin: 30px 0;
+        padding-right: 30px;
+    }
+
+    .timeline-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 9px;
+        width: 2px;
+        height: 100%;
+        background-color: #e2e8f0;
+    }
+
+    .timeline-step {
+        position: relative;
+        margin-bottom: 35px;
+    }
+
+    .timeline-badge {
+        position: absolute;
+        top: 2px;
+        right: -30px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #ffffff;
+        border: 3px solid #cbd5e1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 5;
+        transition: all 0.3s ease;
+    }
+
+    .timeline-step.active .timeline-badge {
+        border-color: #e07a2c;
+        background-color: #e07a2c;
+    }
+
+    .timeline-step.success .timeline-badge {
+        border-color: #10b981;
+        background-color: #10b981;
+    }
+
+    .timeline-content {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.01);
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 8px;
+    }
+
+    .timeline-title {
+        font-size: 15px;
+        font-weight: 800;
+        color: #1e293b;
+    }
+
+    .timeline-date {
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+
+    /* TABLE STYLES */
+    .journal-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+        font-size: 12px;
+        text-align: right;
+    }
+
+    .journal-table th {
+        background-color: #f1f5f9;
+        color: #475569;
+        font-weight: 700;
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .journal-table td {
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+        color: #334155;
+    }
+
+    .debit-val {
+        color: #2563eb;
+        font-weight: 700;
+    }
+
+    .credit-val {
+        color: #d97706;
+        font-weight: 700;
+    }
+
+    .summary-card {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 25px;
+        margin-top: 30px;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        text-align: center;
+    }
+
+    .summary-val {
+        font-size: 20px;
+        font-weight: 900;
+        color: #e07a2c;
+        margin-top: 5px;
+    }
+
+    /* FOOTER SLANT */
+    .page-footer-slant-row {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 15px;
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+
+    .signatures-block {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 40px;
+        border-top: 1px dashed #cbd5e1;
+        padding-top: 20px;
+    }
+
+    .signature-item {
+        text-align: center;
+        width: 200px;
+    }
+
+    .signature-line {
+        width: 150px;
+        height: 1px;
+        background-color: #cbd5e1;
+        margin: 15px auto 5px auto;
+    }
+
+    .badge-type {
+        font-size: 10px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 700;
+    }
+
+    .badge-enrollment { background-color: #dbeafe; color: #1e40af; }
+    .badge-payment { background-color: #d1fae5; color: #065f46; }
+    .badge-adjustment { background-color: #fef3c7; color: #92400e; }
+    .badge-withdrawal { background-color: #fee2e2; color: #991b1b; }
+
+    /* Floating action buttons */
+    .action-bar {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+    }
+
+    @media print {
+        body {
+            background-color: #ffffff;
+            padding: 0;
+        }
+        .action-bar {
+            display: none !important;
+        }
+        header, footer, nav, .sidebar {
+            display: none !important;
+        }
+        .a4-container {
+            box-shadow: none;
+            margin: 0;
+            page-break-after: always;
+            border-radius: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="action-bar">
+    <button onclick="window.print();" class="btn btn-primary btn-lg shadow">
+        <i class="fas fa-print"></i> طباعة التقرير / Print
+    </button>
+    {% if demo_mode %}
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary btn-lg shadow">
+            <i class="fas fa-arrow-left"></i> لوحة التحكم
+        </a>
+    {% else %}
+        <a href="{% url 'students:student_profile' student.id %}" class="btn btn-secondary btn-lg shadow">
+            <i class="fas fa-arrow-left"></i> الملف الشخصي للطالب
+        </a>
+    {% endif %}
+</div>
+
+<div class="report-viewport">
+    
+    <!-- ================= PAGE 1: COVER PAGE ================= -->
+    <div class="a4-container">
+        <div class="right-curve-bg"></div>
+        <div class="orange-border-line"></div>
+        
+        <div class="cover-left-content">
+            <div class="cover-header-section">
+                <div class="logo-text">معهد <span>اليمان</span></div>
+                <div class="cover-divider-line"></div>
+                <div style="font-weight: 700; font-size: 14px; color: #475569;">قسم الحسابات والتدقيق</div>
+            </div>
+            
+            <div class="cover-main-content">
+                <h1 class="cover-main-title">دورة الحياة المالية للطالب</h1>
+                <h2 class="cover-sub-title">والقيود المحاسبية التفصيلية</h2>
+                <p class="cover-description">
+                    تقرير محاسبي متكامل يوضح توالي القيود المالية وحركة الحسابات الدائنة والمدينة المتأثرة بعمليات الطالب من التسجيل والقبض والخصم وحتى الانسحاب والردود المالية.
+                </p>
+            </div>
+            
+            <div class="cover-employee-card">
+                <div class="employee-card-avatar">
+                    <i class="fa-solid fa-user-tie"></i>
+                </div>
+                <div class="employee-card-info">
+                    <div class="employee-card-info-item">
+                        <span class="info-item-label">اسم الطالب:</span>
+                        <span class="info-item-value">{{ student.full_name }}</span>
+                    </div>
+                    {% if not demo_mode %}
+                    <div class="employee-card-info-item">
+                        <span class="info-item-label">الفرع الدراسي:</span>
+                        <span class="info-item-value">{{ student.get_branch_display|default:student.branch }}</span>
+                    </div>
+                    <div class="employee-card-info-item">
+                        <span class="info-item-label">تاريخ التسجيل:</span>
+                        <span class="info-item-value">{{ student.registration_date|date:"Y/m/d" }}</span>
+                    </div>
+                    {% else %}
+                    <div class="employee-card-info-item">
+                        <span class="info-item-label">الدورة المسجلة:</span>
+                        <span class="info-item-value">{{ course.name }}</span>
+                    </div>
+                    <div class="employee-card-info-item">
+                        <span class="info-item-label">تاريخ المحاكاة:</span>
+                        <span class="info-item-value">{{ report_date|date:"Y/m/d" }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="cover-footer-section">
+                <div>منظومة الإدارة المالية الذكية</div>
+                <div><span class="cover-orange-dash"></span> معهد اليمان التعليمي <span class="cover-orange-dash"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= DEMO MODE DETAILS ================= -->
+    {% if demo_mode %}
+    <!-- ================= PAGE 2: LIFE CYCLE TIMELINE (DEMO) ================= -->
+    <div class="a4-container">
+        <div class="page-header">
+            <div class="page-title">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>الخط الزمني للعمليات المالية للطالب (مثال تجريبي)</span>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: #64748b;">الصفحة 2 من 3</div>
+        </div>
+        
+        <div class="info-card-box">
+            <div style="font-weight: 700; margin-bottom: 8px; color: #1e293b;"><i class="fa-solid fa-info-circle"></i> ملخص حالة الدورة المالية للطالب:</div>
+            <div class="info-card-grid">
+                <div class="info-card-item"><span class="info-card-label">سعر الدورة الأساسي:</span> <span class="info-card-value">{{ course.price|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">الحسم المطبق ({{ course.discount_percent|floatformat:0 }}%):</span> <span class="info-card-value">{{ course.discount_amount|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">المبلغ الصافي المطلق:</span> <span class="info-card-value">{{ course.net_price|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">المبلغ المدفوع فعلياً:</span> <span class="info-card-value">{{ course.amount_paid|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">المسترد عند الانسحاب:</span> <span class="info-card-value">{{ course.refund_amount|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">الإيراد الفعلي للمركز:</span> <span class="info-card-value" style="color: #10b981;">{{ course.kept_amount|floatformat:0 }} ل.س</span></div>
+            </div>
+        </div>
+
+        <div class="timeline-container">
+            {% for step in steps|slice:":3" %}
+            <div class="timeline-step success">
+                <div class="timeline-badge"></div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-title">{{ step.title }}</span>
+                        <span class="badge-type {{ step.badge_class }}">{{ step.type_text }}</span>
+                    </div>
+                    <p style="font-size: 11px; color: #475569; margin: 0 0 10px 0;">
+                        {{ step.desc }}
+                    </p>
+                    <table class="journal-table">
+                        <thead>
+                            <tr>
+                                <th width="15%">رمز الحساب</th>
+                                <th width="35%">اسم الحساب</th>
+                                <th width="18%">مدين (DR)</th>
+                                <th width="18%">دائن (CR)</th>
+                                <th>البيان والملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in step.transactions %}
+                            <tr>
+                                <td>{{ tx.code }}</td>
+                                <td>{{ tx.name }}</td>
+                                <td class="debit-val">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td class="credit-val">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td>{{ tx.desc }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="page-footer-slant-row">
+            <div>منظومة الإدارة الحسابية - معهد اليمان التعليمي</div>
+            <div>الصفحة الثانية</div>
+        </div>
+    </div>
+
+    <!-- ================= PAGE 3: WITHDRAWAL & SUMS (DEMO) ================= -->
+    <div class="a4-container">
+        <div class="page-header">
+            <div class="page-title">
+                <i class="fa-solid fa-user-minus"></i>
+                <span>عملية السحب والتسويات الختامية (مثال تجريبي)</span>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: #64748b;">الصفحة 3 من 3</div>
+        </div>
+
+        <div class="timeline-container" style="margin-top: 10px;">
+            {% with step=steps.3 %}
+            <div class="timeline-step active">
+                <div class="timeline-badge"></div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-title">{{ step.title }}</span>
+                        <span class="badge-type {{ step.badge_class }}">{{ step.type_text }}</span>
+                    </div>
+                    <p style="font-size: 11px; color: #475569; margin: 0 0 10px 0;">
+                        {{ step.desc }}
+                    </p>
+                    <table class="journal-table">
+                        <thead>
+                            <tr>
+                                <th width="15%">رمز الحساب</th>
+                                <th width="35%">اسم الحساب</th>
+                                <th width="18%">مدين (DR)</th>
+                                <th width="18%">دائن (CR)</th>
+                                <th>البيان والملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in step.transactions %}
+                            <tr>
+                                <td>{{ tx.code }}</td>
+                                <td>{{ tx.name }}</td>
+                                <td class="debit-val">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td class="credit-val">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td>{{ tx.desc }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endwith %}
+        </div>
+
+        <div class="summary-card">
+            <div style="font-weight: 800; font-size: 14px; margin-bottom: 15px; text-align: center; border-bottom: 1px solid #475569; padding-bottom: 10px;">
+                الأرصدة الختامية لحسابات الطالب بعد التسوية النهائية
+            </div>
+            <div class="summary-grid">
+                <div>
+                    <div style="font-size: 11px; color: #cbd5e1;">ذمة الطالب (1251)</div>
+                    <div class="summary-val">0 ل.س</div>
+                    <div style="font-size: 9px; color: #94a3b8;">تم تصفير الذمة بالكامل</div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #cbd5e1;">السيولة بالصندوق (1210)</div>
+                    <div class="summary-val" style="color: #60a5fa;">+{{ course.kept_amount|floatformat:0 }} ل.س</div>
+                    <div style="font-size: 9px; color: #94a3b8;">صافي المقبوض المتبقي بالصندوق</div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: #cbd5e1;">إيرادات المركز المحققة (4100)</div>
+                    <div class="summary-val" style="color: #34d399;">{{ course.kept_amount|floatformat:0 }} ل.س</div>
+                    <div style="font-size: 9px; color: #94a3b8;">صافي الإيراد الفعلي المحتفظ به</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="signatures-block">
+            <div class="signature-item">
+                <div style="font-weight: 700; font-size: 13px; color: #475569;">المحاسب المسؤول</div>
+                <div class="signature-line"></div>
+                <div style="font-weight: 800; font-size: 12px; color: #1e293b;">أحمد محاسب المركز</div>
+            </div>
+            <div class="signature-item">
+                <div style="font-weight: 700; font-size: 13px; color: #475569;">مدير القسم المالي</div>
+                <div class="signature-line"></div>
+                <div style="font-weight: 800; font-size: 12px; color: #1e293b;">Thaaer Almasri</div>
+            </div>
+        </div>
+
+        <div class="page-footer-slant-row">
+            <div>منظومة الإدارة الحسابية - معهد اليمان التعليمي</div>
+            <div>الصفحة الثالثة والأخيرة</div>
+        </div>
+    </div>
+    {% else %}
+    
+    <!-- ================= REAL STUDENT DATA DETAILS ================= -->
+    {% for item in enrollments_data %}
+    <div class="a4-container">
+        <div class="page-header">
+            <div class="page-title">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>تفاصيل دورة: {{ item.course.name }}</span>
+            </div>
+            <div style="font-size: 11px; font-weight: 700; color: #64748b;">التسجيل رقم #{{ item.enrollment.id }}</div>
+        </div>
+
+        <div class="info-card-box">
+            <div style="font-weight: 700; margin-bottom: 8px; color: #1e293b;"><i class="fa-solid fa-info-circle"></i> ملخص التسجيل المالي:</div>
+            <div class="info-card-grid">
+                <div class="info-card-item"><span class="info-card-label">سعر الدورة الأساسي:</span> <span class="info-card-value">{{ item.course.price|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">الحسم المطبق ({{ item.course.discount_percent|floatformat:0 }}%):</span> <span class="info-card-value">{{ item.course.discount_amount|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">المبلغ الصافي:</span> <span class="info-card-value">{{ item.course.net_price|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">المبلغ المدفوع:</span> <span class="info-card-value">{{ item.course.amount_paid|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">المبلغ المتبقي بذمة الطالب:</span> <span class="info-card-value" style="color: {% if item.course.remaining_due > 0 %}#d97706{% else %}#10b981{% endif %};">{{ item.course.remaining_due|floatformat:0 }} ل.س</span></div>
+                <div class="info-card-item"><span class="info-card-label">الحالة التسجيلية:</span> 
+                    <span class="info-card-value">
+                        {% if item.enrollment.is_completed %}
+                            {% if item.enrollment.withdrawal_reason %}
+                                <span class="text-danger">مسحوب ({{ item.enrollment.withdrawal_reason }})</span>
+                            {% else %}
+                                <span class="text-success">مكتمل</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-primary">نشط</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <h4 style="font-size: 14px; font-weight: 800; color: #112d4e; margin-bottom: 15px;"><i class="fa-solid fa-receipt"></i> تسلسل القيود والحسابات المتأثرة:</h4>
+        
+        <div class="timeline-container">
+            {% for step in item.steps %}
+            <div class="timeline-step {% if step.badge_class == 'badge-withdrawal' %}active{% else %}success{% endif %}">
+                <div class="timeline-badge"></div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-title">{{ step.title }}</span>
+                        <span class="badge-type {{ step.badge_class }}">{{ step.type_text }}</span>
+                    </div>
+                    <p style="font-size: 11px; color: #475569; margin: 0 0 10px 0;">
+                        {{ step.desc }}
+                    </p>
+                    <table class="journal-table">
+                        <thead>
+                            <tr>
+                                <th width="15%">رمز الحساب</th>
+                                <th width="35%">اسم الحساب</th>
+                                <th width="18%">مدين (DR)</th>
+                                <th width="18%">دائن (CR)</th>
+                                <th>البيان</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in step.transactions %}
+                            <tr>
+                                <td>{{ tx.code }}</td>
+                                <td>{{ tx.name }}</td>
+                                <td class="debit-val">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td class="credit-val">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td>{{ tx.desc }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div style="font-size: 10px; color: #94a3b8; text-align: left; margin-top: 5px;">
+                        رقم القيد: {{ step.ref }} | التاريخ: {{ step.date|date:"Y-m-d" }}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-4">
+                <p class="text-muted">لا توجد قيود مرحلة للتسجيل الحالي.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="signatures-block">
+            <div class="signature-item">
+                <div style="font-weight: 700; font-size: 13px; color: #475569;">المحاسب المسؤول</div>
+                <div class="signature-line"></div>
+                <div style="font-weight: 800; font-size: 12px; color: #1e293b;">أحمد محاسب المركز</div>
+            </div>
+            <div class="signature-item">
+                <div style="font-weight: 700; font-size: 13px; color: #475569;">مدير القسم المالي</div>
+                <div class="signature-line"></div>
+                <div style="font-weight: 800; font-size: 12px; color: #1e293b;">Thaaer Almasri</div>
+            </div>
+        </div>
+
+        <div class="page-footer-slant-row">
+            <div>منظومة الإدارة الحسابية - معهد اليمان التعليمي</div>
+            <div>التسجيل رقم {{ item.enrollment.id }}</div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="a4-container">
+        <div class="text-center py-5">
+            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+            <h4>لا يوجد دورات مسجل فيها هذا الطالب حالياً</h4>
+            <p class="text-muted">يرجى تسجيل الطالب في دورة لعرض خطه المالي.</p>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+    
+</div>
+{% endblock %}

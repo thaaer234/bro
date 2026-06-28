@@ -255,226 +255,363 @@
             width: 100%;
         }
 
-        .card-front, .card-back {
+        .student-card {
+            --ink: #0e1424;
+            --muted: #9fa6b6;
+            --paper: #ffffff;
+            --line: #d8e0ef;
+            --purple: #513996;
+            --purple-dark: #4f2f86;
+            --purple-light: #6b4aa7;
+            --gold-card: #f0a22b;
+            --teal: #0b6c8e;
+            --grid: rgba(255, 255, 255, 0.08);
+            --card-width: 100mm;
+            --card-height: 60mm;
+            
             position: relative;
-            width: 100%;
-            max-width: 400px;
-            height: 240px;
-            border-radius: var(--radius-md);
+            border-radius: 12px;
+            padding: 0;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            border: 2px solid #513996;
+            background: var(--purple);
             box-shadow: var(--shadow-md);
+            display: block;
+            width: var(--card-width);
+            height: var(--card-height);
+            box-sizing: border-box;
+            border: 2px solid var(--purple-dark);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            direction: ltr;
         }
 
-        .card-front:hover, .card-back:hover {
+        .student-card * {
+            box-sizing: border-box;
+            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+        }
+
+        .student-card:hover {
             transform: translateY(-5px);
             box-shadow: var(--shadow-lg);
         }
 
-        /* تصميم وجه البطاقة */
-        .card-front {
-            background: linear-gradient(135deg, #ffffff 0%, #f6f3fc 100%);
-            padding: 12px 16px;
-            color: var(--text-main);
+        .front-card {
+            display: flex;
+            flex-direction: row;
+            color: #fff;
+            direction: ltr;
+            width: var(--card-width);
+            height: var(--card-height);
+            box-sizing: border-box;
+            overflow: hidden;
+            background:
+                repeating-linear-gradient(0deg, transparent 0 22px, var(--grid) 22px 23px),
+                repeating-linear-gradient(90deg, transparent 0 22px, var(--grid) 22px 23px),
+                linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+            align-items: stretch;
         }
 
-        .card-front-content {
-            display: grid;
-            grid-template-columns: 1fr 90px;
-            height: 100%;
-            align-items: center;
-        }
-
-        .card-front-info {
+        .front-left {
+            padding: 15px 15px 12px 18px;
             display: flex;
             flex-direction: column;
+            gap: 6px;
             text-align: right;
-            gap: 4px;
-        }
-
-        .card-front-header {
-            border-bottom: 2px solid var(--gold);
-            padding-bottom: 4px;
-            margin-bottom: 6px;
-        }
-
-        .card-front-header h3 {
-            font-size: 1rem;
-            color: var(--primary);
-            font-weight: 800;
-        }
-
-        .card-front-header .badge {
-            font-size: 0.7rem;
-            background: var(--primary);
-            color: white;
-            padding: 1px 6px;
-            border-radius: 4px;
-            margin-right: 4px;
-        }
-
-        .card-student-name {
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: var(--primary-dark);
-            margin-bottom: 6px;
-        }
-
-        .card-info-row {
-            font-size: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-main);
-            background: rgba(81, 57, 150, 0.05);
-            padding: 3px 8px;
-            border-radius: 4px;
-            margin-bottom: 3px;
-        }
-
-        .card-info-row strong {
-            color: var(--primary);
-        }
-
-        .card-front-left {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .card-front-logo {
-            width: 70px;
-            height: 70px;
-            object-fit: contain;
-        }
-
-        .card-download-qr {
-            width: 80px;
-            height: 80px;
-            background: white;
-            padding: 4px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .card-download-qr img {
-            width: 100%;
-            height: 100%;
-        }
-
-        .qr-caption {
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            text-align: center;
-            line-height: 1.2;
-        }
-
-        /* تصميم ظهر البطاقة */
-        .card-back {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            transform: rotateY(180deg);
-            padding: 12px;
-            justify-content: space-between;
-        }
-
-        .card-back-header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-            padding-bottom: 6px;
-        }
-
-        .card-back-header span {
-            font-size: 0.95rem;
-            font-weight: 700;
-        }
-
-        .card-back-header .badge {
-            background: var(--gold);
-            color: var(--primary-dark);
-            font-weight: 800;
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-        }
-
-        .card-qr-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            align-items: center;
-            margin: 8px 0;
-        }
-
-        .card-qr-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .card-qr-wrapper {
+            order: 1;
             position: relative;
-            background: white;
+            height: 100%;
+            max-height: 100%;
+            overflow: hidden;
+            flex: 0 0 63%;
+        }
+
+        .front-title {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            align-items: center;
+            text-align: center;
+        }
+
+        .front-title .label {
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .name-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+            position: relative;
+        }
+
+        .front-title .name {
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 20px;
+            order: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #fff;
+        }
+
+        .front-title .line {
+            width: 30px;
+            height: 3px;
+            background: #fff;
+            opacity: 0.9;
+            order: 2;
+            margin-inline-start: 4px;
+            align-self: center;
+        }
+
+        .front-rows {
+            display: grid;
+            gap: 3px;
+            font-size: 9px;
+        }
+
+        .front-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: normal;
+            direction: rtl;
+            justify-content: flex-start;
+        }
+
+        .key-badge {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background-color: var(--teal);
+            border: 1px solid #fff;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M7.5 14a4.5 4.5 0 1 1 3.9-6.8l6.3 6.3V16h-2v2h-2v2h-2v-3.2l-3.1-3.1A4.5 4.5 0 0 1 7.5 14Z'/><circle cx='7.5' cy='9.5' r='2'/></svg>");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 6px 6px;
+            order: 1;
+        }
+
+        .front-rows .row-label {
+            opacity: 0.9;
+            order: 2;
+            color: #fff;
+        }
+
+        .front-rows .row-value {
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            order: 3;
+            color: #fff;
+        }
+
+        .front-qr {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            justify-content: flex-start;
+            direction: ltr;
+        }
+
+        .qr-main {
+            width: 16mm;
+            height: 16mm;
+            background: #fff;
             padding: 3px;
             border-radius: 6px;
-            width: 70px;
-            height: 70px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
         }
 
-        .card-qr-wrapper img {
+        .front-qr .qr-text {
+            font-size: 8.5px;
+            font-weight: 700;
+            line-height: 1.25;
+            direction: rtl;
+            text-align: right;
+            color: #fff;
+            margin-left: auto;
+        }
+
+        .front-right {
+            background: #fbfaff;
+            display: grid;
+            place-items: center;
+            border-radius: 12px 0 0 12px;
+            position: relative;
+            overflow: hidden;
+            order: 2;
+            height: 100%;
+            flex: 0 0 37%;
+        }
+
+        .logo-shell {
             width: 100%;
             height: 100%;
+            border-radius: 12px 0 0 12px;
+            background: #fff;
+            background-image: url({% static 'img/back.png' %});
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 9px;
+            position: relative;
+            z-index: 1;
         }
 
-        .card-qr-icon {
+        .logo-big {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            z-index: 1;
+        }
+
+        .back-card {
+            color: #fff;
+            padding: 14px 18px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: var(--card-width);
+            height: var(--card-height);
+            box-sizing: border-box;
+            overflow: hidden;
+            direction: rtl;
+            background:
+                repeating-linear-gradient(0deg, transparent 0 22px, var(--grid) 22px 23px),
+                repeating-linear-gradient(90deg, transparent 0 22px, var(--grid) 22px 23px),
+                linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+        }
+
+        .back-header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 800;
+            width: calc(100% + 20px);
+            line-height: 1.1;
+            min-height: 25px;
+            text-align: right;
+            white-space: nowrap;
+            justify-content: space-between;
+            margin-left: -20px;
+            padding: 0 20px 0 0;
+            color: #fff;
+        }
+
+        .qr-chip {
+            background: var(--gold-card);
+            color: #fff;
+            padding: 0 10px;
+            border-radius: 0;
+            font-weight: 800;
+            letter-spacing: 1px;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-qr-grid {
+            margin-top: 6px;
+            display: grid;
+            grid-template-columns: 1fr 1px 1fr 1px 1fr;
+            align-items: center;
+            column-gap: 8px;
+            row-gap: 0;
+            justify-items: center;
+            width: 100%;
+        }
+
+        .back-qr {
+            display: grid;
+            place-items: center;
+            gap: 4px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .qr-square {
+            width: 18mm;
+            height: 18mm;
+            background: #fff;
+            padding: 3px;
+            border-radius: 6px;
+        }
+
+        .qr-wrap {
+            position: relative;
+            width: 18mm;
+            height: 18mm;
+            display: grid;
+            place-items: center;
+            grid-template: 1fr / 1fr;
+        }
+
+        .qr-wrap .qr-square {
+            width: 100%;
+            height: 100%;
+            grid-area: 1 / 1;
+        }
+
+        .qr-icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.85);
+            box-shadow: 0 4px 10px rgba(11, 16, 24, 0.25);
+            display: grid;
+            place-items: center;
+            grid-area: 1 / 1;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--border-color);
+            z-index: 2;
         }
 
-        .card-qr-icon svg {
-            width: 10px;
-            height: 10px;
-            fill: var(--primary);
+        .qr-icon svg {
+            width: 8px;
+            height: 8px;
+            stroke: var(--purple);
+            stroke-width: 1.8;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
-        .card-qr-label {
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 600;
+        .v-divider {
+            height: 70px;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.55);
+            align-self: center;
         }
 
-        .card-back-footer {
-            font-size: 0.55rem;
-            color: rgba(255, 255, 255, 0.7);
+        .back-footer {
+            margin-top: auto;
+            font-size: 7.5px;
             text-align: center;
-            border-top: 1px solid rgba(255,255,255,0.15);
-            padding-top: 6px;
-            line-height: 1.3;
+            color: #f3eaff;
+            line-height: 1.4;
         }
 
-        .card-back-footer .phone {
-            color: var(--gold);
-            font-weight: 700;
+        .back-footer .en {
+            font-size: 6px;
+            opacity: 0.85;
         }
 
         /* تلميح النقر */
@@ -739,7 +876,15 @@
         .phone-screen {
             width: 100%;
             height: 100%;
-            background: #f7f2fc;
+            background:
+                radial-gradient(circle at 15% 18%, rgba(118, 75, 162, 0.16), transparent 55%),
+                radial-gradient(circle at 85% 12%, rgba(156, 122, 196, 0.16), transparent 55%),
+                radial-gradient(circle at 50% 90%, rgba(183, 154, 214, 0.20), transparent 55%),
+                url("{% static 'img/back.png' %}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #f7f2fc;
             border-radius: 32px;
             overflow: hidden;
             position: relative;
@@ -754,13 +899,14 @@
 
         /* تصميم شاشة الدخول داخل المحاكي */
         .mock-app-logo {
-            width: 75px;
-            height: 75px;
+            width: 90px;
+            height: 90px;
             object-fit: contain;
-            margin-bottom: 8px;
-            background: rgba(81, 57, 150, 0.08);
-            padding: 10px;
-            border-radius: 50%;
+            margin-bottom: 12px;
+            background: rgb(255, 255, 255);
+            padding: 6px;
+            border-radius: 16px;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
         }
 
         .mock-app-title {
@@ -1170,7 +1316,7 @@
         @media print {
             @page {
                 size: A4 portrait;
-                margin: 15mm 10mm 15mm 10mm;
+                margin: 12mm 10mm 12mm 10mm;
             }
 
             body {
@@ -1184,7 +1330,7 @@
             header {
                 background: none !important;
                 color: #000000 !important;
-                padding: 15px 0 !important;
+                padding: 10px 0 !important;
                 border-bottom: 2px solid #513996 !important;
                 box-shadow: none !important;
                 border-radius: 0 !important;
@@ -1200,25 +1346,25 @@
                 border: none !important;
                 box-shadow: none !important;
                 padding: 0 !important;
-                margin-bottom: 10px !important;
+                margin-bottom: 8px !important;
             }
 
             .logo-wrap img {
-                width: 70px !important;
-                height: 70px !important;
+                width: 60px !important;
+                height: 60px !important;
                 filter: none !important;
             }
 
             .main-title {
                 color: #513996 !important;
                 text-shadow: none !important;
-                font-size: 18pt !important;
-                margin-bottom: 5px !important;
+                font-size: 16pt !important;
+                margin-bottom: 4px !important;
             }
 
             .subtitle {
                 color: #444444 !important;
-                font-size: 10pt !important;
+                font-size: 9pt !important;
             }
 
             /* إخفاء الأزرار والعناصر التفاعلية وغير المفيدة في الطباعة الورقية */
@@ -1228,7 +1374,7 @@
             }
 
             .container {
-                margin-top: 15px !important;
+                margin-top: 10px !important;
                 padding: 0 !important;
                 max-width: 100% !important;
                 width: 100% !important;
@@ -1238,15 +1384,16 @@
                 box-shadow: none !important;
                 border: none !important;
                 border-bottom: 1.5px dashed #513996 !important;
-                padding: 25px 0 !important;
-                margin-bottom: 20px !important;
+                padding: 20px 0 !important;
+                margin-bottom: 15px !important;
                 background: transparent !important;
-                page-break-inside: avoid;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
 
             .section-header {
-                margin-bottom: 20px !important;
-                padding-bottom: 8px !important;
+                margin-bottom: 15px !important;
+                padding-bottom: 6px !important;
                 border-color: #513996 !important;
             }
 
@@ -1256,163 +1403,219 @@
                 box-shadow: none !important;
                 width: auto !important;
                 height: auto !important;
-                font-size: 14pt !important;
+                font-size: 13pt !important;
             }
 
             .section-title {
-                font-size: 14pt !important;
+                font-size: 13pt !important;
             }
 
-            /* إخفاء البطاقة التفاعلية الدوارة في الطباعة */
-            .card-view {
-                display: none !important;
+            /* إجبار الصفحة الثانية على البدء بعد قسم التحميل مباشرة */
+            #download-sec {
+                page-break-after: always !important;
+                break-after: page !important;
             }
 
-            /* إظهار الوجهين معاً بجانب بعضهما في الطباعة */
-            .print-cards-layout {
+            /* تنسيق عرض بطاقات الطلاب في الطباعة بجانب بعضهما */
+            .cards-static-layout {
                 display: grid !important;
                 grid-template-columns: 1fr 1fr !important;
-                gap: 15px !important;
-                margin-top: 15px !important;
+                gap: 10px !important;
+                margin: 15px auto !important;
                 width: 100% !important;
-                page-break-inside: avoid;
+                page-break-inside: avoid !important;
             }
 
-            .print-cards-layout .card-front,
-            .print-cards-layout .card-back {
-                position: relative !important;
-                transform: none !important;
-                display: flex !important;
+            .student-card {
                 width: 100% !important;
-                height: 220px !important;
-                border: 1px solid #513996 !important;
-                border-radius: 12px !important;
+                max-width: 100% !important;
+                height: 57mm !important;
+                transform: scale(0.92) !important;
+                transform-origin: center center !important;
                 box-shadow: none !important;
-                background: #ffffff !important;
-                color: #2b1f48 !important;
-                -webkit-backface-visibility: visible !important;
-                backface-visibility: visible !important;
-                overflow: hidden !important;
+                border: 1px solid #4f2f86 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                page-break-inside: avoid !important;
             }
 
-            .print-cards-layout .card-back {
-                background: linear-gradient(135deg, #f6f3fc 0%, #ffffff 100%) !important;
-            }
-
-            .print-cards-layout .card-back-header {
-                border-bottom: 1px solid #e5def3 !important;
-            }
-
-            .print-cards-layout .card-back-header span {
-                color: #2b1f48 !important;
-            }
-
-            .print-cards-layout .card-back-header .badge {
-                background-color: #513996 !important;
-                color: #ffffff !important;
-            }
-
-            .print-cards-layout .card-qr-label {
-                color: #2b1f48 !important;
-            }
-
-            .print-cards-layout .card-back-footer {
-                border-top: 1px solid #e5def3 !important;
-                color: #2b1f48 !important;
-            }
-
-            .print-cards-layout .card-back-footer .phone {
-                color: #513996 !important;
-            }
-
+            /* إخفاء نقاط التلميح أثناء الطباعة */
             .tooltip-hotspot {
                 display: none !important;
             }
 
-            .card-demo-container, .login-guide-grid {
-                grid-template-columns: 1fr !important;
-                gap: 20px !important;
+            .card-explanation {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr 1fr !important;
+                gap: 15px !important;
+                margin-top: 15px !important;
+            }
+
+            .exp-item {
+                padding: 10px !important;
+                border-radius: 6px !important;
+                background: #fcfbfe !important;
+                border-right-width: 3px !important;
             }
 
             .download-box {
-                grid-template-columns: 140px 1fr !important;
+                grid-template-columns: 130px 1fr !important;
                 gap: 20px !important;
             }
 
             .qr-display-card {
-                padding: 10px !important;
+                padding: 8px !important;
                 border: 1px solid #ccc !important;
                 background: #fff !important;
             }
 
             .big-qr-wrap {
-                width: 130px !important;
-                height: 130px !important;
+                width: 110px !important;
+                height: 110px !important;
                 box-shadow: none !important;
                 border: 1px solid #ddd !important;
             }
 
-            .big-qr-wrap::before {
-                display: none !important;
+            .big-qr-wrap img {
+                width: 100% !important;
+                height: 100% !important;
+            }
+
+            .download-steps {
+                margin-bottom: 0 !important;
+            }
+
+            .download-steps li {
+                font-size: 8.5pt !important;
+                padding-right: 22px !important;
+                margin-bottom: 8px !important;
+            }
+
+            .download-steps li i {
+                font-size: 9.5pt !important;
+                top: 2px !important;
             }
 
             /* تنسيق محاكي الموبايل للطباعة */
+            .login-guide-grid {
+                grid-template-columns: 240px 1fr !important;
+                gap: 25px !important;
+            }
+
             .phone-mockup {
                 border: 1px solid #ccc !important;
-                height: auto !important;
+                height: 460px !important;
                 max-width: 100% !important;
                 background: #ffffff !important;
-                padding: 15px !important;
+                padding: 8px !important;
                 box-shadow: none !important;
-                border-radius: 12px !important;
+                border-radius: 20px !important;
             }
 
             .phone-screen {
-                background: #ffffff !important;
-                padding: 0 !important;
-                height: auto !important;
                 border: none !important;
-                border-radius: 0 !important;
+                border-radius: 16px !important;
+                padding: 12px !important;
+                /* احتفظ بالخلفية الرسمية في الطباعة الملونة */
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
-            .phone-notch, .mock-camera-overlay {
+            .phone-notch {
                 display: none !important;
             }
 
-            .mock-input {
-                border: 1px solid #888 !important;
-                background: #fff !important;
-                color: #000 !important;
+            .mock-app-logo {
+                width: 60px !important;
+                height: 60px !important;
+                border-radius: 12px !important;
+                margin-bottom: 8px !important;
+                padding: 4px !important;
             }
 
-            .mock-submit-btn {
-                border: 1px solid #513996 !important;
+            .mock-app-title {
+                font-size: 1.05rem !important;
+                margin-bottom: 1px !important;
+            }
+
+            .mock-app-subtitle {
+                font-size: 0.7rem !important;
+                margin-bottom: 12px !important;
+            }
+
+            .mock-form {
+                gap: 8px !important;
+            }
+
+            .mock-field-label {
+                font-size: 0.65rem !important;
+                margin-bottom: 2px !important;
+            }
+
+            .mock-input-wrap {
+                padding: 0 !important;
+            }
+
+            .mock-input {
+                padding: 8px 25px 8px 10px !important;
+                font-size: 0.75rem !important;
+                border-radius: 8px !important;
                 background: #fff !important;
-                color: #513996 !important;
-                box-shadow: none !important;
+            }
+
+            .mock-input-icon {
+                right: 8px !important;
+                font-size: 0.8rem !important;
+            }
+
+            .login-explanation {
+                gap: 15px !important;
+            }
+
+            .login-step-card {
+                padding: 12px !important;
+                border-radius: 6px !important;
+            }
+
+            .login-step-card h4 {
+                font-size: 9.5pt !important;
+                margin-bottom: 4px !important;
+            }
+
+            .login-step-card p {
+                font-size: 8.5pt !important;
             }
 
             /* ميزات التطبيق ورقة شبكة */
             .features-grid {
-                grid-template-columns: 1fr 1fr !important;
-                gap: 15px !important;
+                grid-template-columns: 1fr 1fr 1fr !important;
+                gap: 12px !important;
             }
 
             .feature-card {
-                padding: 15px !important;
+                padding: 12px !important;
                 border: 1px solid #ddd !important;
                 background: #ffffff !important;
                 box-shadow: none !important;
-                page-break-inside: avoid;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
 
             .feature-icon-wrap {
-                margin-bottom: 10px !important;
-                width: 40px !important;
-                height: 40px !important;
-                font-size: 1.1rem !important;
-                background: #f1eefa !important;
-                color: #513996 !important;
+                margin-bottom: 8px !important;
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 1rem !important;
+            }
+
+            .feature-card h3 {
+                font-size: 10pt !important;
+                margin-bottom: 6px !important;
+            }
+
+            .feature-card p {
+                font-size: 8pt !important;
+                line-height: 1.4 !important;
             }
         }
     </style>
@@ -1422,26 +1625,7 @@
     <!-- زر عائم لطباعة الدليل A4 -->
     <button class="print-btn-float" onclick="window.print()">
         <i class="fa-solid fa-print"></i> طباعة الدليل الورقي (A4)
-    </button>
-
-    <!-- هيدر الصفحة والترحيب -->
-    <header>
-        <div class="header-container">
-            <div class="logo-wrap">
-                <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار المعهد">
-            </div>
-            <div class="institute-name">
-                <i class="fa-solid fa-graduation-cap"></i> معهد اليمان للعلوم واللغات
-            </div>
-            <h1 class="main-title">دليل استخدام تطبيق المعهد والبطاقة الذكية</h1>
-            <p class="subtitle">كل ما تود معرفته حول كيفية تحميل تطبيق المعهد، الاستفادة من بطاقة الطالب الذكية لتسجيل الدخول الفوري، ومتابعة التحصيل العلمي والمالي للطلاب بسهولة.</p>
-        </div>
-    </header>
-
-    <!-- المحتوى الرئيسي -->
-    <div class="container">
-
-        <!-- شريط التنقل السريع -->
+    </        <!-- شريط التنقل السريع -->
         <nav class="nav-strip">
             <a href="#student-card-sec" class="nav-link"><i class="fa-solid fa-id-card"></i> بطاقة الطالب الذكية</a>
             <a href="#download-sec" class="nav-link"><i class="fa-solid fa-download"></i> تحميل التطبيق</a>
@@ -1462,89 +1646,116 @@
 
             <div class="cards-static-layout">
                 <!-- وجه البطاقة الأمامي -->
-                <div class="card-front">
+                <article class="student-card">
                     <div style="position: absolute; top: 10px; right: 10px;" class="tooltip-hotspot" data-tooltip="هوية المعهد الرسمية">١</div>
                     <div style="position: absolute; bottom: 10px; left: 10px;" class="tooltip-hotspot" data-tooltip="امسح هنا لتحميل التطبيق مباشرة">٢</div>
                     
-                    <div class="card-front-content">
-                        <div class="card-front-info">
-                            <div class="card-front-header">
-                                <h3><span class="badge">معهد اليمان</span> بطاقة الطالب</h3>
+                    <div class="front-card">
+                        <div class="front-left">
+                            <div class="front-title">
+                                <span class="label">بطاقة الطالب</span>
+                                <div class="name-row">
+                                    <span class="name">محمد بن أحمد اليمان</span>
+                                    <span class="line"></span>
+                                </div>
                             </div>
-                            <div class="card-student-name">محمد بن أحمد اليمان</div>
-                            <div class="card-info-row">
-                                <strong>رمز الطالب:</strong>
-                                <span>202610532</span>
+                            <div class="front-rows">
+                                <div class="front-row">
+                                    <span class="key-badge"></span>
+                                    <span class="row-label">رمز الطالب:</span>
+                                    <span class="row-value">202610532</span>
+                                </div>
+                                <div class="front-row">
+                                    <span class="key-badge"></span>
+                                    <span class="row-label">رمز ولي الأمر (الأب):</span>
+                                    <span class="row-value">0998760194</span>
+                                </div>
+                                <div class="front-row">
+                                    <span class="key-badge"></span>
+                                    <span class="row-label">رمز ولي الأمر (الأم):</span>
+                                    <span class="row-value">0991234567</span>
+                                </div>
                             </div>
-                            <div class="card-info-row">
-                                <strong>رمز الأب (الهاتف):</strong>
-                                <span>0998760194</span>
-                            </div>
-                            <div class="card-info-row">
-                                <strong>رمز الأم (الهاتف):</strong>
-                                <span>0991234567</span>
+                            <div class="front-qr">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2Ffu5Voe8s6PSZcG6syBbbZQ.apk" alt="QR" class="qr-main">
+                                <div class="qr-text">امسح ال QR<br>لتحميل التطبيق</div>
                             </div>
                         </div>
-                        <div class="card-front-left">
-                            <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار" class="card-front-logo">
-                            <div class="card-download-qr">
-                                <!-- QR كود تحميل التطبيق الافتراضي -->
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2Ffu5Voe8s6PSZcG6syBbbZQ.apk" alt="QR التحميل">
+                        <div class="front-right">
+                            <div class="logo-shell">
+                                <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="الشعار" class="logo-big">
                             </div>
-                            <span class="qr-caption">تحميل التطبيق</span>
                         </div>
                     </div>
-                </div>
+                </article>
 
                 <!-- ظهر البطاقة الخلفي -->
-                <div class="card-back">
+                <article class="student-card">
                     <div style="position: absolute; top: 15px; left: 15px;" class="tooltip-hotspot" data-tooltip="رموز الدخول السريع الخاصة بالطالب والأب والأم">٣</div>
                     
-                    <div class="card-back-header">
-                        <span>تسجيل الدخول عبر الـ</span>
-                        <span class="badge">QR Code</span>
-                    </div>
-
-                    <div class="card-qr-grid">
-                        <!-- QR الطالب -->
-                        <div class="card-qr-box">
-                            <div class="card-qr-wrapper">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D202610532%26r%3Dstudent" alt="طالب">
-                                <span class="card-qr-icon">
-                                    <i class="fa-solid fa-graduation-cap" style="font-size: 9px; color: var(--primary);"></i>
-                                </span>
-                            </div>
-                            <span class="card-qr-label">الطالب</span>
+                    <div class="back-card">
+                        <div class="back-header">
+                            <span>تسجيل الدخول عبر</span>
+                            <span class="qr-chip">QR</span>
                         </div>
-
-                        <!-- QR الأب -->
-                        <div class="card-qr-box">
-                            <div class="card-qr-wrapper">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0998760194%26r%3Dfather" alt="أب">
-                                <span class="card-qr-icon">
-                                    <i class="fa-solid fa-user-tie" style="font-size: 9px; color: var(--primary);"></i>
-                                </span>
+                        
+                        <div class="back-qr-grid">
+                            <!-- QR الطالب -->
+                            <div class="back-qr">
+                                <div class="qr-wrap">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D202610532%26r%3Dstudent" alt="QR" class="qr-square">
+                                    <span class="qr-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <path d="M2 9l10-4 10 4-10 4-10-4z"></path>
+                                            <path d="M6 11v4c0 2 12 2 12 0v-4"></path>
+                                            <path d="M22 9v6"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <span>الطالب</span>
                             </div>
-                            <span class="card-qr-label">الأب</span>
+                            
+                            <span class="v-divider"></span>
+                            
+                            <!-- QR الأب -->
+                            <div class="back-qr">
+                                <div class="qr-wrap">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0998760194%26r%3Dfather" alt="QR" class="qr-square">
+                                    <span class="qr-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <circle cx="12" cy="8" r="4"></circle>
+                                            <path d="M4 20c1.5-4 6.5-4 8-4s6.5 0 8 4"></path>
+                                            <path d="M9 12c1 .8 5 .8 6 0"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <span>الأب</span>
+                            </div>
+                            
+                            <span class="v-divider"></span>
+                            
+                            <!-- QR الأم -->
+                            <div class="back-qr">
+                                <div class="qr-wrap">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0991234567%26r%3Dmother" alt="QR" class="qr-square">
+                                    <span class="qr-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24">
+                                            <circle cx="12" cy="9" r="4"></circle>
+                                            <path d="M4 20c1.5-4 6.5-4 8-4s6.5 0 8 4"></path>
+                                            <circle cx="12" cy="3.5" r="2"></circle>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <span>الأم</span>
+                            </div>
                         </div>
-
-                        <!-- QR الأم -->
-                        <div class="card-qr-box">
-                            <div class="card-qr-wrapper">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0991234567%26r%3Dmother" alt="أم">
-                                <span class="card-qr-icon">
-                                    <i class="fa-solid fa-person-dress" style="font-size: 9px; color: var(--primary);"></i>
-                                </span>
-                            </div>
-                            <span class="card-qr-label">الأم</span>
+                        
+                        <div class="back-footer">
+                            <div>للاستفسار والمساعدة يرجى الاتصال بخدمة العملاء على الرقم التالي 0998760194</div>
+                            <div class="en">For inquiries and assistance, please contact customer service at the following number 0998760194</div>
                         </div>
                     </div>
-
-                    <div class="card-back-footer">
-                        للاستفسار والدعم، يرجى التواصل مع الدعم الفني للمعهد على الرقم:<br>
-                        <span class="phone">0998760194</span>
-                    </div>
-                </div>
+                </article>
             </div>
 
             <!-- نصوص الشرح والتفصيل للبطاقة -->
