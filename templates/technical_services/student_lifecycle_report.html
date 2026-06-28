@@ -211,7 +211,7 @@
         align-self: center;
     }
 
-    /* Student Profile Card on Cover */
+    /* Employee Profile Card on Cover */
     .cover-employee-card {
         z-index: 3;
         width: 100%;
@@ -237,6 +237,12 @@
         align-items: center;
         overflow: hidden;
         flex-shrink: 0;
+    }
+
+    .employee-card-avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 
     .employee-card-avatar-placeholder {
@@ -940,14 +946,20 @@
             <!-- Employee Profile Card on Cover -->
             <section class="cover-employee-card">
                 <div class="employee-card-avatar-wrapper">
-                    <div class="employee-card-avatar-placeholder">
-                        <i class="fa-solid fa-user-tie"></i>
-                    </div>
+                    {% if employee.employee_profile.profile_photo %}
+                        <img src="{{ employee.employee_profile.profile_photo.url }}" alt="{{ employee.get_full_name }}" class="employee-card-avatar">
+                    {% elif employee.profile.profile_picture %}
+                        <img src="{{ employee.profile.profile_picture.url }}" alt="{{ employee.get_full_name }}" class="employee-card-avatar">
+                    {% else %}
+                        <div class="employee-card-avatar-placeholder">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="employee-card-info">
                     <div class="employee-card-info-item">
                         <span class="info-item-label"><i class="fa-solid fa-user"></i> اسم الموظف:</span>
-                        <span class="info-item-value">رنيم</span>
+                        <span class="info-item-value">{{ employee.get_full_name|default:"رنيم مرعشلي" }}</span>
                     </div>
                     <div class="employee-card-info-item">
                         <span class="info-item-label"><i class="fa-solid fa-building"></i> القســــــــم:</span>
@@ -981,7 +993,7 @@
     <!-- ================= DEMO MODE DETAILS ================= -->
     {% if demo_mode %}
     <!-- ================= PAGE 2: LIFE CYCLE TIMELINE (DEMO) ================= -->
-    <div class="a4-container dynamic-page">
+    <div class="a4-container">
         <div class="content-page-container">
             <!-- Header Group -->
             <div class="page-header-logo-group">
@@ -1013,34 +1025,34 @@
 
             <!-- Step 1: Registration -->
             {% with step=steps.0 %}
-            <div class="section-card">
+            <div class="section-card" style="margin-bottom: 0.65rem; padding: 1.5rem 1.25rem 0.6rem 1.25rem;">
                 <div class="section-card-tab">
                     <i class="fa-solid fa-graduation-cap"></i> {{ step.title }}
                 </div>
-                <div class="graphic-badge-circle">
-                    <div class="graphic-badge-inner">
+                <div class="graphic-badge-circle" style="width: 50px; height: 50px;">
+                    <div class="graphic-badge-inner" style="width: 38px; height: 38px; font-size: 1rem;">
                         <i class="fa-solid fa-user-plus"></i>
                     </div>
                 </div>
-                <div class="section-content-text">
-                    <div class="section-content-title">{{ step.type_text }} | التاريخ: {{ step.date }}</div>
-                    <div class="mb-2">{{ step.desc }}</div>
-                    <table class="journal-table">
+                <div class="section-content-text" style="font-size: 0.72rem;">
+                    <div class="section-content-title" style="font-size: 0.76rem; margin-bottom: 0.15rem;">{{ step.type_text }} | التاريخ: {{ step.date }}</div>
+                    <div style="margin-bottom: 5px;">{{ step.desc }}</div>
+                    <table class="journal-table" style="font-size: 0.7rem; margin: 5px 0;">
                         <thead>
                             <tr>
-                                <th width="20%">رمز الحساب</th>
-                                <th width="45%">اسم الحساب</th>
-                                <th width="17%">مدين (DR)</th>
-                                <th width="17%">دائن (CR)</th>
+                                <th width="20%" style="padding: 4px 6px;">رمز الحساب</th>
+                                <th width="45%" style="padding: 4px 6px;">اسم الحساب</th>
+                                <th width="17%" style="padding: 4px 6px;">مدين (DR)</th>
+                                <th width="17%" style="padding: 4px 6px;">دائن (CR)</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for tx in step.transactions %}
                             <tr>
-                                <td>{{ tx.code }}</td>
-                                <td>{{ tx.name }}</td>
-                                <td class="debit-val">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
-                                <td class="credit-val">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td style="padding: 4px 6px;">{{ tx.code }}</td>
+                                <td style="padding: 4px 6px;">{{ tx.name }}</td>
+                                <td class="debit-val" style="padding: 4px 6px;">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td class="credit-val" style="padding: 4px 6px;">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1051,34 +1063,72 @@
 
             <!-- Step 2: Payment Receipt -->
             {% with step=steps.1 %}
-            <div class="section-card payment-theme">
+            <div class="section-card payment-theme" style="margin-bottom: 0.65rem; padding: 1.5rem 1.25rem 0.6rem 1.25rem;">
                 <div class="section-card-tab">
                     <i class="fa-solid fa-money-bill-wave"></i> {{ step.title }}
                 </div>
-                <div class="graphic-badge-circle">
-                    <div class="graphic-badge-inner">
+                <div class="graphic-badge-circle" style="width: 50px; height: 50px;">
+                    <div class="graphic-badge-inner" style="width: 38px; height: 38px; font-size: 1rem;">
                         <i class="fa-solid fa-wallet"></i>
                     </div>
                 </div>
-                <div class="section-content-text">
-                    <div class="section-content-title">{{ step.type_text }} | التاريخ: {{ step.date }}</div>
-                    <div class="mb-2">{{ step.desc }}</div>
-                    <table class="journal-table">
+                <div class="section-content-text" style="font-size: 0.72rem;">
+                    <div class="section-content-title" style="font-size: 0.76rem; margin-bottom: 0.15rem;">{{ step.type_text }} | التاريخ: {{ step.date }}</div>
+                    <div style="margin-bottom: 5px;">{{ step.desc }}</div>
+                    <table class="journal-table" style="font-size: 0.7rem; margin: 5px 0;">
                         <thead>
                             <tr>
-                                <th width="20%">رمز الحساب</th>
-                                <th width="45%">اسم الحساب</th>
-                                <th width="17%">مدين (DR)</th>
-                                <th width="17%">دائن (CR)</th>
+                                <th width="20%" style="padding: 4px 6px;">رمز الحساب</th>
+                                <th width="45%" style="padding: 4px 6px;">اسم الحساب</th>
+                                <th width="17%" style="padding: 4px 6px;">مدين (DR)</th>
+                                <th width="17%" style="padding: 4px 6px;">دائن (CR)</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for tx in step.transactions %}
                             <tr>
-                                <td>{{ tx.code }}</td>
-                                <td>{{ tx.name }}</td>
-                                <td class="debit-val">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
-                                <td class="credit-val">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td style="padding: 4px 6px;">{{ tx.code }}</td>
+                                <td style="padding: 4px 6px;">{{ tx.name }}</td>
+                                <td class="debit-val" style="padding: 4px 6px;">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td class="credit-val" style="padding: 4px 6px;">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endwith %}
+
+            <!-- Step 3: Discount -->
+            {% with step=steps.2 %}
+            <div class="section-card discount-theme" style="margin-bottom: 0.65rem; padding: 1.5rem 1.25rem 0.6rem 1.25rem;">
+                <div class="section-card-tab">
+                    <i class="fa-solid fa-tags"></i> {{ step.title }}
+                </div>
+                <div class="graphic-badge-circle" style="width: 50px; height: 50px;">
+                    <div class="graphic-badge-inner" style="width: 38px; height: 38px; font-size: 1rem;">
+                        <i class="fa-solid fa-percent"></i>
+                    </div>
+                </div>
+                <div class="section-content-text" style="font-size: 0.72rem;">
+                    <div class="section-content-title" style="font-size: 0.76rem; margin-bottom: 0.15rem;">{{ step.type_text }} | التاريخ: {{ step.date }}</div>
+                    <div style="margin-bottom: 5px;">{{ step.desc }}</div>
+                    <table class="journal-table" style="font-size: 0.7rem; margin: 5px 0;">
+                        <thead>
+                            <tr>
+                                <th width="20%" style="padding: 4px 6px;">رمز الحساب</th>
+                                <th width="45%" style="padding: 4px 6px;">اسم الحساب</th>
+                                <th width="17%" style="padding: 4px 6px;">مدين (DR)</th>
+                                <th width="17%" style="padding: 4px 6px;">دائن (CR)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in step.transactions %}
+                            <tr>
+                                <td style="padding: 4px 6px;">{{ tx.code }}</td>
+                                <td style="padding: 4px 6px;">{{ tx.name }}</td>
+                                <td class="debit-val" style="padding: 4px 6px;">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td class="credit-val" style="padding: 4px 6px;">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1111,7 +1161,7 @@
     </div>
 
     <!-- ================= PAGE 3: WITHDRAWAL & SUMS (DEMO) ================= -->
-    <div class="a4-container dynamic-page">
+    <div class="a4-container">
         <div class="content-page-container">
             <!-- Header Group -->
             <div class="page-header-logo-group">
@@ -1125,78 +1175,40 @@
 
             <!-- Page Title -->
             <div class="text-center mb-3">
-                <h5 class="font-weight-bold text-slate-800 mb-1" style="font-size: 1.15rem; color: #112d4e;">حسومات التسوية والانسحاب النهائي</h5>
+                <h5 class="font-weight-bold text-slate-800 mb-1" style="font-size: 1.15rem; color: #112d4e;">التسويات الختامية والانسحاب النهائي</h5>
                 <div style="width: 100px; height: 2px; background-color: #e07a2c; margin: 0 auto;"></div>
             </div>
 
-            <!-- Step 3: Discount -->
-            {% with step=steps.2 %}
-            <div class="section-card discount-theme" style="margin-bottom: 0.8rem;">
-                <div class="section-card-tab">
-                    <i class="fa-solid fa-tags"></i> {{ step.title }}
-                </div>
-                <div class="graphic-badge-circle">
-                    <div class="graphic-badge-inner">
-                        <i class="fa-solid fa-percent"></i>
-                    </div>
-                </div>
-                <div class="section-content-text">
-                    <div class="section-content-title">{{ step.type_text }} | التاريخ: {{ step.date }}</div>
-                    <div class="mb-2">{{ step.desc }}</div>
-                    <table class="journal-table">
-                        <thead>
-                            <tr>
-                                <th width="20%">رمز الحساب</th>
-                                <th width="45%">اسم الحساب</th>
-                                <th width="17%">مدين (DR)</th>
-                                <th width="17%">دائن (CR)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for tx in step.transactions %}
-                            <tr>
-                                <td>{{ tx.code }}</td>
-                                <td>{{ tx.name }}</td>
-                                <td class="debit-val">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
-                                <td class="credit-val">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% endwith %}
-
             <!-- Step 4: Withdrawal -->
             {% with step=steps.3 %}
-            <div class="section-card withdrawal-theme" style="margin-bottom: 0.8rem;">
+            <div class="section-card withdrawal-theme" style="margin-bottom: 0.65rem; padding: 1.5rem 1.25rem 0.6rem 1.25rem;">
                 <div class="section-card-tab">
                     <i class="fa-solid fa-user-xmark"></i> {{ step.title }}
                 </div>
-                <div class="graphic-badge-circle">
-                    <div class="graphic-badge-inner">
+                <div class="graphic-badge-circle" style="width: 50px; height: 50px;">
+                    <div class="graphic-badge-inner" style="width: 38px; height: 38px; font-size: 1rem;">
                         <i class="fa-solid fa-user-minus"></i>
                     </div>
                 </div>
-                <div class="section-content-text">
-                    <div class="section-content-title">{{ step.type_text }} | التاريخ: {{ step.date }}</div>
-                    <div class="mb-2">{{ step.desc }}</div>
-                    <table class="journal-table">
+                <div class="section-content-text" style="font-size: 0.72rem;">
+                    <div class="section-content-title" style="font-size: 0.76rem; margin-bottom: 0.15rem;">{{ step.type_text }} | التاريخ: {{ step.date }}</div>
+                    <div style="margin-bottom: 5px;">{{ step.desc }}</div>
+                    <table class="journal-table" style="font-size: 0.68rem; margin: 5px 0;">
                         <thead>
                             <tr>
-                                <th width="20%">رمز الحساب</th>
-                                <th width="45%">اسم الحساب</th>
-                                <th width="17%">مدين (DR)</th>
-                                <th width="17%">دائن (CR)</th>
+                                <th width="20%" style="padding: 4px 6px;">رمز الحساب</th>
+                                <th width="45%" style="padding: 4px 6px;">اسم الحساب</th>
+                                <th width="17%" style="padding: 4px 6px;">مدين (DR)</th>
+                                <th width="17%" style="padding: 4px 6px;">دائن (CR)</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for tx in step.transactions %}
                             <tr>
-                                <td>{{ tx.code }}</td>
-                                <td>{{ tx.name }}</td>
-                                <td class="debit-val">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
-                                <td class="credit-val">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td style="padding: 4px 6px;">{{ tx.code }}</td>
+                                <td style="padding: 4px 6px;">{{ tx.name }}</td>
+                                <td class="debit-val" style="padding: 4px 6px;">{% if tx.debit > 0 %}{{ tx.debit|floatformat:0 }}{% else %}-{% endif %}</td>
+                                <td class="credit-val" style="padding: 4px 6px;">{% if tx.credit > 0 %}{{ tx.credit|floatformat:0 }}{% else %}-{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1206,42 +1218,42 @@
             {% endwith %}
 
             <!-- Financial Summary Card -->
-            <div class="summary-card">
-                <div style="font-weight: 800; font-size: 0.85rem; margin-bottom: 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">
+            <div class="summary-card" style="margin-top: 0.5rem; padding: 0.85rem;">
+                <div style="font-weight: 800; font-size: 0.8rem; margin-bottom: 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">
                     أرصدة حسابات الطالب النهائية بعد التسويات
                 </div>
                 <div class="summary-grid">
                     <div>
-                        <div style="font-size: 0.72rem; color: #cbd5e1;">ذمة الطالب المدينة (1251)</div>
-                        <div class="summary-val">0 ل.س</div>
+                        <div style="font-size: 0.7rem; color: #cbd5e1;">ذمة الطالب المدينة (1251)</div>
+                        <div class="summary-val" style="font-size: 1.1rem;">0 ل.س</div>
                     </div>
                     <div>
-                        <div style="font-size: 0.72rem; color: #cbd5e1;">صافي المحتفظ به بالصندوق</div>
-                        <div class="summary-val" style="color: #60a5fa;">+{{ course.kept_amount|floatformat:0 }} ل.س</div>
+                        <div style="font-size: 0.7rem; color: #cbd5e1;">صافي المحتفظ به بالصندوق</div>
+                        <div class="summary-val" style="color: #60a5fa; font-size: 1.1rem;">+{{ course.kept_amount|floatformat:0 }} ل.س</div>
                     </div>
                     <div>
-                        <div style="font-size: 0.72rem; color: #cbd5e1;">إيرادات المركز المحققة (4100)</div>
-                        <div class="summary-val" style="color: #34d399;">{{ course.kept_amount|floatformat:0 }} ل.س</div>
+                        <div style="font-size: 0.7rem; color: #cbd5e1;">إيرادات المركز المحققة (4100)</div>
+                        <div class="summary-val" style="color: #34d399; font-size: 1.1rem;">{{ course.kept_amount|floatformat:0 }} ل.س</div>
                     </div>
                 </div>
             </div>
 
             <!-- Signatures Block -->
-            <div class="signatures-block">
+            <div class="signatures-block" style="margin-top: 0.65rem; padding-top: 0.5rem;">
                 <div class="signatures-grid">
-                    <div class="signature-card">
-                        <div class="signature-card-title"><i class="fa-solid fa-user-pen"></i> منظم التقرير</div>
-                        <div class="signature-card-line"></div>
+                    <div class="signature-card" style="padding: 0.4rem;">
+                        <div class="signature-card-title" style="font-size: 0.72rem; margin-bottom: 0.4rem;"><i class="fa-solid fa-user-pen"></i> منظم التقرير</div>
+                        <div class="signature-card-line" style="margin: 0.3rem 0;"></div>
                         <div style="font-weight: 800; color: #112d4e;">محاسب المركز</div>
                     </div>
-                    <div class="signature-card">
-                        <div class="signature-card-title"><i class="fa-solid fa-file-signature"></i> قسم التدقيق المالي</div>
-                        <div class="signature-card-line"></div>
+                    <div class="signature-card" style="padding: 0.4rem;">
+                        <div class="signature-card-title" style="font-size: 0.72rem; margin-bottom: 0.4rem;"><i class="fa-solid fa-file-signature"></i> قسم التدقيق المالي</div>
+                        <div class="signature-card-line" style="margin: 0.3rem 0;"></div>
                         <div style="font-weight: 800; color: #112d4e;">مدير التدقيق الحسابي</div>
                     </div>
-                    <div class="signature-card">
-                        <div class="signature-card-title"><i class="fa-solid fa-user-shield"></i> المسؤول المالي</div>
-                        <div class="signature-card-line"></div>
+                    <div class="signature-card" style="padding: 0.4rem;">
+                        <div class="signature-card-title" style="font-size: 0.72rem; margin-bottom: 0.4rem;"><i class="fa-solid fa-user-shield"></i> المسؤول المالي</div>
+                        <div class="signature-card-line" style="margin: 0.3rem 0;"></div>
                         <div style="font-weight: 800; color: #112d4e;">Thaaer Almasri</div>
                     </div>
                 </div>
@@ -1271,7 +1283,7 @@
     </div>
 
     <!-- ================= PAGE 4: REFERENCE GUIDE (DEMO ONLY) ================= -->
-    <div class="a4-container dynamic-page">
+    <div class="a4-container">
         <div class="content-page-container">
             <!-- Header Group -->
             <div class="page-header-logo-group">
@@ -1360,7 +1372,7 @@
                             &nbsp;&nbsp;• إلى حـ/ الصندوق (1210): 250,000 (دائن)<br>
                             <b>3. إثبات الإيراد المحقق المحتفظ به:</b><br>
                             &nbsp;&nbsp;• من حـ/ إيرادات مؤجلة (2150): 150,000 (مدين)<br>
-                            &nbsp;&nbsp;• إلى hـ/ إيرادات محققة (4100): 150,000 (دائن)
+                            &nbsp;&nbsp;• إلى حـ/ إيرادات محققة (4100): 150,000 (دائن)
                         </td>
                     </tr>
                 </tbody>
@@ -1530,14 +1542,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    {% empty %}
-    <div class="a4-container">
-        <div class="text-center py-5" style="margin-top: 100px;">
-            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-            <h4>لا يوجد دورات مسجل فيها هذا الطالب حالياً</h4>
-            <p class="text-muted">يرجى تسجيل الطالب في دورة لعرض خطه المالي.</p>
         </div>
     </div>
     {% endfor %}

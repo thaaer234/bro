@@ -164,6 +164,11 @@ def student_lifecycle_report(request, student_id=None):
     """
     demo_mode = request.GET.get('demo', 'false').lower() == 'true' or student_id is None
     
+    from django.contrib.auth.models import User
+    employee_user = User.objects.filter(Q(username__icontains='raneem') | Q(first_name__icontains='رنيم') | Q(last_name__icontains='مرعشلي')).first()
+    if not employee_user:
+        employee_user = request.user
+
     if demo_mode:
         student_info = {
             'id': 9999,
@@ -251,6 +256,7 @@ def student_lifecycle_report(request, student_id=None):
             'course': course_info,
             'steps': steps,
             'report_date': timezone.now().date(),
+            'employee': employee_user,
         }
     else:
         student = get_object_or_404(SProfile, id=student_id)
@@ -356,6 +362,7 @@ def student_lifecycle_report(request, student_id=None):
             'student': student,
             'enrollments_data': real_enrollments,
             'report_date': timezone.now().date(),
+            'employee': employee_user,
         }
         
     return render(request, 'technical_services/student_lifecycle_report.html', context)
