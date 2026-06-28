@@ -286,6 +286,38 @@ class Student(models.Model):
         academic_year = self.get_academic_year()
         return academic_year.name if academic_year else "لم يتم تحديد الفصل"
    
+    def update_enrollment_discount(self, enrollment, discount_percent, discount_amount, discount_reason, user):
+        """تحديث حسم تسجيل محدد وتوليد القيد المحاسبي المناسب"""
+        from decimal import Decimal
+        from accounts.models import Studentenrollment, JournalEntry, Transaction
+        
+        with db_transaction.atomic():
+            # حفظ القيم القديمة للمقارنة
+            old_discount_percent = enrollment.discount_percent
+            old_discount_amount = enrollment.discount_amount
+            
+            # حساب المبلغ الصافي القديم
+            old_after_percent = enrollment.total_amount - (enrollment.total_amount * old_discount_percent / Decimal('100'))
+            old_net_amount = max(Decimal('0'), old_after_percent - old_discount_amount)
+            
+            # تحديث قيم الحسم في التسجيل
+            enrollment.discount_percent = discount_percent
+            enrollment.discount_amount = discount_amount
+            enrollment.save()
+            
+            # حساب المبلغ الصافي الجديد
+            new_after_percent = enrollment.total_amount - (enrollment.total_amount * discount_percent / Decimal('100'))
+            new_net_amount = max(Decimal('0'), new_after_percent - discount_amount)
+            
+            # إذا تغير المبلغ الصافي، قم بتحديث القيد المحاسبي
+            if old_net_amount != new_net_amount:
+                if discount_reason:
+                    self.discount_reason = discount_reason
+                    self.save(update_fields=['discount_reason'])
+                
+                if enrollment.enrollment_journal_entry:
+                    self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
+
     def update_enrollment_discounts(self, user):
         """تحديث جميع تسجيلات الطالب النشطة بناءً على الحسم الجديد"""
         from accounts.models import Studentenrollment, JournalEntry, Transaction

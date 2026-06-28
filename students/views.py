@@ -2150,16 +2150,9 @@ def register_course(request, student_id):
                     discount_reason = ''
 
                     if apply_discount:
-                        if is_first_enrollment:
-                            # استخدام الحسم من الاستمارة للدورة الأولى
-                            discount_percent = target_student.discount_percent or Decimal('0')
-                            discount_amount = target_student.discount_amount or Decimal('0')
-                            discount_reason = target_student.discount_reason or 'حسم من الاستمارة'
-                        else:
-                            # للدورات الأخرى، استخدام الحسم المدخل من المستخدم
-                            discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
-                            discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
-                            discount_reason = request.POST.get('discount_reason', 'حسم مطبق عند التسجيل')
+                        discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
+                        discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
+                        discount_reason = request.POST.get('discount_reason', '') or 'حسم مطبق عند التسجيل'
 
                     # Determine enrolled subjects
                     subjects_choice = request.POST.get('subjects_choice', 'all')
