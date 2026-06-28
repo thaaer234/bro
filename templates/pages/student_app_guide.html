@@ -1625,7 +1625,26 @@
     <!-- زر عائم لطباعة الدليل A4 -->
     <button class="print-btn-float" onclick="window.print()">
         <i class="fa-solid fa-print"></i> طباعة الدليل الورقي (A4)
-    </        <!-- شريط التنقل السريع -->
+    </button>
+
+    <!-- هيدر الصفحة والترحيب -->
+    <header>
+        <div class="header-container">
+            <div class="logo-wrap">
+                <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار المعهد">
+            </div>
+            <div class="institute-name">
+                <i class="fa-solid fa-graduation-cap"></i> معهد اليمان للعلوم واللغات
+            </div>
+            <h1 class="main-title">دليل استخدام تطبيق المعهد والبطاقة الذكية</h1>
+            <p class="subtitle">كل ما تود معرفته حول كيفية تحميل تطبيق المعهد، الاستفادة من بطاقة الطالب الذكية لتسجيل الدخول الفوري، ومتابعة التحصيل العلمي والمالي للطلاب بسهولة.</p>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="container">
+
+        <!-- شريط التنقل السريع -->
         <nav class="nav-strip">
             <a href="#student-card-sec" class="nav-link"><i class="fa-solid fa-id-card"></i> بطاقة الطالب الذكية</a>
             <a href="#download-sec" class="nav-link"><i class="fa-solid fa-download"></i> تحميل التطبيق</a>
