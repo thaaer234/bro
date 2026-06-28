@@ -171,24 +171,24 @@ def student_lifecycle_report(request, student_id=None):
 
     if demo_mode:
         student_info = {
-            'id': 2034,
-            'full_name': 'حلا قاسم',
-            'branch': 'تاسع',
-            'student_number': 'STU-2034',
-            'registration_date': '2026-06-10',
+            'id': 1055,
+            'full_name': 'ابتسام الملقي',
+            'branch': 'علمي',
+            'student_number': 'STU-1055',
+            'registration_date': '2026-04-02',
             'phone': 'N/A',
         }
         
         course_info = {
-            'name': 'دورة صيف تاسع 2026-2027',
-            'price': Decimal("3500000.00"),
-            'discount_percent': Decimal("0.00"),
-            'discount_amount': Decimal("0.00"),
-            'net_price': Decimal("3500000.00"),
-            'amount_paid': Decimal("320000.00"),
-            'refund_amount': Decimal("680000.00"),
-            'kept_amount': Decimal("320000.00"),
-            'remaining_due': Decimal("3180000.00"),
+            'name': 'دورة صيف علمي 2026-2027',
+            'price': Decimal("6000000.00"),
+            'discount_percent': Decimal("20.00"),
+            'discount_amount': Decimal("1200000.00"),
+            'net_price': Decimal("4800000.00"),
+            'amount_paid': Decimal("0.00"),
+            'refund_amount': Decimal("4800000.00"),
+            'kept_amount': Decimal("0.00"),
+            'remaining_due': Decimal("0.00"),
         }
         
         steps = [
@@ -197,53 +197,56 @@ def student_lifecycle_report(request, student_id=None):
                 'title': '1. تسجيل الطالب بالدورة (مرحلة الاستحقاق)',
                 'badge_class': 'badge-enrollment',
                 'type_text': 'تسجيل / ENROLLMENT',
-                'desc': 'Student enrollment - حلا قاسم in دورة صيف تاسع 2026-2027',
-                'ref': 'JE-012242',
-                'date': '2026-06-10',
+                'desc': 'Student enrollment - ابتسام الملقي in دورة صيف علمي 2026-2027',
+                'ref': 'JE-007875',
+                'date': '2026-04-02',
                 'transactions': [
-                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('2500000.00'), 'credit': Decimal('0.00'), 'desc': 'enrollment - حلا قاسم'},
-                    {'code': '21001-020', 'name': 'إيرادات مؤجلة - دورة صيف تاسع 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('2500000.00'), 'desc': 'Deferred revenue - دورة صيف تاسع 2026-2027'},
+                    {'code': '1251-018-1055', 'name': 'ذمة ابتسام الملقي - دورة صيف علمي 2026-2027', 'debit': Decimal('5100000.00'), 'credit': Decimal('0.00'), 'desc': 'enrollment - ابتسام الملقي'},
+                    {'code': '21001-018', 'name': 'إيرادات مؤجلة - دورة صيف علمي 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('5100000.00'), 'desc': 'Deferred revenue - دورة صيف علمي 2026-2027'},
                 ]
             },
             {
                 'number': 2,
-                'title': '2. قبض دفعة نقدية (إيصال قبض)',
+                'title': '2. المقبوضات النقدية (إيصالات القبض)',
                 'badge_class': 'badge-payment',
                 'type_text': 'دفعة / PAYMENT',
-                'desc': 'Student payment - حلا قاسم for دورة صيف تاسع 2026-2027',
-                'ref': 'JE-012243',
+                'desc': 'دفعات نقدية مقبوضة بالصناديق من الطالبة ابتسام الملقي',
+                'ref': 'JE-007876 / JE-011369 / JE-012235',
                 'date': '2026-06-10',
                 'transactions': [
-                    {'code': '121-0008', 'name': 'صندوق رنيم مرعشلي', 'debit': Decimal('1000000.00'), 'credit': Decimal('0.00'), 'desc': 'Cash received - حلا قاسم'},
-                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('1000000.00'), 'desc': 'Payment received - دورة صيف تاسع 2026-2027'},
+                    {'code': '121-0007', 'name': 'صندوق سارة الساسة', 'debit': Decimal('2100000.00'), 'credit': Decimal('0.00'), 'desc': 'Cash received - ابتسام الملقي'},
+                    {'code': '121-0008', 'name': 'صندوق رنيم مرعشلي', 'debit': Decimal('2700000.00'), 'credit': Decimal('0.00'), 'desc': 'Cash received - ابتسام الملقي'},
+                    {'code': '1251-018-1055', 'name': 'ذمة ابتسام الملقي - دورة صيف علمي 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('4800000.00'), 'desc': 'Payment received - دورة صيف علمي 2026-2027'},
                 ]
             },
             {
                 'number': 3,
-                'title': '3. تعديل استحقاق / زيادة حسم',
+                'title': '3. تعديل استحقاق / تطبيق حسم',
                 'badge_class': 'badge-adjustment',
                 'type_text': 'حسم / DISCOUNT',
-                'desc': 'تعديل حسم - حلا قاسم - دورة صيف تاسع 2026-2027',
-                'ref': 'JE-012633',
-                'date': '2026-06-23',
+                'desc': 'تعديل حسم - ابتسام الملقي - دورة صيف علمي 2026-2027',
+                'ref': 'JE-012666',
+                'date': '2026-06-24',
                 'transactions': [
-                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('1000000.00'), 'credit': Decimal('0.00'), 'desc': 'تعديل زيادة حسم - دورة صيف تاسع 2026-2027'},
-                    {'code': '21001-020', 'name': 'إيرادات مؤجلة - دورة صيف تاسع 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('1000000.00'), 'desc': 'تعديل زيادة حسم - حلا قاسم'},
+                    {'code': '21001-018', 'name': 'إيرادات مؤجلة - دورة صيف علمي 2026-2027', 'debit': Decimal('300000.00'), 'credit': Decimal('0.00'), 'desc': 'تعديل تخفيض حسم - ابتسام الملقي'},
+                    {'code': '1251-018-1055', 'name': 'ذمة ابتسام الملقي - دورة صيف علمي 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('300000.00'), 'desc': 'تعديل تخفيض حسم - دورة صيف علمي 2026-2027'},
                 ]
             },
             {
                 'number': 4,
-                'title': '4. انسحاب الطالب وتسوية الحسابات (إلغاء واسترداد)',
+                'title': '4. انسحاب الطالب وتسوية الحسابات (إلغاء واسترداد كامل)',
                 'badge_class': 'badge-withdrawal',
                 'type_text': 'انسحاب / WITHDRAWAL',
-                'desc': 'استرداد دفعة مالية عند الانسحاب وعكس الإيرادات المؤجلة وتسوية ذمة الطالب بالكامل لتصبح (صفر).',
-                'ref': 'JE-012634 / WD-REV-861-20260623',
-                'date': '2026-06-23',
+                'desc': 'استرداد كامل المبالغ المدفوعة وعكس الإيرادات المؤجلة وتصفير ذمة الطالب بالكامل.',
+                'ref': 'JE-012809 / WD-622 / WD-REV-622',
+                'date': '2026-06-28',
                 'transactions': [
-                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('680000.00'), 'credit': Decimal('0.00'), 'desc': 'استرداد مبلغ - دورة صيف تاسع 2026-2027'},
-                    {'code': '121-0021', 'name': 'رصيد صندوق sedra zarifeh', 'debit': Decimal('0.00'), 'credit': Decimal('680000.00'), 'desc': 'مرتجع نقدي - حلا قاسم'},
-                    {'code': '21001-020', 'name': 'إيرادات مؤجلة - دورة صيف تاسع 2026-2027', 'debit': Decimal('3180000.00'), 'credit': Decimal('0.00'), 'desc': 'عكس إيرادات مؤجلة - حلا قاسم'},
-                    {'code': '1251-020-2034', 'name': 'ذمة حلا قاسم - دورة صيف تاسع 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('3180000.00'), 'desc': 'تصفية ذمة - دورة صيف تاسع 2026-2027'},
+                    {'code': '1251-018-1055', 'name': 'ذمة ابتسام الملقي - دورة صيف علمي 2026-2027', 'debit': Decimal('3800000.00'), 'credit': Decimal('0.00'), 'desc': 'استرداد مبلغ - دورة صيف علمي 2026-2027'},
+                    {'code': '121', 'name': 'النقدية', 'debit': Decimal('0.00'), 'credit': Decimal('3800000.00'), 'desc': 'مرتجع نقدي - ابتسام الملقي'},
+                    {'code': '4201', 'name': 'إيرادات انسحاب طلاب', 'debit': Decimal('1000000.00'), 'credit': Decimal('0.00'), 'desc': 'إيرادات سحب: ابتسام الملقي - دورة صيف علمي 2026-2027'},
+                    {'code': '121', 'name': 'النقدية', 'debit': Decimal('0.00'), 'credit': Decimal('1000000.00'), 'desc': 'استرداد نقدي: ابتسام الملقي'},
+                    {'code': '21001-018', 'name': 'إيرادات مؤجلة - دورة صيف علمي 2026-2027', 'debit': Decimal('3800000.00'), 'credit': Decimal('0.00'), 'desc': 'عكس إيرادات مؤجلة - ابتسام الملقي'},
+                    {'code': '1251-018-1055', 'name': 'ذمة ابتسام الملقي - دورة صيف علمي 2026-2027', 'debit': Decimal('0.00'), 'credit': Decimal('3800000.00'), 'desc': 'تصفية ذمة - دورة صيف علمي 2026-2027'},
                 ]
             }
         ]
