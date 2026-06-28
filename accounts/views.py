@@ -1425,10 +1425,7 @@ def _build_trial_balance_dataset(
     total_credits = Decimal('0.00')
 
     accounts = Account.objects.filter(is_active=True)
-<<<<<<< HEAD
-=======
     # تصفية الحسابات حسب السنة الدراسية الحالية + الحسابات المشتركة بدون سنة (هيكلية)
->>>>>>> c91db6517709d1023497207942ce5ba8197a6d81
     if academic_year:
         accounts = accounts.filter(
             Q(academic_year=academic_year) | Q(academic_year__isnull=True)
