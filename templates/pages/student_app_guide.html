@@ -245,57 +245,33 @@
             color: var(--primary);
         }
 
-        /* البطاقة التفاعلية ثلاثية الأبعاد */
-        .card-demo-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            align-items: center;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 900px) {
-            .card-demo-container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* محاكي البطاقة ثلاثية الأبعاد */
-        .card-view {
-            perspective: 1200px;
+        /* تصميم شبكة البطاقات المسطحة */
+        .cards-static-layout {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin: 20px auto 30px;
             width: 100%;
-            max-width: 400px;
-            height: 240px;
-            margin: 0 auto;
-            cursor: pointer;
-        }
-
-        .card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            text-align: center;
-            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            transform-style: preserve-3d;
-            box-shadow: var(--shadow-lg);
-            border-radius: var(--radius-md);
-        }
-
-        .card-view.flipped .card-inner {
-            transform: rotateY(180deg);
         }
 
         .card-front, .card-back {
-            position: absolute;
+            position: relative;
             width: 100%;
-            height: 100%;
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
+            max-width: 400px;
+            height: 240px;
             border-radius: var(--radius-md);
             overflow: hidden;
             display: flex;
             flex-direction: column;
             border: 2px solid #513996;
+            box-shadow: var(--shadow-md);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card-front:hover, .card-back:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
         }
 
         /* تصميم وجه البطاقة */
@@ -517,9 +493,11 @@
 
         /* نصوص الشرح لبطاقة الطالب */
         .card-explanation {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+            width: 100%;
         }
 
         .exp-item {
@@ -1482,193 +1460,116 @@
                 تمنح إدارة معهد اليمان كل طالب بطاقة تعريفية ذكية تحتوي على بياناته الأساسية ورموز استجابة سريعة (QR Codes) فريدة مخصصة للطالب ولوالديه للوصول الفوري إلى حساباتهم في التطبيق.
             </p>
 
-            <div class="card-demo-container">
-                <!-- المحاكي التفاعلي لقلب البطاقة (للشاشة فقط) -->
-                <div>
-                    <div class="card-view" id="interactive-student-card" onclick="flipCard()">
-                        <div class="card-inner">
-                            
-                            <!-- وجه البطاقة الأمامي -->
-                            <div class="card-front">
-                                <div style="position: absolute; top: 10px; right: 10px;" class="tooltip-hotspot" data-tooltip="هوية المعهد الرسمية">١</div>
-                                <div style="position: absolute; bottom: 10px; left: 10px;" class="tooltip-hotspot" data-tooltip="امسح هنا لتحميل التطبيق مباشرة">٢</div>
-                                
-                                <div class="card-front-content">
-                                    <div class="card-front-info">
-                                        <div class="card-front-header">
-                                            <h3><span class="badge">معهد اليمان</span> بطاقة الطالب</h3>
-                                        </div>
-                                        <div class="card-student-name">محمد بن أحمد اليمان</div>
-                                        <div class="card-info-row">
-                                            <strong>رمز الطالب:</strong>
-                                            <span>202610532</span>
-                                        </div>
-                                        <div class="card-info-row">
-                                            <strong>رمز الأب (الهاتف):</strong>
-                                            <span>0998760194</span>
-                                        </div>
-                                        <div class="card-info-row">
-                                            <strong>رمز الأم (الهاتف):</strong>
-                                            <span>0991234567</span>
-                                        </div>
-                                    </div>
-                                    <div class="card-front-left">
-                                        <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار" class="card-front-logo">
-                                        <div class="card-download-qr">
-                                            <!-- QR كود تحميل التطبيق الافتراضي -->
-                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2Ffu5Voe8s6PSZcG6syBbbZQ.apk" alt="QR التحميل">
-                                        </div>
-                                        <span class="qr-caption">تحميل التطبيق</span>
-                                    </div>
-                                </div>
+            <div class="cards-static-layout">
+                <!-- وجه البطاقة الأمامي -->
+                <div class="card-front">
+                    <div style="position: absolute; top: 10px; right: 10px;" class="tooltip-hotspot" data-tooltip="هوية المعهد الرسمية">١</div>
+                    <div style="position: absolute; bottom: 10px; left: 10px;" class="tooltip-hotspot" data-tooltip="امسح هنا لتحميل التطبيق مباشرة">٢</div>
+                    
+                    <div class="card-front-content">
+                        <div class="card-front-info">
+                            <div class="card-front-header">
+                                <h3><span class="badge">معهد اليمان</span> بطاقة الطالب</h3>
                             </div>
-
-                            <!-- ظهر البطاقة الخلفي -->
-                            <div class="card-back">
-                                <div style="position: absolute; top: 15px; left: 15px;" class="tooltip-hotspot" data-tooltip="رموز الدخول السريع الخاصة بالطالب والأب والأم">٣</div>
-                                
-                                <div class="card-back-header">
-                                    <span>تسجيل الدخول عبر الـ</span>
-                                    <span class="badge">QR Code</span>
-                                </div>
-
-                                <div class="card-qr-grid">
-                                    <!-- QR الطالب -->
-                                    <div class="card-qr-box">
-                                        <div class="card-qr-wrapper">
-                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D202610532%26r%3Dstudent" alt="طالب">
-                                            <span class="card-qr-icon">
-                                                <i class="fa-solid fa-graduation-cap" style="font-size: 9px; color: var(--primary);"></i>
-                                            </span>
-                                        </div>
-                                        <span class="card-qr-label">الطالب</span>
-                                    </div>
-
-                                    <!-- QR الأب -->
-                                    <div class="card-qr-box">
-                                        <div class="card-qr-wrapper">
-                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0998760194%26r%3Dfather" alt="أب">
-                                            <span class="card-qr-icon">
-                                                <i class="fa-solid fa-user-tie" style="font-size: 9px; color: var(--primary);"></i>
-                                            </span>
-                                        </div>
-                                        <span class="card-qr-label">الأب</span>
-                                    </div>
-
-                                    <!-- QR الأم -->
-                                    <div class="card-qr-box">
-                                        <div class="card-qr-wrapper">
-                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0991234567%26r%3Dmother" alt="أم">
-                                            <span class="card-qr-icon">
-                                                <i class="fa-solid fa-person-dress" style="font-size: 9px; color: var(--primary);"></i>
-                                            </span>
-                                        </div>
-                                        <span class="card-qr-label">الأم</span>
-                                    </div>
-                                </div>
-
-                                <div class="card-back-footer">
-                                    للاستفسار والدعم، يرجى التواصل مع الدعم الفني للمعهد على الرقم:<br>
-                                    <span class="phone">0998760194</span>
-                                </div>
+                            <div class="card-student-name">محمد بن أحمد اليمان</div>
+                            <div class="card-info-row">
+                                <strong>رمز الطالب:</strong>
+                                <span>202610532</span>
                             </div>
-
-                        </div>
-                    </div>
-                    <div class="flip-hint">
-                        <i class="fa-solid fa-arrows-rotate"></i> انقر فوق البطاقة لرؤية الوجه الآخر
-                    </div>
-                </div>
-
-                <!-- شبكة البطاقات المسطحة (تظهر فقط عند طباعة الورقة A4 لمنع مشاكل التحريك) -->
-                <div class="print-cards-layout">
-                    <!-- وجه البطاقة الأمامي للطباعة -->
-                    <div class="card-front">
-                        <div class="card-front-content">
-                            <div class="card-front-info">
-                                <div class="card-front-header">
-                                    <h3><span class="badge">معهد اليمان</span> بطاقة الطالب</h3>
-                                </div>
-                                <div class="card-student-name">محمد بن أحمد اليمان</div>
-                                <div class="card-info-row">
-                                    <strong>رمز الطالب:</strong>
-                                    <span>202610532</span>
-                                </div>
-                                <div class="card-info-row">
-                                    <strong>رمز الأب (الهاتف):</strong>
-                                    <span>0998760194</span>
-                                </div>
-                                <div class="card-info-row">
-                                    <strong>رمز الأم (الهاتف):</strong>
-                                    <span>0991234567</span>
-                                </div>
+                            <div class="card-info-row">
+                                <strong>رمز الأب (الهاتف):</strong>
+                                <span>0998760194</span>
                             </div>
-                            <div class="card-front-left">
-                                <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار" class="card-front-logo">
-                                <div class="card-download-qr">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2Ffu5Voe8s6PSZcG6syBbbZQ.apk" alt="QR التحميل">
-                                </div>
-                                <span class="qr-caption">تحميل التطبيق</span>
+                            <div class="card-info-row">
+                                <strong>رمز الأم (الهاتف):</strong>
+                                <span>0991234567</span>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- ظهر البطاقة للطباعة -->
-                    <div class="card-back">
-                        <div class="card-back-header">
-                            <span>تسجيل الدخول عبر الـ</span>
-                            <span class="badge">QR Code</span>
-                        </div>
-                        <div class="card-qr-grid">
-                            <div class="card-qr-box">
-                                <div class="card-qr-wrapper">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D202610532%26r%3Dstudent" alt="طالب">
-                                </div>
-                                <span class="card-qr-label">الطالب</span>
+                        <div class="card-front-left">
+                            <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار" class="card-front-logo">
+                            <div class="card-download-qr">
+                                <!-- QR كود تحميل التطبيق الافتراضي -->
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Fartifacts%2Feas%2Ffu5Voe8s6PSZcG6syBbbZQ.apk" alt="QR التحميل">
                             </div>
-                            <div class="card-qr-box">
-                                <div class="card-qr-wrapper">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0998760194%26r%3Dfather" alt="أب">
-                                </div>
-                                <span class="card-qr-label">الأب</span>
-                            </div>
-                            <div class="card-qr-box">
-                                <div class="card-qr-wrapper">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0991234567%26r%3Dmother" alt="أم">
-                                </div>
-                                <span class="card-qr-label">الأم</span>
-                            </div>
-                        </div>
-                        <div class="card-back-footer">
-                            للاستفسار والدعم، يرجى التواصل مع الدعم الفني على الرقم: <span class="phone">0998760194</span>
+                            <span class="qr-caption">تحميل التطبيق</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- نصوص الشرح والتفصيل للبطاقة -->
-                <div class="card-explanation">
-                    <div class="exp-item">
-                        <div class="exp-number">١</div>
-                        <div class="exp-content">
-                            <h4>البيانات التعريفية الأساسية (الوجه الأمامي)</h4>
-                            <p>يحتوي الوجه الأمامي للبطاقة على اسم الطالب، ورقمه الفريد في المعهد، بالإضافة إلى أرقام هواتف الأب والأم المسجلة في قاعدة البيانات والتي تعتبر كلمات مرورهم الافتراضية.</p>
+                <!-- ظهر البطاقة الخلفي -->
+                <div class="card-back">
+                    <div style="position: absolute; top: 15px; left: 15px;" class="tooltip-hotspot" data-tooltip="رموز الدخول السريع الخاصة بالطالب والأب والأم">٣</div>
+                    
+                    <div class="card-back-header">
+                        <span>تسجيل الدخول عبر الـ</span>
+                        <span class="badge">QR Code</span>
+                    </div>
+
+                    <div class="card-qr-grid">
+                        <!-- QR الطالب -->
+                        <div class="card-qr-box">
+                            <div class="card-qr-wrapper">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D202610532%26r%3Dstudent" alt="طالب">
+                                <span class="card-qr-icon">
+                                    <i class="fa-solid fa-graduation-cap" style="font-size: 9px; color: var(--primary);"></i>
+                                </span>
+                            </div>
+                            <span class="card-qr-label">الطالب</span>
+                        </div>
+
+                        <!-- QR الأب -->
+                        <div class="card-qr-box">
+                            <div class="card-qr-wrapper">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0998760194%26r%3Dfather" alt="أب">
+                                <span class="card-qr-icon">
+                                    <i class="fa-solid fa-user-tie" style="font-size: 9px; color: var(--primary);"></i>
+                                </span>
+                            </div>
+                            <span class="card-qr-label">الأب</span>
+                        </div>
+
+                        <!-- QR الأم -->
+                        <div class="card-qr-box">
+                            <div class="card-qr-wrapper">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=210x210&data=u%3D%D9%85%D8%AD%D9%85%D8%AF%2520%D8%A8%D9%86%2520%D8%A3%D8%AD%D9%85%D8%AF%2520%D8%A7%D9%84%D9%8A%D9%85%D8%A7%D9%86%26p%3D0991234567%26r%3Dmother" alt="أم">
+                                <span class="card-qr-icon">
+                                    <i class="fa-solid fa-person-dress" style="font-size: 9px; color: var(--primary);"></i>
+                                </span>
+                            </div>
+                            <span class="card-qr-label">الأم</span>
                         </div>
                     </div>
 
-                    <div class="exp-item gold-border">
-                        <div class="exp-number">٢</div>
-                        <div class="exp-content">
-                            <h4>رمز QR الخاص بتحميل التطبيق (الوجه الأمامي)</h4>
-                            <p>يوجد رمز استجابة سريع في الزاوية اليسرى السفلية. بمجرد مسحه بكاميرا هاتفك المحمول، سيقوم بتوجيهك فوراً إلى رابط تحميل ملف التطبيق لتثبيته في ثوانٍ معدودة.</p>
-                        </div>
+                    <div class="card-back-footer">
+                        للاستفسار والدعم، يرجى التواصل مع الدعم الفني للمعهد على الرقم:<br>
+                        <span class="phone">0998760194</span>
                     </div>
+                </div>
+            </div>
 
-                    <div class="exp-item">
-                        <div class="exp-number">٣</div>
-                        <div class="exp-content">
-                            <h4>رموز الدخول الفوري السريعة (الوجه الخلفي)</h4>
-                            <p>يحتوي ظهر البطاقة على ثلاثة رموز QR منفصلة. كل رمز مخصص لشخص (الطالب، الأب، أو الأم). مسح الرمز من داخل تطبيق الهاتف يتيح تسجيل دخول فوري ومباشر إلى حسابك المخصص دون الحاجة لكتابة اسم مستخدم أو كلمة مرور.</p>
-                        </div>
+            <!-- نصوص الشرح والتفصيل للبطاقة -->
+            <div class="card-explanation">
+                <div class="exp-item">
+                    <div class="exp-number">١</div>
+                    <div class="exp-content">
+                        <h4>البيانات التعريفية الأساسية (الوجه الأمامي)</h4>
+                        <p>يحتوي الوجه الأمامي للبطاقة على اسم الطالب، ورقمه الفريد في المعهد، بالإضافة إلى أرقام هواتف الأب والأم المسجلة في قاعدة البيانات والتي تعتبر كلمات مرورهم الافتراضية.</p>
+                    </div>
+                </div>
+
+                <div class="exp-item gold-border">
+                    <div class="exp-number">٢</div>
+                    <div class="exp-content">
+                        <h4>رمز QR الخاص بتحميل التطبيق (الوجه الأمامي)</h4>
+                        <p>يوجد رمز استجابة سريع في الزاوية اليسرى السفلية. بمجرد مسحه بكاميرا هاتفك المحمول، سيقوم بتوجيهك فوراً إلى رابط تحميل ملف التطبيق لتثبيته في ثوانٍ معدودة.</p>
+                    </div>
+                </div>
+
+                <div class="exp-item">
+                    <div class="exp-number">٣</div>
+                    <div class="exp-content">
+                        <h4>رموز الدخول الفوري السريعة (الوجه الخلفي)</h4>
+                        <p>يحتوي ظهر البطاقة على ثلاثة رموز QR منفصلة. كل رمز مخصص لشخص (الطالب، الأب، أو الأم). مسح الرمز من داخل تطبيق الهاتف يتيح تسجيل دخول فوري ومباشر إلى حسابك المخصص دون الحاجة لكتابة اسم مستخدم أو كلمة مرور.</p>
                     </div>
                 </div>
             </div>
@@ -1918,11 +1819,6 @@
         // تعيين السنة الحالية في الفوتر تلقائياً
         document.getElementById('current-year').innerText = new Date().getFullYear();
 
-        // دالة لقلب بطاقة الطالب التفاعلية
-        function flipCard() {
-            const card = document.getElementById('interactive-student-card');
-            card.classList.toggle('flipped');
-        }
 
         // دالة فتح/إغلاق كاميرا المحاكاة في الموبايل
         function toggleMockCamera(show) {
