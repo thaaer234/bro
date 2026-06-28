@@ -152,8 +152,6 @@ urlpatterns = [
     path('enrollment/<int:enrollment_id>/withdraw-process/', require_employee_perm('students_withdraw')(views.process_withdraw), name='process_withdraw'),
     path('outstanding-students/classroom/', require_employee_perm('accounting_outstanding')(OutstandingStudentsByClassroomView.as_view()),  name='outstanding_students_by_classroom'),
     path('withdrawn-students/', require_employee_perm('students_view')(views.WithdrawnStudentsView.as_view()), name='withdrawn_students'),
-    path('reports/student/<int:student_id>/lifecycle/', require_employee_perm('accounting_reports')(views.StudentLifecycleReportView.as_view()), name='student_lifecycle_report'),
-    path('reports/student/lifecycle-demo/', require_employee_perm('accounting_reports')(views.StudentLifecycleReportView.as_view()), name='student_lifecycle_report_demo'),
     path('classroom/<int:classroom_id>/', require_employee_perm('classroom_view')(views.ClassroomDetailView.as_view()), name='classroom_detail'),
     
     # Cost Center URLs
