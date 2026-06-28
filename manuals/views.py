@@ -455,7 +455,8 @@ def _build_user_handbook_content_pages(manual_workflows, manual_screens, manual_
 
 
 def _build_user_handbook_toc_pages(content_pages):
-    toc_page_size = 22
+    # Keep the table of contents airy and safe for print growth.
+    toc_page_size = 18
     toc_entries = [
         {"title": "مقدمة الدليل", "kind": "تمهيد", "page": 1},
         {"title": "بطاقة المستخدم والوصول", "kind": "وصول", "page": 2},

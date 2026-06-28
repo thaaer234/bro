@@ -555,7 +555,7 @@ class JournalEntryRecognitionView(LoginRequiredMixin, SuperuserRequiredMixin, Te
 
 
 class AccountRecognitionView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
-    """الاعتراف بالحسابات وتعيين الفصول أو جعلها مشتركة بكل الفصول"""
+    """الاعتراف بالحسابات التي لا تحمل فصلاً دراسياً"""
     template_name = "academic_years/recognize_accounts.html"
 
     def get(self, request, *args, **kwargs):
@@ -565,19 +565,9 @@ class AccountRecognitionView(LoginRequiredMixin, SuperuserRequiredMixin, Templat
         
         search_query = request.GET.get("q", "")
         account_type = request.GET.get("type", "")
-        academic_year_filter = request.GET.get("academic_year_filter", "shared")
         
-        # Determine the base query based on filter
-        if academic_year_filter == "shared":
-            queryset = Account.objects.filter(academic_year__isnull=True)
-        elif academic_year_filter == "all":
-            queryset = Account.objects.all()
-        else:
-            try:
-                ay_id = int(academic_year_filter)
-                queryset = Account.objects.filter(academic_year_id=ay_id)
-            except ValueError:
-                queryset = Account.objects.filter(academic_year__isnull=True)
+        # Base query for unassigned accounts
+        queryset = Account.objects.filter(academic_year__isnull=True)
         
         if search_query:
             queryset = queryset.filter(
@@ -589,7 +579,7 @@ class AccountRecognitionView(LoginRequiredMixin, SuperuserRequiredMixin, Templat
         if account_type:
             queryset = queryset.filter(account_type=account_type)
             
-        accounts = queryset.order_by("code")[:2000]
+        accounts = queryset.order_by("code")[:5000]
         
         academic_years = AcademicYear.objects.order_by("-start_date", "-id")
         account_types = Account.ACCOUNT_TYPE_CHOICES
@@ -600,7 +590,6 @@ class AccountRecognitionView(LoginRequiredMixin, SuperuserRequiredMixin, Templat
             "academic_years": academic_years,
             "search_query": search_query,
             "account_type": account_type,
-            "academic_year_filter": academic_year_filter,
             "account_types": account_types,
         })
         return self.render_to_response(context)
@@ -611,12 +600,12 @@ class AccountRecognitionView(LoginRequiredMixin, SuperuserRequiredMixin, Templat
         from quick.models import AcademicYear
         
         raw_account_ids = request.POST.getlist("account_ids")
-        action = request.POST.get("action", "assign")
         raw_academic_year_id = request.POST.get("academic_year")
         
         def clean_id_to_int(val):
             if not val:
                 return None
+            # Remove localized thousands separators (dots/commas)
             cleaned = str(val).replace(".", "").replace(",", "").strip()
             try:
                 return int(cleaned)
@@ -624,38 +613,29 @@ class AccountRecognitionView(LoginRequiredMixin, SuperuserRequiredMixin, Templat
                 return None
                 
         account_ids = [clean_id_to_int(aid) for aid in raw_account_ids if clean_id_to_int(aid) is not None]
+        academic_year_id = clean_id_to_int(raw_academic_year_id)
         
         if not account_ids:
-            messages.error(request, "لم تقم بتحديد أي حسابات لتعديلها. يرجى تحديد حساب واحد على الأقل.")
+            messages.error(request, "لم تقم بتحديد أي حسابات للاعتراف بها. يرجى تحديد حساب واحد على الأقل.")
             return redirect("academic_years:recognize_accounts")
             
-        if action == "make_shared":
-            try:
-                with transaction.atomic():
-                    updated_count = Account.objects.filter(id__in=account_ids).update(academic_year=None)
-                    messages.success(
-                        request,
-                        f"تم بنجاح جعل {updated_count} حساب/حسابات مشتركة بكل الفصول الدراسية (تصفير ربط الفصل) ✅."
-                    )
-            except Exception as e:
-                messages.error(request, f"حدث خطأ أثناء جعل الحسابات مشتركة: {str(e)}")
-        else: # assign
-            academic_year_id = clean_id_to_int(raw_academic_year_id)
-            if not academic_year_id:
-                messages.error(request, "يرجى تحديد الفصل الدراسي الهدف للاعتراف بالحسابات ونسبها إليه.")
-                return redirect("academic_years:recognize_accounts")
+        if not academic_year_id:
+            messages.error(request, "يرجى تحديد الفصل الدراسي الهدف.")
+            return redirect("academic_years:recognize_accounts")
+            
+        try:
+            with transaction.atomic():
+                academic_year = get_object_or_404(AcademicYear, pk=academic_year_id)
+                updated_count = Account.objects.filter(
+                    id__in=account_ids,
+                    academic_year__isnull=True
+                ).update(academic_year=academic_year)
                 
-            try:
-                with transaction.atomic():
-                    academic_year = get_object_or_404(AcademicYear, pk=academic_year_id)
-                    updated_count = Account.objects.filter(id__in=account_ids).update(academic_year=academic_year)
-                    messages.success(
-                        request,
-                        f"تم بنجاح الاعتراف بـ {updated_count} حساب/حسابات ونسبتها إلى الفصل: {academic_year.name}."
-                    )
-            except Exception as e:
-                messages.error(request, f"حدث خطأ أثناء عملية الاعتراف: {str(e)}")
-                
-        return redirect("academic_years:recognize_accounts")
-
-
+                messages.success(
+                    request,
+                    f"تم بنجاح الاعتراف بـ {updated_count} حساب/حسابات ونسبتها إلى الفصل: {academic_year.name}."
+                )
+        except Exception as e:
+            messages.error(request, f"حدث خطأ أثناء عملية الاعتراف: {str(e)}")
+            
+        return redirect("academic_years:transfer_list")

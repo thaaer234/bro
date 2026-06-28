@@ -131,10 +131,9 @@ class AssignStudentsView(View):
             ).distinct()
         else:
             if classroom.class_type == 'study':
-                # للشعبة الدراسية بدون دورة مرتبطة: نعرض فقط الطلاب غير مسجلين في أي شعبة دراسية عامة ومن نفس الفرع
+                # للشعبة الدراسية بدون دورة مرتبطة: نعرض فقط الطلاب غير مسجلين في أي شعبة دراسية ومن نفس الفرع
                 enrolled_in_study = Classroomenrollment.objects.filter(
-                    classroom__class_type='study',
-                    classroom__course__isnull=True
+                    classroom__class_type='study'
                 ).values_list('student__id', flat=True)
                 
                 available_students = base_students.exclude(

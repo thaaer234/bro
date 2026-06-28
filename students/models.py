@@ -286,129 +286,48 @@ class Student(models.Model):
         academic_year = self.get_academic_year()
         return academic_year.name if academic_year else "لم يتم تحديد الفصل"
    
-    def update_enrollment_discount(self, enrollment, discount_percent, discount_amount, discount_reason, user):
-        """تحديث حسم دورة محددة بناءً على القيم الجديدة"""
+    def update_enrollment_discounts(self, user):
+        """تحديث جميع تسجيلات الطالب النشطة بناءً على الحسم الجديد"""
         from accounts.models import Studentenrollment, JournalEntry, Transaction
-        from django.utils import timezone
-        from datetime import date
-
+        
         with db_transaction.atomic():
-            # حفظ القيم القديمة للمقارنة
-            old_discount_percent = enrollment.discount_percent
-            old_discount_amount = enrollment.discount_amount
+            active_enrollments = Studentenrollment.objects.filter(
+                student=self, 
+                is_completed=False
+            )
             
-            # حساب المبلغ الصافي القديم رياضياً لتفادي قراءة رصيد القيد القديم من الدفتر مباشرة
-            old_after_percent = enrollment.total_amount - (enrollment.total_amount * old_discount_percent / Decimal('100'))
-            old_net_amount = max(Decimal('0'), old_after_percent - old_discount_amount)
-
-            print(f"التسجيل: {enrollment.course.name}")
-            print(f"الخصم القديم: {old_discount_percent}% / {old_discount_amount}")
-            print(f"المبلغ الصافي القديم: {old_net_amount}")
-
-            # تحديث قيم الحسم في التسجيل
-            enrollment.discount_percent = discount_percent
-            enrollment.discount_amount = discount_amount
-            enrollment.discount_reason = discount_reason
-            enrollment.save()
-
-            # حساب المبلغ الصافي الجديد رياضياً
-            new_after_percent = enrollment.total_amount - (enrollment.total_amount * discount_percent / Decimal('100'))
-            new_net_amount = max(Decimal('0'), new_after_percent - discount_amount)
-            
-            gross_amount = enrollment.total_amount or Decimal('0')
-            print(f"الخصم الجديد: {enrollment.discount_percent}% / {enrollment.discount_amount}")
-            print(f"المبلغ الصافي الجديد: {new_net_amount}")
-
-            # إذا تغير المبلغ الصافي، قم بتحديث أو إنشاء القيد المحاسبي
-            if old_net_amount != new_net_amount:
-                if new_net_amount <= 0 and enrollment.enrollment_journal_entry:
-                    print(f"تم الحسم 100% - سيتم عكس القيد القديم")
-                    if enrollment.enrollment_journal_entry.is_posted:
-                        enrollment.enrollment_journal_entry.reverse_entry(
-                            user,
-                            description=f"[DISCOUNT_UPDATE #{enrollment.id}] إلغاء قيد تسجيل - دورة مجانية - {self.full_name} - {enrollment.course.name}"
-                        )
-                    enrollment.enrollment_journal_entry = None
-                    enrollment.save(update_fields=['enrollment_journal_entry'])
-                elif enrollment.enrollment_journal_entry:
+            for enrollment in active_enrollments:
+                # حفظ القيم القديمة للمقارنة
+                old_discount_percent = enrollment.discount_percent
+                old_discount_amount = enrollment.discount_amount
+                
+                # حساب المبلغ الصافي القديم رياضياً لتفادي قراءة رصيد القيد القديم من الدفتر مباشرة
+                old_after_percent = enrollment.total_amount - (enrollment.total_amount * old_discount_percent / Decimal('100'))
+                old_net_amount = max(Decimal('0'), old_after_percent - old_discount_amount)
+                
+                print(f"التسجيل: {enrollment.course.name}")
+                print(f"الخصم القديم: {old_discount_percent}% / {old_discount_amount}")
+                print(f"المبلغ الصافي القديم: {old_net_amount}")
+                
+                # تحديث قيم الحسم في التسجيل
+                enrollment.discount_percent = self.discount_percent
+                enrollment.discount_amount = self.discount_amount
+                enrollment.save()
+                
+                # حساب المبلغ الصافي الجديد رياضياً
+                new_after_percent = enrollment.total_amount - (enrollment.total_amount * self.discount_percent / Decimal('100'))
+                new_net_amount = max(Decimal('0'), new_after_percent - self.discount_amount)
+                
+                print(f"الخصم الجديد: {enrollment.discount_percent}% / {enrollment.discount_amount}")
+                print(f"المبلغ الصافي الجديد: {new_net_amount}")
+                
+                # إذا تغير المبلغ الصافي، قم بتحديث القيد المحاسبي
+                if old_net_amount != new_net_amount and enrollment.enrollment_journal_entry:
                     print(f"سيتم تعديل القيد: الفرق {new_net_amount - old_net_amount}")
                     self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
-                elif new_net_amount > 0:
-                    print(f"سيتم إنشاء قيد جديد بمبلغ {new_net_amount}")
-                    enrollment.create_accrual_enrollment_entry(user)
-            else:
-                print("لا يوجد فرق في المبلغ الصافي")
-
-    def _create_or_update_discount_adjustment(self, enrollment, discount_amount, user):
-        """إنشاء أو تعديل قيد تسوية الحسم"""
-        from accounts.models import JournalEntry, Transaction, Account
-        from django.utils import timezone
-
-        if discount_amount <= 0:
-            return
-
-        # البحث عن قيد adjustment موجود لهذا التسجيل
-        existing_discount = JournalEntry.objects.filter(
-            entry_type='ADJUSTMENT',
-            description__contains=f'تعديل حسم - {self.full_name} - {enrollment.course.name}'
-        ).first()
-
-        student_ar_account = Account.get_or_create_student_ar_account(enrollment.student, enrollment.course)
-        course_deferred_account = Account.get_or_create_course_deferred_account(enrollment.course)
-
-        if existing_discount and not existing_discount.is_posted:
-            # تعديل القيد الموجود
-            print(f"تعديل قيد الحسم الموجود")
-            existing_discount.total_amount = discount_amount
-            existing_discount.date = timezone.now().date()
-            existing_discount.description = (
-                f"تعديل حسم - {self.full_name} - {enrollment.course.name} "
-                f"[تعديل {timezone.now().strftime('%Y-%m-%d %H:%M')}]"
-            )
-            existing_discount.save(update_fields=['total_amount', 'date', 'description'])
-
-            # تحديث المعاملات
-            debit_trans = existing_discount.transactions.filter(is_debit=True).first()
-            credit_trans = existing_discount.transactions.filter(is_debit=False).first()
-
-            if debit_trans:
-                debit_trans.amount = discount_amount
-                debit_trans.save(update_fields=['amount'])
-            if credit_trans:
-                credit_trans.amount = discount_amount
-                credit_trans.save(update_fields=['amount'])
-        else:
-            # إنشاء قيد جديد
-            print(f"إنشاء قيد حسم جديد")
-            adjustment_entry = JournalEntry.objects.create(
-                date=timezone.now().date(),
-                description=f"تعديل حسم - {self.full_name} - {enrollment.course.name}",
-                entry_type='ADJUSTMENT',
-                total_amount=discount_amount,
-                academic_year=enrollment.academic_year or enrollment.course.academic_year,
-                created_by=user
-            )
-
-            # مدين: الإيرادات المؤجلة
-            Transaction.objects.create(
-                journal_entry=adjustment_entry,
-                account=course_deferred_account,
-                amount=discount_amount,
-                is_debit=True,
-                description=f"تعديل حسم - {enrollment.course.name}"
-            )
-
-            # دائن: ذمة الطالب
-            Transaction.objects.create(
-                journal_entry=adjustment_entry,
-                account=student_ar_account,
-                amount=discount_amount,
-                is_debit=False,
-                description=f"تعديل حسم - {self.full_name}"
-            )
-
-            adjustment_entry.post_entry(user)
-
+                else:
+                    print("لا يوجد فرق في المبلغ الصافي أو لا يوجد قيد")
+    
     def _update_enrollment_journal_entry(self, enrollment, user, old_amount, new_amount):
         """تحديث قيد التسجيل المحاسبي بناءً على الفرق في المبلغ"""
         from accounts.models import JournalEntry, Transaction, Account
