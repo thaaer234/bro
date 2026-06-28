@@ -105,9 +105,57 @@ class AcademicYearTransferService:
         for enrollment in enrollments:
             target_student = self._get_or_create_target_student(enrollment.student)
             target_enrollment = self._get_or_create_target_enrollment(enrollment, target_student, target_course)
-            self._clone_enrollment_entries(enrollment, target_enrollment, target_student, target_course)
-            self._clone_receipts_for_enrollment(enrollment, target_enrollment, target_student, target_course)
-            self._delete_source_entries(enrollment)
+
+            # Find the student's AR account in the source academic year
+            source_student_ar_account = Account.get_student_ar_account_for_course(enrollment.student, enrollment.course)
+
+            # Gather all journal entries that belong to this student for this course (including discounts, settlements, etc.)
+            journal_entries_to_transfer = set()
+
+            # 1. Gather via transactions on the student's AR account (Discounts, Settlements, etc.)
+            if source_student_ar_account:
+                tx_entries = JournalEntry.objects.filter(
+                    transactions__account=source_student_ar_account
+                ).distinct()
+                journal_entries_to_transfer.update(tx_entries)
+
+            # 2. Gather via enrollment fields
+            if enrollment.enrollment_journal_entry:
+                journal_entries_to_transfer.add(enrollment.enrollment_journal_entry)
+            if enrollment.completion_journal_entry:
+                journal_entries_to_transfer.add(enrollment.completion_journal_entry)
+
+            # 3. Gather via student receipts
+            receipts = list(StudentReceipt.objects.filter(enrollment=enrollment).select_related("journal_entry"))
+            for receipt in receipts:
+                if receipt.journal_entry:
+                    journal_entries_to_transfer.add(receipt.journal_entry)
+
+            # Clone all of these gathered journal entries to the target year
+            entry_map_local = {}
+            for source_entry in journal_entries_to_transfer:
+                target_entry = self._clone_journal_entry(
+                    source_entry,
+                    target_student=target_student,
+                    target_course=target_course,
+                    is_receipt=any(r.journal_entry_id == source_entry.id for r in receipts),
+                    source_student=enrollment.student,
+                    source_course=enrollment.course,
+                )
+                entry_map_local[source_entry.id] = target_entry
+
+            # Link cloned journal entries to target enrollment
+            if enrollment.enrollment_journal_entry_id in entry_map_local:
+                target_enrollment.enrollment_journal_entry = entry_map_local[enrollment.enrollment_journal_entry_id]
+            if enrollment.completion_journal_entry_id in entry_map_local:
+                target_enrollment.completion_journal_entry = entry_map_local[enrollment.completion_journal_entry_id]
+            target_enrollment.save(update_fields=["enrollment_journal_entry", "completion_journal_entry"])
+
+            # Link cloned journal entries to target receipts and save them
+            self._clone_receipts_for_enrollment_with_map(enrollment, target_enrollment, target_student, target_course, receipts, entry_map_local)
+
+            # Deletion: Delete source student, source course enrollment, and all their related journal entries from the source year
+            self._delete_source_entities_and_entries(enrollment, receipts, journal_entries_to_transfer, source_student_ar_account)
 
         self.log(
             "اكتمل ترحيل دورة.",
@@ -119,58 +167,58 @@ class AcademicYearTransferService:
             },
         )
 
-    def _delete_source_entries(self, enrollment):
+    def _delete_source_entities_and_entries(self, enrollment, receipts, journal_entries_to_transfer, source_student_ar_account):
         touched_accounts = set()
+        source_student = enrollment.student
 
-        # Collect receipts and their journal entries
-        receipts = list(StudentReceipt.objects.filter(enrollment=enrollment).select_related("journal_entry"))
-        
-        # Collect touched accounts from receipt journal entries
-        for receipt in receipts:
-            if receipt.journal_entry_id:
-                for tx in receipt.journal_entry.transactions.all():
-                    touched_accounts.add(tx.account)
-                    
-        # Collect touched accounts from enrollment journal entries
-        for je in [enrollment.enrollment_journal_entry, enrollment.completion_journal_entry]:
-            if je:
-                for tx in je.transactions.all():
-                    touched_accounts.add(tx.account)
+        # Collect touched accounts from all transferred journal entries
+        for je in journal_entries_to_transfer:
+            for tx in je.transactions.all():
+                touched_accounts.add(tx.account)
 
         try:
-            # 1. Delete source receipt journal entries
-            for receipt in receipts:
-                if receipt.journal_entry_id:
-                    je = receipt.journal_entry
-                    je.transactions.all().delete()
-                    je._skip_linked_cleanup = True
-                    je.delete()
-
-            # 2. Delete source StudentReceipts
+            # 1. Delete source StudentReceipts first
             for receipt in receipts:
                 receipt._skip_linked_cleanup = True
                 receipt.delete()
 
-            # 3. Delete enrollment journal entries (both enrollment and completion)
-            for je in [enrollment.enrollment_journal_entry, enrollment.completion_journal_entry]:
-                if je:
-                    je.transactions.all().delete()
-                    je._skip_linked_cleanup = True
-                    je.delete()
-
-            # 4. Delete source enrollment itself
+            # 2. Delete source enrollment itself
             enrollment._skip_linked_cleanup = True
             enrollment.delete()
 
-            # 5. Recalculate tree balances for all touched accounts
+            # 3. Delete all transferred journal entries (this also deletes their transactions)
+            for je in journal_entries_to_transfer:
+                je.transactions.all().delete()
+                je._skip_linked_cleanup = True
+                je.delete()
+
+            # 4. Delete the student's specific AR account from the source year if it exists and has no remaining transactions
+            if source_student_ar_account:
+                if not Transaction.objects.filter(account=source_student_ar_account).exists():
+                    source_student_ar_account.delete()
+
+            # 5. Delete the source student profile from the source year if they have no other enrollments left
+            if source_student:
+                from accounts.models import Studentenrollment, StudentReceipt
+                if (not Studentenrollment.objects.filter(student=source_student).exists() and
+                    not StudentReceipt.objects.filter(student_profile=source_student).exists()):
+                    try:
+                        source_student._skip_linked_cleanup = True
+                        source_student.delete()
+                    except Exception:
+                        pass
+
+            # 6. Recalculate tree balances for all touched accounts that still exist
             for account in touched_accounts:
-                account.recalculate_tree_balances()
+                if Account.objects.filter(pk=account.pk).exists():
+                    try:
+                        account.recalculate_tree_balances()
+                    except Exception:
+                        pass
 
         except Exception as e:
-            # Print the exact exception to sys.stderr so it is visible in the logs
             import sys
             sys.stderr.write(f"\n❌ [AcademicYearTransferService Error] Failed to delete source entities for enrollment {enrollment.id}: {str(e)}\n")
-            # Re-raise the exception to force the atomic transaction to rollback cleanly
             raise e
 
     def _get_or_create_target_course(self, source_course):
@@ -260,8 +308,7 @@ class AcademicYearTransferService:
             self.summary["students"] += 1
         return target_enrollment
 
-    def _clone_receipts_for_enrollment(self, source_enrollment, target_enrollment, target_student, target_course):
-        receipts = StudentReceipt.objects.filter(enrollment=source_enrollment).select_related("journal_entry").order_by("id")
+    def _clone_receipts_for_enrollment_with_map(self, source_enrollment, target_enrollment, target_student, target_course, receipts, entry_map_local):
         for source_receipt in receipts:
             target_receipt, created = StudentReceipt.objects.get_or_create(
                 enrollment=target_enrollment,
@@ -285,17 +332,11 @@ class AcademicYearTransferService:
             )
             if created:
                 self.summary["receipts"] += 1
-            if source_receipt.journal_entry_id and not target_receipt.journal_entry_id:
-                target_entry = self._clone_journal_entry(
-                    source_receipt.journal_entry,
-                    target_student=target_student,
-                    target_course=target_course,
-                    is_receipt=True,
-                    source_student=source_enrollment.student,
-                    source_course=source_enrollment.course,
-                )
-                target_receipt.journal_entry = target_entry
-                target_receipt.save(update_fields=["journal_entry"])
+            if source_receipt.journal_entry_id:
+                target_entry = entry_map_local.get(source_receipt.journal_entry_id)
+                if target_entry:
+                    target_receipt.journal_entry = target_entry
+                    target_receipt.save(update_fields=["journal_entry"])
 
     def _clone_enrollment_entries(self, source_enrollment, target_enrollment, target_student, target_course):
         if source_enrollment.enrollment_journal_entry_id and not target_enrollment.enrollment_journal_entry_id:
@@ -303,6 +344,8 @@ class AcademicYearTransferService:
                 source_enrollment.enrollment_journal_entry,
                 target_student=target_student,
                 target_course=target_course,
+                source_student=source_enrollment.student,
+                source_course=source_enrollment.course,
             )
             target_enrollment.enrollment_journal_entry = target_entry
         if source_enrollment.completion_journal_entry_id and not target_enrollment.completion_journal_entry_id:
@@ -310,6 +353,8 @@ class AcademicYearTransferService:
                 source_enrollment.completion_journal_entry,
                 target_student=target_student,
                 target_course=target_course,
+                source_student=source_enrollment.student,
+                source_course=source_enrollment.course,
             )
             target_enrollment.completion_journal_entry = target_entry
         target_enrollment.save(update_fields=["enrollment_journal_entry", "completion_journal_entry"])
@@ -355,4 +400,57 @@ class AcademicYearTransferService:
     def _resolve_target_account(self, source_account, *, target_student, target_course, is_receipt=False, source_student=None, source_course=None):
         if not source_account:
             raise ValueError("Source account is required to clone transactions.")
-        return source_account
+
+        # 1. If it doesn't belong to any academic year (shared/global account like Cash, Bank), return it directly
+        if not source_account.academic_year:
+            return source_account
+
+        # 2. If it's a student AR account (receivable), resolve/create the target student's AR account under the new course
+        if source_account.is_student_account:
+            return Account.get_or_create_student_ar_account(target_student, target_course)
+
+        # 3. If it's a course account (e.g., Course Deferred Revenue or Course Revenue)
+        if source_account.is_course_account:
+            if source_account.account_type == 'LIABILITY':
+                # Deferred Revenue (21001-xxx)
+                return Account.get_or_create_course_deferred_account(target_course)
+            elif source_account.account_type == 'REVENUE':
+                # Course Revenue (4101-xxx)
+                return Account.get_or_create_course_account(target_course)
+
+        # 4. Fallback: general year-scoped accounts, find/create corresponding account in the target year
+        target_year = self.batch.target_academic_year
+        code = source_account.code
+
+        if source_course and target_course:
+            source_course_id_str = f"{source_course.id:03d}"
+            target_course_id_str = f"{target_course.id:03d}"
+            if source_course_id_str in code:
+                code = code.replace(source_course_id_str, target_course_id_str)
+
+        target_parent = None
+        if source_account.parent:
+            target_parent = self._resolve_target_account(
+                source_account.parent,
+                target_student=target_student,
+                target_course=target_course,
+                source_student=source_student,
+                source_course=source_course
+            )
+
+        target_account, created = Account.objects.get_or_create(
+            code=code,
+            defaults={
+                'name': source_account.name,
+                'name_ar': source_account.name_ar,
+                'account_type': source_account.account_type,
+                'parent': target_parent,
+                'is_course_account': source_account.is_course_account,
+                'course_name': source_account.course_name,
+                'is_student_account': source_account.is_student_account,
+                'student_name': source_account.student_name,
+                'academic_year': target_year,
+                'is_active': source_account.is_active,
+            }
+        )
+        return target_account
