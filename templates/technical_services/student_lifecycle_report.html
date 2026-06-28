@@ -937,39 +937,32 @@
                 </div>
             </section>
 
-            <!-- Student Profile Card on Cover -->
-            <div class="cover-employee-card">
+            <!-- Employee Profile Card on Cover -->
+            <section class="cover-employee-card">
                 <div class="employee-card-avatar-wrapper">
                     <div class="employee-card-avatar-placeholder">
-                        <i class="fa-solid fa-user-graduate"></i>
+                        <i class="fa-solid fa-user-tie"></i>
                     </div>
                 </div>
                 <div class="employee-card-info">
                     <div class="employee-card-info-item">
-                        <span class="info-item-label"><i class="fa-solid fa-id-card"></i> اسم الطالب:</span>
-                        <span class="info-item-value">{{ student.full_name }}</span>
-                    </div>
-                    {% if not demo_mode %}
-                    <div class="employee-card-info-item">
-                        <span class="info-item-label"><i class="fa-solid fa-code-branch"></i> الفرع الدراسي:</span>
-                        <span class="info-item-value">{{ student.get_branch_display|default:student.branch }}</span>
+                        <span class="info-item-label"><i class="fa-solid fa-user"></i> اسم الموظف:</span>
+                        <span class="info-item-value">رنيم</span>
                     </div>
                     <div class="employee-card-info-item">
-                        <span class="info-item-label"><i class="fa-solid fa-calendar-days"></i> تاريخ التسجيل:</span>
-                        <span class="info-item-value">{{ student.registration_date|date:"Y/m/d" }}</span>
-                    </div>
-                    {% else %}
-                    <div class="employee-card-info-item">
-                        <span class="info-item-label"><i class="fa-solid fa-book-open"></i> الدورة المسجلة:</span>
-                        <span class="info-item-value">{{ course.name }}</span>
+                        <span class="info-item-label"><i class="fa-solid fa-building"></i> القســــــــم:</span>
+                        <span class="info-item-value">قسم الحسابات</span>
                     </div>
                     <div class="employee-card-info-item">
-                        <span class="info-item-label"><i class="fa-solid fa-clock"></i> تاريخ المحاكاة:</span>
+                        <span class="info-item-label"><i class="fa-solid fa-calendar-days"></i> تاريخ التقرير:</span>
                         <span class="info-item-value">{{ report_date|date:"Y/m/d" }}</span>
                     </div>
-                    {% endif %}
+                    <div class="employee-card-info-item">
+                        <span class="info-item-label"><i class="fa-solid fa-id-card-clip"></i> اسم الطالب:</span>
+                        <span class="info-item-value">{{ student.full_name }}</span>
+                    </div>
                 </div>
-            </div>
+            </section>
 
             <!-- Cover Page Footer -->
             <div class="cover-footer-section">
@@ -1271,6 +1264,136 @@
                     <div class="footer-right-white-slant"></div>
                     <div class="footer-right-orange-slant">
                         <span>03</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= PAGE 4: REFERENCE GUIDE (DEMO ONLY) ================= -->
+    <div class="a4-container dynamic-page">
+        <div class="content-page-container">
+            <!-- Header Group -->
+            <div class="page-header-logo-group">
+                <div class="cover-logo-aliman">
+                    <img src="{% static 'img/alyama.png' %}?v=3" alt="معهد اليمان">
+                </div>
+                <div class="logo-mahwar">
+                    <img src="{% static 'img/mahwar.png' %}?v=3" alt="MAHWAR">
+                </div>
+            </div>
+
+            <!-- Page Title -->
+            <div class="text-center mb-3">
+                <h5 class="font-weight-bold text-slate-800 mb-1" style="font-size: 1.15rem; color: #112d4e;">دليل ربط أزرار النظام بالقيود المحاسبية</h5>
+                <div style="width: 100px; height: 2px; background-color: #e07a2c; margin: 0 auto;"></div>
+            </div>
+
+            <p style="font-size: 0.8rem; color: #475569; text-align: justify; margin-bottom: 1.5rem;">
+                يوضح هذا الدليل العلاقة المباشرة بين الإجراءات المتاحة للموظف في واجهة النظام (أزرار العمليات) والقيود الحسابية المزدوجة التي يتم توليدها وترحيلها تلقائياً في الخلفية لضمان سلامة الدورة المستندية.
+            </p>
+
+            <table class="journal-table" style="font-size: 0.72rem; line-height: 1.5;">
+                <thead>
+                    <tr style="background-color: #f1f5f9;">
+                        <th width="20%">العملية المالية</th>
+                        <th width="20%">الزر في واجهة النظام</th>
+                        <th width="20%">المقادير والمدخلات</th>
+                        <th width="40%">القيد المحاسبي المتولد تلقائياً (المدين والدائن)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight: 700;">1. تسجيل طالب في دورة</td>
+                        <td><span class="badge badge-success px-2 py-1" style="background-color: #10b981; color: white;"><i class="fa-solid fa-user-plus"></i> تسجيل في دورة</span></td>
+                        <td>سعر الدورة الأساسي <br><b>(مثال: 1,000,000 ل.س)</b></td>
+                        <td>
+                            <b>من حـ/ ذمم الطلاب (1251):</b> 1,000,000 ل.س (مدين)<br>
+                            <b>إلى حـ/ إيرادات مؤجلة (2150):</b> 1,000,000 ل.س (دائن)<br>
+                            <small class="text-muted">(إثبات مديونية الطالب والالتزام بتقديم الدورة)</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 700;">2. قبض دفعة مالية</td>
+                        <td><span class="badge badge-primary px-2 py-1" style="background-color: #3b82f6; color: white;"><i class="fa-solid fa-receipt"></i> إيصال فوري</span></td>
+                        <td>قيمة المقبوض نقداً <br><b>(مثال: 400,000 ل.س)</b></td>
+                        <td>
+                            <b>من حـ/ الصندوق (1210):</b> 400,000 ل.س (مدين)<br>
+                            <b>إلى حـ/ ذمم الطلاب (1251):</b> 400,000 ل.س (دائن)<br>
+                            <small class="text-muted">(زيادة السيولة وتخفيض مديونية الطالب)</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 700;">3. منح حسم مالي</td>
+                        <td><span class="badge badge-warning px-2 py-1" style="background-color: #f59e0b; color: white;"><i class="fa-solid fa-percent"></i> تسوية حسم</span></td>
+                        <td>قيمة أو نسبة الحسم <br><b>(مثال: حسم 10% = 100,000 ل.س)</b></td>
+                        <td>
+                            <b>من حـ/ إيرادات مؤجلة (2150):</b> 100,000 ل.س (مدين)<br>
+                            <b>إلى حـ/ ذمم الطلاب (1251):</b> 100,000 ل.س (دائن)<br>
+                            <small class="text-muted">(تخفيض مديونية الطالب وتخفيض الالتزام المقابل)</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 700;">4. استرداد نقدي مباشر (دون انسحاب)</td>
+                        <td><span class="badge badge-secondary px-2 py-1" style="background-color: #6c757d; color: white;"><i class="fa-solid fa-money-bill-wave"></i> استرداد مبلغ</span></td>
+                        <td>المبلغ المسترد نقداً <br><b>(مثال: 250,000 ل.س)</b></td>
+                        <td>
+                            <b>من حـ/ مرتجع إيرادات (4190):</b> 250,000 ل.س (مدين)<br>
+                            <b>إلى حـ/ الصندوق (1210):</b> 250,000 ل.س (دائن)<br>
+                            <small class="text-muted">(إثبات مرتجع المبيعات ودفع النقدية من الصندوق)</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: 700;">5. انسحاب طالب بذمته مبالغ مستحقة</td>
+                        <td><span class="badge badge-danger px-2 py-1" style="background-color: #ef4444; color: white;"><i class="fa-solid fa-user-minus"></i> سحب الطالب</span></td>
+                        <td>
+                            - المبلغ المتبقي (500,000)<br>
+                            - المسترد نقداً (250,000)<br>
+                            - المحتفظ به (150,000)
+                        </td>
+                        <td>
+                            <b>1. إلغاء الذمم غير المسددة:</b><br>
+                            &nbsp;&nbsp;• من حـ/ إيرادات مؤجلة (2150): 500,000 (مدين)<br>
+                            &nbsp;&nbsp;• إلى حـ/ ذمم الطلاب (1251): 500,000 (دائن)<br>
+                            <b>2. استرداد نقدي جزئي:</b><br>
+                            &nbsp;&nbsp;• من حـ/ مرتجع إيرادات (4190): 250,000 (مدين)<br>
+                            &nbsp;&nbsp;• إلى حـ/ الصندوق (1210): 250,000 (دائن)<br>
+                            <b>3. إثبات الإيراد المحقق المحتفظ به:</b><br>
+                            &nbsp;&nbsp;• من حـ/ إيرادات مؤجلة (2150): 150,000 (مدين)<br>
+                            &nbsp;&nbsp;• إلى hـ/ إيرادات محققة (4100): 150,000 (دائن)
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-card-box" style="margin-top: 1.5rem; background-color: #fffbeb; border-color: #f59e0b;">
+                <div class="info-card-header-tab" style="background-color: #d97706;">
+                    <i class="fa-solid fa-circle-exclamation"></i> قاعدة انسحاب الطالب المدين (السياسة المالية)
+                </div>
+                <div style="font-size: 0.76rem; color: #78350f; line-height: 1.5; margin-top: 5px;">
+                    <b>ملاحظة محاسبية هامة:</b> عند قيامك بالضغط على زر <b>[سحب الطالب]</b> لطالب مدين بمستحقات مالية، يقوم السستم بإغلاق ذمة الطالب بالكامل لتصبح <b>(صفر)</b>، مع تقسيم المبالغ المدفوعة سابقاً بين:
+                    <br>1. <b>مبالغ مستردة نقداً</b> (تُثبت كمرتجع مبيعات حـ/ 4190 وتدفع من الصندوق حـ/ 1210).
+                    <br>2. <b>مبالغ محتفظ بها كتعويض للمركز</b> (تُغلق من المؤجل حـ/ 2150 وتُحول إلى إيرادات محققة حـ/ 4100 تحت مسمى "إيراد انسحاب").
+                </div>
+            </div>
+
+            <!-- Slanted page footer -->
+            <div class="page-footer-slant-row">
+                <div class="footer-left-container">
+                    <div class="footer-left-white-slant"></div>
+                    <div class="footer-left-navy-slant"></div>
+                </div>
+                <div class="footer-center-slogan">
+                    <span class="footer-center-line"></span>
+                    <span class="footer-center-dot"></span>
+                    <span class="footer-slogan-text">معاً لإدارة مالية ذكية ومحكمة</span>
+                    <span class="footer-center-dot"></span>
+                    <span class="footer-center-line"></span>
+                </div>
+                <div class="footer-right-container">
+                    <div class="footer-right-white-slant"></div>
+                    <div class="footer-right-orange-slant">
+                        <span>04</span>
                     </div>
                 </div>
             </div>
