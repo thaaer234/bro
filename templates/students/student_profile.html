@@ -1954,10 +1954,13 @@ function initRefundCalculations() {
             const courseName = selectedOption.getAttribute('data-course-name');
             
             if (refundInput) {
-                refundInput.value = '0';
+                refundInput.value = formatNumber(paid);
             }
             
             updateRefundWarning(selectedOption);
+        } else {
+            if (refundInput) refundInput.value = '0';
+            updateRefundWarning(null);
         }
     });
     
@@ -1967,6 +1970,13 @@ function initRefundCalculations() {
             const selectedOption = courseSelect.options[courseSelect.selectedIndex];
             updateRefundWarning(selectedOption);
         });
+    }
+
+    // تشغيل حدث التغيير لأول مرة إذا كانت هناك دورة محددة
+    if (courseSelect.options.length > 1 && courseSelect.options[1].value) {
+        courseSelect.selectedIndex = 1;
+        const event = new Event('change');
+        courseSelect.dispatchEvent(event);
     }
 }
 
@@ -2116,10 +2126,13 @@ function initWithdrawCalculations() {
             const courseName = selectedOption.getAttribute('data-course-name');
             
             if (refundInput) {
-                refundInput.value = '0';
+                refundInput.value = formatNumber(paid);
             }
             
             updateWithdrawWarning(selectedOption);
+        } else {
+            if (refundInput) refundInput.value = '0';
+            updateWithdrawWarning(null);
         }
     });
     
