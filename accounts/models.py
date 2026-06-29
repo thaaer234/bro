@@ -90,7 +90,7 @@ class Account(models.Model):
         if academic_year is None:
             from academic_years.middleware import get_current_academic_year_thread
             academic_year = get_current_academic_year_thread()
-        queryset = self.transactions.filter(is_debit=True, journal_entry__is_posted=True)
+        queryset = self.transactions.filter(is_debit=True)
         if academic_year is not None:
             queryset = queryset.filter(journal_entry__academic_year=academic_year)
         return queryset.aggregate(
@@ -101,7 +101,7 @@ class Account(models.Model):
         if academic_year is None:
             from academic_years.middleware import get_current_academic_year_thread
             academic_year = get_current_academic_year_thread()
-        queryset = self.transactions.filter(is_debit=False, journal_entry__is_posted=True)
+        queryset = self.transactions.filter(is_debit=False)
         if academic_year is not None:
             queryset = queryset.filter(journal_entry__academic_year=academic_year)
         return queryset.aggregate(
@@ -121,9 +121,9 @@ class Account(models.Model):
         """Calculate net balance across ALL academic years (no AY filter).
         Used for physical cashbox accounts (121-xxx) that hold actual cash
         spanning multiple academic years."""
-        debit_total = self.transactions.filter(is_debit=True, journal_entry__is_posted=True).aggregate(
+        debit_total = self.transactions.filter(is_debit=True).aggregate(
             total=Sum('amount'))['total'] or Decimal('0.00')
-        credit_total = self.transactions.filter(is_debit=False, journal_entry__is_posted=True).aggregate(
+        credit_total = self.transactions.filter(is_debit=False).aggregate(
             total=Sum('amount'))['total'] or Decimal('0.00')
         if self.account_type in ['ASSET', 'EXPENSE']:
             return debit_total - credit_total

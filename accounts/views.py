@@ -238,6 +238,38 @@ def delete_journal_entry(request, pk):
     return redirect(next_url)
 
 
+def _get_zeroing_balance(account):
+    from django.db.models import Sum
+    from decimal import Decimal
+    
+    debit_qs = account.transactions.filter(is_debit=True).exclude(
+        journal_entry__is_posted=False,
+        journal_entry__entry_type='ADJUSTMENT',
+        journal_entry__description__icontains='تصفير'
+    ).exclude(
+        journal_entry__is_posted=False,
+        journal_entry__entry_type='ADJUSTMENT',
+        journal_entry__description__icontains='مناقلة'
+    )
+    debit_total = debit_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    credit_qs = account.transactions.filter(is_debit=False).exclude(
+        journal_entry__is_posted=False,
+        journal_entry__entry_type='ADJUSTMENT',
+        journal_entry__description__icontains='تصفير'
+    ).exclude(
+        journal_entry__is_posted=False,
+        journal_entry__entry_type='ADJUSTMENT',
+        journal_entry__description__icontains='مناقلة'
+    )
+    credit_total = credit_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+
+    if account.account_type in ['ASSET', 'EXPENSE']:
+        return debit_total - credit_total
+    else:
+        return credit_total - debit_total
+
+
 class ZeroCashboxesView(LoginRequiredMixin, View):
     def get(self, request):
         if not request.user.is_superuser:
@@ -252,7 +284,7 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
         
         items_to_zero = []
         for account in employee_cash_accounts_qs:
-            balance = account.get_net_balance_all_years()
+            balance = _get_zeroing_balance(account)
             if balance != Decimal('0.00'):
                 name = account.name_ar or account.name
                 if name.startswith("صندوق "):
@@ -355,7 +387,7 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
         
         items_to_zero = []
         for account in employee_cash_accounts_qs:
-            balance = account.get_net_balance_all_years()
+            balance = _get_zeroing_balance(account)
             if balance != Decimal('0.00'):
                 name = account.name_ar or account.name
                 if name.startswith("صندوق "):
@@ -518,7 +550,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 {
                     'code': account.code,
                     'title': account.name_ar or account.name,
-                    'balance': account.get_net_balance_all_years()
+                    'balance': account.get_net_balance(academic_year=academic_year)
                 }
                 for account in employee_cash_accounts_qs
             ]
