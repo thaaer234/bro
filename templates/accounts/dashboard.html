@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const assetCtx = document.getElementById('assetChart');
-    if (assetCtx) {
+    if (assetCtx && typeof Chart !== 'undefined') {
         new Chart(assetCtx.getContext('2d'), {
             type: 'doughnut',
             data: {
@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const revenueCtx = document.getElementById('revenueExpenseChart');
-    if (revenueCtx) {
+    if (revenueCtx && typeof Chart !== 'undefined') {
         new Chart(revenueCtx.getContext('2d'), {
             type: 'bar',
             data: {
