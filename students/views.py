@@ -926,7 +926,7 @@ class StudentCardsPrintView(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
         if should_generate:
             if student_ids_raw:
                 try:
-                    id_list = [int(x.strip()) for x in student_ids_raw.split(',') if x.strip().isdigit()]
+                    id_list = [int(x.replace('.', '').replace(',', '').strip()) for x in student_ids_raw.split(',') if x.replace('.', '').replace(',', '').strip().isdigit()]
                     students = list(Student.objects.filter(id__in=id_list).order_by('full_name'))
                 except Exception:
                     students = []
@@ -1111,7 +1111,7 @@ def student_cards_print_pdf(request):
     if should_generate:
         if student_ids_raw:
             try:
-                id_list = [int(x.strip()) for x in student_ids_raw.split(',') if x.strip().isdigit()]
+                id_list = [int(x.replace('.', '').replace(',', '').strip()) for x in student_ids_raw.split(',') if x.replace('.', '').replace(',', '').strip().isdigit()]
                 students = list(Student.objects.filter(id__in=id_list).order_by('full_name'))
             except Exception:
                 students = []

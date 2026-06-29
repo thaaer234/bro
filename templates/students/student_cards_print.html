@@ -1041,7 +1041,7 @@
                         <tr class="student-row" style="border-bottom: 1px solid #f5f7fa; transition: all 0.2s;" onmouseover="this.style.background='#faf9ff'" onmouseout="this.style.background='transparent'">
                             <td style="padding: 12px 10px; text-align: center; color: var(--muted); font-size: 12px;">{{ forloop.counter }}</td>
                             <td style="padding: 12px 10px; text-align: center;">
-                                <input type="checkbox" class="student-select-cb" value="{{ s.id }}" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--purple);">
+                                <input type="checkbox" class="student-select-cb" value="{{ s.id|stringformat:'d' }}" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--purple);">
                             </td>
                             <td class="student-name-cell" style="padding: 12px 10px; font-weight: bold; color: var(--ink);">{{ s.full_name }}</td>
                             <td class="student-number-cell" style="padding: 12px 10px; color: var(--muted);">{{ s.student_number|default:"-" }}</td>
