@@ -240,7 +240,7 @@ def delete_journal_entry(request, pk):
 
 class ZeroCashboxesView(LoginRequiredMixin, View):
     def get(self, request):
-        if not (request.user.is_superuser and request.user.username == 'thaaer'):
+        if not request.user.is_superuser:
             return JsonResponse({'error': 'غير مصرح بالدخول.'}, status=403)
             
         employee_cash_accounts_qs = (
@@ -343,7 +343,7 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
         })
 
     def post(self, request):
-        if not (request.user.is_superuser and request.user.username == 'thaaer'):
+        if not request.user.is_superuser:
             return HttpResponse("غير مصرح بالدخول.", status=403)
             
         employee_cash_accounts_qs = (

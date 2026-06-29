@@ -9,6 +9,7 @@
     <title>&#1576;&#1591;&#1575;&#1602;&#1575;&#1578; &#1575;&#1604;&#1591;&#1604;&#1575;&#1576;</title>
     {% if not pdf %}
     <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     {% endif %}
     <style>
         /* تأكيد الاتجاه RTL في جميع العناصر */
@@ -996,20 +997,88 @@
         </div>
     {% endif %}
 {% else %}
-    <div class="start-area">
-        <div class="start-card">
-            <img src="{% static 'img/logo.png' %}" alt="">
-            <h2>&#1575;&#1587;&#1578;&#1608;&#1583;&#1610;&#1608; &#1576;&#1591;&#1575;&#1602;&#1575;&#1578; &#1575;&#1604;&#1591;&#1604;&#1575;&#1576;</h2>
-            <p>&#1589;&#1601;&#1581;&#1577; &#1605;&#1587;&#1578;&#1602;&#1604;&#1577; &#1576;&#1575;&#1604;&#1603;&#1575;&#1605;&#1604; &#1576;&#1583;&#1601608;&#1606; &#1587;&#1575;&#1610;&#1583;&#1576;&#1575;&#1585;&#46; &#1575;&#1590;&#1594;&#1591; &#1575;&#1606;&#1588;&#1575;&#1569; &#1604;&#1578;&#1580;&#1607;&#1610;&#1586; &#1575;&#1604;&#1576;&#1591;&#1575;&#1602;&#1575;&#1578; &#1576;&#1578;&#1589;&#1605;&#1610;&#1605; &#1575;&#1581;&#1578;&#1585;&#1575;&#1601;&#1610; &#1604;&#1604;&#1591;&#1576;&#1575;&#1593;&#1577;&#46;</p>
-            <div style="display: grid; gap: 8px; justify-items: center;">
-                <select id="classroom-select-start" class="btn btn-alt" style="padding: 8px 10px; width: 100%;">
-                    <option value="">اختر الفصل</option>
+    <div class="start-area" style="padding: 40px 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; gap: 30px;">
+        <div class="start-card" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.4); border-radius: 20px; padding: 30px; box-shadow: 0 15px 35px rgba(81, 57, 150, 0.08); width: 100%; max-width: 500px; text-align: center;">
+            <img src="{% static 'img/logo.png' %}" alt="" style="max-height: 70px; margin-bottom: 15px;">
+            <h2 style="color: var(--purple-dark); font-size: 26px; margin: 0 0 10px 0; font-weight: bold;">استوديو بطاقات الطلاب</h2>
+            <p style="color: var(--muted); margin: 0 0 20px 0; font-size: 14px; line-height: 1.5;">صفحة مستقلة لتجهيز وطباعة بطاقات الطلاب بتصميم احترافي. يمكنك الاختيار والطباعة حسب الشعب الدراسية أو تحديد أسماء طلاب معينين من الجدول بالأسفل.</p>
+            <div style="display: grid; gap: 8px; justify-items: center; width: 100%;">
+                <select id="classroom-select-start" class="btn btn-alt" style="padding: 10px; width: 100%; text-align: center; border: 1px solid var(--line); border-radius: 8px; font-size: 14px;">
+                    <option value="">اختر الشعبة / الفصل</option>
                     {% for classroom in classrooms_with_course %}
                     <option value="{{ classroom.id }}">{{ classroom.name }} - {{ classroom.course_name }}</option>
                     {% endfor %}
                 </select>
-                <a href="#" class="btn btn-main" id="generate-by-classroom-btn">&#1575;&#1606;&#1588;&#1575;&#1569; &#1581;&#1587;&#1576; &#1575;&#1604;&#1588;&#1593;&#1576;&#1577;</a>
-                <a href="{% url 'students:student_cards_print' %}?generate=1" class="btn btn-alt">&#1575;&#1606;&#1588;&#1575;&#1569; &#1603;&#1604; &#1575;&#1604;&#1591;&#1604;&#1575;&#1576;</a>
+                <a href="#" class="btn btn-main" id="generate-by-classroom-btn" style="width: 100%; font-weight: bold; text-align: center; padding: 12px;"><i class="fas fa-layer-group me-1"></i> انشاء حسب الشعبة</a>
+                <a href="{% url 'students:student_cards_print' %}?generate=1" class="btn btn-alt" style="width: 100%; font-weight: bold; text-align: center; padding: 12px; border: 1px solid var(--line);"><i class="fas fa-users me-1"></i> انشاء كل الطلاب</a>
+            </div>
+        </div>
+
+        <!-- Student Selection Panel -->
+        <div style="background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); width: 100%; max-width: 900px; text-align: right; box-sizing: border-box;">
+            <h3 style="margin-top: 0; color: var(--purple-dark); font-size: 20px; border-bottom: 2px solid #f0ecfa; padding-bottom: 12px; display: flex; align-items: center; gap: 10px;"><i class="fas fa-users-viewfinder" style="color: var(--gold);"></i> تحديد طلاب معينين للطباعة</h3>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="student-search-input" placeholder="ابحث باسم الطالب، رقم الهاتف أو الشعبة..." style="flex: 1; min-width: 250px; padding: 12px 15px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--line)'">
+                <button type="button" id="select-all-btn" class="btn btn-alt" style="padding: 10px 18px; font-weight: bold; font-size: 13px; border: 1px solid var(--line);"><i class="fas fa-check-double me-1"></i> تحديد الكل</button>
+                <button type="button" id="deselect-all-btn" class="btn btn-alt" style="padding: 10px 18px; font-weight: bold; font-size: 13px; border: 1px solid var(--line);"><i class="fas fa-xmark me-1"></i> إلغاء التحديد</button>
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 20px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);">
+                <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 14px;">
+                    <thead>
+                        <tr style="background: #fcfbfe; border-bottom: 2px solid #f0ecfa; position: sticky; top: 0; z-index: 1;">
+                            <th style="padding: 14px 10px; width: 40px; text-align: center; color: var(--muted);">#</th>
+                            <th style="padding: 14px 10px; width: 50px; text-align: center; color: var(--muted);">اختر</th>
+                            <th style="padding: 14px 10px; color: var(--purple-dark); font-weight: bold;">اسم الطالب</th>
+                            <th style="padding: 14px 10px; color: var(--purple-dark); font-weight: bold;">رقم الطالب</th>
+                            <th style="padding: 14px 10px; color: var(--purple-dark); font-weight: bold;">الفرع</th>
+                            <th style="padding: 14px 10px; color: var(--purple-dark); font-weight: bold;">الشعبة الدراسية / الكلاس</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-list-tbody">
+                        {% for s in all_students %}
+                        <tr class="student-row" style="border-bottom: 1px solid #f5f7fa; transition: all 0.2s;" onmouseover="this.style.background='#faf9ff'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 12px 10px; text-align: center; color: var(--muted); font-size: 12px;">{{ forloop.counter }}</td>
+                            <td style="padding: 12px 10px; text-align: center;">
+                                <input type="checkbox" class="student-select-cb" value="{{ s.id }}" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--purple);">
+                            </td>
+                            <td class="student-name-cell" style="padding: 12px 10px; font-weight: bold; color: var(--ink);">{{ s.full_name }}</td>
+                            <td class="student-number-cell" style="padding: 12px 10px; color: var(--muted);">{{ s.student_number|default:"-" }}</td>
+                            <td class="student-branch-cell" style="padding: 12px 10px;">
+                                {% if s.branch %}
+                                <span class="badge" style="background: #e8f4fd; color: #1d8cf8; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold;">{{ s.branch }}</span>
+                                {% else %}
+                                <span style="color: var(--muted);">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="student-classroom-cell" style="padding: 12px 10px; color: var(--teal); font-size: 13px; font-weight: 500;">
+                                {% for enrollment in s.classroom_enrollments.all %}
+                                    {{ enrollment.classroom.name }}{% if not forloop.last %}، {% endif %}
+                                {% empty %}
+                                    <span style="color: var(--muted);">-</span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="padding: 40px; text-align: center; color: var(--muted); font-size: 16px;"><i class="fas fa-folder-open fa-2x d-block mb-2" style="color: #ccc;"></i> لا يوجد طلاب مسجلين حالياً.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Sticky Action Bar for Selection -->
+            <div id="selection-action-bar" style="background: #faf9ff; border: 1px solid #e1daf3; border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 4px 10px rgba(81, 57, 150, 0.02);">
+                <div>
+                    <span style="font-size: 15px; font-weight: bold; color: var(--purple-dark);"><i class="fas fa-square-check" style="color: var(--purple); margin-left: 5px;"></i> الطلاب المحددون: </span>
+                    <span id="selected-count" style="font-size: 18px; font-weight: 800; color: white; background: var(--purple); padding: 4px 14px; border-radius: 20px; border: 1px solid var(--purple-dark); margin-right: 5px; box-shadow: 0 2px 5px rgba(81, 57, 150, 0.2);">0</span>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" id="preview-selected-btn" class="btn btn-main" style="display: none; padding: 12px 22px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(81, 57, 150, 0.25);"><i class="fas fa-eye me-1"></i> عرض ومعاينة البطاقات</button>
+                    <button type="button" id="pdf-selected-btn" class="btn" style="display: none; padding: 12px 22px; font-weight: bold; background: #e74c3c; border: 1px solid #e74c3c; color: white; cursor: pointer; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25); border-radius: 10px;"><i class="fas fa-file-pdf me-1"></i> تحميل ملف PDF المدمج</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1076,6 +1145,98 @@
                 }
                 const base = '/students/student-cards-print/?generate=1';
                 window.location.href = base + '&classroom=' + encodeURIComponent(value);
+            });
+        }
+
+        // Student Selection and Search Script
+        const studentSearchInput = document.getElementById('student-search-input');
+        const studentRows = document.querySelectorAll('.student-row');
+        
+        if (studentSearchInput) {
+            studentSearchInput.addEventListener('input', function() {
+                const query = (this.value || '').toLowerCase().trim();
+                studentRows.forEach(row => {
+                    const name = (row.querySelector('.student-name-cell').textContent || '').toLowerCase();
+                    const number = (row.querySelector('.student-number-cell').textContent || '').toLowerCase();
+                    const branch = (row.querySelector('.student-branch-cell').textContent || '').toLowerCase();
+                    const classroom = (row.querySelector('.student-classroom-cell').textContent || '').toLowerCase();
+                    
+                    if (name.includes(query) || number.includes(query) || branch.includes(query) || classroom.includes(query)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        const studentCbs = document.querySelectorAll('.student-select-cb');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const deselectAllBtn = document.getElementById('deselect-all-btn');
+        const selectedCountEl = document.getElementById('selected-count');
+        const previewSelectedBtn = document.getElementById('preview-selected-btn');
+        const pdfSelectedBtn = document.getElementById('pdf-selected-btn');
+
+        function updateSelectionState() {
+            let checkedIds = [];
+            studentCbs.forEach(cb => {
+                if (cb.checked) {
+                    checkedIds.push(cb.value);
+                }
+            });
+
+            const count = checkedIds.length;
+            if (selectedCountEl) selectedCountEl.textContent = count;
+
+            if (count > 0) {
+                if (previewSelectedBtn) previewSelectedBtn.style.display = 'inline-block';
+                if (pdfSelectedBtn) pdfSelectedBtn.style.display = 'inline-block';
+            } else {
+                if (previewSelectedBtn) previewSelectedBtn.style.display = 'none';
+                if (pdfSelectedBtn) pdfSelectedBtn.style.display = 'none';
+            }
+
+            return checkedIds;
+        }
+
+        studentCbs.forEach(cb => {
+            cb.addEventListener('change', updateSelectionState);
+        });
+
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', () => {
+                studentCbs.forEach(cb => {
+                    const row = cb.closest('.student-row');
+                    if (row && row.style.display !== 'none') {
+                        cb.checked = true;
+                    }
+                });
+                updateSelectionState();
+            });
+        }
+
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener('click', () => {
+                studentCbs.forEach(cb => {
+                    cb.checked = false;
+                });
+                updateSelectionState();
+            });
+        }
+
+        if (previewSelectedBtn) {
+            previewSelectedBtn.addEventListener('click', () => {
+                const ids = updateSelectionState();
+                if (ids.length === 0) return;
+                window.location.href = '/students/student-cards-print/?generate=1&student_ids=' + ids.join(',');
+            });
+        }
+
+        if (pdfSelectedBtn) {
+            pdfSelectedBtn.addEventListener('click', () => {
+                const ids = updateSelectionState();
+                if (ids.length === 0) return;
+                window.location.href = '/students/student-cards-print/pdf/?generate=1&student_ids=' + ids.join(',');
             });
         }
     })();

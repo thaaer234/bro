@@ -9964,7 +9964,7 @@ def quick_course_teacher_payout(request, course_id):
 
 @require_GET
 def quick_course_audit_json(request, course_id):
-    if not (request.user.is_superuser and request.user.username == 'thaaer'):
+    if not request.user.is_superuser:
         return JsonResponse({'ok': False, 'error': 'غير مصرح لك بالوصول لهذه الأداة.'}, status=403)
         
     course = get_object_or_404(QuickCourse, pk=course_id, is_active=True)

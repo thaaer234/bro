@@ -918,12 +918,19 @@ class StudentCardsPrintView(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         should_generate = self.request.GET.get('generate') == '1'
+        student_ids_raw = self.request.GET.get('student_ids')
         classroom_id = (self.request.GET.get('classroom') or '').strip()
         students = []
         selected_classroom = None
 
         if should_generate:
-            if classroom_id:
+            if student_ids_raw:
+                try:
+                    id_list = [int(x.strip()) for x in student_ids_raw.split(',') if x.strip().isdigit()]
+                    students = list(Student.objects.filter(id__in=id_list).order_by('full_name'))
+                except Exception:
+                    students = []
+            elif classroom_id:
                 try:
                     selected_classroom = Classroom.objects.get(id=classroom_id)
                     students = list(_scope_queryset_to_current_year(selected_classroom.students, self.request).order_by('full_name'))
@@ -943,7 +950,6 @@ class StudentCardsPrintView(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
             Classroom.objects.filter(is_active=True, class_type='study').order_by('name')
         )
 
-# Build classroom list with associated course name
         classrooms_with_course = []
         for classroom in classrooms:
             course_name = classroom.course.name if getattr(classroom, 'course', None) else 'دورة'
@@ -952,6 +958,14 @@ class StudentCardsPrintView(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
                 'name': classroom.name,
                 'course_name': course_name,
             })
+
+        all_students = []
+        if not should_generate:
+            all_students = list(
+                _scope_queryset_to_current_year(Student.objects.all(), self.request)
+                .prefetch_related('classroom_enrollments__classroom')
+                .order_by('full_name')
+            )
 
         context.update({
             'should_generate': should_generate,
@@ -962,6 +976,7 @@ class StudentCardsPrintView(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
             'classrooms': classrooms,
             'classrooms_with_course': classrooms_with_course,
             'selected_classroom': selected_classroom,
+            'all_students': all_students,
             'pdf': False,
         })
         return context
@@ -1090,10 +1105,18 @@ def _render_cards_pdf_bytes(request, students):
 @user_passes_test(lambda u: u.is_superuser)
 def student_cards_print_pdf(request):
     should_generate = request.GET.get('generate') == '1'
+    student_ids_raw = request.GET.get('student_ids')
     students = []
 
     if should_generate:
-        students = list(_scope_queryset_to_current_year(Student.objects.all(), request).order_by('full_name'))
+        if student_ids_raw:
+            try:
+                id_list = [int(x.strip()) for x in student_ids_raw.split(',') if x.strip().isdigit()]
+                students = list(Student.objects.filter(id__in=id_list).order_by('full_name'))
+            except Exception:
+                students = []
+        else:
+            students = list(_scope_queryset_to_current_year(Student.objects.all(), request).order_by('full_name'))
 
     per_page = 8
     pages = [students[i:i + per_page] for i in range(0, len(students), per_page)]

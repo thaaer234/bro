@@ -13,7 +13,7 @@
                 <p>ملخص تنفيذي سريع للحسابات والسيولة والنشاط اليومي داخل قسم المحاسبة.</p>
             </div>
             <div class="accounts-actions">
-                {% if request.user.is_superuser and request.user.username == 'thaaer' %}
+                {% if request.user.is_superuser %}
                 <button type="button" id="zeroCashboxPreviewTrigger" class="btn btn-danger" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; border: none; font-weight: 600; box-shadow: 0 4px 6px rgba(231, 76, 60, 0.2); margin-left: 8px;">
                     <i class="fas fa-exchange-alt"></i>
                     مناقلة وتصفير الصناديق
@@ -281,7 +281,7 @@
 
     </div>
 
-    {% if request.user.is_superuser and request.user.username == 'thaaer' %}
+    {% if request.user.is_superuser %}
     <!-- Modal for zero cashbox confirmation and preview -->
     <div id="zeroCashboxPreviewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 1100; justify-content: center; align-items: center; padding: 20px; transition: all 0.3s ease;">
         <div style="background: var(--card-bg, #ffffff); border-radius: 12px; width: 100%; max-width: 750px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; display: flex; flex-direction: column; animation: modalFadeIn 0.3s ease-out; direction: rtl; text-align: right;">
