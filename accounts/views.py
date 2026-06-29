@@ -518,7 +518,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 {
                     'code': account.code,
                     'title': account.name_ar or account.name,
-                    'balance': account.get_net_balance(academic_year=academic_year)
+                    'balance': account.get_net_balance_all_years()
                 }
                 for account in employee_cash_accounts_qs
             ]
