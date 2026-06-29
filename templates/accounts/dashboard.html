@@ -1,6 +1,7 @@
 {% extends 'accounts/base.html' %}
 {% load static %}
 {% load emp_perms %}
+{% load l10n %}
 
 {% block title %}لوحة المحاسبة{% endblock %}
 
@@ -47,7 +48,7 @@
             <div class="accounts-kpi-card__top">
                 <div>
                     <p class="accounts-kpi-card__label">الأصول المتداولة</p>
-                    <h3 class="accounts-kpi-card__value metric-value" data-value="{{ current_assets|floatformat:0 }}">0</h3>
+                    <h3 class="accounts-kpi-card__value metric-value" data-value="{{ current_assets|unlocalize }}">0</h3>
                 </div>
                 <span class="accounts-kpi-card__icon"><i class="fas fa-building-columns"></i></span>
             </div>
@@ -58,7 +59,7 @@
             <div class="accounts-kpi-card__top">
                 <div>
                     <p class="accounts-kpi-card__label">سلف الموظفين</p>
-                    <h3 class="accounts-kpi-card__value metric-value" data-value="{{ employee_advances|floatformat:0 }}">0</h3>
+                    <h3 class="accounts-kpi-card__value metric-value" data-value="{{ employee_advances|unlocalize }}">0</h3>
                 </div>
                 <span class="accounts-kpi-card__icon"><i class="fas fa-hand-holding-dollar"></i></span>
             </div>
@@ -69,7 +70,7 @@
             <div class="accounts-kpi-card__top">
                 <div>
                     <p class="accounts-kpi-card__label">صافي الدخل</p>
-                    <h3 class="accounts-kpi-card__value metric-value" data-value="{{ net_income|floatformat:0 }}">0</h3>
+                    <h3 class="accounts-kpi-card__value metric-value" data-value="{{ net_income|unlocalize }}">0</h3>
                 </div>
                 <span class="accounts-kpi-card__icon"><i class="fas fa-chart-line"></i></span>
             </div>
@@ -105,28 +106,28 @@
             <span class="accounts-summary-card__icon"><i class="fas fa-sitemap"></i></span>
             <div>
                 <p class="accounts-summary-card__label">إجمالي الحسابات</p>
-                <h4 class="accounts-summary-card__value metric-value" data-value="{{ account_count }}">0</h4>
+                <h4 class="accounts-summary-card__value metric-value" data-value="{{ account_count|unlocalize }}">0</h4>
             </div>
         </article>
         <article class="accounts-summary-card">
             <span class="accounts-summary-card__icon"><i class="fas fa-book-open"></i></span>
             <div>
                 <p class="accounts-summary-card__label">إجمالي القيود</p>
-                <h4 class="accounts-summary-card__value metric-value" data-value="{{ total_entries }}">0</h4>
+                <h4 class="accounts-summary-card__value metric-value" data-value="{{ total_entries|unlocalize }}">0</h4>
             </div>
         </article>
         <article class="accounts-summary-card">
             <span class="accounts-summary-card__icon"><i class="fas fa-hourglass-half"></i></span>
             <div>
                 <p class="accounts-summary-card__label">قيود غير مرحلة</p>
-                <h4 class="accounts-summary-card__value metric-value" data-value="{{ unposted_entries }}">0</h4>
+                <h4 class="accounts-summary-card__value metric-value" data-value="{{ unposted_entries|unlocalize }}">0</h4>
             </div>
         </article>
         <article class="accounts-summary-card">
             <span class="accounts-summary-card__icon"><i class="fas fa-graduation-cap"></i></span>
             <div>
                 <p class="accounts-summary-card__label">الدورات النشطة</p>
-                <h4 class="accounts-summary-card__value metric-value" data-value="{{ total_courses }}">0</h4>
+                <h4 class="accounts-summary-card__value metric-value" data-value="{{ total_courses|unlocalize }}">0</h4>
             </div>
         </article>
     </div>
@@ -423,7 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: ['الأصول المتداولة', 'الأصول الثابتة', 'أخرى'],
                 datasets: [{
-                    data: [{{ current_assets|default:0 }}, {{ fixed_assets|default:0 }}, {{ other_assets|default:0 }}],
+                    data: [{{ current_assets|unlocalize|default:0 }}, {{ fixed_assets|unlocalize|default:0 }}, {{ other_assets|unlocalize|default:0 }}],
                     backgroundColor: ['#2f6bff', '#31c9ff', '#f053c4'],
                     borderWidth: 0
                 }]
@@ -446,13 +447,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [
                     {
                         label: 'الإيرادات',
-                        data: [{{ current_month_revenue|default:0 }}, {{ last_month_revenue|default:0 }}],
+                        data: [{{ current_month_revenue|unlocalize|default:0 }}, {{ last_month_revenue|unlocalize|default:0 }}],
                         backgroundColor: '#2f6bff',
                         borderRadius: 10
                     },
                     {
                         label: 'المصروفات',
-                        data: [{{ current_month_expenses|default:0 }}, {{ last_month_expenses|default:0 }}],
+                        data: [{{ current_month_expenses|unlocalize|default:0 }}, {{ last_month_expenses|unlocalize|default:0 }}],
                         backgroundColor: '#ff6b7d',
                         borderRadius: 10
                     }
