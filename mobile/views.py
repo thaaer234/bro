@@ -237,14 +237,31 @@ class MobileLoginView(FormView):
         identifier = identifier.strip()
         if not identifier:
             return None
-        student = (
-            Student.objects.filter(student_number__iexact=identifier).first()
-            or Student.objects.filter(full_name__iexact=identifier).first()
-            or Student.objects.filter(full_name__icontains=identifier).first()
-            or Student.objects.filter(phone__icontains=identifier).first()
-            or Student.objects.filter(father_phone__icontains=identifier).first()
-            or Student.objects.filter(mother_phone__icontains=identifier).first()
-        )
+
+        from academic_years.models import AcademicYearSystemState
+        system_state = AcademicYearSystemState.objects.select_related('active_academic_year').first()
+        active_year = system_state.active_academic_year if system_state else None
+
+        student = None
+        if active_year:
+            student = (
+                Student.objects.filter(student_number__iexact=identifier, academic_year=active_year).first()
+                or Student.objects.filter(full_name__iexact=identifier, academic_year=active_year).first()
+                or Student.objects.filter(full_name__icontains=identifier, academic_year=active_year).first()
+                or Student.objects.filter(phone__icontains=identifier, academic_year=active_year).first()
+                or Student.objects.filter(father_phone__icontains=identifier, academic_year=active_year).first()
+                or Student.objects.filter(mother_phone__icontains=identifier, academic_year=active_year).first()
+            )
+
+        if not student:
+            student = (
+                Student.objects.filter(student_number__iexact=identifier).first()
+                or Student.objects.filter(full_name__iexact=identifier).first()
+                or Student.objects.filter(full_name__icontains=identifier).first()
+                or Student.objects.filter(phone__icontains=identifier).first()
+                or Student.objects.filter(father_phone__icontains=identifier).first()
+                or Student.objects.filter(mother_phone__icontains=identifier).first()
+            )
         return student
 
     def _check_student_password(self, student, normalized_pass):
