@@ -242,6 +242,8 @@ class MobileLoginView(FormView):
             or Student.objects.filter(full_name__iexact=identifier).first()
             or Student.objects.filter(full_name__icontains=identifier).first()
             or Student.objects.filter(phone__icontains=identifier).first()
+            or Student.objects.filter(father_phone__icontains=identifier).first()
+            or Student.objects.filter(mother_phone__icontains=identifier).first()
         )
         return student
 

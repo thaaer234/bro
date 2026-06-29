@@ -25,6 +25,8 @@ class StudentLoginSerializer(serializers.Serializer):
         student = (
             Student.objects.filter(student_number=student_name).first()
             or Student.objects.filter(phone=student_name).first()
+            or Student.objects.filter(father_phone=student_name).first()
+            or Student.objects.filter(mother_phone=student_name).first()
             or Student.objects.filter(full_name__iexact=student_name).first()
             or Student.objects.filter(full_name__icontains=student_name).first()
         )

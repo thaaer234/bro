@@ -1,0 +1,26 @@
+ID: 5 | Name: الشعبة الأولى | Branch: علمي | Course: None | Type: study | Active: 0
+ID: 6 | Name: الشعبة الثانية | Branch: علمي | Course: None | Type: study | Active: 1
+ID: 7 | Name: الشعبة الثالثة | Branch: علمي | Course: None | Type: study | Active: 1
+ID: 8 | Name: الشعبة الرابعة | Branch: علمي | Course: None | Type: study | Active: 1
+ID: 9 | Name: الشعبة الخامسة | Branch: علمي | Course: None | Type: study | Active: 1
+ID: 10 | Name: الشعبة السادسة | Branch: علمي | Course: None | Type: study | Active: 1
+ID: 11 | Name: الشعبة السابعة | Branch: علمي | Course: None | Type: study | Active: 1
+ID: 12 | Name: الشعبة الثامنة | Branch: علمي | Course: None | Type: study | Active: 1
+ID: 13 | Name: الشعبة الأولى أدبي | Branch: أدبي | Course: None | Type: study | Active: 1
+ID: 14 | Name: الشعبة الثانية أدبي | Branch: أدبي | Course: None | Type: study | Active: 1
+ID: 15 | Name: الشعبة الأولى تاسع | Branch: تاسع | Course: None | Type: study | Active: 1
+ID: 16 | Name: الشعبة الثانية تاسع | Branch: تاسع | Course: None | Type: study | Active: 1
+ID: 17 | Name: تمهيدي | Branch: علمي | Course: None | Type: study | Active: 1
+ID: 18 | Name: القاعة A | Branch: None | Course: None | Type: course | Active: 1
+ID: 19 | Name: القاعة B | Branch: None | Course: None | Type: course | Active: 1
+ID: 20 | Name: القاعة C | Branch: None | Course: None | Type: course | Active: 1
+ID: 21 | Name: القاعة D | Branch: None | Course: None | Type: course | Active: 1
+ID: 22 | Name: القاعة E | Branch: None | Course: None | Type: course | Active: 1
+ID: 23 | Name: القاعة F | Branch: None | Course: None | Type: course | Active: 1
+ID: 24 | Name: القاعة G | Branch: None | Course: None | Type: course | Active: 1
+ID: 25 | Name: الشعبة الاولى | Branch: علمي | Course: 18 | Type: study | Active: 1
+ID: 26 | Name: الشعبة الثانية | Branch: علمي | Course: 18 | Type: study | Active: 1
+ID: 27 | Name: الشعبة الثالثة | Branch: علمي | Course: 18 | Type: study | Active: 1
+ID: 28 | Name: الشعبة الرابعة | Branch: علمي | Course: 18 | Type: study | Active: 1
+ID: 29 | Name: الشعبة الخامسة | Branch: علمي | Course: 18 | Type: study | Active: 1
+ID: 30 | Name: الشعبة الأولى | Branch: تاسع | Course: 20 | Type: study | Active: 1
