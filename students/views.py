@@ -3646,4 +3646,36 @@ def fix_student_enrollment_error(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+
+from django.views.decorators.http import require_GET
+from django.contrib.auth.decorators import login_required
+
+@require_GET
+@login_required
+def check_student_exists(request):
+    full_name = request.GET.get('full_name', '').strip()
+    student_number = request.GET.get('student_number', '').strip()
+    student_id = request.GET.get('student_id')  # للتحويل في حالة التعديل
+
+    current_year = getattr(request, 'current_academic_year', None)
+    if not current_year:
+        return JsonResponse({'exists': False})
+
+    queryset = Student.objects.filter(academic_year=current_year, quick_student_profile__isnull=True)
+    if student_id and student_id.isdigit():
+        queryset = queryset.exclude(pk=int(student_id))
+
+    if full_name:
+        match = queryset.filter(full_name__iexact=full_name).first()
+        if match:
+            return JsonResponse({'exists': True, 'student_number': match.student_number})
+
+    if student_number:
+        match = queryset.filter(student_number=student_number).first()
+        if match:
+            return JsonResponse({'exists': True, 'full_name': match.full_name})
+
+    return JsonResponse({'exists': False})
+
+
     

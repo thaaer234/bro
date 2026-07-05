@@ -141,35 +141,58 @@ class StudentForm(forms.ModelForm):
 
         full_name = cleaned_data.get('full_name')
         student_number = cleaned_data.get('student_number')
+        
+        # تحديد الفصل الدراسي للفحص
+        from django.db.models import Q
+        from django.utils import timezone
+        academic_year = cleaned_data.get('academic_year') or getattr(self.instance, 'academic_year', None)
+        if not academic_year:
+            from quick.models import AcademicYear
+            target_date = cleaned_data.get('registration_date') or timezone.now().date()
+            academic_year = AcademicYear.objects.filter(
+                Q(start_date__lte=target_date) &
+                Q(end_date__isnull=True) &
+                Q(is_active=True)
+            ).first()
+            if not academic_year:
+                academic_year = AcademicYear.objects.filter(
+                    Q(start_date__lte=target_date) &
+                    Q(end_date__gte=target_date) &
+                    Q(is_active=True)
+                ).first()
 
-        if full_name:
+        if full_name and academic_year:
             check_full_name = True
             if self.instance and self.instance.pk:
                 current_full_name = (self.instance.full_name or '').strip()
-                if current_full_name.lower() == full_name.strip().lower():
+                if current_full_name.lower() == full_name.strip().lower() and self.instance.academic_year == academic_year:
                     check_full_name = False
             if check_full_name:
                 existing_student = Student.objects.filter(
-                    full_name__iexact=full_name
+                    full_name__iexact=full_name,
+                    academic_year=academic_year,
+                    quick_student_profile__isnull=True
                 ).exclude(pk=self.instance.pk if self.instance else None)
                 if existing_student.exists():
                     raise forms.ValidationError({
-                        'full_name': f'اسم الطالب مسجل مسبقا: {existing_student.first().student_number}'
+                        'full_name': f'اسم الطالب مسجل مسبقاً في هذا الفصل الدراسي: {existing_student.first().student_number}'
                     })
 
-        if student_number:
+        if student_number and academic_year:
             check_student_number = True
             if self.instance and self.instance.pk:
                 current_student_number = (self.instance.student_number or '').strip()
-                if current_student_number == student_number.strip():
+                if current_student_number == student_number.strip() and self.instance.academic_year == academic_year:
                     check_student_number = False
             if check_student_number:
                 existing_student = Student.objects.filter(
-                    student_number=student_number
+                    student_number=student_number,
+                    academic_year=academic_year,
+                    quick_student_profile__isnull=True
                 ).exclude(pk=self.instance.pk if self.instance else None)
                 if existing_student.exists():
                     raise forms.ValidationError({
-                        'student_number': f'رقم الطالب مسجل مسبقا: {existing_student.first().full_name}'
+                        'student_number': f'رقم الطالب مسجل مسبقاً في هذا الفصل الدراسي باسم: {existing_student.first().full_name}'
                     })
 
         return cleaned_data

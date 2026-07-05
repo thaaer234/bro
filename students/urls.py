@@ -12,6 +12,7 @@ urlpatterns = [
     path('quick/<int:academic_year_id>/', require_employee_perm('students_view')(views.QuickStudentsView.as_view()), name='quick_students'),
     path('quick/', require_employee_perm('students_view')(views.QuickStudentsAllView.as_view()), name='quick_students_all'),
     path('search/', require_employee_perm('students_view')(views.StudentSearchView.as_view()), name='student_search'),
+    path('check-student-exists/', views.check_student_exists, name='check_student_exists'),
 
     # ملفات الطلاب الشخصية
     path('<int:student_id>/profile/', require_employee_perm('students_profile')(views.StudentProfileView.as_view()), name='student_profile'),

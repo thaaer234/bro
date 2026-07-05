@@ -375,6 +375,7 @@
                 </a>
                 {% endif %}
 
+                {% if user.is_superuser or 'quick_students_receipt' in emp_perms or 'students_receipt' in emp_perms or 'reports_financial' in emp_perms %}
                 <a href="{% url 'pages:reception_daily_report' %}" class="shortcut-card shortcut-daily-print">
                     <div>
                         <div class="shortcut-icon-wrapper">
@@ -390,6 +391,7 @@
                         <i class="fas fa-arrow-left"></i>
                     </div>
                 </a>
+                {% endif %}
 
                 {% if has_accounting_dashboard %}
                 <a href="{% url 'accounts:dashboard' %}" class="shortcut-card shortcut-finance">

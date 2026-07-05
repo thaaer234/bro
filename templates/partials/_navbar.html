@@ -66,7 +66,7 @@
             <span>تقرير النظام</span>
         </a>
         {% endif %}
-        {% if user.is_superuser %}
+        {% if user.is_superuser or 'admin_dashboard' in emp_perms %}
         <a href="{% url 'announcements:dashboard' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'announcements' %}active{% endif %}">
             <i class="fas fa-bullhorn"></i>
             <span>التعاميم</span>
@@ -116,13 +116,13 @@
                     <i class="fas fa-check-circle"></i>
                     <span>اختيار الفصل الحالي</span>
                 </a>
-                {% if user.is_superuser and current_academic_year %}
+                {% if user.is_superuser or 'admin_settings' in emp_perms %}
+                {% if current_academic_year %}
                 <a href="{% url 'academic_years:manage' current_academic_year.id %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'academic_years' and request.resolver_match.url_name == 'manage' %}active{% endif %}">
                     <i class="fas fa-sliders"></i>
                     <span>إدارة الفصل الحالي</span>
                 </a>
                 {% endif %}
-                {% if user.is_superuser %}
                 <a href="{% url 'quick:academic_year_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'academic_year_list' %}active{% endif %}">
                     <i class="fas fa-list"></i>
                     <span>قائمة الفصول</span>
@@ -209,7 +209,7 @@
         </a>
         {% endif %}
 
-        {% if user.is_superuser %}
+        {% if user.is_superuser or 'reports_financial' in emp_perms %}
         <div class="menu-group">
             <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="thaaer-reports-submenu">
                 <i class="fas fa-chart-line text-warning"></i>
@@ -386,7 +386,7 @@
         </a>
         {% endif %}
 
-        {% if user.is_superuser %}
+        {% if user.is_superuser or 'admin_users' in emp_perms %}
         <a href="{% url 'registration:superuser_password_reset' %}" class="menu-item {% if request.resolver_match and request.resolver_match.url_name == 'superuser_password_reset' %}active{% endif %}">
             <i class="fas fa-key"></i>
             <span>إدارة كلمات المرور</span>
