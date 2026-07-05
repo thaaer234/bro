@@ -145,7 +145,22 @@ class StudentForm(forms.ModelForm):
         # تحديد الفصل الدراسي للفحص
         from django.db.models import Q
         from django.utils import timezone
-        academic_year = cleaned_data.get('academic_year') or getattr(self.instance, 'academic_year', None)
+        from academic_years.middleware import get_current_academic_year_thread
+        
+        academic_year = None
+        # 1. إذا كان تعديل لطالب موجود، نعتمد فصل الطالب نفسه
+        if self.instance and self.instance.pk:
+            academic_year = getattr(self.instance, 'academic_year', None)
+            
+        # 2. إذا كان إنشاء جديد، نعتمد الفصل النشط المحدد في الجلسة
+        if not academic_year:
+            academic_year = get_current_academic_year_thread()
+            
+        # 3. أي حقل محدد في cleaned_data
+        if not academic_year:
+            academic_year = cleaned_data.get('academic_year')
+            
+        # 4. البحث التلقائي بناء على تاريخ التسجيل كخيار أخير
         if not academic_year:
             from quick.models import AcademicYear
             target_date = cleaned_data.get('registration_date') or timezone.now().date()
