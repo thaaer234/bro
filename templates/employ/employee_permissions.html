@@ -560,6 +560,175 @@
                         </div>
                         {% endif %}
                     </div>
+
+                    <div class="row">
+                        <!-- إدارة المواد والصفوف / Courses Management -->
+                        {% if permission_groups.courses %}
+                        <div class="col-md-6 mb-4">
+                            <div class="permission-group">
+                                <h6 class="permission-group-title d-flex align-items-center justify-content-between">
+                                    <span>
+                                        <i class="fas fa-book text-success"></i>
+                                        إدارة المواد والصفوف الدراسية
+                                    </span>
+                                    <span>
+                                        <button type="button" class="btn btn-xs btn-outline-primary group-select" data-group="courses" data-action="select">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary ms-1 group-select" data-group="courses" data-action="clear">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </span>
+                                </h6>
+                                {% for perm in permission_groups.courses %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="permissions" value="{{ perm.code }}" 
+                                           id="perm_{{ perm.code }}"
+                                           {% if perm.is_granted %}checked{% endif %}>
+                                    <label class="form-check-label" for="perm_{{ perm.code }}">
+                                        {{ perm.label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- إدارة المخزون والأصول / Inventory & Assets -->
+                        {% if permission_groups.inventory %}
+                        <div class="col-md-6 mb-4">
+                            <div class="permission-group">
+                                <h6 class="permission-group-title d-flex align-items-center justify-content-between">
+                                    <span>
+                                        <i class="fas fa-boxes text-warning"></i>
+                                        إدارة المخزون والأصول
+                                    </span>
+                                    <span>
+                                        <button type="button" class="btn btn-xs btn-outline-primary group-select" data-group="inventory" data-action="select">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary ms-1 group-select" data-group="inventory" data-action="clear">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </span>
+                                </h6>
+                                {% for perm in permission_groups.inventory %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="permissions" value="{{ perm.code }}" 
+                                           id="perm_{{ perm.code }}"
+                                           {% if perm.is_granted %}checked{% endif %}>
+                                    <label class="form-check-label" for="perm_{{ perm.code }}">
+                                        {{ perm.label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <!-- إدارة التسويق والعملاء / Marketing -->
+                        {% if permission_groups.marketing %}
+                        <div class="col-md-4 mb-4">
+                            <div class="permission-group">
+                                <h6 class="permission-group-title d-flex align-items-center justify-content-between">
+                                    <span>
+                                        <i class="fas fa-bullhorn text-danger"></i>
+                                        إدارة التسويق والعملاء
+                                    </span>
+                                    <span>
+                                        <button type="button" class="btn btn-xs btn-outline-primary group-select" data-group="marketing" data-action="select">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary ms-1 group-select" data-group="marketing" data-action="clear">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </span>
+                                </h6>
+                                {% for perm in permission_groups.marketing %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="permissions" value="{{ perm.code }}" 
+                                           id="perm_{{ perm.code }}"
+                                           {% if perm.is_granted %}checked{% endif %}>
+                                    <label class="form-check-label" for="perm_{{ perm.code }}">
+                                        {{ perm.label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- الجودة والتقييم / Quality -->
+                        {% if permission_groups.quality %}
+                        <div class="col-md-4 mb-4">
+                            <div class="permission-group">
+                                <h6 class="permission-group-title d-flex align-items-center justify-content-between">
+                                    <span>
+                                        <i class="fas fa-medal text-info"></i>
+                                        الجودة والتقييم واستطلاعات الرأي
+                                    </span>
+                                    <span>
+                                        <button type="button" class="btn btn-xs btn-outline-primary group-select" data-group="quality" data-action="select">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary ms-1 group-select" data-group="quality" data-action="clear">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </span>
+                                </h6>
+                                {% for perm in permission_groups.quality %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="permissions" value="{{ perm.code }}" 
+                                           id="perm_{{ perm.code }}"
+                                           {% if perm.is_granted %}checked{% endif %}>
+                                    <label class="form-check-label" for="perm_{{ perm.code }}">
+                                        {{ perm.label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- سجلات الأخطاء والنظام / System Errors -->
+                        {% if permission_groups.errors %}
+                        <div class="col-md-4 mb-4">
+                            <div class="permission-group">
+                                <h6 class="permission-group-title d-flex align-items-center justify-content-between">
+                                    <span>
+                                        <i class="fas fa-bug text-danger"></i>
+                                        سجلات الأخطاء والنظام
+                                    </span>
+                                    <span>
+                                        <button type="button" class="btn btn-xs btn-outline-primary group-select" data-group="errors" data-action="select">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary ms-1 group-select" data-group="errors" data-action="clear">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </span>
+                                </h6>
+                                {% for perm in permission_groups.errors %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="permissions" value="{{ perm.code }}" 
+                                           id="perm_{{ perm.code }}"
+                                           {% if perm.is_granted %}checked{% endif %}>
+                                    <label class="form-check-label" for="perm_{{ perm.code }}">
+                                        {{ perm.label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             
