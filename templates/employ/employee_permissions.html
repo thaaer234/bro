@@ -74,7 +74,7 @@
             <p class="text-uppercase text-secondary small mb-1">الحساب النقدي الخاص</p>
             {% if cash_account %}
                 <h5 class="mb-1">{{ cash_account.code }} - {{ cash_account.name_ar|default:cash_account.name }}</h5>
-                <p class="mb-0 text-success fw-bold">الرصيد: {{ cash_account_balance|floatformat:2 }}</p>
+                <p class="mb-0 text-success fw-bold">الرصيد: {{ cash_account_balance|intcomma }}</p>
             {% else %}
                 <p class="mb-0 text-muted">لم يتم إنشاء حساب نقدي خاص لهذا الموظف بعد.</p>
             {% endif %}

@@ -234,6 +234,9 @@ TEMPLATES = [
                 "site_formatting": "accounts.templatetags.site_formatting",
                 "number_formatter_tags": "accounts.templatetags.number_formatter_tags",
             },
+            "builtins": [
+                "accounts.templatetags.site_formatting",
+            ],
         },
     },
 ]

@@ -5,10 +5,49 @@ Provides comma-separated number formatting across the entire site
 
 from django import template
 from django.utils.safestring import mark_safe
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import locale
 
 register = template.Library()
+
+
+@register.filter(is_safe=True)
+def floatformat(value, arg=-1):
+    """
+    Override Django's built-in floatformat to always output
+    standard formatting: dot for decimal, comma for thousands.
+    Example: 1200000 → 1,200,000  |  1200000.50 → 1,200,000.50
+    """
+    if value is None or value == '':
+        return ''
+
+    try:
+        if isinstance(value, str):
+            # handle strings that may already contain commas
+            value = value.replace(',', '')
+        d = Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        return str(value)
+
+    try:
+        decimals = int(arg)
+    except (ValueError, TypeError):
+        decimals = -1
+
+    # negative arg = show decimals only when present (Django convention)
+    if decimals < 0:
+        decimals = abs(decimals)
+        if d == d.to_integral_value():
+            decimals = 0
+
+    # format with Python f-string (always uses dot & comma)
+    number_float = float(d)
+    if decimals == 0:
+        formatted = f"{number_float:,.0f}"
+    else:
+        formatted = f"{number_float:,.{decimals}f}"
+
+    return formatted
 
 
 @register.filter
@@ -154,3 +193,4 @@ def financial_format(value):
         return f"{value:,.2f}"
     except (ValueError, TypeError):
         return '0.00'
+
