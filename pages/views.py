@@ -344,8 +344,34 @@ class IndexView(LoginRequiredMixin, TemplateView):
         return context
     
     
-class welcome(TemplateView):
-    template_name =   'pages/welcome.html'      
+class welcome(LoginRequiredMixin, TemplateView):
+    template_name = 'pages/welcome.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        employee = getattr(user, 'employee_profile', None)
+
+        cash_account = None
+        cash_account_balance = Decimal('0.00')
+        if employee:
+            cash_account = employee.get_cash_account()
+            if cash_account:
+                try:
+                    cash_account_balance = cash_account.get_net_balance_all_years()
+                except Exception:
+                    cash_account_balance = cash_account.get_net_balance()
+
+        context.update({
+            'employee': employee,
+            'cash_account': cash_account,
+            'cash_account_balance': cash_account_balance,
+            'has_students_create': user.is_superuser or (employee and employee.has_permission('students_create')),
+            'has_quick_students_create': user.is_superuser or (employee and employee.has_permission('quick_students_create')),
+            'has_reports_attendance': user.is_superuser or (employee and employee.has_permission('reports_attendance')),
+            'has_accounting_dashboard': user.is_superuser or (employee and employee.has_permission('accounting_dashboard')),
+        })
+        return context      
 
 
 class StudentAppGuideView(TemplateView):
@@ -447,6 +473,57 @@ def sitemap_view(request):
 
 
 def app_users_report(request):
+    # مزامنة احتياطية فحصية لمستخدمي الموبايل من التوكنز المسجلة
+    from mobile.models import MobileDeviceToken
+    from api.models import MobileUser
+    from students.models import Student
+    from employ.models import Teacher
+    
+    tokens = MobileDeviceToken.objects.values('user_type', 'user_id').distinct()
+    for item in tokens:
+        u_type = item.get('user_type')
+        u_id = item.get('user_id')
+        if u_type and u_id:
+            try:
+                if u_type == 'parent':
+                    if not MobileUser.objects.filter(student_id=u_id, user_type='parent').exists():
+                        student = Student.objects.filter(id=u_id).first()
+                        if student:
+                            MobileUser.objects.create(
+                                student=student,
+                                username=f"parent_{student.id}_{student.phone or student.student_number or u_id}",
+                                phone_number=student.phone or student.student_number or "",
+                                user_type='parent',
+                                is_active=True,
+                                is_verified=True
+                            )
+                elif u_type == 'student':
+                    if not MobileUser.objects.filter(student_id=u_id, user_type='student').exists():
+                        student = Student.objects.filter(id=u_id).first()
+                        if student:
+                            MobileUser.objects.create(
+                                student=student,
+                                username=f"student_{student.id}_{student.phone or student.student_number or u_id}",
+                                phone_number=student.phone or student.student_number or "",
+                                user_type='student',
+                                is_active=True,
+                                is_verified=True
+                            )
+                elif u_type == 'teacher':
+                    if not MobileUser.objects.filter(teacher_id=u_id, user_type='teacher').exists():
+                        teacher = Teacher.objects.filter(id=u_id).first()
+                        if teacher:
+                            MobileUser.objects.create(
+                                teacher=teacher,
+                                username=f"teacher_{teacher.id}_{teacher.phone_number or u_id}",
+                                phone_number=teacher.phone_number or "",
+                                user_type='teacher',
+                                is_active=True,
+                                is_verified=True
+                            )
+            except Exception:
+                pass
+
     today = timezone.localdate()
     user_type_labels = {
         "student": "طالب",
@@ -1191,3 +1268,102 @@ def system_report_print(request, report_id):
         'quick_courses_totals': quick_courses_totals,
         'section_comparisons': section_comparisons,
     })
+
+
+class ReceptionDailyReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'pages/reception_daily_report.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get target date
+        date_str = self.request.GET.get('date')
+        if date_str:
+            try:
+                target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                target_date = timezone.localdate()
+        else:
+            target_date = timezone.localdate()
+            
+        # Get target user (only superusers can filter other users)
+        target_user = self.request.user
+        if self.request.user.is_superuser:
+            user_id = self.request.GET.get('user')
+            if user_id:
+                try:
+                    target_user = User.objects.get(id=user_id)
+                except User.DoesNotExist:
+                    pass
+
+        # Query data
+        from quick.models import QuickStudent, QuickStudentReceipt
+        from accounts.models import StudentReceipt
+        
+        # New Regular Students
+        new_students = Student.objects.filter(
+            added_by=target_user,
+            created_at__date=target_date
+        )
+        
+        # New Quick Students
+        new_quick_students = QuickStudent.objects.filter(
+            created_by=target_user,
+            created_at__date=target_date
+        )
+        
+        # Regular Student Receipts
+        regular_receipts = StudentReceipt.objects.filter(
+            created_by=target_user,
+            date=target_date
+        )
+        
+        # Quick Student Receipts
+        quick_receipts = QuickStudentReceipt.objects.filter(
+            created_by=target_user,
+            date=target_date
+        )
+        
+        # Calculations
+        total_regular_cash = regular_receipts.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+        total_quick_cash = quick_receipts.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+        total_cash = total_regular_cash + total_quick_cash
+        
+        # Activity Timeline from ActivityLog
+        activities = ActivityLog.objects.filter(
+            user=target_user,
+            timestamp__date=target_date
+        ).order_by('-timestamp')
+        
+        # Get net balance of employee cash box if any
+        cash_box_balance = Decimal('0')
+        has_cash_box = False
+        cash_account_code = ''
+        try:
+            employee = getattr(target_user, 'employee_profile', None)
+            if employee and employee.cash_account:
+                has_cash_box = True
+                cash_account_code = employee.cash_account.code
+                cash_box_balance = employee.cash_account.get_net_balance_all_years()
+        except Exception:
+            pass
+            
+        context.update({
+            'target_date': target_date,
+            'target_user': target_user,
+            'new_students': new_students,
+            'new_quick_students': new_quick_students,
+            'regular_receipts': regular_receipts,
+            'quick_receipts': quick_receipts,
+            'total_regular_cash': total_regular_cash,
+            'total_quick_cash': total_quick_cash,
+            'total_cash': total_cash,
+            'activities': activities,
+            'has_cash_box': has_cash_box,
+            'cash_account_code': cash_account_code,
+            'cash_box_balance': cash_box_balance,
+            # For filters (only for superusers)
+            'all_users': User.objects.filter(is_active=True).order_by('username') if self.request.user.is_superuser else None,
+        })
+        return context
+

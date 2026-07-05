@@ -9112,10 +9112,13 @@ def quick_student_exists(request):
     field = (request.GET.get('field') or '').strip()
     value = (request.GET.get('value') or '').strip()
     exclude_id = request.GET.get('exclude_id')
+    academic_year_id = request.GET.get('academic_year')
 
     queryset = QuickStudent.objects.all().only('id', 'full_name', 'phone')
     if exclude_id and exclude_id.isdigit():
         queryset = queryset.exclude(pk=int(exclude_id))
+    if academic_year_id and academic_year_id.isdigit():
+        queryset = queryset.filter(academic_year_id=int(academic_year_id))
 
     match = None
     if field == 'full_name' and value:

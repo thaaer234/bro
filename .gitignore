@@ -47,3 +47,10 @@ _tmp_*
 .idea/
 Thumbs.db
 *.sqlite3.corrupt_*
+
+# Local scratch files and report outputs
+scratch/
+report.html
+report copy.html
+report.pdf
+static/img/report/

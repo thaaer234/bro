@@ -101,17 +101,18 @@ class QuickStudentForm(forms.ModelForm):
         cleaned = super().clean()
         full_name = cleaned.get("full_name")
         phone = cleaned.get("phone")
+        academic_year = cleaned.get("academic_year")
         cleaned["course_track"] = cleaned.get("course_track") or "INTENSIVE"
         current_quick_student_id = getattr(self.instance, "pk", None)
 
-        if full_name:
+        if full_name and academic_year:
             normalized_name = _normalize_quick_name(full_name)
             existing_name_match = next(
                 (
                     student
-                    for student in QuickStudent.objects.exclude(pk=current_quick_student_id).only(
-                        "id", "full_name", "phone"
-                    )
+                    for student in QuickStudent.objects.exclude(pk=current_quick_student_id)
+                    .filter(academic_year=academic_year)
+                    .only("id", "full_name", "phone")
                     if _normalize_quick_name(student.full_name) == normalized_name
                 ),
                 None,
@@ -119,17 +120,17 @@ class QuickStudentForm(forms.ModelForm):
             if existing_name_match:
                 self.add_error(
                     "full_name",
-                    f"الطالب السريع موجود مسبقاً باسم: {existing_name_match.full_name}",
+                    f"الطالب السريع موجود مسبقاً في هذا الفصل باسم: {existing_name_match.full_name}",
                 )
 
-        if phone:
+        if phone and academic_year:
             normalized_phone = _normalize_quick_phone(phone)
             existing_phone_match = next(
                 (
                     student
-                    for student in QuickStudent.objects.exclude(pk=current_quick_student_id).only(
-                        "id", "full_name", "phone"
-                    )
+                    for student in QuickStudent.objects.exclude(pk=current_quick_student_id)
+                    .filter(academic_year=academic_year)
+                    .only("id", "full_name", "phone")
                     if _normalize_quick_phone(student.phone) == normalized_phone
                 ),
                 None,
@@ -137,7 +138,7 @@ class QuickStudentForm(forms.ModelForm):
             if existing_phone_match:
                 self.add_error(
                     "phone",
-                    f"رقم الهاتف موجود مسبقاً باسم: {existing_phone_match.full_name}",
+                    f"رقم الهاتف موجود مسبقاً في هذا الفصل باسم: {existing_phone_match.full_name}",
                 )
 
         return cleaned

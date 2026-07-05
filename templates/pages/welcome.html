@@ -4,6 +4,240 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+<style>
+    /* Premium Dashboard Styles */
+    .dashboard-container {
+        margin: 2rem 0;
+        display: grid;
+        gap: 2rem;
+    }
+    
+    /* Employee Cashbox Glassmorphism Card */
+    .cashbox-widget {
+        background: linear-gradient(135deg, rgba(15, 118, 110, 0.95), rgba(20, 184, 166, 0.85));
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 20px 40px rgba(15, 118, 110, 0.25);
+        border-radius: 20px;
+        padding: 1.75rem;
+        color: #ffffff;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 180px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .cashbox-widget:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 25px 50px rgba(15, 118, 110, 0.35);
+    }
+    
+    .cashbox-widget::before {
+        content: '';
+        position: absolute;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        top: -50px;
+        left: -50px;
+        pointer-events: none;
+    }
+
+    .cashbox-widget::after {
+        content: '';
+        position: absolute;
+        width: 250px;
+        height: 250px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 50%;
+        bottom: -100px;
+        right: -50px;
+        pointer-events: none;
+    }
+    
+    .cashbox-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 2;
+    }
+    
+    .cashbox-title {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.9;
+        font-weight: bold;
+    }
+    
+    .cashbox-icon {
+        font-size: 1.5rem;
+        opacity: 0.9;
+    }
+    
+    .cashbox-body {
+        margin: 1.5rem 0;
+        z-index: 2;
+    }
+    
+    .cashbox-balance {
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .cashbox-currency {
+        font-size: 1rem;
+        font-weight: normal;
+        margin-right: 0.25rem;
+    }
+    
+    .cashbox-details {
+        font-size: 0.85rem;
+        opacity: 0.85;
+    }
+    
+    .cashbox-actions {
+        display: flex;
+        justify-content: flex-end;
+        z-index: 2;
+    }
+    
+    .cashbox-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background 0.2s, transform 0.2s;
+        backdrop-filter: blur(5px);
+    }
+    
+    .cashbox-btn:hover {
+        background: rgba(255, 255, 255, 0.35);
+        color: #ffffff;
+        transform: scale(1.03);
+    }
+    
+    /* Shortcuts Grid */
+    .shortcuts-section-title {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .shortcuts-section-title i {
+        color: #0f766e;
+    }
+    
+    .shortcuts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.25rem;
+    }
+    
+    .shortcut-card {
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 20px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-decoration: none;
+        color: #1e293b;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    
+    .shortcut-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 20px 35px rgba(15, 118, 110, 0.1);
+        border-color: rgba(15, 118, 110, 0.3);
+        color: #1e293b;
+    }
+    
+    .shortcut-icon-wrapper {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        font-size: 1.35rem;
+        margin-bottom: 1.25rem;
+        transition: transform 0.3s ease;
+    }
+    
+    .shortcut-card:hover .shortcut-icon-wrapper {
+        transform: rotate(5deg) scale(1.1);
+    }
+    
+    /* Specific Shortcut Colors */
+    .shortcut-quick-student .shortcut-icon-wrapper {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+    }
+    .shortcut-regular-student .shortcut-icon-wrapper {
+        background: rgba(37, 99, 235, 0.1);
+        color: #2563eb;
+    }
+    .shortcut-daily-print .shortcut-icon-wrapper {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+    }
+    .shortcut-finance .shortcut-icon-wrapper {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7c3aed;
+    }
+    
+    .shortcut-details h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #0f172a;
+    }
+    
+    .shortcut-details p {
+        font-size: 0.85rem;
+        color: #64748b;
+        line-height: 1.6;
+        margin: 0;
+    }
+    
+    .shortcut-arrow {
+        margin-top: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.85rem;
+        font-weight: bold;
+        color: #0f766e;
+        transition: gap 0.2s ease;
+        margin-right: auto;
+    }
+    
+    .shortcut-card:hover .shortcut-arrow {
+        gap: 0.5rem;
+    }
+    
+    /* Responsive adjustment */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -27,7 +261,11 @@
                 <div class="welcome-user-card" role="status">
                     <span class="welcome-user-label">مرحبًا بعودتك</span>
                     <strong>{{ user.get_full_name|default:user.username }}</strong>
-                    <p>يمكنك المتابعة من القائمة الجانبية للوصول إلى القسم المطلوب.</p>
+                    {% if employee %}
+                        <p class="mb-0">المسمى الوظيفي: {{ employee.get_position_display|default:employee.job_title|default:"موظف" }}</p>
+                    {% else %}
+                        <p class="mb-0">حساب إداري عام للنظام.</p>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -61,6 +299,122 @@
             </div>
         </div>
     </div>
+
+    {% if user.is_authenticated %}
+    <div class="dashboard-container">
+        
+        <!-- صف رصيد الصندوق للموظف إن وجد -->
+        {% if cash_account %}
+        <div class="cashbox-widget">
+            <div class="cashbox-header">
+                <span class="cashbox-title">حساب الصندوق الفرعي الخاص بك</span>
+                <span class="cashbox-icon"><i class="fas fa-vault"></i></span>
+            </div>
+            <div class="cashbox-body">
+                <div class="cashbox-balance">
+                    {{ cash_account_balance|floatformat:2 }}
+                    <span class="cashbox-currency">ر.س</span>
+                </div>
+                <div class="cashbox-details">
+                    <span>رمز الحساب: {{ cash_account.code }}</span>
+                    <span class="mx-2">|</span>
+                    <span>اسم الحساب: {{ cash_account.name_ar|default:cash_account.name }}</span>
+                </div>
+            </div>
+            <div class="cashbox-actions">
+                <a href="{% url 'accounts:ledger' cash_account.id %}" class="cashbox-btn">
+                    <i class="fas fa-file-invoice-dollar me-1"></i>
+                    عرض دفتر الأستاذ وكشف الحركة
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- قسم الاختصارات اليومية بحسب الصلاحيات -->
+        {% if has_quick_students_create or has_students_create or has_reports_attendance or has_accounting_dashboard %}
+        <div>
+            <h2 class="shortcuts-section-title">
+                <i class="fas fa-circle-nodes"></i>
+                الاختصارات السريعة والعمليات اليومية
+            </h2>
+            <div class="shortcuts-grid">
+                
+                {% if has_quick_students_create %}
+                <a href="{% url 'quick:student_create' %}" class="shortcut-card shortcut-quick-student">
+                    <div>
+                        <div class="shortcut-icon-wrapper">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="shortcut-details">
+                            <h3>إضافة طالب سريع</h3>
+                            <p>إدخال بيانات وتسجيل الطلاب الجدد في الدورات المكثفة والسريعة بشكل فوري وبسيط.</p>
+                        </div>
+                    </div>
+                    <div class="shortcut-arrow">
+                        <span>ابدأ التسجيل الفوري</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                </a>
+                {% endif %}
+
+                {% if has_students_create %}
+                <a href="{% url 'students:student_type_choice' %}" class="shortcut-card shortcut-regular-student">
+                    <div>
+                        <div class="shortcut-icon-wrapper">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="shortcut-details">
+                            <h3>إضافة طالب نظامي</h3>
+                            <p>تسجيل وقبول طالب جديد في المسارات والدورات التعليمية النظامية الطويلة.</p>
+                        </div>
+                    </div>
+                    <div class="shortcut-arrow">
+                        <span>فتح نموذج التسجيل</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                </a>
+                {% endif %}
+
+                <a href="{% url 'pages:reception_daily_report' %}" class="shortcut-card shortcut-daily-print">
+                    <div>
+                        <div class="shortcut-icon-wrapper">
+                            <i class="fas fa-print"></i>
+                        </div>
+                        <div class="shortcut-details">
+                            <h3>طباعة يومية موظف</h3>
+                            <p>عرض وطباعة تقرير يومية موظف الاستقبال: الطلاب الجدد والتحصيلات النقدية والنشاط اليومي.</p>
+                        </div>
+                    </div>
+                    <div class="shortcut-arrow">
+                        <span>عرض اليومية والطباعة</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                </a>
+
+                {% if has_accounting_dashboard %}
+                <a href="{% url 'accounts:dashboard' %}" class="shortcut-card shortcut-finance">
+                    <div>
+                        <div class="shortcut-icon-wrapper">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                        <div class="shortcut-details">
+                            <h3>لوحة تحكم المالية</h3>
+                            <p>إدارة قيود اليومية العامة، سندات القبض والصرف، ومتابعة أرصدة المعهد والتقارير المالية.</p>
+                        </div>
+                    </div>
+                    <div class="shortcut-arrow">
+                        <span>الانتقال للمالية</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                </a>
+                {% endif %}
+
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+    {% endif %}
 
     <div class="welcome-feature-strip">
         <article class="feature-card">

@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Premium Dashboard Styles */
+    .daily-report-container {
+        max-width: 1100px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+        direction: rtl;
+        font-family: 'Inter', 'Outfit', 'Cairo', sans-serif;
+    }
+    
+    .report-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .filter-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .filter-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #495057;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+    
+    .stat-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .stat-info h4 {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin: 0 0 0.25rem 0;
+        font-weight: 600;
+    }
+    
+    .stat-info p {
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin: 0;
+        color: #212529;
+    }
+    
+    /* Stats Themes */
+    .stat-cash .stat-icon { background: rgba(40, 167, 69, 0.1); color: #28a745; }
+    .stat-regular .stat-icon { background: rgba(0, 123, 255, 0.1); color: #007bff; }
+    .stat-quick .stat-icon { background: rgba(253, 126, 20, 0.1); color: #fd7e14; }
+    .stat-box .stat-icon { background: rgba(111, 66, 193, 0.1); color: #6f42c1; }
+    
+    .report-section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #343a40;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+        margin-top: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #dee2e6;
+        background: #fff;
+    }
+    
+    .table {
+        margin-bottom: 0;
+        width: 100%;
+    }
+    
+    .table th {
+        background-color: #f8f9fa;
+        color: #495057;
+        font-weight: 700;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .badge-regular { background-color: #007bff; color: white; }
+    .badge-quick { background-color: #fd7e14; color: white; }
+    
+    .timeline-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        position: relative;
+    }
+    
+    .timeline-list::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 15px;
+        width: 2px;
+        background: #e9ecef;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-right: 40px;
+        padding-bottom: 1.5rem;
+    }
+    
+    .timeline-item::after {
+        content: '';
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #6f42c1;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px rgba(111, 66, 193, 0.2);
+    }
+    
+    .timeline-time {
+        font-size: 0.8rem;
+        color: #868e96;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    
+    .timeline-desc {
+        font-size: 0.95rem;
+        color: #495057;
+        margin: 0;
+    }
+    
+    .print-header {
+        display: none;
+    }
+    
+    .print-signatures {
+        display: none;
+        margin-top: 4rem;
+    }
+    
+    .sig-col {
+        text-align: center;
+        padding: 1.5rem;
+    }
+    
+    .sig-line {
+        border-top: 1px dashed #6c757d;
+        margin-top: 3rem;
+        padding-top: 0.5rem;
+        font-weight: 700;
+        color: #495057;
+    }
+
+    /* Print media styling */
+    @media print {
+        body {
+            background: #fff !important;
+            color: #000 !important;
+        }
+        
+        .no-print, .filter-section, header, footer, nav, .sidebar, .navbar {
+            display: none !important;
+        }
+        
+        .daily-report-container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        
+        .report-card {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: none !important;
+        }
+        
+        .print-header {
+            display: block !important;
+            text-align: center;
+            border-bottom: 3px double #000;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .print-header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+        
+        .print-header p {
+            font-size: 1rem;
+            margin: 0.25rem 0;
+            color: #333;
+        }
+        
+        .stat-card {
+            border: 1px solid #000 !important;
+            box-shadow: none !important;
+        }
+        
+        .table th {
+            background-color: #f0f0f0 !important;
+            color: #000 !important;
+            border: 1px solid #000 !important;
+        }
+        
+        .table td {
+            border: 1px solid #000 !important;
+        }
+        
+        .table-responsive {
+            border: none !important;
+            border-radius: 0 !important;
+        }
+        
+        .print-signatures {
+            display: flex !important;
+            justify-content: space-between;
+            width: 100%;
+        }
+        
+        .timeline-list::before {
+            display: none !important;
+        }
+        
+        .timeline-item {
+            padding-right: 0 !important;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .timeline-item::after {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="daily-report-container">
+    
+    <!-- Filter Section (Hidden on Print) -->
+    <div class="filter-section no-print">
+        <h5 class="filter-title">
+            <i class="fas fa-filter text-primary"></i>
+            خيارات تصفية اليومية والطباعة
+        </h5>
+        <form method="GET" class="row align-items-end g-3">
+            <div class="col-md-4">
+                <label for="date-select" class="form-label font-weight-bold">تاريخ اليومية</label>
+                <input type="date" name="date" id="date-select" class="form-control" value="{{ target_date|date:'Y-m-d' }}">
+            </div>
+            
+            {% if all_users %}
+            <div class="col-md-4">
+                <label for="user-select" class="form-label font-weight-bold">الموظف المسؤول</label>
+                <select name="user" id="user-select" class="form-select">
+                    {% for u in all_users %}
+                        <option value="{{ u.id }}" {% if u.id == target_user.id %}selected{% endif %}>
+                            {{ u.get_full_name|default:u.username }} ({{ u.username }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% else %}
+            <div class="col-md-4">
+                <label class="form-label font-weight-bold">الموظف المسؤول</label>
+                <input type="text" class="form-control" value="{{ target_user.get_full_name|default:target_user.username }}" readonly disabled>
+            </div>
+            {% endif %}
+            
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-sync"></i> تحديث
+                </button>
+                <button type="button" class="btn btn-success" onclick="window.print();">
+                    <i class="fas fa-print"></i> طباعة التقرير الورقي
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Official Print Header (Only shown on A4 printout) -->
+    <div class="print-header">
+        <h1>تقرير الحركة اليومية (اليومية)</h1>
+        <p><strong>اسم الموظف:</strong> {{ target_user.get_full_name|default:target_user.username }}</p>
+        <p><strong>التاريخ المستهدف:</strong> {{ target_date|date:"Y-m-d" }} | <strong>تاريخ طباعة التقرير:</strong> {% now "Y-m-d H:i" %}</p>
+    </div>
+
+    <div class="report-card">
+        
+        <!-- Web Page Header (Hidden on Print) -->
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+            <div>
+                <h3 class="mb-1 font-weight-bold">
+                    <i class="fas fa-file-invoice text-primary"></i> 
+                    سجل يومية الموظف
+                </h3>
+                <p class="text-muted mb-0">
+                    يعرض هذا التقرير العمليات المالية وتسجيلات الطلاب التي قام بها الموظف: 
+                    <strong>{{ target_user.get_full_name|default:target_user.username }}</strong> بتاريخ <strong>{{ target_date }}</strong>
+                </p>
+            </div>
+        </div>
+
+        <!-- Summary Stat Cards -->
+        <div class="stat-grid">
+            <div class="stat-card stat-cash">
+                <div class="stat-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-info">
+                    <h4>إجمالي المقبوضات</h4>
+                    <p>{{ total_cash|floatformat:0 }} ل.س</p>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-regular">
+                <div class="stat-icon">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div class="stat-info">
+                    <h4>طلاب نظاميون جدد</h4>
+                    <p>{{ new_students.count }} طلاب</p>
+                </div>
+            </div>
+            
+            <div class="stat-card stat-quick">
+                <div class="stat-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="stat-info">
+                    <h4>طلاب سريعون جدد</h4>
+                    <p>{{ new_quick_students.count }} طلاب</p>
+                </div>
+            </div>
+            
+            {% if has_cash_box %}
+            <div class="stat-card stat-box">
+                <div class="stat-icon">
+                    <i class="fas fa-cash-register"></i>
+                </div>
+                <div class="stat-info">
+                    <h4>رصيد صندوق الموظف</h4>
+                    <p>{{ cash_box_balance|floatformat:0 }} ل.س</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Section 1: Receipts collected -->
+        <h4 class="report-section-title">
+            <i class="fas fa-receipt text-success"></i>
+            إيصالات ومقبوضات الصندوق اليومية
+        </h4>
+        
+        <div class="table-responsive mb-4">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 15%">رقم الإيصال</th>
+                        <th style="width: 25%">اسم الطالب</th>
+                        <th style="width: 25%">الدورة</th>
+                        <th style="width: 15%">نوع الطالب</th>
+                        <th style="width: 10%">طريقة الدفع</th>
+                        <th style="width: 10%" class="text-start">القيمة المدفوعة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Regular Receipts -->
+                    {% for r in regular_receipts %}
+                    <tr>
+                        <td><strong>{{ r.receipt_number }}</strong></td>
+                        <td>{{ r.student_name }}</td>
+                        <td>{{ r.course_name|default:"-" }}</td>
+                        <td><span class="badge badge-regular px-2 py-1">نظامي</span></td>
+                        <td>{{ r.get_payment_method_display }}</td>
+                        <td class="text-start font-weight-bold text-success">{{ r.paid_amount|floatformat:0 }} ل.س</td>
+                    </tr>
+                    {% empty %}
+                    {% endfor %}
+                    
+                    <!-- Quick Receipts -->
+                    {% for r in quick_receipts %}
+                    <tr>
+                        <td><strong>{{ r.receipt_number }}</strong></td>
+                        <td>{{ r.student_name }}</td>
+                        <td>{{ r.course_name|default:"-" }}</td>
+                        <td><span class="badge badge-quick px-2 py-1">سريع</span></td>
+                        <td>{{ r.get_payment_method_display }}</td>
+                        <td class="text-start font-weight-bold text-success">{{ r.paid_amount|floatformat:0 }} ل.س</td>
+                    </tr>
+                    {% empty %}
+                    {% endfor %}
+                    
+                    {% if not regular_receipts and not quick_receipts %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">لم يتم تسجيل أي عمليات قبض نقدية اليوم.</td>
+                    </tr>
+                    {% else %}
+                    <tr class="table-dark font-weight-bold">
+                        <td colspan="5" class="text-end">المجموع الكلي للمتحصلات اليومية:</td>
+                        <td class="text-start text-warning">{{ total_cash|floatformat:0 }} ل.س</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 2: Registered Students -->
+        <h4 class="report-section-title">
+            <i class="fas fa-users text-primary"></i>
+            الطلاب المسجلون الجدد اليوم
+        </h4>
+        
+        <div class="table-responsive mb-4">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">اسم الطالب الكامل</th>
+                        <th style="width: 20%">الهاتف</th>
+                        <th style="width: 20%">النوع</th>
+                        <th style="width: 30%">الفصل الدراسي (الترم)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Regular Students -->
+                    {% for s in new_students %}
+                    <tr>
+                        <td><strong>{{ s.full_name }}</strong></td>
+                        <td>{{ s.phone }}</td>
+                        <td><span class="badge badge-regular px-2 py-1">طالب نظامي</span></td>
+                        <td>{{ s.academic_year|default:"الفصل الحالي" }}</td>
+                    </tr>
+                    {% empty %}
+                    {% endfor %}
+                    
+                    <!-- Quick Students -->
+                    {% for s in new_quick_students %}
+                    <tr>
+                        <td><strong>{{ s.full_name }}</strong></td>
+                        <td>{{ s.phone }}</td>
+                        <td><span class="badge badge-quick px-2 py-1">طالب سريع</span></td>
+                        <td>{{ s.academic_year }}</td>
+                    </tr>
+                    {% empty %}
+                    {% endfor %}
+                    
+                    {% if not new_students and not new_quick_students %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">لم يتم تسجيل أي طلاب جدد اليوم.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 3: Timeline of Activities (ActivityLog) -->
+        <h4 class="report-section-title no-print">
+            <i class="fas fa-business-time text-warning"></i>
+            الخط الزمني للحركات والنشاطات اليومية للموظف
+        </h4>
+        
+        <div class="no-print mb-4">
+            <ul class="timeline-list">
+                {% for act in activities %}
+                <li class="timeline-item">
+                    <span class="timeline-time">{{ act.timestamp|date:"H:i" }}</span>
+                    <p class="timeline-desc">
+                        <strong>{{ act.get_action_display }}</strong> - {{ act.details }}
+                        <small class="text-muted">({{ act.content_type }} - ID: {{ act.object_id }})</small>
+                    </p>
+                </li>
+                {% empty %}
+                <li class="py-2 text-muted">لا توجد حركات تفصيلية مسجلة اليوم.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Section 4: Signatures block for printed reports -->
+        <div class="print-signatures row">
+            <div class="col-4 sig-col">
+                <div class="sig-line">توقيع الموظف المسؤول</div>
+            </div>
+            <div class="col-4 sig-col">
+                <div class="sig-line">رئيس الحسابات / المدقق</div>
+            </div>
+            <div class="col-4 sig-col">
+                <div class="sig-line">المدير العام / الإدارة</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

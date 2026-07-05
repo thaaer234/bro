@@ -53,7 +53,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function checkExists(field, value) {
-        const url = `${existsUrl}?field=${encodeURIComponent(field)}&value=${encodeURIComponent(value)}`;
+        const academicYearEl = document.getElementById('id_academic_year');
+        const academicYearVal = academicYearEl ? academicYearEl.value : '';
+        const url = `${existsUrl}?field=${encodeURIComponent(field)}&value=${encodeURIComponent(value)}&academic_year=${encodeURIComponent(academicYearVal)}`;
         const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         if (!response.ok) {
             return { exists: false };
@@ -125,6 +127,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 0);
         });
         phoneInput.addEventListener('blur', validatePhone);
+    }
+
+    const academicYearInput = document.getElementById('id_academic_year');
+    if (academicYearInput) {
+        academicYearInput.addEventListener('change', function() {
+            if (fullNameInput && fullNameInput.value.trim()) validateFullName();
+            if (phoneInput && phoneInput.value.trim()) validatePhone();
+        });
     }
 
     form.addEventListener('submit', async function (event) {
