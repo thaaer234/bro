@@ -139,6 +139,13 @@ class Student(models.Model):
         return f"STU-{self.id:04d}"
 
     @property
+    def is_quick_student(self):
+        try:
+            return hasattr(self, 'quick_student_profile') and self.quick_student_profile is not None
+        except Exception:
+            return False
+
+    @property
     def current_classroom(self):
         """الحصول على الشعبة الحالية للطالب"""
         try:

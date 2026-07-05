@@ -728,7 +728,7 @@ class StudentListView(LoginRequiredMixin, TemplateView):
         # إذا كان هناك بحث، جلب النتائج
         if is_searching:
             # البحث في الطلاب النظاميين
-            regular_students = _scope_queryset_to_current_year(Student.objects.all(), self.request).select_related('academic_year', 'added_by')
+            regular_students = _scope_queryset_to_current_year(Student.objects.filter(quick_student_profile__isnull=True), self.request).select_related('academic_year', 'added_by')
             
             # تطبيق الفلاتر
             if not show_all_students:
@@ -1230,7 +1230,7 @@ class BranchStudentsView(LoginRequiredMixin, ListView):
         branch_name = self.kwargs.get('branch_name')
         
         # جلب الطلاب النظاميين للفرع المحدد
-        queryset = Student.objects.all().select_related('academic_year', 'added_by')
+        queryset = Student.objects.filter(quick_student_profile__isnull=True).select_related('academic_year', 'added_by')
         
         # عزل البيانات بالفصل الدراسي النشط
         queryset = _scope_queryset_to_current_year(queryset, self.request)
@@ -1267,7 +1267,7 @@ class AllRegularStudentsView(LoginRequiredMixin, ListView):
         academic_year_id = self.request.GET.get('academic_year') or self.kwargs.get('academic_year_id')
         
         # جلب الطلاب النظاميين
-        queryset = Student.objects.all().select_related('academic_year', 'added_by')
+        queryset = Student.objects.filter(quick_student_profile__isnull=True).select_related('academic_year', 'added_by')
         
         # عزل البيانات بالفصل الدراسي النشط
         queryset = _scope_queryset_to_current_year(queryset, self.request)
@@ -1407,7 +1407,7 @@ class StudentSearchView(LoginRequiredMixin, ListView):
             from quick.models import AcademicYear
             try:
                 academic_year = AcademicYear.objects.get(id=academic_year_id)
-                regular_students = _scope_queryset_to_current_year(Student.objects.all(), self.request).select_related('added_by').order_by('full_name')
+                regular_students = _scope_queryset_to_current_year(Student.objects.filter(quick_student_profile__isnull=True), self.request).select_related('added_by').order_by('full_name')
                 if academic_year_id and academic_year_id != '0':
                     regular_students = regular_students.filter(academic_year_id=academic_year_id)
                 
@@ -1425,7 +1425,7 @@ class StudentSearchView(LoginRequiredMixin, ListView):
         # البحث العادي إذا كان هناك search_query
         elif search_query.strip():
             # البحث في الطلاب النظاميين
-            regular_students = _scope_queryset_to_current_year(Student.objects.all(), self.request).filter(
+            regular_students = _scope_queryset_to_current_year(Student.objects.filter(quick_student_profile__isnull=True), self.request).filter(
                 Q(full_name__icontains=search_query) |
                 Q(student_number__icontains=search_query) |
                 Q(phone__icontains=search_query) |
@@ -2728,7 +2728,7 @@ class AllRegularStudentsView(LoginRequiredMixin, ListView):
         print(f"🎯 [DEBUG] جلب جميع الطلاب النظاميين: academic_year_id={academic_year_id}")
         
         # البدء بجميع الطلاب النظاميين
-        queryset = Student.objects.all().select_related('academic_year', 'added_by')
+        queryset = Student.objects.filter(quick_student_profile__isnull=True).select_related('academic_year', 'added_by')
         
         # فلترة حسب الفصل الدراسي إذا كان محدداً
         if academic_year_id and str(academic_year_id) != '0':
