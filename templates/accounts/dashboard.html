@@ -484,9 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalCreditsEl = document.getElementById('preview-total-credits');
         
         function formatCurrency(val) {
-            const parts = parseFloat(val).toFixed(2).split('.');
-            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-            return parts.join(',');
+            return parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
         
         triggerBtn.addEventListener('click', function() {
