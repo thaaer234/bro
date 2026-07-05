@@ -14,7 +14,7 @@
                 <p>ملخص تنفيذي سريع للحسابات والسيولة والنشاط اليومي داخل قسم المحاسبة.</p>
             </div>
             <div class="accounts-actions">
-                {% if request.user.is_superuser %}
+                {% if user.is_superuser or 'accounting_zero_cashboxes' in emp_perms %}
                 <button type="button" id="zeroCashboxPreviewTrigger" class="btn btn-danger" style="background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; border: none; font-weight: 600; box-shadow: 0 4px 6px rgba(231, 76, 60, 0.2); margin-left: 8px;">
                     <i class="fas fa-exchange-alt"></i>
                     مناقلة وتصفير الصناديق

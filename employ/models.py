@@ -781,11 +781,23 @@ class EmployeePermission(models.Model):
         ('exams_export', 'تصدير نتائج الاختبار'),
         ('exams_print', 'طباعة نتائج الاختبار'),
         ('exams_stats', 'إحصائيات الاختبار'),
-                # == Additional Accounting ==
+        # == Additional Accounting ==
         ('accounting_quick_receipt', 'الإيصال الفوري'),
         ('accounting_student_withdraw', 'سحب الطالب'),
         ('accounting_withdrawn_students', 'عرض الطلاب المسحوبين'),
         ('accounting_outstanding_classroom', 'المتبقي حسب الشعبة'),
+        ('accounting_zero_cashboxes', 'مناقلة وتصفير الصناديق'),
+
+        # == Missing Sidebar Links & Groups ==
+        ('admin_system_report', 'الوصول لتقرير النظام'),
+        ('announcements_view', 'الوصول لقسم التعاميم'),
+        ('technical_services_view', 'الوصول لقسم الخدمات التقنية'),
+        ('manuals_view', 'الوصول لأدلة المستخدم والتشغيل'),
+        ('sitemap_view', 'الوصول لخريطة الموقع'),
+        ('students_course_audit', 'تدقيق حسابات الدورات'),
+        ('students_manual_sorting', 'تقاطع الطلاب والفرز اليدوي'),
+        ('academic_years_select', 'اختيار الفصل الدراسي الحالي'),
+        ('academic_years_manage', 'إدارة الفصول ونقل البيانات'),
     ]
 
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='permissions')

@@ -255,6 +255,7 @@ GROUP_PREFIXES = {
 def _empty_permission_groups():
     """نضمن وجود جميع المفاتيح دائماً (حتى لو كانت القوائم فارغة)."""
     return {
+        'sidebar_links': [],
         'students': [],
         'teachers': [],
         'attendance': [],
@@ -277,6 +278,20 @@ def _empty_permission_groups():
 
 
 def _group_for_code(code: str):
+    sidebar_codes = {
+        'admin_dashboard', 'reports_dashboard', 'admin_system_report',
+        'announcements_view', 'technical_services_view', 'manuals_view',
+        'sitemap_view', 'students_course_audit', 'students_manual_sorting',
+        'academic_years_select', 'academic_years_manage', 'students_view',
+        'quick_students_view', 'teachers_view', 'accounting_dashboard',
+        'accounting_view', 'reports_financial', 'attendance_view',
+        'attendance_teacher_view', 'classroom_view', 'exams_view',
+        'hr_dashboard', 'hr_view', 'courses_view', 'admin_users',
+        'accounting_receipts', 'accounting_expenses'
+    }
+    if code in sidebar_codes:
+        return 'sidebar_links'
+
     """استخرج اسم المجموعة من بادئة كود الصلاحية."""
     for prefix, group in GROUP_PREFIXES.items():
         if code.startswith(prefix):
