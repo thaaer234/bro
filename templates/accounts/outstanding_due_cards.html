@@ -99,8 +99,8 @@
         /* ===== Individual card ===== */
         .due-card {
             border: 2px solid var(--primary);
-            border-radius: 8px;
-            padding: 3mm 4mm;
+            border-radius: 10px;
+            padding: 3.5mm 4.5mm;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -116,22 +116,17 @@
         .card-top {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 8px;
             padding-bottom: 2mm;
-            border-bottom: 1.5px solid var(--primary);
+            border-bottom: 2px solid var(--primary);
             margin-bottom: 2mm;
-        }
-        .card-top .logo-side {
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
         .card-top img {
             width: 32px; height: 32px;
             object-fit: contain;
         }
         .card-top .inst-name {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 800;
             color: var(--primary);
             line-height: 1.2;
@@ -140,14 +135,6 @@
             font-size: 8px;
             color: var(--muted);
             font-weight: 600;
-        }
-        .card-top .card-title-badge {
-            font-size: 10px;
-            font-weight: 800;
-            background: var(--primary);
-            color: #fff;
-            padding: 2px 8px;
-            border-radius: 4px;
         }
 
         /* Card body */
@@ -194,12 +181,6 @@
         }
         .card-message strong {
             color: var(--primary);
-            font-weight: 800;
-        }
-        .card-message .highlight-deadline {
-            color: #c0392b;
-            border-bottom: 1px dashed #c0392b;
-            padding: 0 4px;
             font-weight: 800;
         }
 
@@ -317,38 +298,40 @@
         <div class="due-card">
             <!-- Header -->
             <div class="card-top">
-                <div class="logo-side">
-                    <img src="{% static 'img/alyama.png' %}" alt="شعار المعهد">
-                    <div>
-                        <div class="inst-name">معهد اليمان</div>
-                        <div class="inst-sub">للعلوم واللغات</div>
-                    </div>
+                <img src="{% static 'img/alyama.png' %}" alt="شعار المعهد">
+                <div>
+                    <div class="inst-name">معهد اليمان للعلوم واللغات</div>
+                    <div class="inst-sub">Al-Yman Institute for Sciences & Languages</div>
                 </div>
-                <div class="card-title-badge">بطاقة ذمة مالية</div>
             </div>
 
             <!-- Body -->
             <div class="card-body-content">
                 <div class="field-row">
-                    <span class="field-label">إلى ولي أمر الطالب:</span>
+                    <span class="field-label">اسم الطالب:</span>
                     <span class="field-value">{{ student.student.full_name }}</span>
                 </div>
                 <div class="field-row">
-                    <span class="field-label">يرجى تسديد مبلغ وقدره:</span>
+                    <span class="field-label">المبلغ وقدره:</span>
                     <span class="field-value amount">{{ student.remaining|floatformat:0|intcomma }} ل.س</span>
                 </div>
                 <div class="field-row">
-                    <span class="field-label">خلال مدة أقصاها:</span>
-                    <span class="field-value"><span class="deadline-text">أسبوع</span></span>
+                    <span class="field-label">الدورة:</span>
+                    <span class="field-value">{{ course.name }}</span>
                 </div>
 
                 <div class="card-message">
-                    يرجى تسديد المبلغ المذكور أعلاه لاستمرار الطالب بالدراسة والاستفادة من الخدمات التعليمية والتربوية، وإلّا **سنضطر آسفين للاعتذار من الطالب وذلك لوجود طلاب على الانتظار لم يتم استقبالهم بسبب اكتمال العدد**.
+                    إلى ولي أمر الطالب <strong>{{ student.student.full_name }}</strong>
+                    وقوعاً منه بتسديد مبلغ وقدره
+                    <strong>{{ student.remaining|floatformat:0|intcomma }} ل.س</strong>
+                    خلال مدة أقصاها <strong class="deadline-text">أسبوع</strong>
+                    وذلك لاستمرار الطالب بالدراسة والاستفادة من الخدمات التعليمية والتربوية المقدمة
+                    وإلّا سيتم اتخاذ الإجراء المناسب.
                 </div>
 
                 <div class="field-row">
                     <span class="field-label">السبب:</span>
-                    <span class="field-value">عدم إكمال الأقساط المترتبة</span>
+                    <span class="field-value">عدم إكمال الأقساط</span>
                 </div>
             </div>
 
