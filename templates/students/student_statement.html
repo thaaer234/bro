@@ -135,12 +135,18 @@
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0">المعاملات المالية - حساب الطالب / Financial Transactions - Student Account</h6>
-                                {% if not has_accounts and receipts %}
-                                <button class="btn btn-primary btn-sm" onclick="createAllStudentAccounts()">
-                                    <i class="fas fa-calculator me-1"></i>
-                                    إنشاء جميع الحسابات
-                                </button>
-                                {% endif %}
+                                <div class="d-flex align-items-center">
+                                    <button class="btn btn-outline-primary btn-sm me-2" id="btn-toggle-all" onclick="toggleAllDetails()">
+                                        <i class="fas fa-expand-arrows-alt me-1"></i>
+                                        تفاصيل كافة القيود / Toggle All details
+                                    </button>
+                                    {% if not has_accounts and receipts %}
+                                    <button class="btn btn-primary btn-sm" onclick="createAllStudentAccounts()">
+                                        <i class="fas fa-calculator me-1"></i>
+                                        إنشاء جميع الحسابات
+                                    </button>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                         <div class="card-body">
@@ -161,13 +167,20 @@
                                     </thead>
                                     <tbody>
                                         {% for row in rows %}
-                                        <tr>
-                                            <td>{{ row.date }}</td>
+                                        <tr class="transaction-row" data-entry-id="{{ row.entry_id }}">
+                                            <td>
+                                                <button class="btn btn-sm btn-light toggle-details-btn p-0 px-2 me-1" onclick="toggleEntryDetails('details-{{ forloop.counter }}')">
+                                                    <i class="fas fa-chevron-down text-muted"></i>
+                                                </button>
+                                                {{ row.date }}
+                                            </td>
                                             <td>
                                                 <small class="text-primary">{{ row.account_code }}</small>
                                             </td>
                                             <td>
-                                                <small class="text-primary">{{ row.ref }}</small>
+                                                <a href="{% url 'accounts:journal_entry_detail' row.entry_id %}" target="_blank">
+                                                    <small class="text-primary">{{ row.ref }}</small>
+                                                </a>
                                             </td>
                                             <td>{{ row.desc|fix_arabic_text }}</td>
                                             <td class="text-success">
@@ -181,6 +194,42 @@
                                             </td>
                                             <td>
                                                 <small>{{ row.created_by }}</small>
+                                            </td>
+                                        </tr>
+                                        <tr id="details-{{ forloop.counter }}" class="entry-details-row bg-light" style="display: none;">
+                                            <td colspan="8">
+                                                <div class="p-3 border rounded shadow-sm bg-white m-2">
+                                                    <h6 class="text-primary mb-3">
+                                                        <i class="fas fa-list-alt me-1"></i>
+                                                        أطراف القيد المحاسبي بالكامل / Full Journal Entry Details
+                                                    </h6>
+                                                    <table class="table table-sm table-hover table-bordered mb-0">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>الحساب / Account</th>
+                                                                <th>البيان / Description</th>
+                                                                <th>مدين / Debit</th>
+                                                                <th>دائن / Credit</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for entry_txn in row.entry_transactions %}
+                                                            <tr class="{% if entry_txn.account_code == row.account_code %}table-info{% endif %}">
+                                                                <td>
+                                                                    <strong>{{ entry_txn.account_code }}</strong> - {{ entry_txn.account_name }}
+                                                                </td>
+                                                                <td>{{ entry_txn.description|fix_arabic_text }}</td>
+                                                                <td class="text-success">
+                                                                    {% if entry_txn.debit > 0 %}<strong>{{ entry_txn.debit|floatformat:2 }}</strong>{% else %}-{% endif %}
+                                                                </td>
+                                                                <td class="text-danger">
+                                                                    {% if entry_txn.credit > 0 %}<strong>{{ entry_txn.credit|floatformat:2 }}</strong>{% else %}-{% endif %}
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -244,6 +293,7 @@
                                         <thead>
                                             <tr class="table-light">
                                                 <th>التاريخ</th>
+                                                <th>المرجع / Reference</th>
                                                 <th>الوصف</th>
                                                 <th>مدين</th>
                                                 <th>دائن</th>
@@ -254,6 +304,11 @@
                                             {% for transaction in account.transaction_set.all %}
                                             <tr>
                                                 <td>{{ transaction.journal_entry.date }}</td>
+                                                <td>
+                                                    <a href="{% url 'accounts:journal_entry_detail' transaction.journal_entry.id %}" target="_blank">
+                                                        <small class="text-primary">{{ transaction.journal_entry.reference }}</small>
+                                                    </a>
+                                                </td>
                                                 <td>{{ transaction.description }}</td>
                                                 <td class="text-success">
                                                     {% if transaction.is_debit %}
@@ -373,6 +428,40 @@ function createAllStudentAccounts() {
         .catch(error => {
             alert('حدث خطأ في الاتصال: ' + error);
         });
+    }
+}
+
+function toggleEntryDetails(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    const btn = row.previousElementSibling.querySelector('.toggle-details-btn i');
+    if (row.style.display === 'none') {
+        row.style.display = 'table-row';
+        if (btn) {
+            btn.className = 'fas fa-chevron-up text-primary';
+        }
+    } else {
+        row.style.display = 'none';
+        if (btn) {
+            btn.className = 'fas fa-chevron-down text-muted';
+        }
+    }
+}
+
+let allExpanded = false;
+function toggleAllDetails() {
+    allExpanded = !allExpanded;
+    document.querySelectorAll('.entry-details-row').forEach(row => {
+        row.style.display = allExpanded ? 'table-row' : 'none';
+    });
+    document.querySelectorAll('.toggle-details-btn i').forEach(i => {
+        i.className = allExpanded ? 'fas fa-chevron-up text-primary' : 'fas fa-chevron-down text-muted';
+    });
+    const btn = document.getElementById('btn-toggle-all');
+    if (btn) {
+        btn.innerHTML = allExpanded 
+            ? '<i class="fas fa-compress-arrows-alt me-1"></i> إخفاء كافة التفاصيل / Collapse All'
+            : '<i class="fas fa-expand-arrows-alt me-1"></i> تفاصيل كافة القيود / Toggle All details';
     }
 }
 

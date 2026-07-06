@@ -536,6 +536,9 @@ class StudentStatementView(LoginRequiredMixin, DetailView):
                     'journal_entry', 
                     'journal_entry__created_by',
                     'account'
+                ).prefetch_related(
+                    'journal_entry__transactions',
+                    'journal_entry__transactions__account'
                 ).order_by('journal_entry__date', 'id')
             
             # 6️⃣ حساب الرصيد لكل حساب
@@ -557,15 +560,33 @@ class StudentStatementView(LoginRequiredMixin, DetailView):
                     account_balances[txn.account_id] -= txn.amount
                     running_balance -= txn.amount
                 
+                course_suffix = txn.account.course_name if txn.account.course_name else ''
+                desc = txn.description
+                if course_suffix and course_suffix not in desc:
+                    desc = f"{desc} - {course_suffix}"
+                
+                # Get all transactions for this journal entry to show all entry sides
+                entry_transactions = []
+                for etxn in txn.journal_entry.transactions.all():
+                    entry_transactions.append({
+                        'account_code': etxn.account.code,
+                        'account_name': etxn.account.name_ar or etxn.account.name,
+                        'debit': etxn.amount if etxn.is_debit else Decimal('0.00'),
+                        'credit': etxn.amount if not etxn.is_debit else Decimal('0.00'),
+                        'description': etxn.description
+                    })
+
                 rows.append({
                     'date': txn.journal_entry.date,
                     'ref': txn.journal_entry.reference,
-                    'desc': f"{txn.description} - {txn.account.course_name if txn.account.course_name else ''}",
+                    'entry_id': txn.journal_entry.id,
+                    'desc': desc,
                     'debit': txn.amount if txn.is_debit else Decimal('0.00'),
                     'credit': txn.amount if not txn.is_debit else Decimal('0.00'),
                     'balance': account_balances[txn.account_id],
                     'created_by': txn.journal_entry.created_by.get_full_name() or txn.journal_entry.created_by.username,
-                    'account_code': txn.account.code
+                    'account_code': txn.account.code,
+                    'entry_transactions': entry_transactions
                 })
             
             # 8️⃣ حساب الرصيد الإجمالي
@@ -2241,9 +2262,9 @@ def register_course(request, student_id):
 @require_POST
 @login_required
 def withdraw_student(request, student_id):
-    """سحب الطالب - النسخة المضمونة"""
+    """سحب الطالب وتوليد قيد اليومية الموحد"""
     print("\n" + "="*80)
-    print("🚀🚀🚀 بدء عملية سحب الطالب - النسخة النهائية 🚀🚀🚀")
+    print("🚀🚀🚀 بدء عملية سحب الطالب وتوليد قيد اليومية الموحد 🚀🚀🚀")
     print("="*80)
     
     try:
@@ -2277,228 +2298,148 @@ def withdraw_student(request, student_id):
         ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
         print(f"💵 المبلغ المدفوع: {total_paid}")
         
-        # 5. تحقق إذا كان المبلغ المدفوع صفر
-        if total_paid == 0:
-            print("⚠️ المبلغ المدفوع صفر - سيتم إنشاء قيد العكس فقط")
-        
-        # 6. المبلغ المسترد
-        refund_amount = Decimal(request.POST.get('refund_amount', '0'))
+        # 5. المبلغ المسترد
+        refund_amount = _parse_post_decimal(request.POST.get('refund_amount', '0'))
         print(f"💰 المبلغ المسترد المدخل: {refund_amount}")
         
-        # إذا كان صفر، اجعله يساوي المدفوع (استرداد كامل)
-        if refund_amount == 0 and total_paid > 0:
-            refund_amount = total_paid
-            print(f"🔄 تعديل المبلغ المسترد ليكون: {refund_amount}")
+        # التأكد من أن مبلغ الاسترداد لا يتجاوز المدفوع فعلياً
+        refund_amount = min(refund_amount, total_paid)
+        print(f"💰 المبلغ المسترد بعد التحقق والحد: {refund_amount}")
+        
+        # حساب المبالغ اللازمة للقيود
+        net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0'))
+        unpaid_amount = max(Decimal('0'), net_amount - total_paid)
+        retained_amount = max(Decimal('0'), total_paid - refund_amount)
+        
+        print(f"📊 تفاصيل المبالغ النهائية:")
+        print(f"   - القيمة الصافية للدورة (net_amount): {net_amount}")
+        print(f"   - المبلغ المدفوع (total_paid): {total_paid}")
+        print(f"   - المبلغ المسترد (refund_amount): {refund_amount}")
+        print(f"   - المبلغ غير المدفوع (unpaid_amount): {unpaid_amount}")
+        print(f"   - المبلغ المحتجز/الإيراد (retained_amount): {retained_amount}")
         
         today = timezone.now().date()
         
-        # 7. القيد الأول: استرداد النقدية - فقط إذا كان هناك استرداد
-        if refund_amount > 0:
-            print("\n" + "-"*50)
-            print("🔹🔹🔹 إنشاء القيد الأول: استرداد النقدية 🔹🔹🔹")
-            print("-"*50)
-            
-            try:
-                # 7.1 البحث عن حساب 4201 - بدون get_or_create
-                print("🔍 البحث عن حساب 4201...")
-                account_4201 = Account.objects.filter(code='4201').first()
-                
-                if not account_4201:
-                    print("❌ حساب 4201 غير موجود! سيتم إنشاؤه...")
-                    # إنشاء الحساب الرئيسي أولاً
-                    parent_account = Account.objects.filter(code='4200').first()
-                    if not parent_account:
-                        parent_account = Account.objects.create(
-                            code='4200',
-                            name='Other Revenues',
-                            name_ar='إيرادات أخرى',
-                            account_type='REVENUE',
-                            is_active=True
-                        )
-                    
-                    account_4201 = Account.objects.create(
-                        code='4201',
-                        name='Student Withdrawal Revenue',
-                        name_ar='إيرادات انسحاب طلاب',
-                        account_type='REVENUE',
-                        is_active=True,
-                        parent=parent_account,
-                        description='إيرادات من سحب الطلاب'
-                    )
-                    print(f"✅ تم إنشاء حساب 4201 جديد (ID: {account_4201.id})")
-                else:
-                    print(f"✅ حساب 4201 موجود (ID: {account_4201.id})")
-                
-                # 7.2 البحث عن حساب 121
-                cash_account = get_user_cash_account(request.user, fallback_code='121')
-                print(f'Cash account for user: {cash_account.code}')
-
-                # 7.3 إنشاء قيد اليومية
-                print("📝 إنشاء قيد اليومية...")
-                entry_data = {
-                    'reference': f"WD-{enrollment.id}-{today.strftime('%Y%m%d')}",
-                    'date': today,
-                    'description': f"استرداد نقدي لسحب {student.full_name} من {enrollment.course.name}",
-                    'entry_type': 'WITHDRAWAL',
-                    'total_amount': refund_amount,
-                    'created_by': request.user,
-                    'is_posted': False
+        # 6. جلب وتأكيد الحسابات المالية
+        print("\n🔍 جلب الحسابات المالية اللازمة...")
+        
+        # 6.1 حساب الصندوق
+        cash_account = get_user_cash_account(request.user, fallback_code='121')
+        print(f"✅ حساب الصندوق: {cash_account.code} - {cash_account.name_ar}")
+        
+        # 6.2 حساب ذمة الطالب
+        student_account = Account.get_or_create_student_ar_account(student, enrollment.course)
+        print(f"✅ حساب ذمة الطالب: {student_account.code} - {student_account.name_ar}")
+        
+        # 6.3 حساب الإيرادات المؤجلة للدورة
+        deferred_account = Account.get_or_create_course_deferred_account(enrollment.course)
+        print(f"✅ حساب الإيراد المؤجل: {deferred_account.code} - {deferred_account.name_ar}")
+        
+        # 6.4 حساب إيرادات الانسحاب (4201)
+        withdrawal_account = Account.objects.filter(code='4201').first()
+        if not withdrawal_account:
+            print("⚠️ حساب 4201 غير موجود - سيتم إنشاؤه...")
+            parent_account, _ = Account.objects.get_or_create(
+                code='4200',
+                defaults={
+                    'name': 'Other Operating Revenues',
+                    'name_ar': 'إيرادات تشغيل أخرى',
+                    'account_type': 'REVENUE',
+                    'is_active': True,
                 }
-                
-                print(f"📋 بيانات القيد: {entry_data}")
-                
-                entry1 = JournalEntry.objects.create(**entry_data)
-                print(f"🎉 تم إنشاء قيد اليومية بنجاح! (ID: {entry1.id})")
-                
-                # 7.4 إنشاء المعاملات
-                print("🔧 إنشاء المعاملات...")
-                
-                # المعاملة الأولى: مدين - 4201
-                txn1 = Transaction.objects.create(
-                    journal_entry=entry1,
-                    account=account_4201,
-                    amount=refund_amount,
-                    is_debit=True,
-                    description=f"إيرادات سحب: {student.full_name} - {enrollment.course.name}"
-                )
-                print(f"✅ معاملة 1: مدين {account_4201.code} - {refund_amount}")
-                
-                # المعاملة الثانية: دائن - 121
-                txn2 = Transaction.objects.create(
-                    journal_entry=entry1,
-                    account=cash_account,
-                    amount=refund_amount,
-                    is_debit=False,
-                    description=f"استرداد نقدي: {student.full_name}"
-                )
-                print(f"✅ معاملة 2: دائن {cash_account.code} - {refund_amount}")
-                
-                # 7.5 التحقق من المعاملات
-                transaction_count = Transaction.objects.filter(journal_entry=entry1).count()
-                print(f"📊 عدد المعاملات في القيد: {transaction_count}")
-                
-                if transaction_count == 2:
-                    print("✅ جميع المعاملات تم إنشاؤها بنجاح!")
-                else:
-                    print(f"⚠️ عدد المعاملات غير متوقع: {transaction_count}")
-                
-                # 7.6 ترحيل القيد
-                print("📤 ترحيل القيد...")
-                entry1.is_posted = True
-                entry1.posted_by = request.user
-                entry1.posted_at = timezone.now()
-                entry1.save()
-                print("✅ تم ترحيل القيد بنجاح!")
-                
-                messages.success(request, f'✅ تم إنشاء قيد استرداد {refund_amount:,.0f} ل.س')
-                
-            except Exception as e:
-                print(f"❌ خطأ في إنشاء القيد الأول: {str(e)}")
-                print("📋 تفاصيل الخطأ:")
-                traceback.print_exc()
-                messages.error(request, f'❌ خطأ في قيد الاسترداد: {str(e)}')
-                return redirect('students:student_profile', student_id=student_id)
+            )
+            withdrawal_account, _ = Account.objects.get_or_create(
+                code='4201',
+                defaults={
+                    'name': 'Student Withdrawal Revenues',
+                    'name_ar': 'إيرادات انسحاب طلاب',
+                    'account_type': 'REVENUE',
+                    'is_active': True,
+                    'parent': parent_account,
+                }
+            )
+        print(f"✅ حساب إيرادات الانسحاب: {withdrawal_account.code} - {withdrawal_account.name_ar}")
         
-        # 8. القيد الثاني: عكس الإيرادات المؤجلة (إذا كان هناك مبلغ غير مدفوع)
-        print("\n" + "-"*50)
-        print("🔹🔹🔹 إنشاء القيد الثاني: عكس الإيرادات المؤجلة 🔹🔹🔹")
-        print("-"*50)
+        withdrawal_reason = request.POST.get('withdrawal_reason', '')
         
-        try:
-            net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0'))
-            unpaid_amount = max(Decimal('0'), net_amount - total_paid)
+        # 7. إنشاء قيد اليومية الموحد للسحب
+        with db_transaction.atomic():
+            print("\n📝 إنشاء قيد اليومية الموحد...")
+            entry = JournalEntry.objects.create(
+                reference=f"WD-{enrollment.id}-{today.strftime('%Y%m%d')}",
+                date=today,
+                description=f"انسحاب الطالب {student.full_name} من {enrollment.course.name}" + 
+                           (f" - {withdrawal_reason}" if withdrawal_reason else ""),
+                entry_type='WITHDRAWAL',
+                total_amount=net_amount,
+                created_by=request.user,
+                is_posted=False
+            )
+            print(f"🎉 تم إنشاء قيد اليومية (ID: {entry.id})")
             
+            # المعاملة 1: مدين - إقفال الإيراد المؤجل للدورة بالكامل
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=deferred_account,
+                amount=net_amount,
+                is_debit=True,
+                description=f"عكس إيرادات مؤجلة لسحب الطالب (المسترد: {refund_amount:,.0f}، المحتجز: {retained_amount:,.0f}) - {student.full_name}"
+            )
+            print(f"   [DR] {deferred_account.code}: {net_amount}")
+            
+            # المعاملة 2: دائن - تصفية الرصيد المتبقي بذمة الطالب (المبلغ غير المدفوع)
             if unpaid_amount > 0:
-                print(f"💰 المبلغ غير المدفوع: {unpaid_amount}")
-                
-                # 8.1 حساب ذمة الطالب
-                print("🔍 البحث عن حساب الطالب...")
-                course = enrollment.course  # أضف هذا السطر
-                student_account_code = f"1251-{course.id:03d}-{student.id:03d}"
-                student_account = Account.objects.filter(code=student_account_code).first()
-                
-                if not student_account:
-                    print(f"❌ حساب الطالب {student_account_code} غير موجود! سيتم إنشاؤه...")
-                    student_account = Account.objects.create(
-                        code=student_account_code,
-                        name=f'AR - {student.full_name}',
-                        name_ar=f'ذمم مدينة - {student.full_name}',
-                        account_type='ASSET',
-                        is_active=True
-                    )
-                    print(f"✅ تم إنشاء حساب الطالب (ID: {student_account.id})")
-                
-                # 8.2 حساب الإيرادات المؤجلة
-                print("🔍 البحث عن حساب الإيرادات المؤجلة...")
-                deferred_code = f"21001-{enrollment.course.id:03d}"
-                deferred_account = Account.objects.filter(code=deferred_code).first()
-                
-                if not deferred_account:
-                    print(f"❌ حساب الإيرادات المؤجلة {deferred_code} غير موجود! سيتم إنشاؤه...")
-                    deferred_account = Account.objects.create(
-                        code=deferred_code,
-                        name=f'Deferred Revenue - {enrollment.course.name}',
-                        name_ar=f'إيرادات مؤجلة - {enrollment.course.name}',
-                        account_type= 'LIABILITY',  # ✅ صحيح
-                        is_active=True
-                    )
-                    print(f"✅ تم إنشاء حساب الإيرادات المؤجلة (ID: {deferred_account.id})")
-                
-                # 8.3 إنشاء القيد
-                entry2 = JournalEntry.objects.create(
-                    reference=f"WD-REV-{enrollment.id}-{today.strftime('%Y%m%d')}",
-                    date=today,
-                    description=f"عكس إيرادات مؤجلة لسحب {student.full_name}",
-                    entry_type='REVERSAL',
-                    total_amount=unpaid_amount,
-                    created_by=request.user,
-                    is_posted=False
-                )
-                print(f"✅ تم إنشاء قيد العكس (ID: {entry2.id})")
-                
-                # 8.4 المعاملات
-                # مدين: الإيرادات المؤجلة
                 Transaction.objects.create(
-                    journal_entry=entry2,
-                    account=deferred_account,
-                    amount=unpaid_amount,
-                    is_debit=True,
-                    description=f"عكس إيرادات مؤجلة - {student.full_name}"
-                )
-                
-                # دائن: ذمة الطالب
-                Transaction.objects.create(
-                    journal_entry=entry2,
+                    journal_entry=entry,
                     account=student_account,
                     amount=unpaid_amount,
                     is_debit=False,
-                    description=f"تصفية ذمة - {enrollment.course.name}"
+                    description=f"تصفية ذمة الطالب للانسحاب (المسترد: {refund_amount:,.0f}، المحتجز: {retained_amount:,.0f}) - {enrollment.course.name}"
                 )
-                
-                # 8.5 ترحيل القيد
-                entry2.is_posted = True
-                entry2.posted_by = request.user
-                entry2.posted_at = timezone.now()
-                entry2.save()
-                
-                messages.success(request, f'✅ تم إنشاء قيد عكس إيرادات {unpaid_amount:,.0f} ل.س')
-            else:
-                print("💰 لا يوجد مبلغ غير مدفوع - لا حاجة لقيد العكس")
-                
-        except Exception as e:
-            print(f"⚠️ تحذير في القيد الثاني: {str(e)}")
-            messages.warning(request, f'⚠️ ملاحظة: لم يتم إنشاء قيد العكس: {str(e)}')
-        
-        # 9. تحديث حالة التسجيل
-        print("\n📝 تحديث حالة التسجيل...")
-        enrollment.is_completed = True
-        enrollment.completion_date = today
-        enrollment.withdrawal_reason = request.POST.get('withdrawal_reason', '')
-        enrollment.save()
-        print("✅ تم تحديث حالة التسجيل")
-        
-        messages.success(request, f'✅ تم سحب الطالب {student.full_name} بنجاح')
-        
+                print(f"   [CR] {student_account.code}: {unpaid_amount}")
+            
+            # المعاملة 3: دائن - الصندوق (المبلغ المسترد الفعلي)
+            if refund_amount > 0:
+                Transaction.objects.create(
+                    journal_entry=entry,
+                    account=cash_account,
+                    amount=refund_amount,
+                    is_debit=False,
+                    description=f"استرداد نقدي لانسحاب الطالب {student.full_name} (المحتجز: {retained_amount:,.0f})"
+                )
+                print(f"   [CR] {cash_account.code}: {refund_amount}")
+            
+            # المعاملة 4: دائن - إيرادات الانسحاب (المبلغ المحتجز كعمولة)
+            if retained_amount > 0:
+                Transaction.objects.create(
+                    journal_entry=entry,
+                    account=withdrawal_account,
+                    amount=retained_amount,
+                    is_debit=False,
+                    description=f"إيرادات انسحاب طلاب محتجزة كعمولة - {student.full_name} (المسترد: {refund_amount:,.0f})"
+                )
+                print(f"   [CR] {withdrawal_account.code}: {retained_amount}")
+            
+            # 8. ترحيل القيد
+            print("📤 ترحيل القيد...")
+            entry.is_posted = True
+            entry.posted_by = request.user
+            entry.posted_at = timezone.now()
+            entry.save()
+            print("✅ تم ترحيل القيد بنجاح!")
+            
+            # 9. تحديث حالة التسجيل
+            print("\n📝 تحديث حالة التسجيل...")
+            enrollment.is_completed = True
+            enrollment.completion_date = today
+            enrollment.withdrawal_reason = withdrawal_reason
+            # حفظ قيد الانسحاب كمرجع للتسجيل
+            enrollment.completion_journal_entry = entry
+            enrollment.save()
+            print("✅ تم تحديث حالة التسجيل")
+            
+            messages.success(request, f'✅ تم سحب الطالب {student.full_name} بنجاح، وتوليد قيد السحب الموحد.')
+            
         print("\n" + "="*80)
         print("🎉🎉🎉 عملية السحب اكتملت بنجاح! 🎉🎉🎉")
         print("="*80)
@@ -2508,9 +2449,9 @@ def withdraw_student(request, student_id):
     except Exception as e:
         print(f"\n❌❌❌ خطأ عام في السحب: {str(e)} ❌❌❌")
         traceback.print_exc()
-        messages.error(request, f'❌ حدث خطأ: {str(e)}')
+        messages.error(request, f'❌ حدث خطأ في عملية السحب: {str(e)}')
         return redirect('students:student_profile', student_id=student_id)
-        
+
 def student_detail(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     
