@@ -78,6 +78,38 @@ class Account(models.Model):
     def __str__(self):
         return f"{self.code} - {self.display_name}"
 
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+        
+        # 1. Validation when parent is specified
+        if self.parent:
+            # Rule A: Code must start with the parent's code
+            if not self.code.startswith(self.parent.code):
+                raise ValidationError({
+                    'code': f"يجب أن يبدأ رمز الحساب برمز الحساب الأب ({self.parent.code})"
+                })
+            
+            # Rule B: Code must be longer than parent's code
+            if len(self.code) <= len(self.parent.code):
+                raise ValidationError({
+                    'code': "يجب أن يكون رمز الحساب الابن أطول من رمز الحساب الأب"
+                })
+                
+            # Rule C: Account type must match parent's account type
+            if self.account_type != self.parent.account_type:
+                raise ValidationError({
+                    'account_type': f"يجب أن يتطابق نوع الحساب مع نوع الحساب الأب ({self.parent.get_account_type_display()})"
+                })
+                
+            # Rule D: Parent account cannot have direct transactions
+            # (If this is a new child being added, check if parent has transactions)
+            if not self.pk: # Only on creation of the child
+                if self.parent.transactions.exists():
+                    raise ValidationError({
+                        'parent': f"لا يمكن إضافة حساب ابن للحساب الأب ({self.parent.code}) لأنه يحتوي على قيود يومية مباشرة. يرجى نقل القيود أولاً."
+                    })
+
     @property
     def display_name(self):
         return self.name_ar if self.name_ar else self.name

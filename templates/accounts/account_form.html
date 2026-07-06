@@ -73,3 +73,40 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const parentSelect = document.getElementById('id_parent');
+    const codeInput = document.getElementById('id_code');
+    const typeSelect = document.getElementById('id_account_type');
+
+    if (parentSelect) {
+        parentSelect.addEventListener('change', function() {
+            const parentId = this.value;
+            if (!parentId) {
+                return;
+            }
+
+            // Fetch the next child code and account type
+            fetch(`{% url 'accounts:get_next_child_code' %}?parent_id=${parentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        // Auto-fill code
+                        if (codeInput) {
+                            codeInput.value = data.next_code;
+                        }
+                        // Auto-select type
+                        if (typeSelect) {
+                            typeSelect.value = data.account_type;
+                            typeSelect.dispatchEvent(new Event('change'));
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching next code:', error));
+        });
+    }
+});
+</script>
+{% endblock %}

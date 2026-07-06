@@ -1099,6 +1099,44 @@ class AccountCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+def get_next_child_code(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'Not authenticated'})
+        
+    parent_id = request.GET.get('parent_id')
+    if not parent_id:
+        return JsonResponse({'ok': False, 'error': 'No parent selected'})
+        
+    try:
+        parent = Account.objects.get(id=parent_id)
+        # Find all direct children of this parent
+        children = Account.objects.filter(parent=parent).order_by('code')
+        
+        next_code = ""
+        if children.exists():
+            last_child = children.last()
+            code_str = last_child.code
+            parent_code_str = parent.code
+            suffix = code_str[len(parent_code_str):]
+            try:
+                val = int(suffix)
+                new_val = val + 1
+                new_suffix = f"{new_val:0{len(suffix)}d}"
+                next_code = parent_code_str + new_suffix
+            except ValueError:
+                next_code = last_child.code + "1"
+        else:
+            next_code = parent.code + "01"
+                
+        return JsonResponse({
+            'ok': True,
+            'next_code': next_code,
+            'account_type': parent.account_type
+        })
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)})
+
+
 class AccountDetailView(LoginRequiredMixin, DetailView):
     model = Account
     template_name = 'accounts/account_detail.html'

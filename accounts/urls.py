@@ -18,6 +18,7 @@ urlpatterns = [
     # Chart of Accounts
     path('chart/', require_employee_perm('accounting_accounts')(views.ChartOfAccountsView.as_view()), name='chart_of_accounts'),
     path('accounts/create/', require_employee_perm('accounting_accounts_create')(views.AccountCreateView.as_view()), name='account_create'),
+    path('accounts/next-code/', require_employee_perm('accounting_accounts_create')(views.get_next_child_code), name='get_next_child_code'),
     path('accounts/<int:pk>/', require_employee_perm('accounting_accounts')(views.AccountDetailView.as_view()), name='account_detail'),
     path('accounts/<int:pk>/update/', require_employee_perm('accounting_accounts_create')(views.AccountUpdateView.as_view()), name='account_update'),
     path('accounts/<int:pk>/delete/', require_employee_perm('accounting_accounts_create')(views.AccountDeleteView.as_view()), name='account_delete'),
