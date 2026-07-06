@@ -1,0 +1,329 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بطاقات مبالغ مستحقة - {{ course.name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
+    <style>
+        /* ===== Reset ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --primary: #1a4d8c;
+            --primary-light: #2a6bc5;
+            --border: #b0c4de;
+            --text: #222;
+            --muted: #666;
+            --card-gap: 6mm;
+        }
+
+        body {
+            font-family: 'Tajawal', 'Segoe UI', sans-serif;
+            background: #eef2f7;
+            color: var(--text);
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        /* ===== Screen-only controls ===== */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .controls .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 24px; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 700; cursor: pointer;
+            text-decoration: none; color: #fff;
+            transition: all 0.2s;
+        }
+        .btn-print { background: var(--primary); }
+        .btn-print:hover { background: var(--primary-light); }
+        .btn-back { background: #6c757d; color: #fff; }
+        .btn-back:hover { background: #5a6268; }
+        .controls .info-badge {
+            background: #fff; border: 1px solid var(--border); border-radius: 8px;
+            padding: 8px 16px; font-size: 13px; color: var(--muted);
+        }
+        .controls .info-badge strong { color: var(--primary); }
+
+        /* ===== A4 page container ===== */
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto 20px auto;
+            background: #fff;
+            padding: 8mm;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+            border-radius: 4px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(4, 1fr);
+            gap: var(--card-gap);
+        }
+
+        /* ===== Individual card ===== */
+        .due-card {
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            padding: 5mm 6mm;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Card header with logo */
+        .card-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 4mm;
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: 4mm;
+        }
+        .card-top img {
+            width: 38px; height: 38px;
+            object-fit: contain;
+        }
+        .card-top .inst-name {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1.3;
+        }
+        .card-top .inst-sub {
+            font-size: 9px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        /* Card body */
+        .card-body-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2mm;
+            font-size: 11px;
+        }
+
+        .field-row {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        .field-label {
+            font-weight: 800;
+            color: var(--primary);
+            white-space: nowrap;
+            font-size: 11px;
+        }
+        .field-value {
+            flex: 1;
+            border-bottom: 1px dotted var(--border);
+            padding-bottom: 1px;
+            font-weight: 600;
+            min-height: 14px;
+        }
+        .field-value.amount {
+            color: #c0392b;
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .card-message {
+            font-size: 10px;
+            color: #333;
+            line-height: 1.6;
+            margin: 2mm 0;
+            text-align: justify;
+        }
+        .card-message strong {
+            color: var(--primary);
+        }
+
+        /* Card footer */
+        .card-footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: auto;
+            padding-top: 3mm;
+            border-top: 1px solid var(--border);
+            font-size: 10px;
+            color: var(--muted);
+        }
+        .card-footer-row .sig-block {
+            text-align: center;
+        }
+        .card-footer-row .sig-line {
+            width: 60px;
+            border-top: 1px solid #999;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        /* ===== Print ===== */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+            body {
+                background: #fff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .controls { display: none !important; }
+
+            .a4-page {
+                width: 210mm !important;
+                min-height: 297mm !important;
+                height: 297mm !important;
+                margin: 0 !important;
+                padding: 6mm !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                page-break-after: always;
+                break-after: page;
+            }
+            .a4-page:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
+
+            .due-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+
+        /* ===== Empty card placeholder ===== */
+        .due-card.empty-card {
+            border: 2px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="btn btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i> طباعة البطاقات
+        </button>
+        <a href="{% url 'accounts:outstanding_course_students' course.id %}" class="btn btn-back">
+            <i class="fas fa-arrow-right"></i> رجوع للقائمة
+        </a>
+        <div class="info-badge">
+            <i class="fas fa-info-circle"></i>
+            الدورة: <strong>{{ course.name }}</strong> |
+            عدد البطاقات: <strong>{{ outstanding_students|length }}</strong> |
+            الموظف: <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+        </div>
+    </div>
+
+    {% for student in outstanding_students %}
+        {% if forloop.first or card_page_break %}
+            {% if not forloop.first %}</div>{% endif %}
+            <div class="a4-page">
+        {% endif %}
+
+        <div class="due-card">
+            <!-- Header -->
+            <div class="card-top">
+                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+                <div>
+                    <div class="inst-name">معهد اليمان للعلوم واللغات</div>
+                    <div class="inst-sub">Al-Yman Institute for Sciences & Languages</div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="card-body-content">
+                <div class="field-row">
+                    <span class="field-label">اسم الطالب:</span>
+                    <span class="field-value">{{ student.student.full_name }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">المبلغ وقدره:</span>
+                    <span class="field-value amount">{{ student.remaining|floatformat:0|intcomma }} ل.س</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">الدورة:</span>
+                    <span class="field-value">{{ course.name }}</span>
+                </div>
+
+                <div class="card-message">
+                    إلى ولي أمر الطالب <strong>{{ student.student.full_name }}</strong>
+                    وقوعاً منه بتسديد مبلغ وقدره
+                    <strong>{{ student.remaining|floatformat:0|intcomma }} ل.س</strong>
+                    خلال مدة أقصاها <strong>....................</strong>
+                    وذلك لاستمرار الطالب بالدراسة والاستفادة من الخدمات التعليمية والتربوية المقدمة
+                    وإلّا سيتم اتخاذ الإجراء المناسب.
+                </div>
+
+                <div class="field-row">
+                    <span class="field-label">السبب:</span>
+                    <span class="field-value">عدم إكمال الأقساط</span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="card-footer-row">
+                <div>
+                    <span class="field-label">التاريخ:</span>
+                    {% now "Y/m/d" %}
+                </div>
+                <div class="sig-block">
+                    الإدارة
+                    <div class="sig-line"></div>
+                </div>
+                <div class="sig-block">
+                    ولي الأمر
+                    <div class="sig-line"></div>
+                </div>
+            </div>
+        </div>
+
+        {# Insert page break every 8 cards #}
+        {% if forloop.counter|divisibleby:8 and not forloop.last %}
+            </div>
+            <div class="a4-page">
+        {% endif %}
+
+        {% if forloop.last %}
+            {# Fill remaining slots with empty cards to keep grid shape #}
+            {% widthratio forloop.counter 8 1 as full_pages %}
+            {% with remainder=forloop.counter|divisibleby:8 %}
+            {% if not remainder %}
+                {% with slots_left=8 %}
+                {% endif %}
+            {% endwith %}
+            </div>
+        {% endif %}
+    {% empty %}
+        <div class="a4-page" style="display:flex; align-items:center; justify-content:center;">
+            <div style="text-align:center; color:#999; font-size:18px;">
+                <i class="fas fa-check-circle" style="font-size:48px; margin-bottom:16px; display:block; color:#27ae60;"></i>
+                <strong>لا يوجد طلاب غير مسددين في هذه الدورة</strong>
+                <p style="margin-top:8px; font-size:14px;">جميع الطلاب مسددين بالكامل</p>
+            </div>
+        </div>
+    {% endfor %}
+
+</body>
+</html>

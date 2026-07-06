@@ -84,6 +84,7 @@ urlpatterns = [
     # Outstanding Reports
     path('reports/outstanding-courses/', require_employee_perm('accounting_outstanding')(views.OutstandingCoursesView.as_view()), name='outstanding_courses'),
     path('reports/outstanding-courses/<int:course_id>/students/', require_employee_perm('accounting_outstanding')(views.OutstandingCourseStudentsView.as_view()), name='outstanding_course_students'),
+    path('reports/outstanding-courses/<int:course_id>/due-cards/', require_employee_perm('accounting_outstanding')(views.OutstandingDueCardsView.as_view()), name='outstanding_due_cards'),
     
     # Budget Management
     path('budgets/', require_employee_perm('accounting_budgets')(views.BudgetListView.as_view()), name='budget_list'),

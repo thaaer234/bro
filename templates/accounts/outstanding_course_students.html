@@ -1,14 +1,105 @@
 {% extends 'accounts/base.html' %}
     
+{% load static %}
 {% load emp_perms %}
+{% load humanize %}
 {% block title %}طلاب الدورة / Course Students{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== Print-only header ===== */
+.print-header { display: none; }
+
+@media print {
+    /* Hide everything not needed */
+    .sidebar, .navbar, .no-print, .breadcrumb, nav[aria-label="breadcrumb"],
+    .btn-group, .card.mt-4, .stats-card-row-filter, .report-controls-bar,
+    #sidebar, .sidebar-toggle, .main-header, .alert-report,
+    .top-bar, .bottom-bar, footer { display: none !important; }
+
+    body, html {
+        margin: 0 !important; padding: 0 !important;
+        background: #fff !important; font-size: 11px;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .main-content, .container-fluid, .content-wrapper {
+        margin: 0 !important; padding: 0 10px !important; width: 100% !important;
+    }
+
+    /* Show print header */
+    .print-header {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 3px double #1a4d8c;
+        padding-bottom: 12px;
+        margin-bottom: 15px;
+    }
+    .print-header .logo-section { display: flex; align-items: center; gap: 12px; }
+    .print-header .logo-section img { width: 60px; height: 60px; }
+    .print-header .logo-section h3 { margin: 0; font-size: 16px; color: #1a4d8c; }
+    .print-header .logo-section p { margin: 0; font-size: 11px; color: #666; }
+    .print-header .print-meta { text-align: left; font-size: 11px; color: #555; }
+    .print-header .print-meta strong { color: #1a4d8c; }
+
+    .table { font-size: 10px !important; }
+    .table th, .table td { padding: 4px 6px !important; }
+    h2 { font-size: 14px !important; margin-bottom: 8px !important; }
+
+    /* Stats cards in print */
+    .stats-card { break-inside: avoid; }
+    .stats-card .card-body { padding: 8px !important; }
+    .stats-card h5 { font-size: 10px !important; }
+    .stats-card h3 { font-size: 14px !important; }
+
+    .table-container { overflow: visible !important; }
+    .badge { border: 1px solid #ccc !important; font-size: 9px !important; }
+
+    /* Print footer */
+    .print-footer {
+        display: block !important;
+        margin-top: 20px;
+        padding-top: 10px;
+        border-top: 2px solid #1a4d8c;
+        text-align: center;
+        font-size: 10px;
+        color: #888;
+    }
+}
+
+.print-footer { display: none; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
+    <!-- Print-only header -->
+    <div class="print-header">
+        <div class="logo-section">
+            <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+            <div>
+                <h3>معهد اليمان للعلوم واللغات</h3>
+                <p>كشف المبالغ المستحقة - {{ course.name }}</p>
+            </div>
+        </div>
+        <div class="print-meta">
+            <div><strong>تاريخ الطباعة:</strong> {% now "Y-m-d" %}</div>
+            <div><strong>الموظف:</strong> {{ request.user.get_full_name|default:request.user.username }}</div>
+            <div><strong>عدد الطلاب:</strong> {{ total_students }}</div>
+        </div>
+    </div>
+
     <!-- الرأس المحسن -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
         <h2>جميع طلاب الدورة - {{ course.name }}{% if course.name_ar %} / {{ course.name_ar }}{% endif %}</h2>
         <div>
+            <button onclick="window.print()" class="btn btn-outline-dark me-2 btn-report">
+                <i class="fas fa-print me-1"></i> طباعة الجدول
+            </button>
+            <a href="{% url 'accounts:outstanding_due_cards' course.id %}" class="btn btn-warning me-2 btn-report" target="_blank">
+                <i class="fas fa-id-card me-1"></i> بطاقات مبالغ مستحقة
+            </a>
             <a href="{% url 'accounts:outstanding_students_by_classroom' %}" class="btn btn-info me-2 btn-report">
                 <i class="fas fa-users me-1"></i> عرض حسب الشعبة
             </a>
@@ -275,6 +366,11 @@
                 </small>
             </div>
         </div>
+    </div>
+
+    <!-- Print footer -->
+    <div class="print-footer">
+        <p>معهد اليمان للعلوم واللغات | تم الطباعة بواسطة: {{ request.user.get_full_name|default:request.user.username }} | {% now "Y-m-d H:i" %}</p>
     </div>
 </div>
 

@@ -2569,6 +2569,19 @@ class OutstandingCourseStudentsView(LoginRequiredMixin, TemplateView):
         
         return None
 
+class OutstandingDueCardsView(OutstandingCourseStudentsView):
+    """صفحة طباعة بطاقات المبالغ المستحقة - 8 بطاقات بالصفحة A4"""
+    template_name = 'accounts/outstanding_due_cards.html'
+
+    def get_context_data(self, course_id=None, **kwargs):
+        # Get the full context from parent
+        context = super().get_context_data(course_id=course_id, **kwargs)
+        # Filter only outstanding (non-paid) students
+        all_students = context.get('student_data', [])
+        outstanding_only = [s for s in all_students if s and not s.get('is_fully_paid', False) and s.get('remaining', 0) > 0]
+        context['outstanding_students'] = outstanding_only
+        return context
+
 class OutstandingStudentsByClassroomView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/outstanding_students_by_classroom.html'
     
