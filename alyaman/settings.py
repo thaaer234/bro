@@ -5,6 +5,7 @@ Django settings for alyaman project.
 from pathlib import Path
 import os
 import sys
+import alyaman.patch_django_314
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
