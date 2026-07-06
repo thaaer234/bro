@@ -1005,3 +1005,18 @@ class StudentAccountLinkAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
         return format_html('<span class="badge badge-danger">{}</span>', '❌ غير نشط')
     active_status.short_description = 'الحالة'
 
+
+from .models import AccountingSettings
+
+@admin.register(AccountingSettings)
+class AccountingSettingsAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'default_cash_account', 'default_bank_account', 'default_student_ar_parent', 'default_deferred_revenue_parent', 'default_withdrawal_revenue_account')
+    
+    def has_add_permission(self, request):
+        if self.model.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+

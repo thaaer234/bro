@@ -27,11 +27,11 @@ class AcademicYearScopedFormMixin:
 class AccountForm(forms.ModelForm):
     class Meta:
         model = Account
-        fields = ['code', 'account_type', 'parent', 'name', 'name_ar', 'cost_center', 'is_course_account', 'course_name', 'description', 'is_active']
+        fields = ['code', 'account_type', 'parent', 'academic_year', 'name', 'name_ar', 'cost_center', 'is_course_account', 'course_name', 'description', 'is_active']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
             'name': forms.TextInput(attrs={'placeholder': 'Account Name'}),
-            'name_ar': forms.TextInput(attrs={'placeholder': 'ط§ظ„ط§ط³ظ… ط¨ط§ظ„ط¹ط±ط¨ظٹط©', 'dir': 'rtl'}),
+            'name_ar': forms.TextInput(attrs={'placeholder': 'الاسم بالعربية', 'dir': 'rtl'}),
             'code': forms.TextInput(attrs={'placeholder': 'e.g., 1000'}),
             'course_name': forms.TextInput(attrs={'placeholder': 'Course Name (if course account)'}),
         }
@@ -40,12 +40,19 @@ class AccountForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['cost_center'].queryset = CostCenter.objects.filter(is_active=True)
         self.fields['cost_center'].empty_label = "اختر مركز التكلفة / Select Cost Center"
+        
+        from academic_years.middleware import get_current_academic_year_thread
+        current_ay = get_current_academic_year_thread()
+        if current_ay and not self.instance.pk:
+            self.fields['academic_year'].initial = current_ay
+
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Row(
-                Column('code', css_class='form-group col-md-4 mb-0'),
-                Column('account_type', css_class='form-group col-md-4 mb-0'),
-                Column('parent', css_class='form-group col-md-4 mb-0'),
+                Column('code', css_class='form-group col-md-3 mb-0'),
+                Column('account_type', css_class='form-group col-md-3 mb-0'),
+                Column('parent', css_class='form-group col-md-3 mb-0'),
+                Column('academic_year', css_class='form-group col-md-3 mb-0'),
                 css_class='form-row'
             ),
             Row(

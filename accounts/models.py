@@ -3127,3 +3127,31 @@ def delete_student_entry_when_receipt_deleted(sender, instance, **kwargs):
     for entry in instance.get_linked_journal_entries():
         entry._skip_linked_cleanup = True
         entry.delete()
+
+
+class AccountingSettings(models.Model):
+    default_cash_account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name='حساب الصندوق الافتراضي')
+    default_bank_account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name='حساب البنك الافتراضي')
+    default_student_ar_parent = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name='الحساب الأب لذمم الطلاب')
+    default_deferred_revenue_parent = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name='الحساب الأب للإيرادات المؤجلة')
+    default_withdrawal_revenue_account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name='حساب إيرادات الانسحاب')
+
+    class Meta:
+        verbose_name = 'إعدادات الحسابات / Accounting Settings'
+        verbose_name_plural = 'إعدادات الحسابات / Accounting Settings'
+
+    def __str__(self):
+        return "إعدادات الحسابات الافتراضية / Default Accounting Settings"
+
+    @classmethod
+    def get_settings(cls):
+        obj, created = cls.objects.get_or_create(id=1)
+        # If created or missing defaults, try to auto-populate from existing codes
+        if created or not obj.default_cash_account:
+            obj.default_cash_account = Account.objects.filter(code='121').first()
+            obj.default_withdrawal_revenue_account = Account.objects.filter(code='4201').first()
+            # Try to find parents:
+            obj.default_student_ar_parent = Account.objects.filter(code__in=['1251', '125']).first()
+            obj.default_deferred_revenue_parent = Account.objects.filter(code__in=['21001', '2101', '210']).first()
+            obj.save()
+        return obj

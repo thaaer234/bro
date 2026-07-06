@@ -403,12 +403,12 @@
         </a>
         {% endif %}
 
-        {% if user.is_superuser or 'accounting_receipts' in emp_perms or 'accounting_expenses' in emp_perms %}
+        {% comment %} {% if user.is_superuser or 'accounting_receipts' in emp_perms or 'accounting_expenses' in emp_perms %}
         <a href="{% url 'accounts:receipts_expenses' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name and 'receipt' in request.resolver_match.url_name %}active{% elif request.resolver_match and request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name and 'expense' in request.resolver_match.url_name %}active{% endif %}">
             <i class="fas fa-receipt"></i>
             <span>الإيصالات والمصاريف</span>
         </a>
-        {% endif %}
+        {% endif %} {% endcomment %}
 
         <div class="sidebar-shortcuts">
             <div class="sidebar-shortcuts__title">وصول سريع</div>

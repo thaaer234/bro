@@ -17,14 +17,17 @@
                     
                     <!-- الحقول الأساسية -->
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             {{ form.code|as_crispy_field }}
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             {{ form.account_type|as_crispy_field }}
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             {{ form.parent|as_crispy_field }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.academic_year|as_crispy_field }}
                         </div>
                     </div>
                     
