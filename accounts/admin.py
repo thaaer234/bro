@@ -703,71 +703,114 @@ class StudentenrollmentAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
         'enrollment_journal_entry': 'academic_year',
         'completion_journal_entry': 'academic_year',
     }
-    list_display = ['get_student_name', 'get_course_name', 'enrollment_date', 'is_active_badge']
-    list_filter = [('enrollment_date', DateRangeFilter)]
+    list_display = [
+        'get_student_name', 
+        'get_course_name', 
+        'enrollment_date', 
+        'get_total_amount', 
+        'get_discount_display', 
+        'get_net_amount', 
+        'get_amount_paid', 
+        'get_balance_due', 
+        'payment_method_display', 
+        'is_completed_badge',
+        'get_enrollment_je',
+        'get_completion_je'
+    ]
+    list_filter = ['is_completed', 'payment_method', 'course', 'academic_year', ('enrollment_date', DateRangeFilter)]
     
     def get_search_fields(self, request):
-        """إرجاع حقول البحث المتاحة فقط"""
-        # نستخدم حقولاً آمنة فقط
-        search_fields = []
-        
-        # نتحقق من وجود الحقول في النماذج المرتبطة
-        try:
-            # التحقق من نموذج Student
-            student_model = Studentenrollment._meta.get_field('student').related_model
-            if hasattr(student_model, 'name'):
-                search_fields.append('student__name')
-            if hasattr(student_model, 'phone'):
-                search_fields.append('student__phone')
-            if hasattr(student_model, 'email'):
-                search_fields.append('student__email')
-        except:
-            pass
-        
-        try:
-            # التحقق من نموذج Course
-            course_model = Studentenrollment._meta.get_field('course').related_model
-            if hasattr(course_model, 'name'):
-                search_fields.append('course__name')
-        except:
-            pass
-        
-        # إذا لم نجد حقولاً مناسبة، نستخدم حقولاً أساسية فقط
-        if not search_fields:
-            search_fields = ['id']  # البحث باستخدام الـ ID فقط
-        
-        return search_fields
+        return ['student__full_name', 'student__phone', 'course__name', 'discount_reason', 'notes']
 
     def get_queryset(self, request):
-        """تحسين الاستعلام لتجنب الأخطاء"""
         qs = super().get_queryset(request)
-        return qs.select_related('student', 'course')
+        return qs.select_related(
+            'student', 
+            'course', 
+            'enrollment_journal_entry', 
+            'completion_journal_entry'
+        ).prefetch_related('payments')
 
     def get_student_name(self, obj):
         try:
-            if hasattr(obj.student, 'name') and obj.student.name:
-                return obj.student.name
-            else:
-                return f"طالب {obj.student.id}"
-        except:
-            return "—"
+            url = reverse('students:student_profile', args=[obj.student.id])
+            return format_html('<a href="{}" target="_blank">{}</a>', url, obj.student.full_name or obj.student.name)
+        except Exception:
+            return obj.student.full_name or obj.student.name or f"طالب {obj.student.id}"
     get_student_name.short_description = 'الطالب'
+    get_student_name.admin_order_field = 'student__full_name'
 
     def get_course_name(self, obj):
-        try:
-            if hasattr(obj.course, 'name') and obj.course.name:
-                return obj.course.name
-            else:
-                return f"دورة {obj.course.id}"
-        except:
-            return "—"
+        return obj.course.name
     get_course_name.short_description = 'الدورة'
+    get_course_name.admin_order_field = 'course__name'
 
-    def is_active_badge(self, obj):
-        if hasattr(obj, 'is_active') and obj.is_active:
-            return format_html('<span class="badge badge-success">{}</span>', '✅ نشط')
-        return format_html('<span class="badge badge-danger">{}</span>', '❌ غير نشط')
-    is_active_badge.short_description = 'الحالة'
+    def get_total_amount(self, obj):
+        return f"{obj.total_amount:,.0f} ل.س"
+    get_total_amount.short_description = 'الإجمالي'
+    get_total_amount.admin_order_field = 'total_amount'
+
+    def get_discount_display(self, obj):
+        parts = []
+        if obj.discount_percent > 0:
+            parts.append(f"{obj.discount_percent}%")
+        if obj.discount_amount > 0:
+            parts.append(f"{obj.discount_amount:,.0f} ل.س")
+        if not parts:
+            return "—"
+        res = " + ".join(parts)
+        if obj.discount_reason:
+            res += f" ({obj.discount_reason})"
+        return res
+    get_discount_display.short_description = 'الخصم'
+
+    def get_net_amount(self, obj):
+        return f"{obj.net_amount:,.0f} ل.س"
+    get_net_amount.short_description = 'الصافي'
+
+    def get_amount_paid(self, obj):
+        return f"{obj.amount_paid:,.0f} ل.س"
+    get_amount_paid.short_description = 'المسدد'
+
+    def get_balance_due(self, obj):
+        val = obj.balance_due
+        if val > 0:
+            return format_html('<strong style="color: #a31d1d;">{:,.0f} ل.س</strong>', val)
+        return format_html('<span style="color: #1e7e34;">0 ل.س</span>')
+    get_balance_due.short_description = 'المتبقي'
+
+    def payment_method_display(self, obj):
+        return obj.get_payment_method_display()
+    payment_method_display.short_description = 'طريقة الدفع'
+
+    def is_completed_badge(self, obj):
+        if not obj.is_completed:
+            return format_html('<span class="badge badge-success" style="background-color: #28a745; color: white; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 11px;">✅ نشط / Active</span>')
+        
+        is_withdrawal = False
+        if obj.completion_journal_entry:
+            desc = obj.completion_journal_entry.description or ""
+            if "انسحاب" in desc or "سحب" in desc or "تسوية" in desc:
+                is_withdrawal = True
+        
+        if is_withdrawal:
+            return format_html('<span class="badge badge-danger" style="background-color: #dc3545; color: white; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 11px;">❌ منسحب / Withdrawn</span>')
+        return format_html('<span class="badge badge-primary" style="background-color: #007bff; color: white; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 11px;">🎓 مكتمل / Completed</span>')
+    is_completed_badge.short_description = 'حالة التسجيل'
+
+    def get_enrollment_je(self, obj):
+        if obj.enrollment_journal_entry:
+            url = reverse('accounts:journal_entry_detail', args=[obj.enrollment_journal_entry.id])
+            return format_html('<a href="{}" target="_blank">{}</a>', url, obj.enrollment_journal_entry.reference)
+        return "—"
+    get_enrollment_je.short_description = 'قيد التسجيل'
+
+    def get_completion_je(self, obj):
+        if obj.completion_journal_entry:
+            url = reverse('accounts:journal_entry_detail', args=[obj.completion_journal_entry.id])
+            return format_html('<a href="{}" target="_blank">{}</a>', url, obj.completion_journal_entry.reference)
+        return "—"
+    get_completion_je.short_description = 'قيد الإكمال/السحب'
 
 @admin.register(EmployeeAdvance)
 class EmployeeAdvanceAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
