@@ -775,7 +775,7 @@ class StudentenrollmentAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
     def get_balance_due(self, obj):
         val = obj.balance_due
         if val > 0:
-            return format_html('<strong style="color: #a31d1d;">{:,.0f} ل.س</strong>', val)
+            return format_html('<strong style="color: #a31d1d;">{} ل.س</strong>', f"{val:,.0f}")
         return format_html('<span style="color: #1e7e34;">0 ل.س</span>')
     get_balance_due.short_description = 'المتبقي'
 
