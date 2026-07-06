@@ -1093,10 +1093,58 @@
                 {% endif %}
             </div>
 
-
-
-
-            <br>
+            <!-- علامات التسميع التفصيلي -->
+            <div class="section" style="margin-top: 30px;">
+                <div class="section-header">
+                    <i class="fas fa-microphone"></i>
+                    <h3>علامات التسميع التفصيلي</h3>
+                </div>
+                {% if listening_assignments %}
+                    <div class="table-container">
+                        <table class="detailed-table">
+                            <thead>
+                                <tr>
+                                    <th width="5%">#</th>
+                                    <th width="15%">التاريخ</th>
+                                    <th width="30%">عنوان التسميع / المادة</th>
+                                    <th width="20%">المدرس</th>
+                                    <th width="15%">العلامة</th>
+                                    <th width="15%">النسبة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assign in listening_assignments %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ assign.test.created_at|date:"Y-m-d" }}</td>
+                                    <td>{{ assign.test.title }}</td>
+                                    <td>{{ assign.test.teacher.full_name }}</td>
+                                    <td class="grade-value">
+                                        {% if assign.grade is not None %}
+                                            {{ assign.grade }} / {{ assign.test.max_grade|floatformat:"-2" }}
+                                        {% else %}
+                                            تم التسميع
+                                        {% endif %}
+                                    </td>
+                                    <td class="percentage">
+                                        {% if assign.grade is not None and assign.test.max_grade > 0 %}
+                                            {% widthratio assign.grade assign.test.max_grade 100 %}%
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-microphone-slash"></i>
+                        <p>لا توجد علامات تسميع مسجلة للطالب</p>
+                    </div>
+                {% endif %}
+            </div>
             <br>
             <br>
  <div class="report-footer">

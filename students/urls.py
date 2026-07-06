@@ -24,6 +24,7 @@ urlpatterns = [
     path('<int:student_id>/check-previous-enrollment/<int:course_id>/', views.check_previous_enrollment, name='check_previous_enrollment'),
     path('<int:student_id>/register-course/', require_employee_perm('students_register_course')(views.register_course), name='register_course'),
     path('<int:student_id>/withdraw/', require_employee_perm('students_withdraw')(views.withdraw_student), name='withdraw_student'),
+    path('<int:student_id>/listening-test/add/', views.add_individual_listening_test, name='add_individual_listening_test'),
     path('update/<int:pk>/', require_employee_perm('students_edit')(views.UpdateStudentView.as_view()), name='update_student'),
     path('<int:student_id>/detailed-report/', require_employee_perm('students_profile')(views.StudentDetailedReportView.as_view()), name='student_detailed_report'),
         # 🟢 أضف هذين المسارين الجديدين

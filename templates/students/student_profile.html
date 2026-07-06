@@ -364,6 +364,114 @@
             </div>
         {% endif %}
     </div>
+
+    <!-- علامات التسميع -->
+    <div class="recent-listening-section mt-4" style="margin-top: 2rem;">
+        <h4><i class="fas fa-microphone"></i> سجل التسميع الفردي</h4>
+        {% if listening_assignments %}
+            <div class="exams-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>عنوان التسميع</th>
+                            <th>المدرس</th>
+                            <th>التاريخ</th>
+                            <th>العلامة</th>
+                            <th>النسبة</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assign in listening_assignments %}
+                        <tr>
+                            <td>{{ assign.test.title }}</td>
+                            <td>{{ assign.test.teacher.full_name }}</td>
+                            <td>{{ assign.test.created_at|date:"Y-m-d" }}</td>
+                            <td>
+                                {% if assign.grade is not None %}
+                                    {{ assign.grade }}/{{ assign.test.max_grade|floatformat:"-2" }}
+                                {% else %}
+                                    تم التسميع
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if assign.grade is not None and assign.test.max_grade > 0 %}
+                                    {% widthratio assign.grade assign.test.max_grade 100 %}%
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ assign.note|default:assign.test.description|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>لا توجد علامات تسميع مسجلة للطالب</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- نموذج تسجيل تسميع فردي -->
+    <div class="warning-form-card mt-4" style="margin-top: 2rem;">
+        <div class="warning-form-header">
+            <h4><i class="fas fa-plus"></i> تسجيل تسميع فردي جديد</h4>
+            <p class="text-muted mb-0">استخدم هذا نموذج لتسجيل علامة تسميع فردي مباشرة للطالب وإشعار ولي أمره.</p>
+        </div>
+        <form method="post" action="{% url 'students:add_individual_listening_test' student.id %}">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group col-md-6" style="flex: 0 0 50%; padding-left: 10px;">
+                    <label for="listening-course">الدورة / المادة</label>
+                    <select id="listening-course" name="course_id" class="form-control" required style="width: 100%;">
+                        <option value="" disabled selected>اختر الدورة / المادة</option>
+                        {% for item in active_enrollments %}
+                            <option value="{{ item.enrollment.course.id }}">{{ item.enrollment.course.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-md-6" style="flex: 0 0 50%; padding-right: 10px;">
+                    <label for="listening-teacher">المدرس</label>
+                    <select id="listening-teacher" name="teacher_id" class="form-control" required style="width: 100%;">
+                        <option value="" disabled selected>اختر المدرس</option>
+                        {% for t in teachers %}
+                            <option value="{{ t.id }}">{{ t.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-row" style="margin-top: 15px;">
+                <div class="form-group col-md-6" style="flex: 0 0 50%; padding-left: 10px;">
+                    <label for="listening-title">عنوان التسميع / نوع التسميع</label>
+                    <select id="listening-title" name="title" class="form-control" style="width: 100%;">
+                        <option value="تسميع فردي" selected>تسميع فردي / Individual Recitation</option>
+                        <option value="تسميع دوري">تسميع دوري / Periodic Recitation</option>
+                        <option value="تسميع سورة">تسميع سورة / Surah Recitation</option>
+                        <option value="تسميع عام">تسميع عام / General Recitation</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-3" style="flex: 0 0 25%; padding-right: 10px; padding-left: 5px;">
+                    <label for="listening-grade">العلامة</label>
+                    <input type="number" id="listening-grade" name="grade" class="form-control" step="0.01" min="0" required placeholder="مثال: 9.5" style="width: 100%;">
+                </div>
+                <div class="form-group col-md-3" style="flex: 0 0 25%; padding-right: 5px;">
+                    <label for="listening-max-grade">الدرجة القصوى</label>
+                    <input type="number" id="listening-max-grade" name="max_grade" class="form-control" step="0.01" min="0.1" value="10" required style="width: 100%;">
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="listening-note">ملاحظات / تفاصيل التسميع</label>
+                <textarea id="listening-note" name="note" class="form-control" rows="2" placeholder="أدخل أي ملاحظات حول جودة التسميع أو الأخطاء..." style="width: 100%;"></textarea>
+            </div>
+            <div class="text-end" style="margin-top: 15px; text-align: left;">
+                <button type="submit" class="btn btn-success" style="background-color: #27ae60; border-color: #27ae60;">
+                    <i class="fas fa-save"></i> حفظ وعرض التسميع
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
   <!-- Tabs Content -->
   <div class="tabs-content">

@@ -313,8 +313,85 @@ class StudentProfileView(LoginRequiredMixin, View):
             'listening_count': listening_assignments.count() if hasattr(listening_assignments, 'count') else len(listening_assignments),
         }
         
+        try:
+            from employ.models import Teacher
+            all_teachers = Teacher.objects.all().order_by('full_name')
+            context['teachers'] = all_teachers
+        except Exception as e:
+            print(f"⚠️ [DEBUG] Error loading teachers for profile: {e}")
+            context['teachers'] = []
+        
         return render(request, self.template_name, context)
+
+
+@login_required
+@require_POST
+def add_individual_listening_test(request, student_id):
+    student = get_object_or_404(Student, id=student_id)
     
+    # Extract values from form
+    teacher_id = request.POST.get('teacher_id')
+    course_id = request.POST.get('course_id')
+    title = request.POST.get('title', '').strip()
+    raw_grade = request.POST.get('grade', '').strip()
+    raw_max_grade = request.POST.get('max_grade', '10').strip()
+    note = request.POST.get('note', '').strip()
+    
+    if not teacher_id or not course_id or not raw_grade:
+        messages.error(request, "يرجى ملء جميع الحقول المطلوبة (المدرس، الدورة، العلامة).")
+        return redirect('students:student_profile', student_id=student.id)
+        
+    try:
+        from employ.models import Teacher
+        from mobile.models import ListeningTest, ListeningTestAssignment
+        from classroom.models import Classroomenrollment
+        from decimal import Decimal, InvalidOperation
+        
+        teacher = get_object_or_404(Teacher, id=teacher_id)
+        
+        # Determine grade and max grade
+        try:
+            grade_value = Decimal(raw_grade.replace(",", "."))
+        except InvalidOperation:
+            grade_value = None
+            
+        try:
+            max_grade_value = Decimal(raw_max_grade.replace(",", "."))
+            if max_grade_value <= 0:
+                max_grade_value = Decimal("10.00")
+        except InvalidOperation:
+            max_grade_value = Decimal("10.00")
+            
+        # Find classroom for the student and course, if possible
+        classroom = None
+        enrollment = Classroomenrollment.objects.filter(student=student).first()
+        if enrollment:
+            classroom = enrollment.classroom
+            
+        # Create ListeningTest
+        test = ListeningTest.objects.create(
+            teacher=teacher,
+            title=title or "تسميع فردي",
+            description=note or "تسميع فردي من الملف الشخصي للطالب",
+            classroom=classroom,
+            max_grade=max_grade_value
+        )
+        
+        # Create ListeningTestAssignment
+        assignment = ListeningTestAssignment.objects.create(
+            test=test,
+            student=student,
+            is_listened=True,
+            grade=grade_value,
+            note=note
+        )
+        
+        messages.success(request, f"تم تسجيل علامة التسميع للطالب {student.full_name} بنجاح وإرسال الإشعار.")
+    except Exception as e:
+        messages.error(request, f"فشل في تسجيل علامة التسميع: {str(e)}")
+        
+    return redirect('students:student_profile', student_id=student.id)
+
 
 @login_required
 @require_POST
