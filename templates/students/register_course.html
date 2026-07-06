@@ -41,6 +41,7 @@
 
                     <form method="POST">
                         {% csrf_token %}
+                        <input type="hidden" name="re_enroll_action" id="re_enroll_action" value="">
                         
                         <!-- تاريخ التسجيل -->
                         <div class="form-group mb-3">
@@ -190,8 +191,85 @@ document.addEventListener('DOMContentLoaded', function() {
         enrollmentDatePreview.textContent = this.value;
         updateCourseDetails();
     });
-    
-    courseSelect.addEventListener('change', updateCourseDetails);
+    courseSelect.addEventListener('change', function() {
+        updateCourseDetails();
+        const courseId = this.value;
+        if (!courseId) return;
+        
+        // Fetch check previous enrollment
+        fetch("{% url 'students:check_previous_enrollment' student.id 9999 %}".replace('9999', courseId))
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok && data.has_previous_withdrawal) {
+                const amtFormatted = new Intl.NumberFormat().format(data.retained_amount);
+                let msg = `انتبه: هذا الطالب لديه تسجيل سابق منسحب منه في هذه الدورة!<br><br>`;
+                if (data.retained_amount > 0) {
+                    msg += `مبلغ إيراد الانسحاب المقتطع سابقاً كعمولة هو: <strong class="text-danger">${amtFormatted} ل.س</strong>.<br><br>`;
+                    msg += `هل تريد حذف قيد الانسحاب السابق واحتساب هذا المبلغ كدفعة (إيصال مسدد) للطالب في التسجيل الجديد وتوليد تسجيل جديد من الأول؟`;
+                } else {
+                    msg += `هل تريد حذف قيد الانسحاب والتسجيل السابق وتوليد تسجيل وقيد جديد بالكامل من الأول؟`;
+                }
+                document.getElementById('reEnrollModalBodyText').innerHTML = msg;
+                showModal('reEnrollModal');
+            } else {
+                document.getElementById('re_enroll_action').value = "";
+            }
+        })
+        .catch(err => console.error("Error checking previous enrollment:", err));
+    });
+
+    // Helper functions for modal
+    function showModal(modalId) {
+        const el = document.getElementById(modalId);
+        if (!el) return;
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            let modal = bootstrap.Modal.getInstance(el);
+            if (!modal) modal = new bootstrap.Modal(el);
+            modal.show();
+        } else if (window.jQuery && typeof jQuery.fn.modal !== 'undefined') {
+            $(el).modal('show');
+        } else {
+            el.style.display = 'block';
+            el.classList.add('show');
+            document.body.classList.add('modal-open');
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'modal-backdrop-id';
+            document.body.appendChild(backdrop);
+        }
+    }
+
+    function hideModal(modalId) {
+        const el = document.getElementById(modalId);
+        if (!el) return;
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getInstance(el);
+            if (modal) modal.hide();
+        } else if (window.jQuery && typeof jQuery.fn.modal !== 'undefined') {
+            $(el).modal('hide');
+        } else {
+            el.style.display = 'none';
+            el.classList.remove('show');
+            document.body.classList.remove('modal-open');
+            const backdrop = document.getElementById('modal-backdrop-id');
+            if (backdrop) backdrop.remove();
+        }
+    }
+
+    function cancelReEnroll() {
+        document.getElementById('re_enroll_action').value = "";
+        courseSelect.value = "";
+        hideModal('reEnrollModal');
+        document.getElementById('course-details').style.display = 'none';
+    }
+
+    document.getElementById('confirm-re-enroll-btn').addEventListener('click', function() {
+        document.getElementById('re_enroll_action').value = "delete_previous_and_credit";
+        hideModal('reEnrollModal');
+    });
+
+    document.getElementById('cancel-re-enroll-btn').addEventListener('click', cancelReEnroll);
+    document.getElementById('close-re-enroll-btn').addEventListener('click', cancelReEnroll);
     
     function updateCourseDetails() {
         const selectedOption = courseSelect.options[courseSelect.selectedIndex];
@@ -266,5 +344,26 @@ document.addEventListener('DOMContentLoaded', function() {
     border: none;
 }
 </style>
+
+<!-- Modal for re-enrollment confirmation -->
+<div class="modal fade" id="reEnrollModal" tabindex="-1" role="dialog" aria-labelledby="reEnrollModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content shadow">
+      <div class="modal-header bg-warning text-dark py-3">
+        <h5 class="modal-title font-weight-bold mb-0" id="reEnrollModalLabel">
+          <i class="fas fa-exclamation-triangle me-2"></i> تنبيه: تسجيل سابق منسحب / Re-enrollment Warning
+        </h5>
+        <button type="button" class="btn-close" id="close-re-enroll-btn" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-4 text-dark" style="font-size: 15px; direction: rtl; text-align: right;">
+        <p id="reEnrollModalBodyText" class="mb-0"></p>
+      </div>
+      <div class="modal-footer d-flex justify-content-center gap-3 py-3 bg-light">
+        <button type="button" class="btn btn-danger font-weight-bold px-4" id="confirm-re-enroll-btn">نعم، موافق (إعادة التسجيل واحتساب الدفعة)</button>
+        <button type="button" class="btn btn-secondary px-4" id="cancel-re-enroll-btn">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 

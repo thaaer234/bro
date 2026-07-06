@@ -2099,8 +2099,53 @@ def quick_receipt(request, student_id):
         'warning': journal_warning
     })
 
-def register_course(request, student_id):
+def check_previous_enrollment(request, student_id, course_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'Not authenticated'})
+    
     from accounts.models import Course, Studentenrollment
+    from decimal import Decimal
+    
+    student = get_object_or_404(Student, pk=student_id)
+    course = get_object_or_404(Course, pk=course_id)
+    
+    # Check if there is a completed/withdrawn enrollment for this course
+    target_student = student
+    if course.academic_year and student.academic_year != course.academic_year:
+        target_student = Student.objects.filter(
+            full_name=student.full_name,
+            academic_year=course.academic_year
+        ).first() or student
+        
+    completed_enrollment = Studentenrollment.objects.filter(
+        student=target_student,
+        course=course,
+        is_completed=True
+    ).first()
+    
+    if completed_enrollment:
+        retained_amount = Decimal('0.00')
+        if completed_enrollment.completion_journal_entry:
+            # Check for withdrawal revenue (account code 4201)
+            withdrawal_txn = completed_enrollment.completion_journal_entry.transactions.filter(account__code='4201').first()
+            if withdrawal_txn:
+                retained_amount = withdrawal_txn.amount
+        
+        return JsonResponse({
+            'ok': True,
+            'has_previous_withdrawal': True,
+            'retained_amount': float(retained_amount),
+            'enrollment_id': completed_enrollment.id
+        })
+        
+    return JsonResponse({
+        'ok': True,
+        'has_previous_withdrawal': False,
+        'retained_amount': 0.0
+    })
+
+def register_course(request, student_id):
+    from accounts.models import Course, Studentenrollment, StudentReceipt
     if not request.user.is_authenticated:
         return redirect('login')
 
@@ -2110,6 +2155,7 @@ def register_course(request, student_id):
         course_id = request.POST.get('course_id')
         enrollment_date_str = request.POST.get('enrollment_date')
         apply_discount = request.POST.get('apply_discount', 'false').lower() == 'true'
+        re_enroll_action = request.POST.get('re_enroll_action', '')
 
         if course_id:
             try:
@@ -2182,6 +2228,38 @@ def register_course(request, student_id):
                 if existing_enrollment:
                     messages.warning(request, f'الطالب مسجل بالفعل في دورة {course.name}')
                 else:
+                    # Check for completed/withdrawn enrollment
+                    completed_enrollment = Studentenrollment.objects.filter(
+                        student=target_student,
+                        course=course,
+                        is_completed=True
+                    ).first()
+                    
+                    receipt_ids = []
+                    if completed_enrollment:
+                        if re_enroll_action == 'delete_previous_and_credit':
+                            # Get receipt IDs
+                            receipt_ids = list(completed_enrollment.payments.values_list('id', flat=True))
+                            # Untie payments to avoid ProtectedError
+                            completed_enrollment.payments.all().update(enrollment=None)
+                            
+                            comp_je = completed_enrollment.completion_journal_entry
+                            enr_je = completed_enrollment.enrollment_journal_entry
+                            
+                            # Delete the completed enrollment
+                            completed_enrollment.delete()
+                            
+                            # Delete old journal entries
+                            if comp_je:
+                                comp_je.transactions.all().delete()
+                                comp_je.delete()
+                            if enr_je:
+                                enr_je.transactions.all().delete()
+                                enr_je.delete()
+                        else:
+                            messages.error(request, 'الطالب لديه تسجيل سابق منسحب منه في هذه الدورة. يجب تأكيد إعادة التسجيل واحتساب الدفعات.')
+                            return redirect('students:student_profile', student_id=target_student.id)
+
                     # Check if this is the first enrollment
                     is_first_enrollment = not Studentenrollment.objects.filter(
                         student=target_student,
@@ -2218,6 +2296,10 @@ def register_course(request, student_id):
                         subjects_note=subjects_note
                     )
 
+                    # Re-link the old payments to this new enrollment
+                    if re_enroll_action == 'delete_previous_and_credit' and receipt_ids:
+                        StudentReceipt.objects.filter(id__in=receipt_ids).update(enrollment=enrollment)
+
                     # Create enrollment journal entry
                     try:
                         enrollment.create_accrual_enrollment_entry(request.user)
@@ -2225,7 +2307,11 @@ def register_course(request, student_id):
                         if apply_discount:
                             if discount_percent > 0 or discount_amount > 0:
                                 discount_msg = f" مع حسم {discount_percent}% / {discount_amount}"
-                        messages.success(request, f'تم تسجيل الطالب في دورة {course.name}{discount_msg} وإنشاء الحسابات بنجاح.')
+                        
+                        if re_enroll_action == 'delete_previous_and_credit':
+                            messages.success(request, f'تم إعادة تسجيل الطالب في دورة {course.name} بنجاح، وحذف القيود السابقة واحتساب الدفعات القديمة.')
+                        else:
+                            messages.success(request, f'تم تسجيل الطالب في دورة {course.name}{discount_msg} وإنشاء الحسابات بنجاح.')
                     except Exception as e:
                         messages.warning(request, f'تم التسجيل ولكن فشل في إنشاء القيد المحاسبي: {str(e)}')
 
