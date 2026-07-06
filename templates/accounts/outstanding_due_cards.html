@@ -237,7 +237,8 @@
     </div>
 
     {% for student in outstanding_students %}
-        {% if forloop.first or card_page_break %}
+        {# Open a new A4 page every 8 cards (or on the first card) #}
+        {% if forloop.counter0|divisibleby:8 %}
             {% if not forloop.first %}</div>{% endif %}
             <div class="a4-page">
         {% endif %}
@@ -299,20 +300,8 @@
             </div>
         </div>
 
-        {# Insert page break every 8 cards #}
-        {% if forloop.counter|divisibleby:8 and not forloop.last %}
-            </div>
-            <div class="a4-page">
-        {% endif %}
-
+        {# Close the last A4 page #}
         {% if forloop.last %}
-            {# Fill remaining slots with empty cards to keep grid shape #}
-            {% widthratio forloop.counter 8 1 as full_pages %}
-            {% with remainder=forloop.counter|divisibleby:8 %}
-            {% if not remainder %}
-                {% with slots_left=8 %}
-                {% endif %}
-            {% endwith %}
             </div>
         {% endif %}
     {% empty %}
