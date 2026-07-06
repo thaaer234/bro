@@ -2317,6 +2317,15 @@ def register_course(request, student_id):
                         if re_enroll_action == 'delete_previous_and_credit':
                             # Get receipt IDs
                             receipt_ids = list(completed_enrollment.payments.values_list('id', flat=True))
+                            # Fallback: get any receipts for this student and course that lack an enrollment link
+                            from accounts.models import StudentReceipt
+                            unlinked_receipt_ids = list(StudentReceipt.objects.filter(
+                                student_profile=target_student,
+                                course=course,
+                                enrollment__isnull=True
+                            ).values_list('id', flat=True))
+                            receipt_ids = list(set(receipt_ids + unlinked_receipt_ids))
+                            
                             # Untie payments to avoid ProtectedError
                             completed_enrollment.payments.all().update(enrollment=None)
                             

@@ -39,7 +39,7 @@
                         {% endif %}
                     </div>
 
-                    <form method="POST">
+                    <form method="POST" id="register-course-form">
                         {% csrf_token %}
                         <input type="hidden" name="re_enroll_action" id="re_enroll_action" value="">
                         
@@ -166,6 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const discountPercentInput = document.getElementById('discount_percent');
     const discountAmountInput = document.getElementById('discount_amount');
     const discountInfoSpan = document.getElementById('discount-info');
+    const form = document.getElementById('register-course-form');
     
     // Toggle discount fields visibility
     if (applyDiscountCheckbox) {
@@ -191,12 +192,14 @@ document.addEventListener('DOMContentLoaded', function() {
         enrollmentDatePreview.textContent = this.value;
         updateCourseDetails();
     });
-    courseSelect.addEventListener('change', function() {
-        updateCourseDetails();
-        const courseId = this.value;
-        if (!courseId) return;
+
+    // Check enrollment common function
+    function checkPreviousEnrollment(courseId, callback) {
+        if (!courseId) {
+            if (callback) callback(false);
+            return;
+        }
         
-        // Fetch check previous enrollment
         fetch("{% url 'students:check_previous_enrollment' student.id 9999 %}".replace('9999', courseId))
         .then(response => response.json())
         .then(data => {
@@ -211,28 +214,78 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 document.getElementById('reEnrollModalBodyText').innerHTML = msg;
                 showModal('reEnrollModal');
+                if (callback) callback(true);
             } else {
                 document.getElementById('re_enroll_action').value = "";
+                if (callback) callback(false);
             }
         })
-        .catch(err => console.error("Error checking previous enrollment:", err));
+        .catch(err => {
+            console.error("Error checking previous enrollment:", err);
+            if (callback) callback(false);
+        });
+    }
+
+    courseSelect.addEventListener('change', function() {
+        updateCourseDetails();
+        checkPreviousEnrollment(this.value);
     });
+
+    // Intercept form submission
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const reEnrollAction = document.getElementById('re_enroll_action').value;
+            const courseId = courseSelect.value;
+            
+            if (courseId && !reEnrollAction) {
+                e.preventDefault(); // Stop normal submit to perform async check
+                
+                checkPreviousEnrollment(courseId, function(hasWarning) {
+                    if (!hasWarning) {
+                        // Submit if no warnings
+                        form.submit();
+                    }
+                });
+            }
+        });
+    }
 
     // Helper functions for modal
     function showModal(modalId) {
         const el = document.getElementById(modalId);
         if (!el) return;
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            let modal = bootstrap.Modal.getInstance(el);
-            if (!modal) modal = new bootstrap.Modal(el);
-            modal.show();
-        } else if (window.jQuery && typeof jQuery.fn.modal !== 'undefined') {
-            $(el).modal('show');
-        } else {
-            el.style.display = 'block';
-            el.classList.add('show');
-            document.body.classList.add('modal-open');
-            const backdrop = document.createElement('div');
+        
+        // نقل المودال ليكون ابناً مباشراً للـ body لتفادي مشاكل Stacking Context والـ backdrop
+        document.body.appendChild(el);
+        
+        try {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                let modal = bootstrap.Modal.getInstance(el);
+                if (!modal) modal = new bootstrap.Modal(el);
+                modal.show();
+                return;
+            }
+        } catch (e) {
+            console.warn("Bootstrap 5 Modal show failed:", e);
+        }
+
+        try {
+            if (window.jQuery && typeof jQuery.fn.modal !== 'undefined') {
+                $(el).modal('show');
+                return;
+            }
+        } catch (e) {
+            console.warn("jQuery Modal show failed:", e);
+        }
+
+        // CSS Fallback
+        el.style.display = 'block';
+        el.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        el.classList.add('show');
+        document.body.classList.add('modal-open');
+        let backdrop = document.getElementById('modal-backdrop-id');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
             backdrop.className = 'modal-backdrop fade show';
             backdrop.id = 'modal-backdrop-id';
             document.body.appendChild(backdrop);
@@ -242,18 +295,34 @@ document.addEventListener('DOMContentLoaded', function() {
     function hideModal(modalId) {
         const el = document.getElementById(modalId);
         if (!el) return;
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const modal = bootstrap.Modal.getInstance(el);
-            if (modal) modal.hide();
-        } else if (window.jQuery && typeof jQuery.fn.modal !== 'undefined') {
-            $(el).modal('hide');
-        } else {
-            el.style.display = 'none';
-            el.classList.remove('show');
-            document.body.classList.remove('modal-open');
-            const backdrop = document.getElementById('modal-backdrop-id');
-            if (backdrop) backdrop.remove();
+        
+        try {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = bootstrap.Modal.getInstance(el);
+                if (modal) {
+                    modal.hide();
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn("Bootstrap 5 Modal hide failed:", e);
         }
+
+        try {
+            if (window.jQuery && typeof jQuery.fn.modal !== 'undefined') {
+                $(el).modal('hide');
+                return;
+            }
+        } catch (e) {
+            console.warn("jQuery Modal hide failed:", e);
+        }
+
+        // CSS Fallback
+        el.style.display = 'none';
+        el.classList.remove('show');
+        document.body.classList.remove('modal-open');
+        const backdrop = document.getElementById('modal-backdrop-id');
+        if (backdrop) backdrop.remove();
     }
 
     function cancelReEnroll() {
@@ -266,6 +335,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('confirm-re-enroll-btn').addEventListener('click', function() {
         document.getElementById('re_enroll_action').value = "delete_previous_and_credit";
         hideModal('reEnrollModal');
+        if (form) {
+            form.submit();
+        }
     });
 
     document.getElementById('cancel-re-enroll-btn').addEventListener('click', cancelReEnroll);
@@ -274,7 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateCourseDetails() {
         const selectedOption = courseSelect.options[courseSelect.selectedIndex];
         
-        if (selectedOption.value) {
+        if (selectedOption && selectedOption.value) {
             const coursePrice = parseFloat(selectedOption.dataset.price) || 0;
             
             let percent = 0;
@@ -315,7 +387,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // منع اختيار تاريخ مستقبلي
-    enrollmentDateInput.max = new Date().toISOString().split('T')[0];
+    if (enrollmentDateInput) {
+        enrollmentDateInput.max = new Date().toISOString().split('T')[0];
+    }
 });
 </script>
 
@@ -348,19 +422,21 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Modal for re-enrollment confirmation -->
 <div class="modal fade" id="reEnrollModal" tabindex="-1" role="dialog" aria-labelledby="reEnrollModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
   <div class="modal-dialog modal-dialog-centered" role="document">
-    <div class="modal-content shadow">
-      <div class="modal-header bg-warning text-dark py-3">
-        <h5 class="modal-title font-weight-bold mb-0" id="reEnrollModalLabel">
-          <i class="fas fa-exclamation-triangle me-2"></i> تنبيه: تسجيل سابق منسحب / Re-enrollment Warning
+    <div class="modal-content shadow" style="border-radius: 12px; overflow: hidden; border: none;">
+      <div class="modal-header bg-warning text-dark py-3" style="display: flex; align-items: center; justify-content: space-between; width: 100%; border-bottom: 1px solid rgba(0,0,0,0.08); padding: 15px 20px;">
+        <h5 class="modal-title font-weight-bold mb-0" id="reEnrollModalLabel" style="margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-exclamation-triangle text-danger"></i> تنبيه: تسجيل سابق منسحب
         </h5>
-        <button type="button" class="btn-close" id="close-re-enroll-btn" aria-label="Close"></button>
+        <button type="button" class="close" id="close-re-enroll-btn" aria-label="Close" style="border: none; background: transparent; font-size: 1.6rem; line-height: 1; padding: 0; color: #000; opacity: 0.6; cursor: pointer; transition: opacity 0.2s;">
+          <span aria-hidden="true">&times;</span>
+        </button>
       </div>
-      <div class="modal-body py-4 text-dark" style="font-size: 15px; direction: rtl; text-align: right;">
-        <p id="reEnrollModalBodyText" class="mb-0"></p>
+      <div class="modal-body py-4 text-dark" style="font-size: 15px; direction: rtl; text-align: right; line-height: 1.6; padding: 25px 20px;">
+        <div id="reEnrollModalBodyText" class="mb-0" style="color: #333;"></div>
       </div>
-      <div class="modal-footer d-flex justify-content-center gap-3 py-3 bg-light">
-        <button type="button" class="btn btn-danger font-weight-bold px-4" id="confirm-re-enroll-btn">نعم، موافق (إعادة التسجيل واحتساب الدفعة)</button>
-        <button type="button" class="btn btn-secondary px-4" id="cancel-re-enroll-btn">إلغاء</button>
+      <div class="modal-footer d-flex justify-content-center py-3 bg-light" style="display: flex; justify-content: center; gap: 10px; padding: 15px 20px; border-top: 1px solid rgba(0,0,0,0.05);">
+        <button type="button" class="btn btn-danger font-weight-bold px-4" id="confirm-re-enroll-btn" style="font-weight: 700; border-radius: 6px; padding: 8px 20px;">نعم، موافق (إعادة التسجيل واحتساب الدفعة)</button>
+        <button type="button" class="btn btn-secondary px-4" id="cancel-re-enroll-btn" style="border-radius: 6px; padding: 8px 20px;">إلغاء</button>
       </div>
     </div>
   </div>

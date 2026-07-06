@@ -576,7 +576,7 @@ from django.utils import timezone
 @receiver(pre_save, sender=Student)
 def set_auto_academic_year(sender, instance, **kwargs):
     """تعيين الفصل الدراسي تلقائياً بناءً على تاريخ الإنشاء - نسخة مفتوحة"""
-    print(f"🎯 [DEBUG] set_auto_academic_year called for: {instance.full_name}")
+    print(f"[DEBUG] set_auto_academic_year called for: {instance.full_name}")
     
     if not instance.academic_year_id:
         from quick.models import AcademicYear
@@ -584,9 +584,9 @@ def set_auto_academic_year(sender, instance, **kwargs):
         
         # استخدام تاريخ التسجيل إذا كان موجوداً، وإلا تاريخ اليوم
         target_date = instance.registration_date or timezone.now().date()
-        print(f"📅 [DEBUG] استخدام التاريخ: {target_date}")
+        print(f"[DEBUG] using date: {target_date}")
         
-        # 🔥 البحث عن الفصول المفتوحة (بدون تاريخ انتهاء) أولاً
+        # البحث عن الفصول المفتوحة (بدون تاريخ انتهاء) أولاً
         academic_year = AcademicYear.objects.filter(
             Q(start_date__lte=target_date) &
             Q(end_date__isnull=True) &  # فقط الفصول المفتوحة
@@ -600,12 +600,12 @@ def set_auto_academic_year(sender, instance, **kwargs):
                 Q(end_date__gte=target_date) &
                 Q(is_active=True)
             ).first()
-            print(f"🔍 [DEBUG] الفصل المغلق الموجود: {academic_year}")
+            print(f"[DEBUG] closed year found: {academic_year}")
         else:
-            print(f"🔍 [DEBUG] الفصل المفتوح الموجود: {academic_year}")
+            print(f"[DEBUG] open year found: {academic_year}")
         
         if academic_year:
             instance.academic_year = academic_year
-            print(f"✅ [DEBUG] تم تعيين الفصل: {academic_year.name} (مفتوح: {academic_year.end_date is None})")
+            print(f"[DEBUG] assigned academic year: {academic_year.name} (open: {academic_year.end_date is None})")
         else:
-            print("❌ [DEBUG] لا يوجد فصل دراسي مناسب")
+            print("[DEBUG] no suitable academic year found")
