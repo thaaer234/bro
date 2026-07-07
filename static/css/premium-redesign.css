@@ -4208,3 +4208,164 @@ table a,
         align-items: stretch;
     }
 }
+
+/* ==========================================
+   premium-redesign.css: Dark Theme Overrides
+   ========================================== */
+html.theme-dark,
+html.theme-dark body {
+    --shell-bg: #090d16;
+    --page-bg: #0c1220;
+    --page-bg-soft: #111a2e;
+    --page-grid: rgba(76, 125, 255, 0.02);
+    
+    --surface-1: rgba(20, 29, 48, 0.96);
+    --surface-2: rgba(24, 35, 58, 0.88);
+    --surface-3: rgba(18, 26, 44, 0.9);
+    --surface-card: linear-gradient(180deg, rgba(24, 35, 58, 0.96), rgba(18, 26, 44, 0.9));
+    --surface-card-soft: linear-gradient(180deg, rgba(20, 30, 50, 0.96), rgba(16, 24, 40, 0.9));
+    
+    --text-1: #f3f4f6;
+    --text-2: #9ca3af;
+    --text-3: #6b7280;
+    
+    --border-subtle: rgba(76, 125, 255, 0.16);
+    --border-strong: rgba(76, 125, 255, 0.26);
+    
+    --shadow-xs: 0 10px 20px rgba(0, 0, 0, 0.35);
+    --shadow-sm: 0 18px 36px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 26px 68px rgba(0, 0, 0, 0.55);
+    --shadow-lg: 0 40px 120px rgba(0, 0, 0, 0.65);
+    
+    color: var(--text-1);
+    background-color: var(--page-bg);
+}
+
+html.theme-dark .sidebar {
+    background:
+        linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(11, 17, 28, 0.95)),
+        radial-gradient(circle at top, rgba(76, 125, 255, 0.12), transparent 0 28%);
+    border-left: 1px solid rgba(76, 125, 255, 0.16);
+}
+
+html.theme-dark .sidebar-header {
+    background:
+        linear-gradient(180deg, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.92)),
+        radial-gradient(circle at top left, rgba(49, 201, 255, 0.1), transparent 0 28%);
+    border-color: rgba(76, 125, 255, 0.2);
+}
+
+html.theme-dark .sidebar-header .user-info span {
+    color: #fff;
+}
+
+html.theme-dark .sidebar-header .user-info small {
+    color: var(--text-2);
+}
+
+html.theme-dark .menu-item {
+    color: var(--text-2);
+}
+
+html.theme-dark .menu-item:hover {
+    color: #fff;
+    background: rgba(76, 125, 255, 0.14);
+    border-color: rgba(95, 121, 196, 0.24);
+}
+
+html.theme-dark .menu-item.active {
+    color: #fff;
+    background: linear-gradient(135deg, rgba(76, 125, 255, 0.94), rgba(49, 201, 255, 0.9));
+}
+
+html.theme-dark .sidebar-shortcut {
+    color: var(--text-2);
+}
+
+html.theme-dark .sidebar-shortcut:hover {
+    color: #fff;
+    background: rgba(76, 125, 255, 0.12);
+}
+
+html.theme-dark input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+html.theme-dark select,
+html.theme-dark textarea {
+    background-color: rgba(17, 24, 39, 0.8) !important;
+    color: #fff !important;
+    border-color: rgba(76, 125, 255, 0.25) !important;
+}
+
+html.theme-dark input:focus,
+html.theme-dark select:focus,
+html.theme-dark textarea:focus {
+    border-color: var(--primary) !important;
+    background-color: rgba(17, 24, 39, 0.95) !important;
+    box-shadow: 0 0 0 4px rgba(76, 125, 255, 0.2) !important;
+}
+
+html.theme-dark .card,
+html.theme-dark .profile-panel,
+html.theme-dark .sitemap-stage,
+html.theme-dark .sitemap-screen,
+html.theme-dark .sitemap-route-group,
+html.theme-dark .sitemap-permission-card {
+    background: var(--surface-card) !important;
+    border-color: var(--border-subtle) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+html.theme-dark .table {
+    color: var(--text-1) !important;
+}
+
+html.theme-dark .table th {
+    background-color: rgba(17, 24, 39, 0.9) !important;
+    color: #fff !important;
+    border-bottom-color: rgba(76, 125, 255, 0.3) !important;
+}
+
+html.theme-dark .table td {
+    border-bottom-color: rgba(76, 125, 255, 0.15) !important;
+}
+
+html.theme-dark .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+html.theme-dark .table-striped tbody tr:hover {
+    background-color: rgba(76, 125, 255, 0.08) !important;
+}
+
+html.theme-dark .modal-content {
+    background-color: #111827 !important;
+    color: var(--text-1) !important;
+    border-color: rgba(76, 125, 255, 0.3) !important;
+}
+
+html.theme-dark .modal-header,
+html.theme-dark .modal-footer {
+    border-color: rgba(76, 125, 255, 0.2) !important;
+}
+
+html.theme-dark .modal-header .btn-close {
+    filter: invert(1);
+}
+
+html.theme-dark ::-webkit-scrollbar {
+    width: 12px;
+}
+
+html.theme-dark ::-webkit-scrollbar-track {
+    background: #090d16;
+}
+
+html.theme-dark ::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border: 3px solid #090d16;
+    border-radius: 999px;
+}
+
+html.theme-dark ::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+}
+

@@ -324,8 +324,7 @@ class Student(models.Model):
             
             # إذا تغير المبلغ الصافي، قم بتحديث القيد المحاسبي
             if old_net_amount != new_net_amount:
-                if enrollment.enrollment_journal_entry:
-                    self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
+                self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
 
     def update_enrollment_discounts(self, user):
         """تحديث جميع تسجيلات الطالب النشطة بناءً على الحسم الجديد"""
@@ -363,11 +362,11 @@ class Student(models.Model):
                 print(f"المبلغ الصافي الجديد: {new_net_amount}")
                 
                 # إذا تغير المبلغ الصافي، قم بتحديث القيد المحاسبي
-                if old_net_amount != new_net_amount and enrollment.enrollment_journal_entry:
+                if old_net_amount != new_net_amount:
                     print(f"سيتم تعديل القيد: الفرق {new_net_amount - old_net_amount}")
                     self._update_enrollment_journal_entry(enrollment, user, old_net_amount, new_net_amount)
                 else:
-                    print("لا يوجد فرق في المبلغ الصافي أو لا يوجد قيد")
+                    print("لا يوجد فرق في المبلغ الصافي")
     
     def _update_enrollment_journal_entry(self, enrollment, user, old_amount, new_amount):
         """تحديث قيد التسجيل المحاسبي بناءً على الفرق في المبلغ"""
@@ -376,7 +375,10 @@ class Student(models.Model):
         journal_entry = enrollment.enrollment_journal_entry
         
         if not journal_entry:
-            print("لا يوجد قيد تسجيل للتحرير")
+            if new_amount > 0:
+                enrollment.create_accrual_enrollment_entry(user)
+            else:
+                print("لا يوجد قيد تسجيل للتحرير")
             return
         
         # حساب الفرق في المبلغ

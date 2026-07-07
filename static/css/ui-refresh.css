@@ -830,3 +830,56 @@ label {
         min-width: 100%;
     }
 }
+
+/* ==========================================
+   ui-refresh.css: Dark Theme Overrides
+   ========================================== */
+html.theme-dark,
+html.theme-dark body.app-body {
+    --ui-bg: #090e15;
+    --ui-surface: rgba(20, 28, 41, 0.90);
+    --ui-border: rgba(15, 118, 110, 0.20);
+    --ui-border-strong: rgba(15, 118, 110, 0.30);
+    --ui-text: #e2e8f0;
+    --ui-text-soft: #94a3b8;
+    --ui-heading: #f1f5f9;
+    --ui-primary: #14b8a6;
+    --ui-primary-strong: #0d9488;
+    --ui-accent: #eab308;
+    --ui-shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.40);
+    --ui-shadow-md: 0 22px 60px rgba(0, 0, 0, 0.50);
+    background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.08), transparent 28%),
+        radial-gradient(circle at top right, rgba(234, 179, 8, 0.06), transparent 22%),
+        linear-gradient(180deg, rgba(17, 24, 39, 0.98) 0%, rgba(9, 14, 21, 0.98) 100%);
+}
+
+html.theme-dark body.app-body::before {
+    background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+}
+
+html.theme-dark .sidebar {
+    background:
+        radial-gradient(circle at top, rgba(234, 179, 8, 0.1), transparent 24%),
+        linear-gradient(180deg, #090e15 0%, #115e59 52%, #14b8a6 100%) !important;
+    box-shadow: -24px 0 60px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.theme-dark .sidebar-header {
+    background:
+        linear-gradient(180deg, rgba(20, 28, 41, 0.95), rgba(9, 14, 21, 0.92)) !important;
+    border-color: rgba(15, 118, 110, 0.3) !important;
+    box-shadow: var(--ui-shadow-sm) !important;
+}
+
+html.theme-dark .menu-group-title {
+    color: var(--ui-text-soft) !important;
+}
+
+html.theme-dark .menu-group-title:hover {
+    color: #fff !important;
+    background: rgba(15, 118, 110, 0.12) !important;
+}
+

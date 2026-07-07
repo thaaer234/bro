@@ -3,6 +3,14 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme-mode') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate">
@@ -309,5 +317,52 @@
     })();
     </script>
     {% endif %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggles = document.querySelectorAll('#sidebar-theme-toggle, .theme-toggle-btn');
+        
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+                toggles.forEach(toggle => {
+                    const icon = toggle.querySelector('i');
+                    const span = toggle.querySelector('span');
+                    if (icon) {
+                        icon.className = 'fas fa-sun text-warning';
+                    }
+                    if (span) {
+                        span.textContent = 'الوضع المضيء';
+                    }
+                });
+            } else {
+                document.documentElement.classList.remove('theme-dark');
+                toggles.forEach(toggle => {
+                    const icon = toggle.querySelector('i');
+                    const span = toggle.querySelector('span');
+                    if (icon) {
+                        icon.className = 'fas fa-moon text-secondary';
+                    }
+                    if (span) {
+                        span.textContent = 'الوضع الداكن';
+                    }
+                });
+            }
+        }
+
+        // Initialize UI on load
+        const currentTheme = localStorage.getItem('theme-mode') || 'light';
+        applyTheme(currentTheme);
+
+        toggles.forEach(toggle => {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                const isDark = document.documentElement.classList.contains('theme-dark');
+                const newTheme = isDark ? 'light' : 'dark';
+                localStorage.setItem('theme-mode', newTheme);
+                applyTheme(newTheme);
+            });
+        });
+    });
+    </script>
 </body>
 </html>

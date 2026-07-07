@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block extra_css %}
@@ -610,11 +610,20 @@
                             <i class="fas fa-chevron-left"></i>
                         </a>
 
-                        <a href="{% url 'registration:password_reset_request' %}" class="action-link">
+                        <a href="{% url 'registration:password_change' %}" class="action-link">
                             <span class="action-badge"><i class="fas fa-key"></i></span>
                             <div>
-                                <h3 class="action-heading">إدارة كلمة المرور</h3>
-                                <p class="action-copy">أرسل طلب إعادة تعيين كلمة المرور أو ابدأ إجراء الأمان عند الحاجة.</p>
+                                <h3 class="action-heading">تغيير كلمة المرور مباشرة</h3>
+                                <p class="action-copy">تغيير كلمة المرور الحالية بكلمة مرور جديدة مباشرة بدون موافقة.</p>
+                            </div>
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+
+                        <a href="{% url 'registration:password_reset_request' %}" class="action-link">
+                            <span class="action-badge"><i class="fas fa-shield-alt"></i></span>
+                            <div>
+                                <h3 class="action-heading">طلب إعادة تعيين كلمة المرور</h3>
+                                <p class="action-copy">أرسل طلب موافقة للمشرف لإعادة تعيين كلمة المرور عند نسيانها.</p>
                             </div>
                             <i class="fas fa-chevron-left"></i>
                         </a>
@@ -639,9 +648,9 @@
                                 <i class="fas fa-user-edit"></i>
                                 تعديل البيانات
                             </a>
-                            <a href="{% url 'registration:password_reset_request' %}" class="profile-btn profile-btn-secondary">
+                            <a href="{% url 'registration:password_change' %}" class="profile-btn profile-btn-secondary">
                                 <i class="fas fa-key"></i>
-                                الأمان وكلمة المرور
+                                تغيير كلمة المرور
                             </a>
                         </div>
                     </div>

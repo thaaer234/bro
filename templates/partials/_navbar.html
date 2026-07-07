@@ -432,6 +432,12 @@
             {% endif %}
         </div>
 
+        <!-- Theme Toggle -->
+        <button type="button" class="menu-item theme-toggle-btn border-0" id="sidebar-theme-toggle" style="cursor: pointer; width: calc(100% - 0.25rem); text-align: right; background: transparent; border: none; font-family: inherit; margin-bottom: 0.5rem;">
+            <i class="fas fa-moon" aria-hidden="true" style="color: var(--secondary); font-size: 1rem; width: 1.35rem; min-width: 1.35rem; text-align: center; flex: 0 0 1.35rem;"></i>
+            <span style="flex: 1 1 auto; text-align: right; font-weight: 700;">الوضع الداكن</span>
+        </button>
+
         <form action="{% url 'logout' %}" method="post" class="logout-form">
             {% csrf_token %}
             <button type="submit" class="menu-item logout-btn">
