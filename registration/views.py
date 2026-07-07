@@ -3,7 +3,6 @@ from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
-from django.contrib.auth.views import PasswordChangeView
 from django.core import signing
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
@@ -220,7 +219,11 @@ class PasswordResetConfirmView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = PasswordResetConfirmForm()
+        initial_data = {}
+        code = self.request.GET.get('code', '').strip()
+        if code:
+            initial_data['code'] = code
+        context['form'] = PasswordResetConfirmForm(initial=initial_data)
         return context
 
     def post(self, request, *args, **kwargs):
@@ -286,25 +289,5 @@ def ajax_verify_reset_code(request, code):
 
 
 
-class DirectPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
-    template_name = 'registration/password_change.html'
-    success_url = reverse_lazy('registration:profile')
-
-    def form_valid(self, form):
-        user = self.request.user
-        new_password = form.cleaned_data.get('new_password1')
-        
-        # Save password
-        response = super().form_valid(form)
-        
-        # Log to change history
-        PasswordChangeHistory.create_password_history(
-            user=user,
-            new_password=new_password,
-            changed_by=user,
-            reset_request=None
-        )
-        
-        messages.success(self.request, 'تم تعديل كلمة المرور بنجاح.')
-        return response
+# DirectPasswordChangeView removed. All password changes must go through code verification.
 
