@@ -997,13 +997,13 @@
 
     <!-- Notes Tab -->
     <div id="notes-tab" class="tab-panel">
-      <div class="tab-section">
+      <div class="tab-section mb-4">
         <div class="section-header2">
-          <h3><i class="fas fa-sticky-note"></i> الملاحظات</h3>
+          <h3><i class="fas fa-sticky-note"></i> الملاحظة العامة</h3>
         </div>
         <div class="notes-container">
           {% if student.notes %}
-            <div class="notes-content">
+            <div class="notes-content p-3 bg-light rounded" style="font-size: 14px; line-height: 1.6; color: #374151;">
               {{ student.notes|linebreaks }}
             </div>
           {% else %}
@@ -1011,8 +1011,59 @@
               <div class="empty-icon">
                 <i class="fas fa-sticky-note"></i>
               </div>
-              <h4>لا توجد ملاحظات مسجلة</h4>
-              <p>لا توجد ملاحظات خاصة بالطالب في الوقت الحالي</p>
+              <h4>لا توجد ملاحظة عامة مسجلة</h4>
+              <p>لم يتم تسجيل ملاحظة عامة للطالب في الوقت الحالي.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- سجل ملاحظات الموظفين (Staff Notes Log) -->
+      <div class="tab-section mt-4">
+        <div class="section-header2">
+          <h3><i class="fas fa-comments"></i> سجل ملاحظات الموظفين</h3>
+        </div>
+        
+        <!-- Form to add note -->
+        <div class="add-note-form-container p-3 mb-4 bg-white border rounded shadow-sm">
+          <h5 class="mb-3 text-primary" style="font-weight: 700; font-size: 15px;"><i class="fas fa-plus-circle me-1"></i> إضافة ملاحظة موظف جديدة</h5>
+          <form method="POST" action="{% url 'students:add_staff_note' student.id %}">
+            {% csrf_token %}
+            <div class="form-group mb-3">
+              <textarea name="note_text" class="form-control" rows="3" placeholder="اكتب الملاحظة هنا..." required style="resize: vertical; font-family: 'Cairo'; font-size: 14px;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm px-4" style="background-color: #1d6b63; border: none; font-family: 'Cairo'; font-weight: 700; height: 38px; border-radius: 8px; color: white;">
+              <i class="fas fa-save me-1"></i> حفظ الملاحظة
+            </button>
+          </form>
+        </div>
+
+        <!-- Notes timeline -->
+        <div class="staff-notes-list">
+          {% if staff_notes %}
+            <div class="timeline-notes" style="display: flex; flex-direction: column; gap: 16px;">
+              {% for note in staff_notes %}
+                <div class="staff-note-card p-3 border rounded shadow-sm" style="background-color: #fcfaf6; border-right: 4px solid #1d6b63 !important;">
+                  <div class="d-flex justify-content-between align-items-center mb-2" style="font-size: 12px; color: #5b6b82;">
+                    <span>
+                      <i class="fas fa-user-tie text-teal me-1"></i>
+                      بواسطة: <strong>{{ note.created_by.get_full_name|default:note.created_by.username }}</strong>
+                    </span>
+                    <span>
+                      <i class="fas fa-calendar-alt me-1"></i>
+                      {{ note.created_at|date:"Y-m-d H:i" }}
+                    </span>
+                  </div>
+                  <div class="staff-note-text mt-2" style="font-size: 14px; color: #16324f; font-weight: 600; line-height: 1.6; white-space: pre-line;">
+                    {{ note.text }}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state py-4 text-center">
+              <div class="empty-icon text-muted mb-2"><i class="fas fa-comments fa-2x"></i></div>
+              <p class="text-muted">لا توجد ملاحظات موظفين مسجلة لهذا الطالب بعد.</p>
             </div>
           {% endif %}
         </div>

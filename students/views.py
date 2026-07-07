@@ -289,6 +289,8 @@ class StudentProfileView(LoginRequiredMixin, View):
         except Exception:
             listening_assignments = []
         
+        staff_notes = student.staff_notes.select_related('created_by').order_by('-created_at')
+
         context = {
             'student': student,
             'active_enrollments': active_enrollments_data,
@@ -298,6 +300,7 @@ class StudentProfileView(LoginRequiredMixin, View):
             'receipts': receipts,
             'has_active_enrollments': len(active_enrollments_data) > 0,
             'active_enrollments_count': len(active_enrollments_data),
+            'staff_notes': staff_notes,
             
             # بيانات الأداء الأكاديمي
             'recent_exam_grades': recent_exam_grades,
@@ -3832,6 +3835,25 @@ def update_student_notes_ajax(request):
         return JsonResponse({'success': True, 'message': 'تم تحديث الملاحظات بنجاح.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+
+@require_POST
+@login_required
+def add_student_staff_note(request, student_id):
+    student = get_object_or_404(Student, id=student_id)
+    note_text = request.POST.get('note_text', '').strip()
+    if note_text:
+        from .models import StudentStaffNote
+        StudentStaffNote.objects.create(
+            student=student,
+            text=note_text,
+            created_by=request.user
+        )
+        messages.success(request, 'تمت إضافة ملاحظة الموظف بنجاح.')
+    else:
+        messages.error(request, 'لا يمكن إضافة ملاحظة فارغة.')
+        
+    return redirect('students:student_profile', student_id=student.id)
 
 
     

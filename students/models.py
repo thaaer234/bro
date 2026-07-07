@@ -551,6 +551,33 @@ class StudentWarning(models.Model):
         return f"{self.student.full_name} - {self.get_severity_display()}"
 
 
+class StudentStaffNote(models.Model):
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name='staff_notes',
+        verbose_name='الطالب'
+    )
+    text = models.TextField(verbose_name='الملاحظة')
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name='الكاتب'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الكتابة')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'ملاحظة الموظفين'
+        verbose_name_plural = 'ملاحظات الموظفين'
+
+    def __str__(self):
+        author = self.created_by.username if self.created_by else 'غير معروف'
+        return f"{self.student.full_name} - {author} - {self.created_at.date()}"
+
+
 # Signals: ensure AR account exists on create
 from accounts.models import Account  # imported here to avoid circular during app loading
 
