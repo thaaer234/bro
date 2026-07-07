@@ -1,0 +1,1023 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استمارة انتساب - {{ student.full_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #107393;
+            --primary-dark: #0d5d77;
+            --secondary-color: #523675;
+            --accent-red: #c0392b;
+            --accent-orange: #d35400;
+            --bg-light-teal: #f4f9fb;
+            --bg-light-purple: #f6f3f9;
+            --border-color: #a0beca;
+            --text-color: #2c3e50;
+            --text-muted: #7f8c8d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f3f4;
+            color: var(--text-color);
+            direction: rtl;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        /* Control Bar */
+        .control-bar {
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+        }
+
+        .control-bar-title {
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-print {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-print:hover {
+            background-color: #219653;
+        }
+
+        .btn-close {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-close:hover {
+            background-color: #c0392b;
+        }
+
+        /* Printable Pages container */
+        .pages-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        /* Printable Page Frame */
+        .page {
+            background-color: white;
+            width: 210mm;
+            height: 297mm;
+            padding: 12mm 15mm;
+            box-sizing: border-box;
+            position: relative;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Decorative double border */
+        .page-border {
+            border: 2px solid var(--primary-color);
+            outline: 1px solid var(--primary-color);
+            outline-offset: -4px;
+            padding: 22px 14px 14px 14px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        /* Ensure page elements are positioned above watermark */
+        .page-border > *:not(.watermark):not(.top-decorative-bar):not(.bottom-decorative-bar) {
+            position: relative;
+            z-index: 2;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px;
+            height: 380px;
+            background-image: url("/static/img/logo.png");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.05;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .top-decorative-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, #523675 0%, #107393 100%);
+            border-bottom: 2px solid #523675;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            z-index: 1;
+        }
+
+        .bottom-decorative-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #107393 0%, #523675 100%);
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            z-index: 1;
+        }
+
+        /* PAGE 1: Header Section */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .header-logo-title {
+            flex-grow: 1;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .institute-name {
+            font-family: 'Cairo', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--secondary-color);
+            margin-bottom: 2px;
+        }
+
+        .form-title-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 4px;
+        }
+
+        .form-subtitle-notes {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        .photo-placeholder {
+            width: 75px;
+            height: 95px;
+            border: 1px solid #7f8c8d;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-weight: 700;
+            font-size: 11px;
+            color: #34495e;
+            background-color: #fafafa;
+            margin-right: 10px;
+        }
+
+        /* Page Separator Line */
+        .color-sep-bar {
+            border-bottom: 2px dashed var(--primary-color);
+            margin: 8px 0;
+            height: 0;
+        }
+
+        /* Sections and Titles */
+        .section-title-badge {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 5px 25px 25px 5px;
+            font-size: 10.5px;
+            font-weight: 700;
+            margin: 6px 0;
+            display: inline-block;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .section-title-banner {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 40px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            margin: 8px auto;
+            display: table;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .section-instruction {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Tables & Grids */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
+        .data-table td {
+            border: 1px solid var(--border-color);
+            padding: 5px 8px;
+            vertical-align: middle;
+            font-size: 10px;
+        }
+
+        .label-cell {
+            font-weight: 700;
+            color: #2c3e50;
+            white-space: nowrap;
+        }
+
+        .value-cell {
+            color: #111;
+            font-weight: 600;
+        }
+
+        .dotted-line {
+            border-bottom: 1px dotted #95a5a6;
+            display: inline-block;
+            flex-grow: 1;
+            height: 14px;
+            margin-right: 4px;
+        }
+
+        /* Checkbox lists & grids */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+
+        .custom-chk {
+            width: 13px;
+            height: 13px;
+            border: 1px solid var(--primary-color);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 900;
+            color: var(--primary-color);
+            background-color: white;
+            border-radius: 2px;
+        }
+
+        .chk-checked {
+            background-color: var(--bg-light-teal);
+        }
+
+        .courses-grid-table td {
+            border: 1px solid var(--border-color);
+            padding: 5px 6px;
+            vertical-align: middle;
+            font-size: 9.5px;
+            background-color: #fff;
+        }
+
+        .chk-cell {
+            width: 30px;
+            text-align: center;
+            vertical-align: middle;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .text-cell {
+            color: #111;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        /* Source of knowledge row */
+        .info-source-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border: 1px solid var(--border-color);
+            padding: 6px;
+            gap: 10px;
+            background-color: var(--bg-light-teal);
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .other-source-row {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+
+        /* Medical section */
+        .medical-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
+        .medical-table td {
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            font-size: 9.5px;
+        }
+
+        .medical-label {
+            font-weight: 700;
+            background-color: var(--secondary-color);
+            color: white;
+            text-align: center;
+            width: 120px;
+        }
+
+        .medical-value {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        /* Footer illustrations & notes */
+        .page-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: auto;
+            padding-top: 6px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .footer-note-text {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .footer-illustration {
+            width: 110px;
+            height: 55px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* PAGE 2 Rules & Regulations */
+        .rules-title-header {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 5px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 800;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .rules-subtitle-header {
+            color: var(--accent-red);
+            font-size: 10px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .rule-block {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            background-color: white;
+        }
+
+        .rule-block-side-illustration {
+            width: 110px;
+            background-color: var(--bg-light-teal);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .rule-block-content {
+            flex-grow: 1;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .rule-list {
+            list-style: none;
+        }
+
+        .rule-list li {
+            position: relative;
+            padding-right: 12px;
+            margin-bottom: 4px;
+            font-size: 9px;
+            font-weight: 600;
+            text-align: justify;
+        }
+
+        .rule-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .rule-list li::before {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 5px;
+            width: 5px;
+            height: 5px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+        }
+
+        .rule-list .rule-num {
+            font-weight: 800;
+            color: var(--primary-color);
+        }
+
+        .highlight-red {
+            color: var(--accent-red);
+            font-weight: 700;
+        }
+
+        .highlight-blue {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        /* Pledge Section */
+        .pledge-section {
+            border: 1px dashed var(--accent-orange);
+            background-color: var(--bg-light-purple);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .pledge-header {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--secondary-color);
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .pledge-signature-fields {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .pledge-text {
+            font-size: 9px;
+            font-weight: 600;
+            text-align: justify;
+            line-height: 1.5;
+            color: #34495e;
+            border-top: 1px solid rgba(82, 54, 117, 0.15);
+            padding-top: 4px;
+        }
+
+        /* Admin / Discount Dotted Box */
+        .admin-discount-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .admin-box-left, .admin-box-right {
+            border: 2px dashed var(--primary-color);
+            background-color: #fafbfc;
+            border-radius: 6px;
+            padding: 8px 12px;
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .admin-field-row {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 10px;
+        }
+
+        /* Printing Adjustments */
+        @media print {
+            body {
+                background-color: white;
+                color: black;
+            }
+
+            .control-bar {
+                display: none !important;
+            }
+
+            .pages-container {
+                padding: 0;
+                gap: 0;
+            }
+
+            .page {
+                box-shadow: none;
+                margin: 0;
+                padding: 10mm 12mm;
+                page-break-after: always;
+                break-after: page;
+                height: 297mm;
+                width: 210mm;
+            }
+
+            /* Prevent browser styling differences */
+            .custom-chk {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .form-title-badge,
+            .section-title-badge,
+            .rules-title-header,
+            .courses-grid-table th,
+            .medical-label {
+                background-color: var(--primary-color) !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .courses-grid-table th {
+                background-color: var(--secondary-color) !important;
+            }
+
+            .rule-block-side-illustration {
+                background-color: var(--bg-light-teal) !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .pledge-section {
+                background-color: var(--bg-light-purple) !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .admin-box-left, .admin-box-right {
+                background-color: #fafbfc !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .watermark {
+                opacity: 0.05 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .chk-cell.chk-checked {
+                background-color: #f4f9fb !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Printable Header / Control Bar (Invisible on print) -->
+    <div class="control-bar">
+        <div class="control-bar-title">
+            <i class="fas fa-file-pdf"></i>
+            <span>استمارة تسجيل الطالب: {{ student.full_name }}</span>
+        </div>
+        <div class="control-buttons">
+            <button class="btn-print" onclick="window.print()">
+                <i class="fas fa-print"></i>
+                <span>طباعة الاستمارة</span>
+            </button>
+            <button class="btn-close" onclick="window.close()">
+                <i class="fas fa-times"></i>
+                <span>إغلاق</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Printable container -->
+    <div class="pages-container">
+
+        <!-- ================= PAGE 1 ================= -->
+        <div class="page" id="page-1">
+            <div class="page-border">
+                <div class="watermark"></div>
+                <div class="top-decorative-bar"></div>
+                <div class="bottom-decorative-bar"></div>
+                
+                <!-- Header -->
+                <div class="header-section">
+                    <div class="header-logo-title">
+                        <h1 class="institute-name">معهد اليمان للعلوم واللغات</h1>
+                        <div class="form-title-text">استمارة انتساب {{ academic_year_name }}</div>
+                        <div class="form-subtitle-notes">هذه الاستمارة مخصصة لطلاب الثالث الثانوي (العلمي - الأدبي - التمهيدي)</div>
+                    </div>
+                    <div class="photo-placeholder">
+                        <span>صورة</span>
+                        <span>الطالب/ة</span>
+                    </div>
+                </div>
+
+                <div class="color-sep-bar"></div>
+
+                <!-- Personal details section -->
+                <div>
+                    <div class="section-title-banner">قسم المعلومات الشخصية عن الطالب/ة:</div>
+                    <table class="data-table">
+                        <tr>
+                            <td class="label-cell" style="width: 12%">الاسم والشهرة:</td>
+                            <td class="value-cell" style="width: 32%">{{ student.full_name|default:"........................................................." }}</td>
+                            <td class="label-cell" style="width: 8%">الجنس:</td>
+                            <td class="value-cell" style="width: 18%">
+                                <div style="display: flex; gap: 15px;">
+                                    <div class="checkbox-container">
+                                        <div class="custom-chk {% if student.gender == 'male' %}chk-checked{% endif %}">
+                                            {% if student.gender == 'male' %}✓{% endif %}
+                                        </div>
+                                        <span>ذكر</span>
+                                    </div>
+                                    <div class="checkbox-container">
+                                        <div class="custom-chk {% if student.gender == 'female' %}chk-checked{% endif %}">
+                                            {% if student.gender == 'female' %}✓{% endif %}
+                                        </div>
+                                        <span>أنثى</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="label-cell" style="width: 14%">مكان وتاريخ الولادة:</td>
+                            <td class="value-cell" style="width: 16%">{{ student.birth_date|date:"Y/m/d"|default:"................................" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell">مكان السكن:</td>
+                            <td class="value-cell">{{ student.address|default:"........................................................." }}</td>
+                            <td class="label-cell">الهاتف الأرضي:</td>
+                            <td class="value-cell">{{ student.home_phone|default:"........................................................." }}</td>
+                            <td class="label-cell">جوال الطالب/ة:</td>
+                            <td class="value-cell">{{ student.phone|default:"........................................................." }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell">اسم الأب:</td>
+                            <td class="value-cell">{{ student.father_name|default:"........................................................." }}</td>
+                            <td class="label-cell">عمل الأب:</td>
+                            <td class="value-cell">{{ student.father_job|default:"........................................................." }}</td>
+                            <td class="label-cell">جوال الأب:</td>
+                            <td class="value-cell">{{ student.father_phone|default:"........................................................." }}</td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell">اسم الأم:</td>
+                            <td class="value-cell">{{ student.mother_name|default:"........................................................." }}</td>
+                            <td class="label-cell">عمل الأم:</td>
+                            <td class="value-cell">{{ student.mother_job|default:"........................................................." }}</td>
+                            <td class="label-cell">جوال الأم:</td>
+                            <td class="value-cell">{{ student.mother_phone|default:"........................................................." }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Academic choices section -->
+                <div>
+                    <div style="text-align: center; margin: 8px 0; font-size: 11px; font-weight: bold; color: var(--secondary-color);">
+                        الرجاء وضع  بجانب الدورة المراد اتباعها: هذه الأسئلة لطلاب الثالث الثانوي
+                    </div>
+
+                    <table class="courses-grid-table">
+                        <tbody>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_listening %}chk-checked{% endif %}">{% if is_sci_listening %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 23%;">ثالث ثانوي علمي "مستمع"</td>
+                                <td class="chk-cell {% if is_lit_listening %}chk-checked{% endif %}">{% if is_lit_listening %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 23%;">ثالث ثانوي أدبي "مستمع"</td>
+                                <td class="chk-cell {% if is_need_nomination %}chk-checked{% endif %}">{% if is_need_nomination %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">يحتاج ترشيحي</td>
+                            </tr>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_new %}chk-checked{% endif %}">{% if is_sci_new %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي علمي "مستجد"</td>
+                                <td class="chk-cell {% if is_lit_new %}chk-checked{% endif %}">{% if is_lit_new %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي أدبي "مستجد"</td>
+                                <td class="chk-cell {% if is_no_need_nomination %}chk-checked{% endif %}">{% if is_no_need_nomination %}✓{% endif %}</td>
+                                <td class="text-cell">لا يحتاج ترشيحي</td>
+                            </tr>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_repeat %}chk-checked{% endif %}">{% if is_sci_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي علمي " راسب ويعيد "</td>
+                                <td class="chk-cell {% if is_lit_repeat %}chk-checked{% endif %}">{% if is_lit_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي أدبي " راسب ويعيد"</td>
+                                <td class="chk-cell {% if is_in_school %}chk-checked{% endif %}">{% if is_in_school %}✓{% endif %}</td>
+                                <td class="text-cell">مسجل في مدرسة</td>
+                            </tr>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_pass_repeat %}chk-checked{% endif %}">{% if is_sci_pass_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي علمي "ناجح ويعيد"</td>
+                                <td class="chk-cell {% if is_lit_pass_repeat %}chk-checked{% endif %}">{% if is_lit_pass_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي أدبي "ناجح ويعيد"</td>
+                                <td class="chk-cell {% if is_not_in_school %}chk-checked{% endif %}">{% if is_not_in_school %}✓{% endif %}</td>
+                                <td class="text-cell">غير مسجل في مدرسة</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="display: flex; gap: 20px; font-weight: bold; margin-bottom: 8px; font-size: 10px;">
+                        <div style="display: flex; flex-grow: 1;">
+                            <span>المدرسة القادم منها:</span>
+                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{{ student.previous_school|default:"........................................................................" }}</span>
+                        </div>
+                        <div style="display: flex; width: 220px;">
+                            <span>مجموع التاسع:</span>
+                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{% if student.tase3 > 0 %}{{ student.tase3 }}{% else %}..............................................................................{% endif %}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reference / How knew us -->
+                <div>
+                    <div style="text-align: center; margin: 8px 0; font-size: 11px; font-weight: bold; color: var(--secondary-color);">
+                        الرجاء وضع  بجانب الإجابة الصحيحة: كيف تم الوصول إلى معهدنا
+                    </div>
+
+                    <table class="courses-grid-table" style="margin-bottom: 5px;">
+                        <tbody>
+                            <tr>
+                                <td class="chk-cell {% if is_social %}chk-checked{% endif %}">{% if is_social %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">سوشل ميديا</td>
+                                <td class="chk-cell {% if is_friend %}chk-checked{% endif %}">{% if is_friend %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">أحد الأصدقاء</td>
+                                <td class="chk-cell {% if is_tv %}chk-checked{% endif %}">{% if is_tv %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">مقابلة تلفزيونية</td>
+                                <td class="chk-cell {% if is_ads %}chk-checked{% endif %}">{% if is_ads %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">إعلانات طرقية</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="other-source-row" style="margin-top: 6px;">
+                        <span>غير ذلك:</span>
+                        <span class="dotted-line" style="color: #111; padding-right: 6px;">
+                            {% if is_other %}{{ other_source_text }}{% else %}..................................................................................................................................................................................{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Medical history -->
+                <div>
+                    <div style="text-align: center; margin-bottom: 5px;">
+                        <span class="section-title-badge" style="font-size: 11px; padding: 4px 20px; float: none;">هل لدى الطالب حالة مرضية مزمنة (إن وجدت)</span>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <!-- Illustration on the left -->
+                        <div style="width: 110px; flex-shrink: 0; display: flex; justify-content: center;">
+                            <img src="{% static 'img/registration/page1_ill.png' %}" style="max-width: 100%; height: auto;" alt="Medical Illustration">
+                        </div>
+                        <!-- Table on the right -->
+                        <div style="flex-grow: 1;">
+                            <table class="medical-table" style="margin-bottom: 0;">
+                                <tr>
+                                    <td class="medical-label">نوع/ اسم المرض</td>
+                                    <td class="medical-value">{% if has_disease %}{{ disease_name }}{% else %}................................................................................................{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td class="medical-label">أعراض المرض</td>
+                                    <td class="medical-value">................................................................................................</td>
+                                </tr>
+                                <tr>
+                                    <td class="medical-label">كيفية التعامل مع المريض</td>
+                                    <td class="medical-value">................................................................................................</td>
+                                </tr>
+                                <tr>
+                                    <td class="medical-label">رقم تواصل للطوارئ</td>
+                                    <td class="medical-value">{% if student.father_phone %}{{ student.father_phone }} (الأب){% elif student.mother_phone %}{{ student.mother_phone }} (الأم){% else %}................................................................................................{% endif %}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer of Page 1 -->
+                <div style="text-align: center; margin-top: 15px; font-size: 11px; font-weight: 800; color: var(--secondary-color); display: flex; justify-content: center; align-items: center; gap: 8px;">
+                    <span style="color: var(--primary-color); font-size: 14px;">●</span>
+                    <span>انتهى قسم المعلومات الشخصية شاكرين تعاونكم</span>
+                    <span style="color: var(--primary-color); font-size: 14px;">●</span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= PAGE 2 ================= -->
+        <div class="page" id="page-2">
+            <div class="page-border">
+                <div class="watermark"></div>
+                <div class="top-decorative-bar"></div>
+                <div class="bottom-decorative-bar"></div>
+
+                <!-- Header Rules -->
+                <div>
+                    <div class="rules-title-header">أنظمة وقوانين يجب أن يلتزم بها الطالب في معهد اليمان:</div>
+                    <div class="rules-subtitle-header">أتعهد بتنفيذ التعليمات الواردة أدناه تحت طائلة المسؤولية عند المخالفة بحسب النظام الداخلي لوزارة التربية:</div>
+                </div>
+
+                <!-- Rules block 1: Attendance and Behaviour -->
+                <div class="rule-block">
+                    <div class="rule-block-content">
+                        <ul class="rule-list">
+                            <li><span class="rule-num">1-</span> المواظبة على الدوام والاهتمام بالدروس والوظائف وسيتم إبلاغ أولياء الأمور عن أي تقصير أو مخالفة أو أي تأخير عن الدوام.</li>
+                            <li><span class="rule-num">2-</span> المحافظة على النظافة وأثاث ومحتويات المعهد.</li>
+                            <li><span class="rule-num">3-</span> مراجعة الإدارة لإبداء أي ملاحظة تهم المعهد.</li>
+                            <li><span class="rule-num">4-</span> خروج الطالب/ة من المعهد <span class="highlight-red">حصراً بحضور ولي أمره</span> إلى المعهد.</li>
+                            <li><span class="rule-num">5-</span> المحافظة على الأغراض الشخصية: <span class="highlight-blue">(نقود - ذهب - جوال ...)</span> وعدم تركها بالقاعة، <span class="highlight-red">غير مسؤولة عن فقدانها.</span></li>
+                            <li><span class="rule-num">6-</span> التقيد التام بالتعليمات الإدارية.</li>
+                            <li><span class="rule-num">7-</span> الالتزام بالشعبة التي تم وضع الطالب بها وفق ما ترى الإدارة وبما يتوافق مع تحصيله العلمي.</li>
+                        </ul>
+                    </div>
+                    <div class="rule-block-side-illustration">
+                        <img src="{% static 'img/registration/page2_ill1.png' %}" style="max-width: 100%; height: auto;" alt="Terms of Service">
+                    </div>
+                </div>
+
+                <!-- Rules block 2: Prohibitions -->
+                <div class="rule-block">
+                    <div class="rule-block-content">
+                        <ul class="rule-list">
+                            <li><span class="rule-num">1-</span> يمنع التغيب عن الدوام دون إذن مسبق من الإدارة.</li>
+                            <li><span class="rule-num">2-</span> عدم التدخين نهائياً في المعهد أو حول حرمه.</li>
+                            <li><span class="rule-num">3-</span> عدم الإساءة للنظام الداخلي وللزملاء وللمدرسين.</li>
+                            <li><span class="rule-num">4-</span> في حال حصول شجار دون الرجوع للإدارة <span class="highlight-red">يفصل الطرفان من المعهد فصلاً نهائياً</span> دون إعادة القسط لأي منهما.</li>
+                            <li><span class="rule-num">5-</span> عدم إرتداء لباس رياضي أو ضيق (الالتزام باللباس اللائق).</li>
+                            <li><span class="rule-num">6-</span> عدم التجمع أمام المعهد قبل أو بعد الدوام.</li>
+                            <li><span class="rule-num">7-</span> عدم الخروج من المعهد أثناء الدوام لأي سبب كان.</li>
+                            <li><span class="rule-num">8-</span> عدم استعمال الجوال داخل المعهد مهما كان السبب وسيتم مصادرته في حال المخالفة <span class="highlight-red">(ولا يعاد إلا بحضور ولي الأمر وتوقيع تعهد خطي).</span></li>
+                        </ul>
+                    </div>
+                    <div class="rule-block-side-illustration">
+                        <img src="{% static 'img/registration/page2_ill2.png' %}" style="max-width: 100%; height: auto;" alt="Warnings">
+                    </div>
+                </div>
+
+                <!-- Rules block 3: Financial Policy -->
+                <div class="rule-block">
+                    <div class="rule-block-content">
+                        <ul class="rule-list">
+                            <li><span class="rule-num">1-</span> الالتزام بدفع الأقساط كما يلي:
+                                <br>&nbsp;&nbsp;&nbsp;أ- الدفعة الأولى: نصف القسط عند التثبيت وقبول الطالب.
+                                <br>&nbsp;&nbsp;&nbsp;ب- الدفعة الثانية: من تاريخ 9/1 حتى تاريخ 9/15.
+                                <br>&nbsp;&nbsp;&nbsp;ج- الدفعة الثانية: من تاريخ 11/1 حتى تاريخ 11/15.
+                            </li>
+                            <li><span class="rule-num">2-</span> يمكن دفع كامل القسط قبل بداية الدورة.</li>
+                            <li><span class="rule-num">3-</span> قبل بداية الدورة:
+                                <br>&nbsp;&nbsp;&nbsp;أ- يعاد المبلغ المدفوع كاملاً، مع حسم رسوم التسجيل <span class="highlight-red">(٢٥٠.٠٠٠ ل.س).</span>
+                                <br>&nbsp;&nbsp;&nbsp;ب- خلال الأسبوع الأول <span class="highlight-blue">يعاد نصف المبلغ المدفوع.</span>
+                                <br>&nbsp;&nbsp;&nbsp;ج- بعد انتهاء الأسبوع الأول <span class="highlight-red">لا يعاد القسط مهما كان السبب</span> (الأسبوع الأول من انطلاقة الدورة وليس تاريخ التسجيل)، وذلك حسب تعليمات وزارة التربية.
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="rule-block-side-illustration">
+                        <img src="{% static 'img/registration/page2_ill3.png' %}" style="max-width: 100%; height: auto;" alt="Financial Policy">
+                    </div>
+                </div>
+
+                <!-- Pledge and sign -->
+                <div class="pledge-section">
+                    <div class="pledge-header" style="font-size: 12px; font-weight: 800; color: var(--secondary-color); margin-bottom: 8px;">في نهاية التسجيل يجب تعهد من قبل الطالب + ولي الأمر:</div>
+                    <div class="pledge-signature-fields">
+                        <div>تعهد ولي الأمر: أنا الموقع/ة أدناه: ................................................................</div>
+                        <div>ولي أمر الطالب/ة: ................................................................</div>
+                    </div>
+                    <p class="pledge-text">
+                        أتعهد بأن يلتزم ولدي بجميع الملاحظات والتعليمات المذكورة أعلاه وأسقط حقي بالمطالبة بالقسط المدفوع في حال انسحاب أو فصل ولدي من المعهد لمخالفته التعليمات السابقة وعدم المطالبة بأي جزء من المبلغ مهما كان السبب ومهما كان عدد أيام الدوام وذلك حسب تعليمات وزارة التربية.
+                    </p>
+                </div>
+
+                <!-- Office Admin Dotted Box -->
+                <div class="admin-discount-container">
+                    <!-- Right Box (Employee details) -->
+                    <div class="admin-box-right">
+                        <div class="admin-field-row">
+                            <span>اسم الموظف/ة:</span>
+                            <span class="dotted-line" style="color: #111; padding-right: 6px;">
+                                {{ student.added_by.get_full_name|default:student.added_by.username|default:"" }}
+                            </span>
+                        </div>
+                        <div class="admin-field-row" style="margin-top: auto;">
+                            <span>توقيع الموظف/ة:</span>
+                            <span class="dotted-line"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Left Box (Discount & Date) -->
+                    <div class="admin-box-left">
+                        <div class="admin-field-row">
+                            <span>قيمة الحسم (إن وجد):</span>
+                            <span class="dotted-line" style="color: var(--accent-red); font-weight: 700; padding-right: 6px;">
+                                {% if student.discount_amount > 0 %}
+                                    {{ student.discount_amount|floatformat:"0" }} ل.س
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="admin-field-row">
+                            <span>سبب الحسم:</span>
+                            <span class="dotted-line" style="color: #111; padding-right: 6px;">{{ student.discount_reason|default:"" }}</span>
+                        </div>
+                        <div class="admin-field-row">
+                            <span>تاريخ ملء الاستمارة:</span>
+                            <span class="dotted-line" style="color: #111; padding-right: 6px;">
+                                {{ student.registration_date|date:"Y/m/d" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
