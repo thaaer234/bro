@@ -79,6 +79,14 @@ class PasswordResetRequestForm(forms.Form):
             'placeholder': 'أدخل اسم المستخدم الخاص بك',
         })
     )
+    phone = forms.CharField(
+        label='رقم الهاتف المرتبط بالحساب',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'أدخل رقم الهاتف المرتبط بحسابك (مثال: 05xxxxxxxxx)',
+        })
+    )
     reason = forms.CharField(
         label='سبب طلب تعديل كلمة المرور',
         widget=forms.Textarea(attrs={
@@ -94,16 +102,57 @@ class PasswordResetRequestForm(forms.Form):
         if self.user and self.user.is_authenticated:
             self.fields['username'].required = False
             self.fields['username'].widget = forms.HiddenInput()
+            self.fields['phone'].required = False
+            self.fields['phone'].widget = forms.HiddenInput()
+        else:
+            self.fields['username'].required = True
+            self.fields['phone'].required = True
 
-    def clean_username(self):
-        username = self.cleaned_data.get('username', '').strip()
+    def clean(self):
+        cleaned_data = super().clean()
         if not self.user or not self.user.is_authenticated:
+            username = cleaned_data.get('username', '').strip()
+            phone = cleaned_data.get('phone', '').strip()
+
             if not username:
-                raise forms.ValidationError('اسم المستخدم مطلوب لطلب إعادة التعيين')
+                self.add_error('username', 'اسم المستخدم مطلوب لطلب إعادة التعيين')
+                return cleaned_data
+            if not phone:
+                self.add_error('phone', 'رقم الهاتف مطلوب لطلب إعادة التعيين')
+                return cleaned_data
+
+            # Sanitize inputs to prevent SQL injection or malicious patterns
+            import re
+            username_clean = re.sub(r'[^\w\.-]', '', username)
+            if username != username_clean:
+                self.add_error('username', 'اسم المستخدم يحتوي على رموز غير صالحة')
+                return cleaned_data
+
+            phone_clean = re.sub(r'[^\d\+]', '', phone)
+            if not phone_clean:
+                self.add_error('phone', 'رقم الهاتف يجب أن يحتوي على أرقام فقط')
+                return cleaned_data
+
             from django.contrib.auth.models import User
-            if not User.objects.filter(username=username).exists():
-                raise forms.ValidationError('اسم المستخدم غير مسجل في النظام')
-        return username
+            try:
+                target_user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                raise forms.ValidationError('اسم المستخدم أو رقم الهاتف غير مطابق للبيانات المسجلة لدينا.')
+
+            profile = getattr(target_user, 'profile', None)
+            if not profile:
+                raise forms.ValidationError('اسم المستخدم أو رقم الهاتف غير مطابق للبيانات المسجلة لدينا.')
+
+            stored_phone = (profile.phone or '').strip()
+            def normalize_phone(p):
+                return re.sub(r'\D', '', p)
+
+            if not stored_phone or normalize_phone(stored_phone) != normalize_phone(phone):
+                raise forms.ValidationError('اسم المستخدم أو رقم الهاتف غير مطابق للبيانات المسجلة لدينا.')
+
+            self.cleaned_target_user = target_user
+
+        return cleaned_data
 
 
 class PasswordResetConfirmForm(forms.Form):

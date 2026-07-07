@@ -111,8 +111,7 @@ class PasswordResetRequestView(TemplateView):
         if request.user.is_authenticated:
             target_user = request.user
         else:
-            from django.contrib.auth.models import User
-            target_user = User.objects.get(username=form.cleaned_data['username'])
+            target_user = form.cleaned_target_user
 
         profile, _ = UserProfile.objects.get_or_create(user=target_user)
         whatsapp_phone = (profile.phone or '').strip()

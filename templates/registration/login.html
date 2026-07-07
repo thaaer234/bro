@@ -13,18 +13,347 @@
     <link rel="stylesheet" href="{% static 'css/sections/registration.css' %}">
     <link rel="stylesheet" href="{% static 'css/premium-redesign.css' %}">
     <script src="{% static 'vendor/html2canvas/html2canvas.min.js' %}"></script>
+    <style>
+        /* Premium Redesign for Login Page - Material & Google Stitch Inspired */
+        body.auth-page {
+            background: radial-gradient(circle at 10% 20%, rgba(29, 107, 99, 0.12) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(163, 71, 47, 0.1) 0%, transparent 40%),
+                        linear-gradient(135deg, #0e1726 0%, #030712 100%) !important;
+            color: #f3f4f6;
+            min-height: 100vh;
+            font-family: 'Cairo', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .auth-page-shell {
+            background: none !important;
+            min-height: auto !important;
+            padding: 0 !important;
+            width: 100%;
+            max-width: 1080px;
+            z-index: 10;
+        }
+
+        .auth-layout {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            background: rgba(17, 24, 39, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 36px;
+            overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            min-height: 600px;
+        }
+
+        @media (max-width: 900px) {
+            .auth-layout {
+                grid-template-columns: 1fr;
+            }
+            .auth-showcase {
+                display: none !important;
+            }
+        }
+
+        /* Showcase Panel (Left) */
+        .auth-showcase {
+            background: linear-gradient(135deg, rgba(29, 107, 99, 0.95), rgba(15, 23, 42, 0.95)) !important;
+            padding: 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .auth-showcase::before {
+            content: "";
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(163, 71, 47, 0.2) 0%, transparent 70%);
+            top: -100px;
+            left: -100px;
+            pointer-events: none;
+        }
+
+        .welcome-kicker {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #ffd6a5;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .auth-showcase__brand {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .auth-showcase__logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: #ffffff;
+            padding: 10px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .auth-showcase__title {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 0 0 6px;
+            color: #ffffff;
+            letter-spacing: -0.02em;
+        }
+
+        .auth-showcase__copy p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.85);
+            margin: 40px 0;
+        }
+
+        .auth-metrics {
+            display: flex;
+            gap: 24px;
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 24px;
+        }
+
+        .auth-metric {
+            flex: 1;
+        }
+
+        .auth-metric strong {
+            display: block;
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .auth-metric .text-muted {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        /* Form Side (Right) */
+        .auth-card {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: auto !important;
+            max-width: none !important;
+        }
+
+        .logo2 {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .logo2 img {
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            background: #ffffff;
+            padding: 8px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            margin-bottom: 16px;
+        }
+
+        .logo2 h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff !important;
+            margin: 0;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 0 !important;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.8) !important;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 0;
+        }
+
+        .form-group label i {
+            color: #1d6b63;
+        }
+
+        .form-group input.form-control {
+            height: 52px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+            padding: 0 16px;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input.form-control::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .form-group input.form-control:focus {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: #1d6b63 !important;
+            box-shadow: 0 0 0 4px rgba(29, 107, 99, 0.2) !important;
+            outline: none;
+        }
+
+        /* Password Input Visibility toggle */
+        .password-field {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            left: 14px;
+            bottom: 10px;
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            padding: 6px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease;
+        }
+
+        .password-toggle:hover {
+            color: #ffffff;
+        }
+
+        /* Actions */
+        .form-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .btn-primary {
+            height: 52px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1d6b63 0%, #154c46 100%) !important;
+            border: none !important;
+            color: #ffffff !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 8px 20px rgba(29, 107, 99, 0.25);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(29, 107, 99, 0.35);
+            background: linear-gradient(135deg, #227e74 0%, #1a5e56 100%) !important;
+        }
+
+        .btn-outline-primary {
+            height: 52px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 700;
+            background: transparent !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: rgba(255, 255, 255, 0.8) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-outline-primary:hover {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-color: rgba(255, 255, 255, 0.25) !important;
+            color: #ffffff !important;
+        }
+
+        .auth-support {
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 12px;
+            line-height: 1.5;
+        }
+
+        /* Alerts */
+        .alert-danger {
+            background: rgba(163, 71, 47, 0.1) !important;
+            border: 1px solid rgba(163, 71, 47, 0.2) !important;
+            color: #ffd6d6 !important;
+            border-radius: 12px !important;
+            padding: 12px 16px !important;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 0 !important;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body class="auth-page auth-body-premium">
     <div class="auth-page-shell">
         <div class="auth-layout">
             <section class="auth-showcase surface-panel">
                 <div>
-                    <span class="welcome-kicker"><i class="fas fa-star"></i> Arabic-first Workspace</span>
+                    <span class="welcome-kicker"><i class="fas fa-star"></i> إدارة ذكية متكاملة</span>
                     <div class="auth-showcase__brand mt-3">
                         <img src="{% static 'img/logo.png' %}" alt="شعار معهد اليمان" class="auth-showcase__logo">
                         <div>
                             <h1 class="auth-showcase__title">معهد اليمان</h1>
-                            <div class="text-muted">منصة إدارة تعليمية حديثة وهوية تشغيل موحدة</div>
+                            <div style="color: rgba(255, 255, 255, 0.7); font-size: 14px;">منصة إدارة تعليمية حديثة وهوية تشغيل موحدة</div>
                         </div>
                     </div>
                 </div>
@@ -59,26 +388,32 @@
                     {% include "partials/_alerts.html" %}
 
                     <div class="form-group">
-                        <label for="username">اسم المستخدم</label>
-                        <input type="text" id="username" name="username" class="form-control" placeholder="أدخل اسم المستخدم" required>
+                        <label for="username">
+                            <i class="fas fa-user-circle"></i>
+                            اسم المستخدم
+                        </label>
+                        <input type="text" id="username" name="username" class="form-control" placeholder="أدخل اسم المستخدم الخاص بك" required>
                     </div>
 
                     <div class="form-group password-field">
-                        <label for="password">كلمة المرور</label>
-                        <input type="password" id="password" name="password" class="form-control" placeholder="أدخل كلمة المرور" required>
+                        <label for="password">
+                            <i class="fas fa-lock"></i>
+                            كلمة المرور
+                        </label>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="أدخل كلمة المرور الخاصة بك" required>
                         <button type="button" class="password-toggle" id="passwordToggle" aria-label="إظهار كلمة المرور">
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" name="btnlogin">
+                        <button type="submit" class="btn-primary" name="btnlogin">
                             <i class="fas fa-right-to-bracket"></i>
                             تسجيل الدخول
                         </button>
-                        <a href="{% url 'registration:password_reset_request' %}" class="btn btn-outline-primary">
+                        <a href="{% url 'registration:password_reset_request' %}" class="btn-outline-primary">
                             <i class="fas fa-key"></i>
-                            طلب إعادة تعيين كلمة المرور
+                            طلب كود تعديل كلمة المرور
                         </a>
                     </div>
 
