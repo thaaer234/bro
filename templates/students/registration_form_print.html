@@ -130,7 +130,7 @@
             border: 2px solid var(--primary-color);
             outline: 1px solid var(--primary-color);
             outline-offset: -4px;
-            padding: 8px;
+            padding: 22px 14px 14px 14px;
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -138,11 +138,58 @@
             position: relative;
         }
 
+        /* Ensure page elements are positioned above watermark */
+        .page-border > *:not(.watermark):not(.top-decorative-bar):not(.bottom-decorative-bar) {
+            position: relative;
+            z-index: 2;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px;
+            height: 380px;
+            background-image: url("/static/img/logo.png");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.05;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .top-decorative-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, #523675 0%, #107393 100%);
+            border-bottom: 2px solid #523675;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            z-index: 1;
+        }
+
+        .bottom-decorative-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #107393 0%, #523675 100%);
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            z-index: 1;
+        }
+
         /* PAGE 1: Header Section */
         .header-section {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
             margin-bottom: 8px;
             position: relative;
         }
@@ -158,26 +205,21 @@
 
         .institute-name {
             font-family: 'Cairo', sans-serif;
-            font-size: 21px;
+            font-size: 24px;
             font-weight: 800;
             color: var(--secondary-color);
-            text-shadow: 1px 1px 1px rgba(0,0,0,0.05);
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
-        .form-title-badge {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 4px 28px;
-            border-radius: 20px;
-            font-size: 13px;
+        .form-title-text {
+            font-size: 18px;
             font-weight: 700;
+            color: var(--secondary-color);
             margin-bottom: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .form-subtitle-notes {
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 600;
             color: var(--primary-dark);
         }
@@ -200,10 +242,9 @@
 
         /* Page Separator Line */
         .color-sep-bar {
-            height: 3px;
-            background: linear-gradient(90deg, var(--secondary-color) 0%, var(--primary-color) 50%, var(--secondary-color) 100%);
-            margin: 6px 0;
-            border-radius: 2px;
+            border-bottom: 2px dashed var(--primary-color);
+            margin: 8px 0;
+            height: 0;
         }
 
         /* Sections and Titles */
@@ -217,6 +258,19 @@
             margin: 6px 0;
             display: inline-block;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .section-title-banner {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 40px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            margin: 8px auto;
+            display: table;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .section-instruction {
@@ -247,7 +301,6 @@
             font-weight: 700;
             color: #2c3e50;
             white-space: nowrap;
-            background-color: var(--bg-light-teal);
         }
 
         .value-cell {
@@ -289,39 +342,26 @@
             background-color: var(--bg-light-teal);
         }
 
-        /* Course options table */
-        .courses-grid-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 8px;
-        }
-
-        .courses-grid-table th {
-            background-color: var(--secondary-color);
-            color: white;
-            padding: 4px;
-            font-size: 9.5px;
-            font-weight: 700;
-            border: 1px solid var(--secondary-color);
-        }
-
         .courses-grid-table td {
             border: 1px solid var(--border-color);
             padding: 5px 6px;
-            width: 33.33%;
-            vertical-align: top;
+            vertical-align: middle;
             font-size: 9.5px;
+            background-color: #fff;
         }
 
-        .course-option-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-            gap: 6px;
+        .chk-cell {
+            width: 30px;
+            text-align: center;
+            vertical-align: middle;
+            font-weight: bold;
+            color: var(--primary-color);
         }
 
-        .course-option-row:last-child {
-            margin-bottom: 0;
+        .text-cell {
+            color: #111;
+            font-weight: 600;
+            vertical-align: middle;
         }
 
         /* Source of knowledge row */
@@ -610,6 +650,18 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
+
+            .watermark {
+                opacity: 0.05 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .chk-cell.chk-checked {
+                background-color: #f4f9fb !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
@@ -639,12 +691,15 @@
         <!-- ================= PAGE 1 ================= -->
         <div class="page" id="page-1">
             <div class="page-border">
+                <div class="watermark"></div>
+                <div class="top-decorative-bar"></div>
+                <div class="bottom-decorative-bar"></div>
                 
                 <!-- Header -->
                 <div class="header-section">
                     <div class="header-logo-title">
                         <h1 class="institute-name">معهد اليمان للعلوم واللغات</h1>
-                        <div class="form-title-badge">استمارة انتساب {{ academic_year_name }}</div>
+                        <div class="form-title-text">استمارة انتساب {{ academic_year_name }}</div>
                         <div class="form-subtitle-notes">هذه الاستمارة مخصصة لطلاب الثالث الثانوي (العلمي - الأدبي - التمهيدي)</div>
                     </div>
                     <div class="photo-placeholder">
@@ -657,11 +712,11 @@
 
                 <!-- Personal details section -->
                 <div>
-                    <span class="section-title-badge">قسم المعلومات الشخصية عن الطالب/ة:</span>
+                    <div class="section-title-banner">قسم المعلومات الشخصية عن الطالب/ة:</div>
                     <table class="data-table">
                         <tr>
                             <td class="label-cell" style="width: 12%">الاسم والشهرة:</td>
-                            <td class="value-cell" style="width: 32%">{{ student.full_name }}</td>
+                            <td class="value-cell" style="width: 32%">{{ student.full_name|default:"........................................................." }}</td>
                             <td class="label-cell" style="width: 8%">الجنس:</td>
                             <td class="value-cell" style="width: 18%">
                                 <div style="display: flex; gap: 15px;">
@@ -680,106 +735,74 @@
                                 </div>
                             </td>
                             <td class="label-cell" style="width: 14%">مكان وتاريخ الولادة:</td>
-                            <td class="value-cell" style="width: 16%">{{ student.birth_date|date:"Y/m/d"|default:"" }}</td>
+                            <td class="value-cell" style="width: 16%">{{ student.birth_date|date:"Y/m/d"|default:"................................" }}</td>
                         </tr>
                         <tr>
                             <td class="label-cell">مكان السكن:</td>
-                            <td class="value-cell">{{ student.address|default:"" }}</td>
+                            <td class="value-cell">{{ student.address|default:"........................................................." }}</td>
                             <td class="label-cell">الهاتف الأرضي:</td>
-                            <td class="value-cell">{{ student.home_phone|default:"" }}</td>
+                            <td class="value-cell">{{ student.home_phone|default:"........................................................." }}</td>
                             <td class="label-cell">جوال الطالب/ة:</td>
-                            <td class="value-cell">{{ student.phone|default:"" }}</td>
+                            <td class="value-cell">{{ student.phone|default:"........................................................." }}</td>
                         </tr>
                         <tr>
                             <td class="label-cell">اسم الأب:</td>
-                            <td class="value-cell">{{ student.father_name|default:"" }}</td>
+                            <td class="value-cell">{{ student.father_name|default:"........................................................." }}</td>
                             <td class="label-cell">عمل الأب:</td>
-                            <td class="value-cell">{{ student.father_job|default:"" }}</td>
+                            <td class="value-cell">{{ student.father_job|default:"........................................................." }}</td>
                             <td class="label-cell">جوال الأب:</td>
-                            <td class="value-cell">{{ student.father_phone|default:"" }}</td>
+                            <td class="value-cell">{{ student.father_phone|default:"........................................................." }}</td>
                         </tr>
                         <tr>
                             <td class="label-cell">اسم الأم:</td>
-                            <td class="value-cell">{{ student.mother_name|default:"" }}</td>
+                            <td class="value-cell">{{ student.mother_name|default:"........................................................." }}</td>
                             <td class="label-cell">عمل الأم:</td>
-                            <td class="value-cell">{{ student.mother_job|default:"" }}</td>
+                            <td class="value-cell">{{ student.mother_job|default:"........................................................." }}</td>
                             <td class="label-cell">جوال الأم:</td>
-                            <td class="value-cell">{{ student.mother_phone|default:"" }}</td>
+                            <td class="value-cell">{{ student.mother_phone|default:"........................................................." }}</td>
                         </tr>
                     </table>
                 </div>
 
                 <!-- Academic choices section -->
                 <div>
-                    <div class="section-instruction">
-                        <div class="custom-chk chk-checked">✓</div>
-                        <span>الرجاء وضع ✓ بجانب الدورة المراد اتباعها: هذه الأسئلة لطلاب الثالث الثانوي</span>
+                    <div style="text-align: center; margin: 8px 0; font-size: 11px; font-weight: bold; color: var(--secondary-color);">
+                        الرجاء وضع  بجانب الدورة المراد اتباعها: هذه الأسئلة لطلاب الثالث الثانوي
                     </div>
 
                     <table class="courses-grid-table">
-                        <thead>
-                            <tr>
-                                <th>ثالث ثانوي علمي</th>
-                                <th>ثالث ثانوي أدبي</th>
-                                <th>الحالة والمدرسة</th>
-                            </tr>
-                        </thead>
                         <tbody>
                             <tr>
-                                <td>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_sci_listening %}chk-checked{% endif %}">{% if is_sci_listening %}✓{% endif %}</div>
-                                        <span>ثالث ثانوي علمي "مستمع"</span>
-                                    </div>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_sci_new %}chk-checked{% endif %}">{% if is_sci_new %}✓{% endif %}</div>
-                                        <span>ثالث ثانوي علمي "مستجد"</span>
-                                    </div>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_sci_repeat %}chk-checked{% endif %}">{% if is_sci_repeat %}✓{% endif %}</div>
-                                        <span>ثالث ثانوي علمي "راسب ويعيد"</span>
-                                    </div>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_sci_pass_repeat %}chk-checked{% endif %}">{% if is_sci_pass_repeat %}✓{% endif %}</div>
-                                        <span>ثالث ثانوي علمي "ناجح ويعيد"</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_lit_listening %}chk-checked{% endif %}">{% if is_lit_listening %}✓{% endif %}</div>
-                                        <span>ثالث ثانوي أدبي "مستمع"</span>
-                                    </div>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_lit_new %}chk-checked{% endif %}">{% if is_lit_new %}✓{% endif %}</div>
-                                        <span>ثالث ثانوي أدبي "مستجد"</span>
-                                    </div>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_lit_repeat %}chk-checked{% endif %}">{% if is_lit_repeat %}✓{% endif %}</div>
-                                        <span>ثالث ثانوي أدبي "راسب ويعيد"</span>
-                                    </div>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_lit_pass_repeat %}chk-checked{% endif %}">{% if is_lit_pass_repeat %}✓{% endif %}</div>
-                                        <span>ثالث ثانوي أدبي "ناجح ويعيد"</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_need_nomination %}chk-checked{% endif %}">{% if is_need_nomination %}✓{% endif %}</div>
-                                        <span>يحتاج ترشيحي</span>
-                                    </div>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_no_need_nomination %}chk-checked{% endif %}">{% if is_no_need_nomination %}✓{% endif %}</div>
-                                        <span>لا يحتاج ترشيحي</span>
-                                    </div>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_in_school %}chk-checked{% endif %}">{% if is_in_school %}✓{% endif %}</div>
-                                        <span>مسجل في مدرسة</span>
-                                    </div>
-                                    <div class="course-option-row">
-                                        <div class="custom-chk {% if is_not_in_school %}chk-checked{% endif %}">{% if is_not_in_school %}✓{% endif %}</div>
-                                        <span>غير مسجل في مدرسة</span>
-                                    </div>
-                                </td>
+                                <td class="chk-cell {% if is_sci_listening %}chk-checked{% endif %}">{% if is_sci_listening %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 23%;">ثالث ثانوي علمي "مستمع"</td>
+                                <td class="chk-cell {% if is_lit_listening %}chk-checked{% endif %}">{% if is_lit_listening %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 23%;">ثالث ثانوي أدبي "مستمع"</td>
+                                <td class="chk-cell {% if is_need_nomination %}chk-checked{% endif %}">{% if is_need_nomination %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">يحتاج ترشيحي</td>
+                            </tr>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_new %}chk-checked{% endif %}">{% if is_sci_new %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي علمي "مستجد"</td>
+                                <td class="chk-cell {% if is_lit_new %}chk-checked{% endif %}">{% if is_lit_new %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي أدبي "مستجد"</td>
+                                <td class="chk-cell {% if is_no_need_nomination %}chk-checked{% endif %}">{% if is_no_need_nomination %}✓{% endif %}</td>
+                                <td class="text-cell">لا يحتاج ترشيحي</td>
+                            </tr>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_repeat %}chk-checked{% endif %}">{% if is_sci_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي علمي " راسب ويعيد "</td>
+                                <td class="chk-cell {% if is_lit_repeat %}chk-checked{% endif %}">{% if is_lit_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي أدبي " راسب ويعيد"</td>
+                                <td class="chk-cell {% if is_in_school %}chk-checked{% endif %}">{% if is_in_school %}✓{% endif %}</td>
+                                <td class="text-cell">مسجل في مدرسة</td>
+                            </tr>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_pass_repeat %}chk-checked{% endif %}">{% if is_sci_pass_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي علمي "ناجح ويعيد"</td>
+                                <td class="chk-cell {% if is_lit_pass_repeat %}chk-checked{% endif %}">{% if is_lit_pass_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي أدبي "ناجح ويعيد"</td>
+                                <td class="chk-cell {% if is_not_in_school %}chk-checked{% endif %}">{% if is_not_in_school %}✓{% endif %}</td>
+                                <td class="text-cell">غير مسجل في مدرسة</td>
                             </tr>
                         </tbody>
                     </table>
@@ -787,44 +810,39 @@
                     <div style="display: flex; gap: 20px; font-weight: bold; margin-bottom: 8px; font-size: 10px;">
                         <div style="display: flex; flex-grow: 1;">
                             <span>المدرسة القادم منها:</span>
-                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{{ student.previous_school|default:"" }}</span>
+                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{{ student.previous_school|default:"........................................................................" }}</span>
                         </div>
                         <div style="display: flex; width: 220px;">
                             <span>مجموع التاسع:</span>
-                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{% if student.tase3 > 0 %}{{ student.tase3 }}{% endif %}</span>
+                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{% if student.tase3 > 0 %}{{ student.tase3 }}{% else %}..............................................................................{% endif %}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Reference / How knew us -->
                 <div>
-                    <div class="section-instruction">
-                        <div class="custom-chk chk-checked">✓</div>
-                        <span>الرجاء وضع ✓ بجانب الإجابة الصحيحة: كيف تم الوصول إلى معهدنا</span>
+                    <div style="text-align: center; margin: 8px 0; font-size: 11px; font-weight: bold; color: var(--secondary-color);">
+                        الرجاء وضع  بجانب الإجابة الصحيحة: كيف تم الوصول إلى معهدنا
                     </div>
 
-                    <div class="info-source-grid">
-                        <div class="checkbox-container">
-                            <div class="custom-chk {% if is_social %}chk-checked{% endif %}">{% if is_social %}✓{% endif %}</div>
-                            <span>سوشل ميديا</span>
-                        </div>
-                        <div class="checkbox-container">
-                            <div class="custom-chk {% if is_friend %}chk-checked{% endif %}">{% if is_friend %}✓{% endif %}</div>
-                            <span>أحد الأصدقاء</span>
-                        </div>
-                        <div class="checkbox-container">
-                            <div class="custom-chk {% if is_tv %}chk-checked{% endif %}">{% if is_tv %}✓{% endif %}</div>
-                            <span>مقابلة تلفزيونية</span>
-                        </div>
-                        <div class="checkbox-container">
-                            <div class="custom-chk {% if is_ads %}chk-checked{% endif %}">{% if is_ads %}✓{% endif %}</div>
-                            <span>إعلانات طرقية</span>
-                        </div>
-                    </div>
+                    <table class="courses-grid-table" style="margin-bottom: 5px;">
+                        <tbody>
+                            <tr>
+                                <td class="chk-cell {% if is_social %}chk-checked{% endif %}">{% if is_social %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">سوشل ميديا</td>
+                                <td class="chk-cell {% if is_friend %}chk-checked{% endif %}">{% if is_friend %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">أحد الأصدقاء</td>
+                                <td class="chk-cell {% if is_tv %}chk-checked{% endif %}">{% if is_tv %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">مقابلة تلفزيونية</td>
+                                <td class="chk-cell {% if is_ads %}chk-checked{% endif %}">{% if is_ads %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">إعلانات طرقية</td>
+                            </tr>
+                        </tbody>
+                    </table>
                     <div class="other-source-row" style="margin-top: 6px;">
                         <span>غير ذلك:</span>
                         <span class="dotted-line" style="color: #111; padding-right: 6px;">
-                            {% if is_other %}{{ other_source_text }}{% endif %}
+                            {% if is_other %}{{ other_source_text }}{% else %}..................................................................................................................................................................................{% endif %}
                         </span>
                     </div>
                 </div>
@@ -876,6 +894,9 @@
         <!-- ================= PAGE 2 ================= -->
         <div class="page" id="page-2">
             <div class="page-border">
+                <div class="watermark"></div>
+                <div class="top-decorative-bar"></div>
+                <div class="bottom-decorative-bar"></div>
 
                 <!-- Header Rules -->
                 <div>
@@ -926,12 +947,13 @@
                         <ul class="rule-list">
                             <li><span class="rule-num">1-</span> الالتزام بدفع الأقساط كما يلي:
                                 <br>&nbsp;&nbsp;&nbsp;أ- الدفعة الأولى: نصف القسط عند التثبيت وقبول الطالب.
-                                <br>&nbsp;&nbsp;&nbsp;ب- الدفعة الثانية: من تاريخ 6/1 حتى تاريخ 6/5.
+                                <br>&nbsp;&nbsp;&nbsp;ب- الدفعة الثانية: من تاريخ 9/1 حتى تاريخ 9/15.
+                                <br>&nbsp;&nbsp;&nbsp;ج- الدفعة الثانية: من تاريخ 11/1 حتى تاريخ 11/15.
                             </li>
                             <li><span class="rule-num">2-</span> يمكن دفع كامل القسط قبل بداية الدورة.</li>
                             <li><span class="rule-num">3-</span> قبل بداية الدورة:
-                                <br>&nbsp;&nbsp;&nbsp;أ- يعاد المبلغ المدفوع كاملاً، مع حسم رسوم التسجيل <span class="highlight-red">(200.000 ل.س).</span>
-                                <br>&nbsp;&nbsp;&nbsp;ب- خلال الأسبوع الأول <span class="highlight-blue">يُعاد نصف المبلغ المدفوع.</span>
+                                <br>&nbsp;&nbsp;&nbsp;أ- يعاد المبلغ المدفوع كاملاً، مع حسم رسوم التسجيل <span class="highlight-red">(٢٥٠.٠٠٠ ل.س).</span>
+                                <br>&nbsp;&nbsp;&nbsp;ب- خلال الأسبوع الأول <span class="highlight-blue">يعاد نصف المبلغ المدفوع.</span>
                                 <br>&nbsp;&nbsp;&nbsp;ج- بعد انتهاء الأسبوع الأول <span class="highlight-red">لا يعاد القسط مهما كان السبب</span> (الأسبوع الأول من انطلاقة الدورة وليس تاريخ التسجيل)، وذلك حسب تعليمات وزارة التربية.
                             </li>
                         </ul>

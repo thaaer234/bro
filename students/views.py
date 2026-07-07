@@ -3860,7 +3860,7 @@ def add_student_staff_note(request, student_id):
 def print_registration_form(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     academic_year = student.academic_year
-    academic_year_name = academic_year.name if academic_year else "صيف 2025 / 2026 م"
+    academic_year_name = academic_year.name if academic_year else "شتاء 2026 / 2027 م"
     
     # Process how_knew_us choice to match checkbox labels
     how_knew = student.how_knew_us
