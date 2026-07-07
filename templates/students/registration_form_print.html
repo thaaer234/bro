@@ -318,21 +318,18 @@
         }
 
         .data-table td {
-            border: 1px solid var(--border-color);
-            padding: 5px 8px;
+            border: 1px solid #7f8c8d;
+            padding: 6px 8px;
             vertical-align: middle;
             font-size: 10px;
-        }
-
-        .label-cell {
-            font-weight: 700;
-            color: #2c3e50;
-            white-space: nowrap;
-        }
-
-        .value-cell {
-            color: #111;
+            color: #000;
             font-weight: 600;
+        }
+
+        .val-text {
+            color: var(--primary-dark);
+            font-weight: 700;
+            padding-right: 4px;
         }
 
         .dotted-line {
@@ -369,11 +366,19 @@
             background-color: var(--bg-light-teal);
         }
 
+        .courses-grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
         .courses-grid-table td {
-            border: 1px solid var(--border-color);
-            padding: 5px 6px;
+            border: 1px solid #7f8c8d;
+            padding: 6px 8px;
             vertical-align: middle;
-            font-size: 9.5px;
+            font-size: 10px;
+            color: #000;
+            font-weight: 600;
             background-color: #fff;
         }
 
@@ -382,13 +387,9 @@
             text-align: center;
             vertical-align: middle;
             font-weight: bold;
+            font-size: 11px;
             color: var(--primary-color);
-        }
-
-        .text-cell {
-            color: #111;
-            font-weight: 600;
-            vertical-align: middle;
+            background-color: #fff;
         }
 
         /* Source of knowledge row */
@@ -725,7 +726,7 @@
                 <!-- Header -->
                 <div class="header-section">
                     <div class="header-logo-title">
-                        <h1 class="institute-name">معهد اليمان للعلوم واللغات</h1>
+                        <h1 class="institute-name">معهدُ <span style="color: var(--secondary-color);">اليمانِ</span> للعلومِ والّلغاتِ</h1>
                         <div class="form-title-text">استمارة انتساب {{ academic_year_name }}</div>
                         <div class="form-subtitle-notes">هذه الاستمارة مخصصة لطلاب الثالث الثانوي (العلمي - الأدبي - التمهيدي)</div>
                     </div>
@@ -742,51 +743,24 @@
                     <div class="section-title-banner">قسم المعلومات الشخصية عن الطالب/ة:</div>
                     <table class="data-table">
                         <tr>
-                            <td class="label-cell" style="width: 12%">الاسم والشهرة:</td>
-                            <td class="value-cell" style="width: 32%">{{ student.full_name|default:"........................................................." }}</td>
-                            <td class="label-cell" style="width: 8%">الجنس:</td>
-                            <td class="value-cell" style="width: 18%">
-                                <div style="display: flex; gap: 15px;">
-                                    <div class="checkbox-container">
-                                        <div class="custom-chk {% if student.gender == 'male' %}chk-checked{% endif %}">
-                                            {% if student.gender == 'male' %}✓{% endif %}
-                                        </div>
-                                        <span>ذكر</span>
-                                    </div>
-                                    <div class="checkbox-container">
-                                        <div class="custom-chk {% if student.gender == 'female' %}chk-checked{% endif %}">
-                                            {% if student.gender == 'female' %}✓{% endif %}
-                                        </div>
-                                        <span>أنثى</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="label-cell" style="width: 14%">مكان وتاريخ الولادة:</td>
-                            <td class="value-cell" style="width: 16%">{{ student.birth_date|date:"Y/m/d"|default:"................................" }}</td>
+                            <td style="width: 40%">الاسم والشهرة: <span class="val-text">{{ student.full_name|default:"........................................................." }}</span></td>
+                            <td style="width: 25%">الجنس: ذكر <span class="custom-chk {% if student.gender == 'male' %}chk-checked{% endif %}">{% if student.gender == 'male' %}✓{% else %}{% endif %}</span> &nbsp;&nbsp; أنثى <span class="custom-chk {% if student.gender == 'female' %}chk-checked{% endif %}">{% if student.gender == 'female' %}✓{% else %}{% endif %}</span></td>
+                            <td style="width: 35%">مكان وتاريخ الولادة: <span class="val-text">{{ student.birth_date|date:"Y/m/d"|default:"................................" }}</span></td>
                         </tr>
                         <tr>
-                            <td class="label-cell">مكان السكن:</td>
-                            <td class="value-cell">{{ student.address|default:"........................................................." }}</td>
-                            <td class="label-cell">الهاتف الأرضي:</td>
-                            <td class="value-cell">{{ student.home_phone|default:"........................................................." }}</td>
-                            <td class="label-cell">جوال الطالب/ة:</td>
-                            <td class="value-cell">{{ student.phone|default:"........................................................." }}</td>
+                            <td>مكان السكن: <span class="val-text">{{ student.address|default:"........................................................." }}</span></td>
+                            <td>هاتف أرضي: <span class="val-text">{{ student.home_phone|default:"........................................................." }}</span></td>
+                            <td>جوال الطالب/ة: <span class="val-text">{{ student.phone|default:"........................................................." }}</span></td>
                         </tr>
                         <tr>
-                            <td class="label-cell">اسم الأب:</td>
-                            <td class="value-cell">{{ student.father_name|default:"........................................................." }}</td>
-                            <td class="label-cell">عمل الأب:</td>
-                            <td class="value-cell">{{ student.father_job|default:"........................................................." }}</td>
-                            <td class="label-cell">جوال الأب:</td>
-                            <td class="value-cell">{{ student.father_phone|default:"........................................................." }}</td>
+                            <td>اسم الأب: <span class="val-text">{{ student.father_name|default:"........................................................." }}</span></td>
+                            <td>عمل الأب: <span class="val-text">{{ student.father_job|default:"........................................................." }}</span></td>
+                            <td>جوال الأب: <span class="val-text">{{ student.father_phone|default:"........................................................." }}</span></td>
                         </tr>
                         <tr>
-                            <td class="label-cell">اسم الأم:</td>
-                            <td class="value-cell">{{ student.mother_name|default:"........................................................." }}</td>
-                            <td class="label-cell">عمل الأم:</td>
-                            <td class="value-cell">{{ student.mother_job|default:"........................................................." }}</td>
-                            <td class="label-cell">جوال الأم:</td>
-                            <td class="value-cell">{{ student.mother_phone|default:"........................................................." }}</td>
+                            <td>اسم الأم: <span class="val-text">{{ student.mother_name|default:"........................................................." }}</span></td>
+                            <td>عمل الأم: <span class="val-text">{{ student.mother_job|default:"........................................................." }}</span></td>
+                            <td>جوال الأم: <span class="val-text">{{ student.mother_phone|default:"........................................................." }}</span></td>
                         </tr>
                     </table>
                 </div>
@@ -800,50 +774,51 @@
                     <table class="courses-grid-table">
                         <tbody>
                             <tr>
-                                <td class="chk-cell {% if is_sci_listening %}chk-checked{% endif %}">{% if is_sci_listening %}✓{% endif %}</td>
-                                <td class="text-cell" style="width: 23%;">ثالث ثانوي علمي "مستمع"</td>
-                                <td class="chk-cell {% if is_lit_listening %}chk-checked{% endif %}">{% if is_lit_listening %}✓{% endif %}</td>
-                                <td class="text-cell" style="width: 23%;">ثالث ثانوي أدبي "مستمع"</td>
-                                <td class="chk-cell {% if is_need_nomination %}chk-checked{% endif %}">{% if is_need_nomination %}✓{% endif %}</td>
-                                <td class="text-cell" style="width: 20%;">يحتاج ترشيحي</td>
+                                <td style="width: 28%;">ثالث ثانوي علمي "مستمع"</td>
+                                <td class="chk-cell {% if is_sci_listening %}chk-checked{% endif %}">{% if is_sci_listening %}✓{% else %}{% endif %}</td>
+                                <td style="width: 2%; border: none; background: transparent;"></td>
+                                <td style="width: 28%;">ثالث ثانوي أدبي "مستمع"</td>
+                                <td class="chk-cell {% if is_lit_listening %}chk-checked{% endif %}">{% if is_lit_listening %}✓{% else %}{% endif %}</td>
+                                <td style="width: 2%; border: none; background: transparent;"></td>
+                                <td style="width: 20%;">يحتاج ترشيحي</td>
+                                <td class="chk-cell {% if is_need_nomination %}chk-checked{% endif %}">{% if is_need_nomination %}✓{% else %}{% endif %}</td>
                             </tr>
                             <tr>
-                                <td class="chk-cell {% if is_sci_new %}chk-checked{% endif %}">{% if is_sci_new %}✓{% endif %}</td>
-                                <td class="text-cell">ثالث ثانوي علمي "مستجد"</td>
-                                <td class="chk-cell {% if is_lit_new %}chk-checked{% endif %}">{% if is_lit_new %}✓{% endif %}</td>
-                                <td class="text-cell">ثالث ثانوي أدبي "مستجد"</td>
-                                <td class="chk-cell {% if is_no_need_nomination %}chk-checked{% endif %}">{% if is_no_need_nomination %}✓{% endif %}</td>
-                                <td class="text-cell">لا يحتاج ترشيحي</td>
+                                <td>ثالث ثانوي علمي "مستجد"</td>
+                                <td class="chk-cell {% if is_sci_new %}chk-checked{% endif %}">{% if is_sci_new %}✓{% else %}{% endif %}</td>
+                                <td style="border: none; background: transparent;"></td>
+                                <td>ثالث ثانوي أدبي "مستجد"</td>
+                                <td class="chk-cell {% if is_lit_new %}chk-checked{% endif %}">{% if is_lit_new %}✓{% else %}{% endif %}</td>
+                                <td style="border: none; background: transparent;"></td>
+                                <td>لا يحتاج ترشيحي</td>
+                                <td class="chk-cell {% if is_no_need_nomination %}chk-checked{% endif %}">{% if is_no_need_nomination %}✓{% else %}{% endif %}</td>
                             </tr>
                             <tr>
-                                <td class="chk-cell {% if is_sci_repeat %}chk-checked{% endif %}">{% if is_sci_repeat %}✓{% endif %}</td>
-                                <td class="text-cell">ثالث ثانوي علمي " راسب ويعيد "</td>
-                                <td class="chk-cell {% if is_lit_repeat %}chk-checked{% endif %}">{% if is_lit_repeat %}✓{% endif %}</td>
-                                <td class="text-cell">ثالث ثانوي أدبي " راسب ويعيد"</td>
-                                <td class="chk-cell {% if is_in_school %}chk-checked{% endif %}">{% if is_in_school %}✓{% endif %}</td>
-                                <td class="text-cell">مسجل في مدرسة</td>
+                                <td>ثالث ثانوي علمي "راسب ويعيد"</td>
+                                <td class="chk-cell {% if is_sci_repeat %}chk-checked{% endif %}">{% if is_sci_repeat %}✓{% else %}{% endif %}</td>
+                                <td style="border: none; background: transparent;"></td>
+                                <td>ثالث ثانوي أدبي "راسب ويعيد"</td>
+                                <td class="chk-cell {% if is_lit_repeat %}chk-checked{% endif %}">{% if is_lit_repeat %}✓{% else %}{% endif %}</td>
+                                <td style="border: none; background: transparent;"></td>
+                                <td>مسجل في مدرسة</td>
+                                <td class="chk-cell {% if is_in_school %}chk-checked{% endif %}">{% if is_in_school %}✓{% else %}{% endif %}</td>
                             </tr>
                             <tr>
-                                <td class="chk-cell {% if is_sci_pass_repeat %}chk-checked{% endif %}">{% if is_sci_pass_repeat %}✓{% endif %}</td>
-                                <td class="text-cell">ثالث ثانوي علمي "ناجح ويعيد"</td>
-                                <td class="chk-cell {% if is_lit_pass_repeat %}chk-checked{% endif %}">{% if is_lit_pass_repeat %}✓{% endif %}</td>
-                                <td class="text-cell">ثالث ثانوي أدبي "ناجح ويعيد"</td>
-                                <td class="chk-cell {% if is_not_in_school %}chk-checked{% endif %}">{% if is_not_in_school %}✓{% endif %}</td>
-                                <td class="text-cell">غير مسجل في مدرسة</td>
+                                <td>ثالث ثانوي علمي "ناجح ويعيد"</td>
+                                <td class="chk-cell {% if is_pass_repeat or is_sci_pass_repeat %}chk-checked{% endif %}">{% if is_pass_repeat or is_sci_pass_repeat %}✓{% else %}{% endif %}</td>
+                                <td style="border: none; background: transparent;"></td>
+                                <td>ثالث ثانوي أدبي "ناجح ويعيد"</td>
+                                <td class="chk-cell {% if is_lit_pass_repeat %}chk-checked{% endif %}">{% if is_lit_pass_repeat %}✓{% else %}{% endif %}</td>
+                                <td style="border: none; background: transparent;"></td>
+                                <td>غير مسجل في مدرسة</td>
+                                <td class="chk-cell {% if is_not_in_school %}chk-checked{% endif %}">{% if is_not_in_school %}✓{% else %}{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" style="font-weight: bold; font-size: 10px;">المدرسة القادم منها: <span class="val-text">{{ student.previous_school|default:"........................................................................" }}</span></td>
+                                <td colspan="4" style="font-weight: bold; font-size: 10px;">مجموع التاسع: <span class="val-text">{% if student.tase3 > 0 %}{{ student.tase3 }}{% else %}..............................................................................{% endif %}</span></td>
                             </tr>
                         </tbody>
                     </table>
-
-                    <div style="display: flex; gap: 20px; font-weight: bold; margin-bottom: 8px; font-size: 10px;">
-                        <div style="display: flex; flex-grow: 1;">
-                            <span>المدرسة القادم منها:</span>
-                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{{ student.previous_school|default:"........................................................................" }}</span>
-                        </div>
-                        <div style="display: flex; width: 220px;">
-                            <span>مجموع التاسع:</span>
-                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{% if student.tase3 > 0 %}{{ student.tase3 }}{% else %}..............................................................................{% endif %}</span>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Reference / How knew us -->
@@ -855,23 +830,20 @@
                     <table class="courses-grid-table" style="margin-bottom: 5px;">
                         <tbody>
                             <tr>
-                                <td class="chk-cell {% if is_social %}chk-checked{% endif %}">{% if is_social %}✓{% endif %}</td>
-                                <td class="text-cell" style="width: 20%;">سوشل ميديا</td>
-                                <td class="chk-cell {% if is_friend %}chk-checked{% endif %}">{% if is_friend %}✓{% endif %}</td>
-                                <td class="text-cell" style="width: 20%;">أحد الأصدقاء</td>
-                                <td class="chk-cell {% if is_tv %}chk-checked{% endif %}">{% if is_tv %}✓{% endif %}</td>
-                                <td class="text-cell" style="width: 20%;">مقابلة تلفزيونية</td>
-                                <td class="chk-cell {% if is_ads %}chk-checked{% endif %}">{% if is_ads %}✓{% endif %}</td>
-                                <td class="text-cell" style="width: 20%;">إعلانات طرقية</td>
+                                <td style="width: 20%;">سوشل ميديا</td>
+                                <td class="chk-cell {% if is_social %}chk-checked{% endif %}">{% if is_social %}✓{% else %}{% endif %}</td>
+                                <td style="width: 20%;">أحد الأصدقاء</td>
+                                <td class="chk-cell {% if is_friend %}chk-checked{% endif %}">{% if is_friend %}✓{% else %}{% endif %}</td>
+                                <td style="width: 20%;">مقابلة تلفزيونية</td>
+                                <td class="chk-cell {% if is_tv %}chk-checked{% endif %}">{% if is_tv %}✓{% else %}{% endif %}</td>
+                                <td style="width: 20%;">إعلانات طرقية</td>
+                                <td class="chk-cell {% if is_ads %}chk-checked{% endif %}">{% if is_ads %}✓{% else %}{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="8">غير ذلك: <span class="val-text">{% if is_other %}{{ other_source_text }}{% else %}..................................................................................................................................................................................{% endif %}</span></td>
                             </tr>
                         </tbody>
                     </table>
-                    <div class="other-source-row" style="margin-top: 6px;">
-                        <span>غير ذلك:</span>
-                        <span class="dotted-line" style="color: #111; padding-right: 6px;">
-                            {% if is_other %}{{ other_source_text }}{% else %}..................................................................................................................................................................................{% endif %}
-                        </span>
-                    </div>
                 </div>
 
                 <!-- Medical history -->
@@ -977,8 +949,7 @@
                                 <br>&nbsp;&nbsp;&nbsp;ب- الدفعة الثانية: من تاريخ 9/1 حتى تاريخ 9/15.
                                 <br>&nbsp;&nbsp;&nbsp;ج- الدفعة الثانية: من تاريخ 11/1 حتى تاريخ 11/15.
                             </li>
-                            <li><span class="rule-num">2-</span> يمكن دفع كامل القسط قبل بداية الدورة.</li>
-                            <li><span class="rule-num">3-</span> قبل بداية الدورة:
+                            <li><span class="rule-num">2-</span> قبل بداية الدورة:
                                 <br>&nbsp;&nbsp;&nbsp;أ- يعاد المبلغ المدفوع كاملاً، مع حسم رسوم التسجيل <span class="highlight-red">(٢٥٠.٠٠٠ ل.س).</span>
                                 <br>&nbsp;&nbsp;&nbsp;ب- خلال الأسبوع الأول <span class="highlight-blue">يعاد نصف المبلغ المدفوع.</span>
                                 <br>&nbsp;&nbsp;&nbsp;ج- بعد انتهاء الأسبوع الأول <span class="highlight-red">لا يعاد القسط مهما كان السبب</span> (الأسبوع الأول من انطلاقة الدورة وليس تاريخ التسجيل)، وذلك حسب تعليمات وزارة التربية.
