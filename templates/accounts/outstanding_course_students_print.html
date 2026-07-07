@@ -5,73 +5,341 @@
 <head>
     <meta charset="UTF-8">
     <title>طباعة كشف طلاب الدورة - {{ course.name }}</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
     <style>
+        /* Premium A4 Print Design - Standard Plain CSS (No CDNs required) */
         body {
-            font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+            color: #111827;
+            margin: 0;
+            padding: 8mm;
+            direction: rtl;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
+
         @page {
             size: A4 portrait;
-            margin: 12mm 12mm 15mm 12mm;
+            margin: 10mm 10mm 12mm 10mm;
         }
+
+        /* Action bar for screen only */
+        .no-print-bar {
+            background-color: #f3f4f6;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .btn-action {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            font-family: 'Cairo', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-print {
+            background-color: #1d6b63;
+            color: #ffffff;
+            text-decoration: none;
+        }
+        
+        .btn-print:hover {
+            background-color: #154c46;
+        }
+        
+        .btn-close {
+            background-color: #6b7280;
+            color: #ffffff;
+            text-decoration: none;
+        }
+        
+        .btn-close:hover {
+            background-color: #4b5563;
+        }
+
         @media print {
-            .no-print {
+            .no-print-bar {
                 display: none !important;
             }
             body {
-                padding: 0 !important;
-                background-color: #fff !important;
+                padding: 0;
             }
-            /* Force print colors */
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
+        }
+
+        /* Official Report Header */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1d6b63;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+
+        .institute-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .institute-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            padding: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .institute-name h3 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 900;
+            color: #1d6b63;
+        }
+
+        .institute-name p {
+            margin: 4px 0 0 0;
+            font-size: 13px;
+            color: #4b5563;
+            font-weight: 700;
+        }
+
+        .report-meta {
+            text-align: left;
+            font-size: 12px;
+            color: #374151;
+            line-height: 1.6;
+            font-weight: 600;
+        }
+
+        .report-meta span {
+            display: block;
+        }
+        
+        .report-meta strong {
+            color: #1d6b63;
+        }
+
+        /* Report Title */
+        .report-title-section {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .report-title-box {
+            display: inline-block;
+            border-bottom: 2px solid #1f2937;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+
+        .report-title-box h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 900;
+            color: #111827;
+        }
+
+        .report-subtitle {
+            font-size: 15px;
+            font-weight: 800;
+            color: #1d6b63;
+        }
+
+        .report-filter-desc {
+            font-size: 12px;
+            color: #4b5563;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Financial Summary Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            background-color: #f9fafb;
+        }
+
+        .summary-card.teal-bg {
+            background-color: #f0fdfa;
+            border-color: #99f6e4;
+        }
+
+        .summary-card.red-bg {
+            background-color: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .summary-card-title {
+            margin: 0 0 6px 0;
+            font-size: 11px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+
+        .summary-card-value {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 900;
+            color: #111827;
+        }
+        
+        .summary-card.teal-bg .summary-card-value {
+            color: #115e59;
+        }
+        
+        .summary-card.red-bg .summary-card-value {
+            color: #991b1b;
+        }
+
+        /* Printable Table */
+        .data-table-container {
+            width: 100%;
+            overflow: visible;
+            margin-bottom: 30px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .data-table th, 
+        .data-table td {
+            border: 1px solid #4b5563;
+            padding: 10px 12px;
+            text-align: right;
+            vertical-align: middle;
+        }
+
+        .data-table th {
+            background-color: #f3f4f6 !important;
+            color: #111827 !important;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        .cell-center {
+            text-align: center !important;
+        }
+
+        .cell-amount {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 700;
+            text-align: left !important;
+            direction: ltr !important;
+        }
+
+        .cell-student-name {
+            font-weight: 800;
+            color: #111827;
+        }
+
+        .cell-phone {
+            display: block;
+            font-size: 10px;
+            font-weight: normal;
+            color: #4b5563;
+            margin-top: 2px;
+        }
+
+        .remaining-alert {
+            color: #b91c1c;
+            font-weight: 900;
+        }
+
+        /* Signatures Section */
+        .signatures-section {
+            margin-top: 60px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .signature-box {
+            padding-top: 40px;
+            border-top: 1px dashed #9ca3af;
+            color: #374151;
         }
     </style>
 </head>
-<body class="bg-white text-black p-6 md:p-10">
+<body>
 
-    <!-- Action Bar (no-print) -->
-    <div class="no-print mb-6 p-4 bg-gray-100 border-b border-gray-200 rounded-xl flex justify-between items-center shadow-sm">
-        <div class="flex items-center gap-2 text-teal-800 font-bold">
-            <i class="fas fa-file-pdf text-lg"></i>
-            <span>معاينة الطباعة لكشف الدورة (A4)</span>
+    <!-- Floating Action Bar (Screen Only) -->
+    <div class="no-print-bar">
+        <div style="color: #1d6b63; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-file-pdf" style="font-size: 16px;"></i>
+            <span>معاينة الطباعة لكشف طلاب الدورة (A4)</span>
         </div>
-        <div class="flex gap-2">
-            <button onclick="window.print()" class="px-4 py-2 bg-[#1d6b63] hover:bg-[#154c46] text-white rounded-lg font-bold shadow transition flex items-center gap-2">
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.print()" class="btn-action btn-print">
                 <i class="fas fa-print"></i> بدء الطباعة
             </button>
-            <button onclick="window.close()" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-bold shadow transition">
+            <button onclick="window.close()" class="btn-action btn-close">
                 إغلاق النافذة
             </button>
         </div>
     </div>
 
     <!-- Official Header -->
-    <div class="flex justify-between items-start border-b-2 border-[#1d6b63] pb-4 mb-6">
-        <div class="flex items-center gap-4">
-            <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" class="w-20 h-20 rounded-xl bg-white border border-gray-100 p-1 shadow-sm">
-            <div>
-                <h3 class="text-xl font-black text-[#1d6b63]">معهد اليمان للعلوم واللغات</h3>
-                <p class="text-xs text-gray-500 font-bold mt-1">التميز في التعليم وبناء المهارات</p>
+    <div class="report-header">
+        <div class="institute-brand">
+            <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" class="institute-logo">
+            <div class="institute-name">
+                <h3>معهد اليمان للعلوم واللغات</h3>
+                <p>التميز في التعليم وبناء المهارات</p>
             </div>
         </div>
-        <div class="text-left text-xs text-gray-700 leading-relaxed font-semibold">
-            <div><strong class="text-[#1d6b63]">تاريخ الطباعة:</strong> {% now "Y-m-d H:i" %}</div>
-            <div><strong class="text-[#1d6b63]">المستخرِج:</strong> {{ request.user.get_full_name|default:request.user.username }}</div>
-            <div><strong class="text-[#1d6b63]">الفصل الدراسي:</strong> {{ course.academic_year.name }}</div>
+        <div class="report-meta">
+            <span><strong>تاريخ الطباعة:</strong> {% now "Y-m-d H:i" %}</span>
+            <span><strong>المستخرِج:</strong> {{ request.user.get_full_name|default:request.user.username }}</span>
+            <span><strong>الفصل الدراسي:</strong> {{ course.academic_year.name }}</span>
         </div>
     </div>
 
     <!-- Report Title -->
-    <div class="text-center mb-6">
-        <h1 class="text-lg font-black text-gray-800 border-b border-gray-800 pb-2 inline-block">كشف المبالغ المستحقة والمسددة لطلاب الدورة</h1>
-        <h2 class="text-md font-bold text-[#1d6b63] mt-2">الدورة: {{ course.name }} {% if course.name_ar %}({{ course.name_ar }}){% endif %}</h2>
-        <div class="text-xs text-gray-600 font-bold mt-1">
+    <div class="report-title-section">
+        <div class="report-title-box">
+            <h1>كشف المبالغ المستحقة والمسددة لطلاب الدورة</h1>
+        </div>
+        <div class="report-subtitle">الدورة: {{ course.name }} {% if course.name_ar %}({{ course.name_ar }}){% endif %}</div>
+        <div class="report-filter-desc">
             حالة الطلاب المعروضة: 
             {% if current_filter == 'all' %}
                 جميع الطلاب المسجلين
@@ -83,61 +351,61 @@
         </div>
     </div>
 
-    <!-- Financial Stats Grid -->
-    <div class="grid grid-cols-4 gap-4 mb-6">
-        <div class="border border-gray-300 rounded-xl p-3 text-center bg-gray-50">
-            <h6 class="text-[10px] font-bold text-gray-500 uppercase mb-1">الطلاب بالتقرير</h6>
-            <p class="text-base font-black text-gray-800">{{ total_students }} طالب</p>
+    <!-- Financial Summary Boxes -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-card-title">الطلاب بالتقرير</div>
+            <div class="summary-card-value">{{ total_students }} طالب</div>
         </div>
-        <div class="border border-gray-300 rounded-xl p-3 text-center bg-gray-50">
-            <h6 class="text-[10px] font-bold text-gray-500 uppercase mb-1">الصافي المستحق</h6>
-            <p class="text-base font-black text-gray-800">{{ total_net_due|floatformat:0|intcomma }} ل.س</p>
+        <div class="summary-card">
+            <div class="summary-card-title">الصافي المستحق</div>
+            <div class="summary-card-value">{{ total_net_due|floatformat:0|intcomma }} ل.س</div>
         </div>
-        <div class="border border-gray-300 rounded-xl p-3 text-center bg-teal-50/50">
-            <h6 class="text-[10px] font-bold text-teal-600 uppercase mb-1">إجمالي المدفوع</h6>
-            <p class="text-base font-black text-teal-800">{{ total_paid|floatformat:0|intcomma }} ل.س</p>
+        <div class="summary-card teal-bg">
+            <div class="summary-card-title">إجمالي المدفوع</div>
+            <div class="summary-card-value">{{ total_paid|floatformat:0|intcomma }} ل.س</div>
         </div>
-        <div class="border border-gray-300 rounded-xl p-3 text-center bg-red-50/50">
-            <h6 class="text-[10px] font-bold text-red-600 uppercase mb-1">الذمم المتبقية</h6>
-            <p class="text-base font-black text-red-800">{{ total_remaining|floatformat:0|intcomma }} ل.س</p>
+        <div class="summary-card red-bg">
+            <div class="summary-card-title">الذمم المتبقية</div>
+            <div class="summary-card-value">{{ total_remaining|floatformat:0|intcomma }} ل.س</div>
         </div>
     </div>
 
-    <!-- Student Table (Sorted Alphabetically) -->
-    <div class="overflow-x-auto">
-        <table class="w-full border-collapse border border-gray-400 text-xs">
+    <!-- Student Table (Alphabetically Sorted) -->
+    <div class="data-table-container">
+        <table class="data-table">
             <thead>
-                <tr class="bg-gray-100 border-b border-gray-400">
-                    <th class="border border-gray-400 p-2 text-center font-black" style="width: 5%;">#</th>
-                    <th class="border border-gray-400 p-2 text-right font-black" style="width: 35%;">اسم الطالب ثلاثي</th>
-                    <th class="border border-gray-400 p-2 text-center font-black" style="width: 20%;">الشعبة الدراسية</th>
-                    <th class="border border-gray-400 p-2 text-left font-black" style="width: 13%;">الصافي المستحق</th>
-                    <th class="border border-gray-400 p-2 text-left font-black" style="width: 13%;">المدفوع</th>
-                    <th class="border border-gray-400 p-2 text-left font-black" style="width: 14%;">المتبقي</th>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 35%; text-align: right;">اسم الطالب ثلاثي</th>
+                    <th style="width: 20%; text-align: center;">الشعبة الدراسية</th>
+                    <th style="width: 13%; text-align: left;">الصافي المستحق</th>
+                    <th style="width: 13%; text-align: left;">المدفوع</th>
+                    <th style="width: 14%; text-align: left;">المتبقي</th>
                 </tr>
             </thead>
             <tbody>
                 {% for row in student_data %}
-                <tr class="border-b border-gray-400 odd:bg-white even:bg-gray-50/50">
-                    <td class="border border-gray-400 p-2 text-center font-bold text-gray-500">{{ forloop.counter }}</td>
-                    <td class="border border-gray-400 p-2 font-black text-gray-900">
+                <tr>
+                    <td class="cell-center" style="font-weight: bold; color: #6b7280;">{{ forloop.counter }}</td>
+                    <td class="cell-student-name">
                         {{ row.student.full_name }}
                         {% if row.student.phone %}
-                            <span class="block text-[10px] text-gray-500 font-normal mt-0.5"><i class="fas fa-phone-alt me-1 text-[#1d6b63]"></i>الهاتف: {{ row.student.phone }}</span>
+                            <span class="cell-phone"><i class="fas fa-phone" style="color: #1d6b63; margin-left: 4px;"></i>الهاتف: {{ row.student.phone }}</span>
                         {% endif %}
                     </td>
-                    <td class="border border-gray-400 p-2 text-center font-bold">
+                    <td class="cell-center" style="font-weight: bold;">
                         {% with classroom=row.current_classroom %}
                             {% if classroom %}
                                 {{ classroom.name }}
                             {% else %}
-                                <span class="text-gray-400 font-normal">-</span>
+                                <span style="color: #9ca3af; font-weight: normal;">-</span>
                             {% endif %}
                         {% endwith %}
                     </td>
-                    <td class="border border-gray-400 p-2 text-left font-bold font-mono">{{ row.net_due|floatformat:0|intcomma }}</td>
-                    <td class="border border-gray-400 p-2 text-left font-bold font-mono text-teal-800">{{ row.paid_total|floatformat:0|intcomma }}</td>
-                    <td class="border border-gray-400 p-2 text-left font-black font-mono {% if row.remaining > 0 %}text-red-700{% else %}text-gray-700{% endif %}">
+                    <td class="cell-amount">{{ row.net_due|floatformat:0|intcomma }}</td>
+                    <td class="cell-amount" style="color: #115e59;">{{ row.paid_total|floatformat:0|intcomma }}</td>
+                    <td class="cell-amount {% if row.remaining > 0 %}remaining-alert{% endif %}">
                         {% if row.remaining > 0 %}
                             {{ row.remaining|floatformat:0|intcomma }}
                         {% else %}
@@ -147,18 +415,18 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="border border-gray-400 p-6 text-center text-gray-500 font-bold">لا يوجد طلاب مسجلين في هذه الدورة تبعا للفلتر المختار.</td>
+                    <td colspan="6" class="cell-center" style="padding: 30px; color: #6b7280; font-weight: bold;">لا يوجد طلاب مسجلين في هذه الدورة تبعا للفلتر المختار.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <!-- Signature block -->
-    <div class="grid grid-cols-3 gap-6 mt-12 text-center text-xs font-bold text-gray-800 page-break-inside-avoid">
-        <div class="pt-8 border-t border-dashed border-gray-400">توقيع المحاسب المسؤول</div>
-        <div class="pt-8 border-t border-dashed border-gray-400">ختم إدارة المعهد المعتمد</div>
-        <div class="pt-8 border-t border-dashed border-gray-400">توقيع مدير المعهد</div>
+    <!-- Official Signatures Section -->
+    <div class="signatures-section">
+        <div class="signature-box">توقيع المحاسب المسؤول</div>
+        <div class="signature-box">ختم إدارة المعهد المعتمد</div>
+        <div class="signature-box">توقيع مدير المعهد</div>
     </div>
 
     <!-- Auto Print Script -->
