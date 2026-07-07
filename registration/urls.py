@@ -26,6 +26,7 @@ urlpatterns = [
     path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('superuser-password-reset/', SuperUserPasswordResetView.as_view(), name='superuser_password_reset'),
     path('password-reset-email-action/<str:token>/', PasswordResetEmailActionView.as_view(), name='password_reset_email_action'),
+    path('ajax/verify-reset-code/<str:code>/', views.ajax_verify_reset_code, name='ajax_verify_reset_code'),
 ]
 
 if settings.DEBUG:

@@ -69,8 +69,10 @@ def process_reset_request_action(reset_request, action, actor=None, via_email=Fa
             whatsapp_url = ''
         return True, f'الطلب موافق عليه مسبقاً، والكود الحالي هو: {reset_request.code}', whatsapp_url
 
+    from datetime import timedelta
     reset_request.is_approved = True
     reset_request.approved_at = timezone.now()
+    reset_request.expires_at = timezone.now() + timedelta(hours=24)
     reset_request.approved_by = actor
     reset_request.whatsapp_delivery_status = 'ready_for_manual_send'
     if via_email:
@@ -89,28 +91,39 @@ def process_reset_request_action(reset_request, action, actor=None, via_email=Fa
         return True, f'تمت الموافقة على الطلب وإنشاء الكود {reset_request.code} لكن تعذر تجهيز رابط واتساب: {exc}', ''
 
 
-class PasswordResetRequestView(LoginRequiredMixin, TemplateView):
+class PasswordResetRequestView(TemplateView):
     template_name = 'registration/password_reset_request.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = PasswordResetRequestForm()
-        context['user_requests'] = PasswordResetRequest.objects.filter(user=self.request.user).order_by('-created_at')[:5]
+        context['form'] = PasswordResetRequestForm(user=self.request.user)
+        if self.request.user.is_authenticated:
+            context['user_requests'] = PasswordResetRequest.objects.filter(user=self.request.user).order_by('-created_at')[:5]
+        else:
+            context['user_requests'] = []
         return context
 
     def post(self, request, *args, **kwargs):
-        form = PasswordResetRequestForm(request.POST)
+        form = PasswordResetRequestForm(request.POST, user=request.user)
         if not form.is_valid():
-            return render(request, self.template_name, {'form': form, 'user_requests': self.get_context_data()['user_requests']})
+            user_requests = PasswordResetRequest.objects.filter(user=request.user).order_by('-created_at')[:5] if request.user.is_authenticated else []
+            return render(request, self.template_name, {'form': form, 'user_requests': user_requests})
 
-        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        if request.user.is_authenticated:
+            target_user = request.user
+        else:
+            from django.contrib.auth.models import User
+            target_user = User.objects.get(username=form.cleaned_data['username'])
+
+        profile, _ = UserProfile.objects.get_or_create(user=target_user)
         whatsapp_phone = (profile.phone or '').strip()
         if not whatsapp_phone:
-            form.add_error(None, 'لا يمكن إرسال الكود عبر واتساب قبل إضافة رقم الهاتف في ملفك الشخصي.')
-            return render(request, self.template_name, {'form': form, 'user_requests': self.get_context_data()['user_requests']})
+            form.add_error(None, 'لا يمكن إرسال الكود عبر واتساب قبل إضافة رقم الهاتف في الملف الشخصي لهذا الحساب.')
+            user_requests = PasswordResetRequest.objects.filter(user=request.user).order_by('-created_at')[:5] if request.user.is_authenticated else []
+            return render(request, self.template_name, {'form': form, 'user_requests': user_requests})
 
         reset_request = PasswordResetRequest.objects.create(
-            user=request.user,
+            user=target_user,
             reason=form.cleaned_data['reason'],
             whatsapp_phone=whatsapp_phone,
         )
@@ -123,7 +136,10 @@ class PasswordResetRequestView(LoginRequiredMixin, TemplateView):
             reset_request.save(update_fields=['last_notification_error'])
             messages.warning(request, f'تم حفظ الطلب لكن فشل إرسال بريد الموافقة: {exc}')
 
-        return redirect('registration:profile')
+        if request.user.is_authenticated:
+            return redirect('registration:profile')
+        else:
+            return redirect('registration:password_reset_confirm')
 
 
 class SuperUserPasswordResetView(UserPassesTestMixin, TemplateView):
@@ -199,7 +215,7 @@ class PasswordResetEmailActionView(TemplateView):
         return render(request, self.template_name, {'title': title, 'message': message, 'whatsapp_url': whatsapp_url})
 
 
-class PasswordResetConfirmView(LoginRequiredMixin, TemplateView):
+class PasswordResetConfirmView(TemplateView):
     template_name = 'registration/password_reset_confirm.html'
 
     def get_context_data(self, **kwargs):
@@ -210,38 +226,64 @@ class PasswordResetConfirmView(LoginRequiredMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         form = PasswordResetConfirmForm(request.POST)
         if form.is_valid():
-            code = form.cleaned_data['code'].upper()
+            code = form.cleaned_data['code'].upper().strip()
             new_password = form.cleaned_data['new_password']
 
             try:
                 reset_request = PasswordResetRequest.objects.get(
                     code=code,
-                    user=request.user,
                     is_approved=True,
                     is_used=False,
                     expires_at__gt=timezone.now(),
                 )
 
-                request.user.set_password(new_password)
-                request.user.save()
+                user = reset_request.user
+                user.set_password(new_password)
+                user.save()
 
                 PasswordChangeHistory.create_password_history(
-                    user=request.user,
+                    user=user,
                     new_password=new_password,
-                    changed_by=request.user,
+                    changed_by=user,
                     reset_request=reset_request,
                 )
 
                 reset_request.is_used = True
                 reset_request.save(update_fields=['is_used'])
 
-                login(request, request.user)
-                messages.success(request, 'تم تعديل كلمة المرور بنجاح.')
+                # Log the user in after password change
+                login(request, user)
+                messages.success(request, 'تم تعديل كلمة المرور بنجاح وتم تسجيل دخولك.')
                 return redirect('registration:profile')
             except PasswordResetRequest.DoesNotExist:
                 messages.error(request, 'الكود غير صالح أو منتهي الصلاحية.')
 
         return render(request, self.template_name, {'form': form})
+
+
+def ajax_verify_reset_code(request, code):
+    from django.http import JsonResponse
+    from django.utils import timezone
+    code = code.upper().strip()
+    try:
+        reset_request = PasswordResetRequest.objects.get(
+            code=code,
+            is_approved=True,
+            is_used=False,
+            expires_at__gt=timezone.now(),
+        )
+        user_name = reset_request.user.get_full_name() or reset_request.user.username
+        return JsonResponse({
+            'valid': True,
+            'user': user_name,
+            'message': f'كود صالح ومفعل للمستخدم: {user_name}'
+        })
+    except PasswordResetRequest.DoesNotExist:
+        return JsonResponse({
+            'valid': False,
+            'message': 'الكود غير صالح، أو غير موافق عليه، أو انتهت صلاحيته.'
+        })
+
 
 
 class DirectPasswordChangeView(LoginRequiredMixin, PasswordChangeView):

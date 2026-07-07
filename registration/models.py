@@ -109,7 +109,7 @@ class PasswordResetRequest(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        if self.is_approved and not self.code:
+        if not self.code:
             import secrets
 
             while True:
@@ -118,7 +118,7 @@ class PasswordResetRequest(models.Model):
                     self.code = code
                     break
 
-        if self.is_approved and not self.expires_at:
+        if not self.expires_at:
             from datetime import timedelta
 
             self.expires_at = timezone.now() + timedelta(hours=24)

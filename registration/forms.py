@@ -71,6 +71,14 @@ class UserProfileForm(forms.ModelForm):
 
 
 class PasswordResetRequestForm(forms.Form):
+    username = forms.CharField(
+        label='اسم المستخدم',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'أدخل اسم المستخدم الخاص بك',
+        })
+    )
     reason = forms.CharField(
         label='سبب طلب تعديل كلمة المرور',
         widget=forms.Textarea(attrs={
@@ -79,6 +87,23 @@ class PasswordResetRequestForm(forms.Form):
             'placeholder': 'اذكر سبب طلبك لتعديل كلمة المرور',
         })
     )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if self.user and self.user.is_authenticated:
+            self.fields['username'].required = False
+            self.fields['username'].widget = forms.HiddenInput()
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username', '').strip()
+        if not self.user or not self.user.is_authenticated:
+            if not username:
+                raise forms.ValidationError('اسم المستخدم مطلوب لطلب إعادة التعيين')
+            from django.contrib.auth.models import User
+            if not User.objects.filter(username=username).exists():
+                raise forms.ValidationError('اسم المستخدم غير مسجل في النظام')
+        return username
 
 
 class PasswordResetConfirmForm(forms.Form):
