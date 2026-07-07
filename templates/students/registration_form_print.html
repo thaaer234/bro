@@ -5,402 +5,612 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>استمارة انتساب - {{ student.full_name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        @font-face {
+            font-family: 'CoconNextArabic';
+            src: url('/static/font/Cocon_ Next Arabic-Bold.otf') format('opentype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
         :root {
-            --primary-blue: #107393;
-            --primary-dark-blue: #0d5d77;
-            --secondary-purple: #523675;
+            --primary-color: #107393;
+            --primary-dark: #0d5d77;
+            --secondary-color: #523675;
             --accent-red: #c0392b;
             --accent-orange: #d35400;
-            --light-bg: #f4f9fb;
-            --light-purple-bg: #f6f3f9;
-            --border-grey: #a0beca;
-            --text-dark: #2c3e50;
+            --bg-light-teal: #f4f9fb;
+            --bg-light-purple: #f6f3f9;
+            --border-color: #a0beca;
+            --text-color: #2c3e50;
+            --text-muted: #7f8c8d;
         }
 
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background: #eef2f5;
-            font-family: 'Cairo', sans-serif;
+            background-color: #f0f3f4;
+            color: var(--text-color);
             direction: rtl;
             font-size: 11px;
-            line-height: 1.5;
-            color: var(--text-dark);
+            line-height: 1.4;
         }
 
-        /* شريط التحكم العلوي */
+        /* Control Bar */
         .control-bar {
-            background: #1e2a36;
+            background-color: #2c3e50;
             color: white;
-            padding: 10px 25px;
+            padding: 12px 24px;
             position: sticky;
             top: 0;
-            z-index: 999;
+            z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
         }
-        .control-bar-title { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 10px; }
-        .btn-print, .btn-close {
-            border: none;
-            padding: 7px 18px;
-            border-radius: 5px;
+
+        .control-bar-title {
+            font-size: 14px;
             font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-print {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: bold;
             cursor: pointer;
-            font-size: 12px;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             gap: 6px;
-            color: white;
+            font-size: 12px;
+            transition: background-color 0.2s;
         }
-        .btn-print { background: #27ae60; }
-        .btn-print:hover { background: #1e8449; }
-        .btn-close { background: #e74c3c; }
-        .btn-close:hover { background: #b03a2e; }
 
-        /* حاوية الصفحات القابلة للطباعة */
+        .btn-print:hover {
+            background-color: #219653;
+        }
+
+        .btn-close {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-close:hover {
+            background-color: #c0392b;
+        }
+
+        /* Printable Pages container */
         .pages-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 25px;
-            padding: 30px 0;
+            gap: 20px;
+            padding: 20px 0;
         }
 
-        /* الصفحة الرئيسية */
+        /* Printable Page Frame */
         .page {
+            background-color: white;
             width: 210mm;
             height: 297mm;
-            background: white;
             padding: 12mm 15mm;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-sizing: border-box;
             position: relative;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
         }
 
-        /* الإطار المزدوج */
+        /* Decorative double border */
         .page-border {
-            border: 2px solid var(--primary-blue);
-            outline: 1px solid var(--primary-blue);
-            outline-offset: -5px;
-            padding: 20px 14px 14px 14px;
+            border: 2px solid var(--primary-color);
+            outline: 1px solid var(--primary-color);
+            outline-offset: -4px;
+            padding: 22px 14px 14px 14px;
             height: 100%;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
             position: relative;
-            background: white;
         }
 
-        /* الأشرطة العلوية والسفلية */
-        .top-bar, .bottom-bar {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 8px;
-            z-index: 1;
-            border-radius: 3px;
-        }
-        .top-bar {
-            top: 0;
-            background: linear-gradient(90deg, var(--secondary-purple) 0%, var(--primary-blue) 100%);
-            border-bottom: 2px solid var(--secondary-purple);
-        }
-        .bottom-bar {
-            bottom: 0;
-            background: linear-gradient(90deg, var(--primary-blue) 0%, var(--secondary-purple) 100%);
+        /* Ensure page elements are positioned above watermark */
+        .page-border > *:not(.watermark):not(.top-decorative-bar):not(.bottom-decorative-bar) {
+            position: relative;
+            z-index: 2;
         }
 
-        /* واترمارك */
         .watermark {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 320px;
-            height: 320px;
-            background-image: url("{% static 'img/logo.png' %}");
+            width: 90%;
+            height: 90%;
+            background-image: url("/static/img/logo.png");
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
             opacity: 0.04;
-            pointer-events: none;
             z-index: 0;
+            pointer-events: none;
         }
 
-        /* رأس الصفحة */
+        .top-decorative-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, #523675 0%, #107393 100%);
+            border-bottom: 2px solid #523675;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            z-index: 1;
+        }
+
+        .bottom-decorative-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #107393 0%, #523675 100%);
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            z-index: 1;
+        }
+
+        /* PAGE 1: Header Section */
         .header-section {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             position: relative;
-            z-index: 2;
         }
+
+        .header-logo-title {
+            flex-grow: 1;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 5px;
+        }
+
         .institute-name {
-            font-size: 26px;
-            font-weight: 900;
-            color: var(--secondary-purple);
+            font-family: 'CoconNextArabic', 'Cairo', sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0px;
             letter-spacing: 0.5px;
         }
-        .form-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--secondary-purple);
+
+        .form-title-text {
+            font-family: 'CoconNextArabic', 'Cairo', sans-serif;
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 4px;
         }
-        .form-sub {
+
+        .form-subtitle-notes {
             font-size: 10px;
-            font-weight: 600;
-            color: var(--primary-dark-blue);
+            font-weight: 700;
+            color: #333;
         }
-        .photo-box {
+
+        .photo-placeholder {
             width: 75px;
             height: 95px;
-            border: 1.5px solid #7f8c8d;
+            border: 1px solid #7f8c8d;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            text-align: center;
             font-weight: 700;
             font-size: 11px;
-            background: #fafafa;
+            color: #34495e;
+            background-color: #fafafa;
             margin-right: 10px;
         }
 
-        /* الفاصل */
-        .divider-line {
-            border-bottom: 2px dashed var(--primary-blue);
-            margin: 6px 0 10px 0;
+        /* Page Separator Line */
+        .color-sep-bar {
+            border-bottom: 2px dashed var(--primary-color);
+            margin: 8px 0;
+            height: 0;
         }
 
-        /* البانرات والعناوين */
-        .section-badge {
-            background: var(--primary-blue);
+        /* Sections and Titles */
+        .section-title-badge {
+            background-color: var(--primary-color);
             color: white;
-            padding: 3px 18px;
-            border-radius: 5px 20px 20px 5px;
+            padding: 4px 14px;
+            border-radius: 5px 25px 25px 5px;
             font-size: 10.5px;
             font-weight: 700;
+            margin: 6px 0;
             display: inline-block;
-        }
-        .section-banner {
-            background: var(--primary-blue);
-            color: white;
-            padding: 4px 30px;
-            border-radius: 25px;
-            font-size: 11.5px;
-            font-weight: 700;
-            display: table;
-            margin: 8px auto;
-            text-align: center;
-        }
-        .section-banner-purple {
-            background: var(--secondary-purple);
-            color: white;
-            padding: 4px 30px;
-            border-radius: 25px;
-            font-size: 11.5px;
-            font-weight: 700;
-            display: table;
-            margin: 8px auto;
-            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
 
-        /* الجداول */
+        .section-title-banner {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 40px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            margin: 8px auto;
+            display: table;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .section-instruction {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Tables & Grids */
         .data-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 8px;
         }
+
         .data-table td {
-            border: 1px solid var(--border-grey);
-            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+            padding: 5px 8px;
             vertical-align: middle;
             font-size: 10px;
         }
-        .label-cell { font-weight: 700; white-space: nowrap; background: #f9fafb; }
-        .value-cell { font-weight: 600; color: #111; }
 
-        /* شبكات الاختيارات */
-        .options-grid {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 6px;
+        .label-cell {
+            font-weight: 700;
+            color: #2c3e50;
+            white-space: nowrap;
         }
-        .options-grid td {
-            border: 1px solid var(--border-grey);
-            padding: 4px 6px;
-            font-size: 9.5px;
-            vertical-align: middle;
-        }
-        .chk-box {
-            width: 28px;
-            text-align: center;
-            font-weight: 900;
-            color: var(--primary-blue);
-            font-size: 14px;
-        }
-        .chk-box.checked { background: #e6f2f7; }
 
-        /* الحقول الممتدة */
+        .value-cell {
+            color: #111;
+            font-weight: 600;
+        }
+
         .dotted-line {
             border-bottom: 1px dotted #95a5a6;
             display: inline-block;
-            flex: 1;
-            height: 16px;
+            flex-grow: 1;
+            height: 14px;
             margin-right: 4px;
-            min-width: 60px;
         }
-        .flex-row {
+
+        /* Checkbox lists & grids */
+        .checkbox-container {
             display: flex;
             align-items: center;
-            gap: 6px;
-            flex-wrap: wrap;
+            gap: 4px;
+            font-weight: 600;
         }
-        .flex-row .dotted-line { flex: 1; }
 
-        /* الجدول الطبي */
+        .custom-chk {
+            width: 13px;
+            height: 13px;
+            border: 1px solid var(--primary-color);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 900;
+            color: var(--primary-color);
+            background-color: white;
+            border-radius: 2px;
+        }
+
+        .chk-checked {
+            background-color: var(--bg-light-teal);
+        }
+
+        .courses-grid-table td {
+            border: 1px solid var(--border-color);
+            padding: 5px 6px;
+            vertical-align: middle;
+            font-size: 9.5px;
+            background-color: #fff;
+        }
+
+        .chk-cell {
+            width: 30px;
+            text-align: center;
+            vertical-align: middle;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .text-cell {
+            color: #111;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        /* Source of knowledge row */
+        .info-source-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border: 1px solid var(--border-color);
+            padding: 6px;
+            gap: 10px;
+            background-color: var(--bg-light-teal);
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .other-source-row {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+
+        /* Medical section */
         .medical-table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 8px;
         }
+
         .medical-table td {
-            border: 1px solid var(--border-grey);
+            border: 1px solid var(--border-color);
             padding: 4px 8px;
             font-size: 9.5px;
         }
+
         .medical-label {
             font-weight: 700;
-            background: var(--secondary-purple);
+            background-color: var(--secondary-color);
             color: white;
             text-align: center;
-            width: 130px;
+            width: 120px;
         }
 
-        /* ====== الصفحة الثانية ====== */
-        .rules-title {
-            background: var(--secondary-purple);
-            color: white;
-            padding: 6px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 800;
-            border-radius: 5px;
+        .medical-value {
+            color: #2c3e50;
+            font-weight: 600;
         }
-        .rules-sub {
+
+        /* Footer illustrations & notes */
+        .page-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: auto;
+            padding-top: 6px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .footer-note-text {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .footer-illustration {
+            width: 110px;
+            height: 55px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* PAGE 2 Rules & Regulations */
+        .rules-title-header {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 5px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 800;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .rules-subtitle-header {
             color: var(--accent-red);
             font-size: 10px;
             font-weight: 800;
             text-align: center;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .rule-block {
             display: flex;
-            border: 1px solid var(--border-grey);
+            border: 1px solid var(--border-color);
             border-radius: 6px;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             overflow: hidden;
-            background: white;
+            background-color: white;
         }
-        .rule-content {
-            flex: 1;
-            padding: 6px 12px;
-        }
-        .rule-illustration {
-            width: 100px;
-            background: var(--light-bg);
-            border-right: 1px solid var(--border-grey);
+
+        .rule-block-side-illustration {
+            width: 110px;
+            background-color: var(--bg-light-teal);
+            border-right: 1px solid var(--border-color);
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 6px;
+            padding: 10px;
         }
+
+        .rule-block-content {
+            flex-grow: 1;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
         .rule-list {
             list-style: none;
-            font-size: 9px;
-            font-weight: 600;
         }
+
         .rule-list li {
             position: relative;
-            padding-right: 14px;
-            margin-bottom: 2px;
+            padding-right: 12px;
+            margin-bottom: 4px;
+            font-size: 9px;
+            font-weight: 600;
             text-align: justify;
         }
+
+        .rule-list li:last-child {
+            margin-bottom: 0;
+        }
+
         .rule-list li::before {
             content: "";
             position: absolute;
             right: 0;
-            top: 6px;
+            top: 5px;
             width: 5px;
             height: 5px;
-            background: var(--primary-blue);
+            background-color: var(--primary-color);
             border-radius: 50%;
         }
-        .rule-num { font-weight: 800; color: var(--primary-blue); }
-        .highlight-red { color: var(--accent-red); font-weight: 700; }
-        .highlight-blue { color: var(--primary-blue); font-weight: 700; }
 
-        /* قسم التعهد */
-        .pledge-box {
-            border: 1.5px dashed var(--accent-orange);
-            background: var(--light-purple-bg);
-            padding: 8px 14px;
-            border-radius: 6px;
-            margin: 6px 0;
+        .rule-list .rule-num {
+            font-weight: 800;
+            color: var(--primary-color);
         }
-        .pledge-sign {
+
+        .highlight-red {
+            color: var(--accent-red);
+            font-weight: 700;
+        }
+
+        .highlight-blue {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        /* Pledge Section */
+        .pledge-section {
+            border: 1px dashed var(--accent-orange);
+            background-color: var(--bg-light-purple);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .pledge-header {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--secondary-color);
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .pledge-signature-fields {
             display: flex;
             justify-content: space-between;
-            font-weight: 700;
-            font-size: 10px;
+            margin-bottom: 6px;
+            font-weight: bold;
         }
+
         .pledge-text {
             font-size: 9px;
             font-weight: 600;
             text-align: justify;
-            border-top: 1px solid rgba(82,54,117,0.15);
-            padding-top: 5px;
-            margin-top: 4px;
+            line-height: 1.5;
+            color: #34495e;
+            border-top: 1px solid rgba(82, 54, 117, 0.15);
+            padding-top: 4px;
         }
 
-        /* قسم الحسم الإداري */
-        .admin-discount {
+        /* Admin / Discount Dotted Box */
+        .admin-discount-container {
             display: flex;
             gap: 15px;
-            margin-top: 6px;
+            margin-top: 10px;
         }
-        .admin-box {
-            border: 2px dashed var(--primary-blue);
-            background: #fafbfc;
+
+        .admin-box-left, .admin-box-right {
+            border: 2px dashed var(--primary-color);
+            background-color: #fafbfc;
             border-radius: 6px;
             padding: 8px 12px;
-            flex: 1;
+            width: 50%;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 8px;
         }
-        .admin-row {
+
+        .admin-field-row {
             display: flex;
             align-items: center;
             font-weight: 700;
             font-size: 10px;
         }
-        .admin-row .dotted-line { flex: 1; }
 
-        /* زراعة للطباعة */
+        /* Printing Adjustments */
         @media print {
-            body { background: white; }
-            .control-bar { display: none !important; }
-            .pages-container { padding: 0; gap: 0; }
+            body {
+                background-color: white;
+                color: black;
+            }
+
+            .control-bar {
+                display: none !important;
+            }
+
+            .pages-container {
+                padding: 0;
+                gap: 0;
+            }
+
             .page {
                 box-shadow: none;
                 margin: 0;
@@ -410,71 +620,131 @@
                 height: 297mm;
                 width: 210mm;
             }
-            .chk-box.checked { background: #e6f2f7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .section-banner, .section-banner-purple, .section-badge, .medical-label, .rules-title {
+
+            /* Prevent browser styling differences */
+            .custom-chk {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            .rule-illustration { background: var(--light-bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .pledge-box { background: var(--light-purple-bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .watermark { opacity: 0.04 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+            .form-title-badge,
+            .section-title-badge,
+            .rules-title-header,
+            .courses-grid-table th,
+            .medical-label {
+                background-color: var(--primary-color) !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .courses-grid-table th {
+                background-color: var(--secondary-color) !important;
+            }
+
+            .rule-block-side-illustration {
+                background-color: var(--bg-light-teal) !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .pledge-section {
+                background-color: var(--bg-light-purple) !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .admin-box-left, .admin-box-right {
+                background-color: #fafbfc !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .watermark {
+                opacity: 0.05 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .chk-cell.chk-checked {
+                background-color: #f4f9fb !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- شريط التحكم -->
+    <!-- Printable Header / Control Bar (Invisible on print) -->
     <div class="control-bar">
         <div class="control-bar-title">
             <i class="fas fa-file-pdf"></i>
-            <span>استمارة تسجيل: {{ student.full_name }}</span>
+            <span>استمارة تسجيل الطالب: {{ student.full_name }}</span>
         </div>
-        <div>
-            <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
-            <button class="btn-close" onclick="window.close()"><i class="fas fa-times"></i> إغلاق</button>
+        <div class="control-buttons">
+            <button class="btn-print" onclick="window.print()">
+                <i class="fas fa-print"></i>
+                <span>طباعة الاستمارة</span>
+            </button>
+            <button class="btn-close" onclick="window.close()">
+                <i class="fas fa-times"></i>
+                <span>إغلاق</span>
+            </button>
         </div>
     </div>
 
+    <!-- Printable container -->
     <div class="pages-container">
 
-        <!-- ========== الصفحة الأولى ========== -->
-        <div class="page">
+        <!-- ================= PAGE 1 ================= -->
+        <div class="page" id="page-1">
             <div class="page-border">
-                <div class="top-bar"></div>
-                <div class="bottom-bar"></div>
                 <div class="watermark"></div>
-
-                <!-- الرأس -->
+                <div class="top-decorative-bar"></div>
+                <div class="bottom-decorative-bar"></div>
+                
+                <!-- Header -->
                 <div class="header-section">
-                    <div style="flex:1; text-align:center;">
-                        <div class="institute-name">معهد اليمان للعلوم واللغات</div>
-                        <div class="form-title">استمارة انتساب {{ academic_year_name }}</div>
-                        <div class="form-sub">هذه الاستمارة مخصصة لطلاب الثالث الثانوي (العلمي - الأدبي - التمهيدي)</div>
+                    <div class="header-logo-title">
+                        <h1 class="institute-name">معهد اليمان للعلوم واللغات</h1>
+                        <div class="form-title-text">استمارة انتساب {{ academic_year_name }}</div>
+                        <div class="form-subtitle-notes">هذه الاستمارة مخصصة لطلاب الثالث الثانوي (العلمي - الأدبي - التمهيدي)</div>
                     </div>
-                    <div class="photo-box">
+                    <div class="photo-placeholder">
                         <span>صورة</span>
                         <span>الطالب/ة</span>
                     </div>
                 </div>
 
-                <div class="divider-line"></div>
+                <div class="color-sep-bar"></div>
 
-                <!-- المعلومات الشخصية -->
+                <!-- Personal details section -->
                 <div>
-                    <div class="section-banner">قسم المعلومات الشخصية عن الطالب/ة:</div>
+                    <div class="section-title-banner">قسم المعلومات الشخصية عن الطالب/ة:</div>
                     <table class="data-table">
                         <tr>
-                            <td class="label-cell" style="width:12%;">الاسم والشهرة:</td>
-                            <td class="value-cell" style="width:28%;">{{ student.full_name|default:"........................................................." }}</td>
-                            <td class="label-cell" style="width:8%;">الجنس:</td>
-                            <td class="value-cell" style="width:20%;">
-                                <div style="display:flex; gap:15px;">
-                                    <span><span class="chk-box" style="display:inline-block; border:1px solid var(--primary-blue); width:14px; height:14px; text-align:center; font-size:12px; {% if student.gender == 'male' %}background:#e6f2f7;{% endif %}">{% if student.gender == 'male' %}✓{% endif %}</span> ذكر</span>
-                                    <span><span class="chk-box" style="display:inline-block; border:1px solid var(--primary-blue); width:14px; height:14px; text-align:center; font-size:12px; {% if student.gender == 'female' %}background:#e6f2f7;{% endif %}">{% if student.gender == 'female' %}✓{% endif %}</span> أنثى</span>
+                            <td class="label-cell" style="width: 12%">الاسم والشهرة:</td>
+                            <td class="value-cell" style="width: 32%">{{ student.full_name|default:"........................................................." }}</td>
+                            <td class="label-cell" style="width: 8%">الجنس:</td>
+                            <td class="value-cell" style="width: 18%">
+                                <div style="display: flex; gap: 15px;">
+                                    <div class="checkbox-container">
+                                        <div class="custom-chk {% if student.gender == 'male' %}chk-checked{% endif %}">
+                                            {% if student.gender == 'male' %}✓{% endif %}
+                                        </div>
+                                        <span>ذكر</span>
+                                    </div>
+                                    <div class="checkbox-container">
+                                        <div class="custom-chk {% if student.gender == 'female' %}chk-checked{% endif %}">
+                                            {% if student.gender == 'female' %}✓{% endif %}
+                                        </div>
+                                        <span>أنثى</span>
+                                    </div>
                                 </div>
                             </td>
-                            <td class="label-cell" style="width:14%;">مكان وتاريخ الولادة:</td>
-                            <td class="value-cell" style="width:18%;">{{ student.birth_date|date:"Y/m/d"|default:"................................" }}</td>
+                            <td class="label-cell" style="width: 14%">مكان وتاريخ الولادة:</td>
+                            <td class="value-cell" style="width: 16%">{{ student.birth_date|date:"Y/m/d"|default:"................................" }}</td>
                         </tr>
                         <tr>
                             <td class="label-cell">مكان السكن:</td>
@@ -503,137 +773,149 @@
                     </table>
                 </div>
 
-                <!-- خيارات الدورة -->
+                <!-- Academic choices section -->
                 <div>
-                    <div style="text-align:center; font-size:11px; font-weight:700; color:var(--secondary-purple); margin:6px 0;">
-                        الرجاء وضع ✓ بجانب الدورة المراد اتباعها: هذه الأسئلة لطلاب الثالث الثانوي
+                    <div style="text-align: center; margin: 8px 0; font-size: 11px; font-weight: bold; color: var(--secondary-color);">
+                        الرجاء وضع  بجانب الدورة المراد اتباعها: هذه الأسئلة لطلاب الثالث الثانوي
                     </div>
-                    <table class="options-grid">
-                        <tr>
-                            <td class="chk-box {% if is_sci_listening %}checked{% endif %}">{% if is_sci_listening %}✓{% endif %}</td>
-                            <td style="width:22%;">ثالث ثانوي علمي "مستمع"</td>
-                            <td class="chk-box {% if is_lit_listening %}checked{% endif %}">{% if is_lit_listening %}✓{% endif %}</td>
-                            <td style="width:22%;">ثالث ثانوي أدبي "مستمع"</td>
-                            <td class="chk-box {% if is_need_nomination %}checked{% endif %}">{% if is_need_nomination %}✓{% endif %}</td>
-                            <td style="width:20%;">يحتاج ترشيحي</td>
-                        </tr>
-                        <tr>
-                            <td class="chk-box {% if is_sci_new %}checked{% endif %}">{% if is_sci_new %}✓{% endif %}</td>
-                            <td>ثالث ثانوي علمي "مستجد"</td>
-                            <td class="chk-box {% if is_lit_new %}checked{% endif %}">{% if is_lit_new %}✓{% endif %}</td>
-                            <td>ثالث ثانوي أدبي "مستجد"</td>
-                            <td class="chk-box {% if is_no_need_nomination %}checked{% endif %}">{% if is_no_need_nomination %}✓{% endif %}</td>
-                            <td>لا يحتاج ترشيحي</td>
-                        </tr>
-                        <tr>
-                            <td class="chk-box {% if is_sci_repeat %}checked{% endif %}">{% if is_sci_repeat %}✓{% endif %}</td>
-                            <td>ثالث ثانوي علمي "راسب ويعيد"</td>
-                            <td class="chk-box {% if is_lit_repeat %}checked{% endif %}">{% if is_lit_repeat %}✓{% endif %}</td>
-                            <td>ثالث ثانوي أدبي "راسب ويعيد"</td>
-                            <td class="chk-box {% if is_in_school %}checked{% endif %}">{% if is_in_school %}✓{% endif %}</td>
-                            <td>مسجل في مدرسة</td>
-                        </tr>
-                        <tr>
-                            <td class="chk-box {% if is_sci_pass_repeat %}checked{% endif %}">{% if is_sci_pass_repeat %}✓{% endif %}</td>
-                            <td>ثالث ثانوي علمي "ناجح ويعيد"</td>
-                            <td class="chk-box {% if is_lit_pass_repeat %}checked{% endif %}">{% if is_lit_pass_repeat %}✓{% endif %}</td>
-                            <td>ثالث ثانوي أدبي "ناجح ويعيد"</td>
-                            <td class="chk-box {% if is_not_in_school %}checked{% endif %}">{% if is_not_in_school %}✓{% endif %}</td>
-                            <td>غير مسجل في مدرسة</td>
-                        </tr>
+
+                    <table class="courses-grid-table">
+                        <tbody>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_listening %}chk-checked{% endif %}">{% if is_sci_listening %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 23%;">ثالث ثانوي علمي "مستمع"</td>
+                                <td class="chk-cell {% if is_lit_listening %}chk-checked{% endif %}">{% if is_lit_listening %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 23%;">ثالث ثانوي أدبي "مستمع"</td>
+                                <td class="chk-cell {% if is_need_nomination %}chk-checked{% endif %}">{% if is_need_nomination %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">يحتاج ترشيحي</td>
+                            </tr>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_new %}chk-checked{% endif %}">{% if is_sci_new %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي علمي "مستجد"</td>
+                                <td class="chk-cell {% if is_lit_new %}chk-checked{% endif %}">{% if is_lit_new %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي أدبي "مستجد"</td>
+                                <td class="chk-cell {% if is_no_need_nomination %}chk-checked{% endif %}">{% if is_no_need_nomination %}✓{% endif %}</td>
+                                <td class="text-cell">لا يحتاج ترشيحي</td>
+                            </tr>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_repeat %}chk-checked{% endif %}">{% if is_sci_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي علمي " راسب ويعيد "</td>
+                                <td class="chk-cell {% if is_lit_repeat %}chk-checked{% endif %}">{% if is_lit_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي أدبي " راسب ويعيد"</td>
+                                <td class="chk-cell {% if is_in_school %}chk-checked{% endif %}">{% if is_in_school %}✓{% endif %}</td>
+                                <td class="text-cell">مسجل في مدرسة</td>
+                            </tr>
+                            <tr>
+                                <td class="chk-cell {% if is_sci_pass_repeat %}chk-checked{% endif %}">{% if is_sci_pass_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي علمي "ناجح ويعيد"</td>
+                                <td class="chk-cell {% if is_lit_pass_repeat %}chk-checked{% endif %}">{% if is_lit_pass_repeat %}✓{% endif %}</td>
+                                <td class="text-cell">ثالث ثانوي أدبي "ناجح ويعيد"</td>
+                                <td class="chk-cell {% if is_not_in_school %}chk-checked{% endif %}">{% if is_not_in_school %}✓{% endif %}</td>
+                                <td class="text-cell">غير مسجل في مدرسة</td>
+                            </tr>
+                        </tbody>
                     </table>
 
-                    <div style="display:flex; gap:20px; font-weight:700; font-size:10px; margin:4px 0;">
-                        <div class="flex-row" style="flex:1;">
+                    <div style="display: flex; gap: 20px; font-weight: bold; margin-bottom: 8px; font-size: 10px;">
+                        <div style="display: flex; flex-grow: 1;">
                             <span>المدرسة القادم منها:</span>
-                            <span class="dotted-line" style="color:#111;">{{ student.previous_school|default:"" }}</span>
+                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{{ student.previous_school|default:"........................................................................" }}</span>
                         </div>
-                        <div class="flex-row" style="width:200px;">
+                        <div style="display: flex; width: 220px;">
                             <span>مجموع التاسع:</span>
-                            <span class="dotted-line" style="color:#111;">{% if student.tase3 > 0 %}{{ student.tase3 }}{% endif %}</span>
+                            <span class="dotted-line" style="color: #111; font-weight: 600; padding-right: 6px;">{% if student.tase3 > 0 %}{{ student.tase3 }}{% else %}..............................................................................{% endif %}</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- مصدر المعرفة -->
+                <!-- Reference / How knew us -->
                 <div>
-                    <div style="text-align:center; font-size:11px; font-weight:700; color:var(--secondary-purple); margin:6px 0;">
-                        الرجاء وضع ✓ بجانب الإجابة الصحيحة: كيف تم الوصول إلى معهدنا
+                    <div style="text-align: center; margin: 8px 0; font-size: 11px; font-weight: bold; color: var(--secondary-color);">
+                        الرجاء وضع  بجانب الإجابة الصحيحة: كيف تم الوصول إلى معهدنا
                     </div>
-                    <table class="options-grid">
-                        <tr>
-                            <td class="chk-box {% if is_social %}checked{% endif %}">{% if is_social %}✓{% endif %}</td>
-                            <td style="width:20%;">سوشل ميديا</td>
-                            <td class="chk-box {% if is_friend %}checked{% endif %}">{% if is_friend %}✓{% endif %}</td>
-                            <td style="width:20%;">أحد الأصدقاء</td>
-                            <td class="chk-box {% if is_tv %}checked{% endif %}">{% if is_tv %}✓{% endif %}</td>
-                            <td style="width:20%;">مقابلة تلفزيونية</td>
-                            <td class="chk-box {% if is_ads %}checked{% endif %}">{% if is_ads %}✓{% endif %}</td>
-                            <td style="width:20%;">إعلانات طرقية</td>
-                        </tr>
+
+                    <table class="courses-grid-table" style="margin-bottom: 5px;">
+                        <tbody>
+                            <tr>
+                                <td class="chk-cell {% if is_social %}chk-checked{% endif %}">{% if is_social %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">سوشل ميديا</td>
+                                <td class="chk-cell {% if is_friend %}chk-checked{% endif %}">{% if is_friend %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">أحد الأصدقاء</td>
+                                <td class="chk-cell {% if is_tv %}chk-checked{% endif %}">{% if is_tv %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">مقابلة تلفزيونية</td>
+                                <td class="chk-cell {% if is_ads %}chk-checked{% endif %}">{% if is_ads %}✓{% endif %}</td>
+                                <td class="text-cell" style="width: 20%;">إعلانات طرقية</td>
+                            </tr>
+                        </tbody>
                     </table>
-                    <div class="flex-row" style="font-weight:700; margin-top:4px;">
+                    <div class="other-source-row" style="margin-top: 6px;">
                         <span>غير ذلك:</span>
-                        <span class="dotted-line" style="color:#111;">{% if is_other %}{{ other_source_text }}{% endif %}</span>
+                        <span class="dotted-line" style="color: #111; padding-right: 6px;">
+                            {% if is_other %}{{ other_source_text }}{% else %}..................................................................................................................................................................................{% endif %}
+                        </span>
                     </div>
                 </div>
 
-                <!-- الحالة الصحية -->
+                <!-- Medical history -->
                 <div>
-                    <div style="text-align:center; margin:6px 0;">
-                        <span class="section-badge" style="font-size:11px; padding:4px 20px;">هل لدى الطالب حالة مرضية مزمنة (إن وجدت)</span>
+                    <div style="text-align: center; margin-bottom: 5px;">
+                        <span class="section-title-badge" style="font-size: 11px; padding: 4px 20px; float: none;">هل لدى الطالب حالة مرضية مزمنة (إن وجدت)</span>
                     </div>
-                    <div style="display:flex; gap:15px; align-items:center;">
-                        <div style="width:100px; flex-shrink:0; text-align:center; background:#f0f4f7; border-radius:8px; padding:8px; border:1px solid #ddd;">
-                            <i class="fas fa-stethoscope" style="font-size:32px; color:var(--primary-blue);"></i>
-                            <div style="font-size:8px; color:#555;">أيقونة طبية</div>
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <!-- Illustration on the left -->
+                        <div style="width: 110px; flex-shrink: 0; display: flex; justify-content: center;">
+                            <img src="{% static 'img/registration/page1_ill.png' %}" style="max-width: 100%; height: auto;" alt="Medical Illustration">
                         </div>
-                        <div style="flex:1;">
-                            <table class="medical-table">
+                        <!-- Table on the right -->
+                        <div style="flex-grow: 1;">
+                            <table class="medical-table" style="margin-bottom: 0;">
                                 <tr>
                                     <td class="medical-label">نوع/ اسم المرض</td>
-                                    <td>{% if has_disease %}{{ disease_name }}{% else %}................................................................................................{% endif %}</td>
+                                    <td class="medical-value">{% if has_disease %}{{ disease_name }}{% else %}................................................................................................{% endif %}</td>
                                 </tr>
                                 <tr>
                                     <td class="medical-label">أعراض المرض</td>
-                                    <td>................................................................................................</td>
+                                    <td class="medical-value">................................................................................................</td>
                                 </tr>
                                 <tr>
                                     <td class="medical-label">كيفية التعامل مع المريض</td>
-                                    <td>................................................................................................</td>
+                                    <td class="medical-value">................................................................................................</td>
                                 </tr>
                                 <tr>
                                     <td class="medical-label">رقم تواصل للطوارئ</td>
-                                    <td>{% if student.father_phone %}{{ student.father_phone }} (الأب){% elif student.mother_phone %}{{ student.mother_phone }} (الأم){% else %}................................................................................................{% endif %}</td>
+                                    <td class="medical-value">{% if student.father_phone %}{{ student.father_phone }} (الأب){% elif student.mother_phone %}{{ student.mother_phone }} (الأم){% else %}................................................................................................{% endif %}</td>
                                 </tr>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- تذييل الصفحة الأولى -->
-                <div style="text-align:center; margin-top:auto; padding-top:10px; font-weight:800; color:var(--secondary-purple); border-top:1px dashed var(--border-grey);">
-                    <span style="color:var(--primary-blue);">●</span> انتهى قسم المعلومات الشخصية شاكرين تعاونكم <span style="color:var(--primary-blue);">●</span>
+                <!-- Footer of Page 1 -->
+                <div style="text-align: center; margin-top: 15px; font-size: 11px; font-weight: 800; color: var(--secondary-color); display: flex; justify-content: center; align-items: center; gap: 8px;">
+                    <span style="color: var(--primary-color); font-size: 14px;">●</span>
+                    <span>انتهى قسم المعلومات الشخصية شاكرين تعاونكم</span>
+                    <span style="color: var(--primary-color); font-size: 14px;">●</span>
                 </div>
+
             </div>
         </div>
 
-        <!-- ========== الصفحة الثانية ========== -->
-        <div class="page">
+        <!-- ================= PAGE 2 ================= -->
+        <div class="page" id="page-2">
             <div class="page-border">
-                <div class="top-bar"></div>
-                <div class="bottom-bar"></div>
                 <div class="watermark"></div>
+                <div class="top-decorative-bar"></div>
+                <div class="bottom-decorative-bar"></div>
 
-                <!-- عنوان القوانين -->
+                <!-- Header Rules -->
                 <div>
-                    <div class="rules-title">أنظمة وقوانين يجب أن يلتزم بها الطالب في معهد اليمان:</div>
-                    <div class="rules-sub">أتعهد بتنفيذ التعليمات الواردة أدناه تحت طائلة المسؤولية عند المخالفة بحسب النظام الداخلي لوزارة التربية:</div>
+                    <div class="rules-title-header">أنظمة وقوانين يجب أن يلتزم بها الطالب في معهد اليمان:</div>
+                    <div class="rules-subtitle-header">أتعهد بتنفيذ التعليمات الواردة أدناه تحت طائلة المسؤولية عند المخالفة بحسب النظام الداخلي لوزارة التربية:</div>
                 </div>
 
-                <!-- قوانين الدوام والسلوك -->
+                <!-- Rules block 1: Attendance and Behaviour -->
                 <div class="rule-block">
-                    <div class="rule-content">
+                    <div class="rule-block-content">
                         <ul class="rule-list">
                             <li><span class="rule-num">1-</span> المواظبة على الدوام والاهتمام بالدروس والوظائف وسيتم إبلاغ أولياء الأمور عن أي تقصير أو مخالفة أو أي تأخير عن الدوام.</li>
                             <li><span class="rule-num">2-</span> المحافظة على النظافة وأثاث ومحتويات المعهد.</li>
@@ -644,14 +926,14 @@
                             <li><span class="rule-num">7-</span> الالتزام بالشعبة التي تم وضع الطالب بها وفق ما ترى الإدارة وبما يتوافق مع تحصيله العلمي.</li>
                         </ul>
                     </div>
-                    <div class="rule-illustration">
-                        <i class="fas fa-gavel" style="font-size:28px; color:var(--secondary-purple);"></i>
+                    <div class="rule-block-side-illustration">
+                        <img src="{% static 'img/registration/page2_ill1.png' %}" style="max-width: 100%; height: auto;" alt="Terms of Service">
                     </div>
                 </div>
 
-                <!-- الممنوعات -->
+                <!-- Rules block 2: Prohibitions -->
                 <div class="rule-block">
-                    <div class="rule-content">
+                    <div class="rule-block-content">
                         <ul class="rule-list">
                             <li><span class="rule-num">1-</span> يمنع التغيب عن الدوام دون إذن مسبق من الإدارة.</li>
                             <li><span class="rule-num">2-</span> عدم التدخين نهائياً في المعهد أو حول حرمه.</li>
@@ -663,14 +945,14 @@
                             <li><span class="rule-num">8-</span> عدم استعمال الجوال داخل المعهد مهما كان السبب وسيتم مصادرته في حال المخالفة <span class="highlight-red">(ولا يعاد إلا بحضور ولي الأمر وتوقيع تعهد خطي).</span></li>
                         </ul>
                     </div>
-                    <div class="rule-illustration">
-                        <i class="fas fa-ban" style="font-size:28px; color:var(--accent-red);"></i>
+                    <div class="rule-block-side-illustration">
+                        <img src="{% static 'img/registration/page2_ill2.png' %}" style="max-width: 100%; height: auto;" alt="Warnings">
                     </div>
                 </div>
 
-                <!-- السياسة المالية -->
+                <!-- Rules block 3: Financial Policy -->
                 <div class="rule-block">
-                    <div class="rule-content">
+                    <div class="rule-block-content">
                         <ul class="rule-list">
                             <li><span class="rule-num">1-</span> الالتزام بدفع الأقساط كما يلي:
                                 <br>&nbsp;&nbsp;&nbsp;أ- الدفعة الأولى: نصف القسط عند التثبيت وقبول الطالب.
@@ -685,47 +967,58 @@
                             </li>
                         </ul>
                     </div>
-                    <div class="rule-illustration">
-                        <i class="fas fa-coins" style="font-size:28px; color:var(--accent-orange);"></i>
+                    <div class="rule-block-side-illustration">
+                        <img src="{% static 'img/registration/page2_ill3.png' %}" style="max-width: 100%; height: auto;" alt="Financial Policy">
                     </div>
                 </div>
 
-                <!-- التعهد -->
-                <div class="pledge-box">
-                    <div style="font-weight:800; color:var(--secondary-purple); font-size:12px; text-align:center; margin-bottom:4px;">في نهاية التسجيل يجب تعهد من قبل الطالب + ولي الأمر:</div>
-                    <div class="pledge-sign">
-                        <span>تعهد ولي الأمر: أنا الموقع/ة أدناه: ................................................................</span>
-                        <span>ولي أمر الطالب/ة: ................................................................</span>
+                <!-- Pledge and sign -->
+                <div class="pledge-section">
+                    <div class="pledge-header" style="font-size: 12px; font-weight: 800; color: var(--secondary-color); margin-bottom: 8px;">في نهاية التسجيل يجب تعهد من قبل الطالب + ولي الأمر:</div>
+                    <div class="pledge-signature-fields">
+                        <div>تعهد ولي الأمر: أنا الموقع/ة أدناه: ................................................................</div>
+                        <div>ولي أمر الطالب/ة: ................................................................</div>
                     </div>
                     <p class="pledge-text">
                         أتعهد بأن يلتزم ولدي بجميع الملاحظات والتعليمات المذكورة أعلاه وأسقط حقي بالمطالبة بالقسط المدفوع في حال انسحاب أو فصل ولدي من المعهد لمخالفته التعليمات السابقة وعدم المطالبة بأي جزء من المبلغ مهما كان السبب ومهما كان عدد أيام الدوام وذلك حسب تعليمات وزارة التربية.
                     </p>
                 </div>
 
-                <!-- الحسم الإداري -->
-                <div class="admin-discount">
-                    <div class="admin-box">
-                        <div class="admin-row">
-                            <span>قيمة الحسم (إن وجد):</span>
-                            <span class="dotted-line" style="color:var(--accent-red); font-weight:700;">{% if student.discount_amount > 0 %}{{ student.discount_amount|floatformat:"0" }} ل.س{% endif %}</span>
-                        </div>
-                        <div class="admin-row">
-                            <span>سبب الحسم:</span>
-                            <span class="dotted-line">{% if student.discount_reason %}{{ student.discount_reason }}{% endif %}</span>
-                        </div>
-                        <div class="admin-row">
-                            <span>تاريخ ملء الاستمارة:</span>
-                            <span class="dotted-line">{{ student.registration_date|date:"Y/m/d" }}</span>
-                        </div>
-                    </div>
-                    <div class="admin-box">
-                        <div class="admin-row">
+                <!-- Office Admin Dotted Box -->
+                <div class="admin-discount-container">
+                    <!-- Right Box (Employee details) -->
+                    <div class="admin-box-right">
+                        <div class="admin-field-row">
                             <span>اسم الموظف/ة:</span>
-                            <span class="dotted-line">{{ student.added_by.get_full_name|default:student.added_by.username|default:"" }}</span>
+                            <span class="dotted-line" style="color: #111; padding-right: 6px;">
+                                {{ student.added_by.get_full_name|default:student.added_by.username|default:"" }}
+                            </span>
                         </div>
-                        <div class="admin-row" style="margin-top:auto;">
+                        <div class="admin-field-row" style="margin-top: auto;">
                             <span>توقيع الموظف/ة:</span>
                             <span class="dotted-line"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Left Box (Discount & Date) -->
+                    <div class="admin-box-left">
+                        <div class="admin-field-row">
+                            <span>قيمة الحسم (إن وجد):</span>
+                            <span class="dotted-line" style="color: var(--accent-red); font-weight: 700; padding-right: 6px;">
+                                {% if student.discount_amount > 0 %}
+                                    {{ student.discount_amount|floatformat:"0" }} ل.س
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="admin-field-row">
+                            <span>سبب الحسم:</span>
+                            <span class="dotted-line" style="color: #111; padding-right: 6px;">{{ student.discount_reason|default:"" }}</span>
+                        </div>
+                        <div class="admin-field-row">
+                            <span>تاريخ ملء الاستمارة:</span>
+                            <span class="dotted-line" style="color: #111; padding-right: 6px;">
+                                {{ student.registration_date|date:"Y/m/d" }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -734,5 +1027,6 @@
         </div>
 
     </div>
+
 </body>
 </html>
