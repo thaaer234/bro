@@ -113,7 +113,7 @@ class PasswordResetRequest(models.Model):
             import secrets
 
             while True:
-                code = secrets.token_hex(3).upper()
+                code = f"{secrets.randbelow(1000000):06d}"
                 if not PasswordResetRequest.objects.filter(code=code).exists():
                     self.code = code
                     break
