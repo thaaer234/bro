@@ -195,7 +195,7 @@
             font-size: 11px;
             color: #34495e;
             background-color: #fafafa;
-            margin-left: 10px;
+            margin-right: 10px;
         }
 
         /* Page Separator Line */
@@ -429,7 +429,7 @@
         .rule-block-side-illustration {
             width: 110px;
             background-color: var(--bg-light-teal);
-            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -522,35 +522,28 @@
         }
 
         /* Admin / Discount Dotted Box */
-        .admin-discount-box {
-            border: 2px dotted var(--primary-color);
+        .admin-discount-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .admin-box-left, .admin-box-right {
+            border: 2px dashed var(--primary-color);
             background-color: #fafbfc;
             border-radius: 6px;
             padding: 8px 12px;
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        .admin-box-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1.2fr;
-            gap: 10px;
-            margin-bottom: 6px;
-        }
-
-        .admin-box-field {
+        .admin-field-row {
             display: flex;
             align-items: center;
             font-weight: 700;
-            font-size: 9.5px;
-        }
-
-        .admin-box-bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 700;
-            font-size: 9.5px;
-            border-top: 1px dashed #ced6e0;
-            padding-top: 6px;
+            font-size: 10px;
         }
 
         /* Printing Adjustments */
@@ -611,6 +604,12 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
+
+            .admin-box-left, .admin-box-right {
+                background-color: #fafbfc !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
@@ -643,14 +642,14 @@
                 
                 <!-- Header -->
                 <div class="header-section">
+                    <div class="header-logo-title">
+                        <h1 class="institute-name">معهد اليمان للعلوم واللغات</h1>
+                        <div class="form-title-badge">استمارة انتساب {{ academic_year_name }}</div>
+                        <div class="form-subtitle-notes">هذه الاستمارة مخصصة لطلاب الثالث الثانوي (العلمي - الأدبي - التمهيدي)</div>
+                    </div>
                     <div class="photo-placeholder">
                         <span>صورة</span>
                         <span>الطالب/ة</span>
-                    </div>
-                    <div class="header-logo-title">
-                        <h1 class="institute-name">معهد اليمان للعلوم واللغات</h1>
-                        <div class="form-title-badge">استمارة انتساب شتاء {{ academic_year_name }}</div>
-                        <div class="form-subtitle-notes">هذه الاستمارة مخصصة لطلاب الثالث الثانوي (العلمي - الأدبي - التمهيدي)</div>
                     </div>
                 </div>
 
@@ -814,82 +813,61 @@
                             <span>أحد الأصدقاء</span>
                         </div>
                         <div class="checkbox-container">
+                            <div class="custom-chk {% if is_tv %}chk-checked{% endif %}">{% if is_tv %}✓{% endif %}</div>
+                            <span>مقابلة تلفزيونية</span>
+                        </div>
+                        <div class="checkbox-container">
                             <div class="custom-chk {% if is_ads %}chk-checked{% endif %}">{% if is_ads %}✓{% endif %}</div>
                             <span>إعلانات طرقية</span>
                         </div>
-                        <div class="checkbox-container">
-                            <div class="custom-chk {% if is_other %}chk-checked{% endif %}">{% if is_other %}✓{% endif %}</div>
-                            <span>غير ذلك</span>
-                        </div>
                     </div>
-                    <div class="other-source-row">
-                        <span>تفصيل آخر (إن وجد):</span>
-                        <span class="dotted-line" style="color: #111; padding-right: 6px;">{{ other_source_text }}</span>
+                    <div class="other-source-row" style="margin-top: 6px;">
+                        <span>غير ذلك:</span>
+                        <span class="dotted-line" style="color: #111; padding-right: 6px;">
+                            {% if is_other %}{{ other_source_text }}{% endif %}
+                        </span>
                     </div>
                 </div>
 
                 <!-- Medical history -->
                 <div>
-                    <span class="section-title-badge">هل لدى الطالب حالة مرضية مزمنة (إن وجدت):</span>
-                    <table class="medical-table">
-                        <tr>
-                            <td class="medical-label">نوع/ اسم المرض</td>
-                            <td class="medical-value">{% if has_disease %}{{ disease_name }}{% else %}................................................................................................{% endif %}</td>
-                        </tr>
-                        <tr>
-                            <td class="medical-label">أعراض المرض</td>
-                            <td class="medical-value">................................................................................................</td>
-                        </tr>
-                        <tr>
-                            <td class="medical-label">كيفية التعامل مع المريض</td>
-                            <td class="medical-value">................................................................................................</td>
-                        </tr>
-                        <tr>
-                            <td class="medical-label">رقم تواصل للطوارئ</td>
-                            <td class="medical-value">{% if student.father_phone %}{{ student.father_phone }} (الأب){% elif student.mother_phone %}{{ student.mother_phone }} (الأم){% else %}................................................................................................{% endif %}</td>
-                        </tr>
-                    </table>
+                    <div style="text-align: center; margin-bottom: 5px;">
+                        <span class="section-title-badge" style="font-size: 11px; padding: 4px 20px; float: none;">هل لدى الطالب حالة مرضية مزمنة (إن وجدت)</span>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <!-- Illustration on the left -->
+                        <div style="width: 110px; flex-shrink: 0; display: flex; justify-content: center;">
+                            <img src="{% static 'img/registration/page1_ill.png' %}" style="max-width: 100%; height: auto;" alt="Medical Illustration">
+                        </div>
+                        <!-- Table on the right -->
+                        <div style="flex-grow: 1;">
+                            <table class="medical-table" style="margin-bottom: 0;">
+                                <tr>
+                                    <td class="medical-label">نوع/ اسم المرض</td>
+                                    <td class="medical-value">{% if has_disease %}{{ disease_name }}{% else %}................................................................................................{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td class="medical-label">أعراض المرض</td>
+                                    <td class="medical-value">................................................................................................</td>
+                                </tr>
+                                <tr>
+                                    <td class="medical-label">كيفية التعامل مع المريض</td>
+                                    <td class="medical-value">................................................................................................</td>
+                                </tr>
+                                <tr>
+                                    <td class="medical-label">رقم تواصل للطوارئ</td>
+                                    <td class="medical-value">{% if student.father_phone %}{{ student.father_phone }} (الأب){% elif student.mother_phone %}{{ student.mother_phone }} (الأم){% else %}................................................................................................{% endif %}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Footer of Page 1 -->
-                <div class="page-footer">
-                    <div class="footer-note-text">
-                        <i class="fas fa-circle-check"></i>
-                        <span>انتهى قسم المعلومات الشخصية شاكرين تعاونكم</span>
-                    </div>
-                    
-                    <!-- SVG Health/Coughing Illustration -->
-                    <div class="footer-illustration">
-                        <svg viewBox="0 0 160 80" width="100%" height="100%">
-                            <defs>
-                                <linearGradient id="illGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#107393" stop-opacity="0.8"/>
-                                    <stop offset="100%" stop-color="#523675" stop-opacity="0.8"/>
-                                </linearGradient>
-                            </defs>
-                            <!-- Background elements -->
-                            <circle cx="45" cy="50" r="18" fill="url(#illGrad)" opacity="0.15"/>
-                            <circle cx="115" cy="50" r="18" fill="url(#illGrad)" opacity="0.15"/>
-                            
-                            <!-- Left character (coughing/sneezing) -->
-                            <g transform="translate(10, 15)">
-                                <circle cx="35" cy="18" r="9" fill="url(#illGrad)"/>
-                                <path d="M26,38 C26,29 44,29 44,38 L42,50 L28,50 Z" fill="url(#illGrad)"/>
-                                <path d="M36,25 L34,29 L38,29 Z" fill="#e74c3c" opacity="0.8"/> <!-- tissue/hand -->
-                                <circle cx="42" cy="27" r="1.5" fill="#f39c12"/>
-                                <circle cx="45" cy="25" r="1" fill="#f39c12"/>
-                                <circle cx="48" cy="26" r="1" fill="#f39c12"/> <!-- cough particles -->
-                            </g>
-                            
-                            <!-- Right character (blowing nose) -->
-                            <g transform="translate(80, 15)">
-                                <circle cx="35" cy="18" r="9" fill="url(#illGrad)"/>
-                                <path d="M26,38 C26,29 44,29 44,38 L42,50 L28,50 Z" fill="url(#illGrad)"/>
-                                <path d="M31,23 Q35,27 33,31" stroke="white" stroke-width="1.5" fill="none"/> <!-- hand holding napkin -->
-                                <path d="M31,22 L27,26 L33,26 Z" fill="#ecf0f1"/> <!-- tissue -->
-                            </g>
-                        </svg>
-                    </div>
+                <div style="text-align: center; margin-top: 15px; font-size: 11px; font-weight: 800; color: var(--secondary-color); display: flex; justify-content: center; align-items: center; gap: 8px;">
+                    <span style="color: var(--primary-color); font-size: 14px;">●</span>
+                    <span>انتهى قسم المعلومات الشخصية شاكرين تعاونكم</span>
+                    <span style="color: var(--primary-color); font-size: 14px;">●</span>
                 </div>
 
             </div>
@@ -907,16 +885,6 @@
 
                 <!-- Rules block 1: Attendance and Behaviour -->
                 <div class="rule-block">
-                    <div class="rule-block-side-illustration">
-                        <svg viewBox="0 0 100 100" width="60" height="60">
-                            <rect x="25" y="15" width="50" height="70" rx="5" fill="none" stroke="#523675" stroke-width="3"/>
-                            <line x1="35" y1="30" x2="65" y2="30" stroke="#107393" stroke-width="3"/>
-                            <line x1="35" y1="45" x2="65" y2="45" stroke="#107393" stroke-width="3"/>
-                            <line x1="35" y1="60" x2="55" y2="60" stroke="#107393" stroke-width="3"/>
-                            <circle cx="70" cy="70" r="12" fill="#27ae60"/>
-                            <path d="M66,70 L69,73 L75,67" stroke="white" stroke-width="2" fill="none"/>
-                        </svg>
-                    </div>
                     <div class="rule-block-content">
                         <ul class="rule-list">
                             <li><span class="rule-num">1-</span> المواظبة على الدوام والاهتمام بالدروس والوظائف وسيتم إبلاغ أولياء الأمور عن أي تقصير أو مخالفة أو أي تأخير عن الدوام.</li>
@@ -928,17 +896,13 @@
                             <li><span class="rule-num">7-</span> الالتزام بالشعبة التي تم وضع الطالب بها وفق ما ترى الإدارة وبما يتوافق مع تحصيله العلمي.</li>
                         </ul>
                     </div>
+                    <div class="rule-block-side-illustration">
+                        <img src="{% static 'img/registration/page2_ill1.png' %}" style="max-width: 100%; height: auto;" alt="Terms of Service">
+                    </div>
                 </div>
 
                 <!-- Rules block 2: Prohibitions -->
                 <div class="rule-block">
-                    <div class="rule-block-side-illustration">
-                        <svg viewBox="0 0 100 100" width="60" height="60">
-                            <circle cx="50" cy="50" r="35" fill="none" stroke="#c0392b" stroke-width="4"/>
-                            <line x1="25" y1="25" x2="75" y2="75" stroke="#c0392b" stroke-width="4"/>
-                            <path d="M45,35 L55,35 L53,58 L47,58 Z M50,68 A 4 4 0 1 1 50,67.9" fill="#c0392b"/>
-                        </svg>
-                    </div>
                     <div class="rule-block-content">
                         <ul class="rule-list">
                             <li><span class="rule-num">1-</span> يمنع التغيب عن الدوام دون إذن مسبق من الإدارة.</li>
@@ -951,38 +915,35 @@
                             <li><span class="rule-num">8-</span> عدم استعمال الجوال داخل المعهد مهما كان السبب وسيتم مصادرته في حال المخالفة <span class="highlight-red">(ولا يعاد إلا بحضور ولي الأمر وتوقيع تعهد خطي).</span></li>
                         </ul>
                     </div>
+                    <div class="rule-block-side-illustration">
+                        <img src="{% static 'img/registration/page2_ill2.png' %}" style="max-width: 100%; height: auto;" alt="Warnings">
+                    </div>
                 </div>
 
                 <!-- Rules block 3: Financial Policy -->
                 <div class="rule-block">
-                    <div class="rule-block-side-illustration">
-                        <svg viewBox="0 0 100 100" width="60" height="60">
-                            <rect x="20" y="30" width="60" height="40" rx="3" fill="none" stroke="#107393" stroke-width="3"/>
-                            <line x1="20" y1="42" x2="80" y2="42" stroke="#107393" stroke-width="3"/>
-                            <rect x="30" y="52" width="12" height="10" fill="#523675"/>
-                            <circle cx="65" cy="57" r="4" fill="#f1c40f"/>
-                        </svg>
-                    </div>
                     <div class="rule-block-content">
                         <ul class="rule-list">
                             <li><span class="rule-num">1-</span> الالتزام بدفع الأقساط كما يلي:
                                 <br>&nbsp;&nbsp;&nbsp;أ- الدفعة الأولى: نصف القسط عند التثبيت وقبول الطالب.
-                                <br>&nbsp;&nbsp;&nbsp;ب- الدفعة الثانية: من تاريخ 9/1 حتى تاريخ 9/15.
-                                <br>&nbsp;&nbsp;&nbsp;ج- الدفعة الثالثة: من تاريخ 11/1 حتى تاريخ 11/15.
+                                <br>&nbsp;&nbsp;&nbsp;ب- الدفعة الثانية: من تاريخ 6/1 حتى تاريخ 6/5.
                             </li>
                             <li><span class="rule-num">2-</span> يمكن دفع كامل القسط قبل بداية الدورة.</li>
                             <li><span class="rule-num">3-</span> قبل بداية الدورة:
-                                <br>&nbsp;&nbsp;&nbsp;أ- يعاد المبلغ المدفوع كاملاً، مع حسم رسوم التسجيل <span class="highlight-red">(٢٥٠.٠٠٠ ل.س).</span>
-                                <br>&nbsp;&nbsp;&nbsp;ب- خلال الأسبوع الأول <span class="highlight-blue">يعاد نصف المبلغ المدفوع.</span>
+                                <br>&nbsp;&nbsp;&nbsp;أ- يعاد المبلغ المدفوع كاملاً، مع حسم رسوم التسجيل <span class="highlight-red">(200.000 ل.س).</span>
+                                <br>&nbsp;&nbsp;&nbsp;ب- خلال الأسبوع الأول <span class="highlight-blue">يُعاد نصف المبلغ المدفوع.</span>
                                 <br>&nbsp;&nbsp;&nbsp;ج- بعد انتهاء الأسبوع الأول <span class="highlight-red">لا يعاد القسط مهما كان السبب</span> (الأسبوع الأول من انطلاقة الدورة وليس تاريخ التسجيل)، وذلك حسب تعليمات وزارة التربية.
                             </li>
                         </ul>
+                    </div>
+                    <div class="rule-block-side-illustration">
+                        <img src="{% static 'img/registration/page2_ill3.png' %}" style="max-width: 100%; height: auto;" alt="Financial Policy">
                     </div>
                 </div>
 
                 <!-- Pledge and sign -->
                 <div class="pledge-section">
-                    <div class="pledge-header">تعهد ولي الأمر + الطالب في نهاية التسجيل</div>
+                    <div class="pledge-header" style="font-size: 12px; font-weight: 800; color: var(--secondary-color); margin-bottom: 8px;">في نهاية التسجيل يجب تعهد من قبل الطالب + ولي الأمر:</div>
                     <div class="pledge-signature-fields">
                         <div>تعهد ولي الأمر: أنا الموقع/ة أدناه: ................................................................</div>
                         <div>ولي أمر الطالب/ة: ................................................................</div>
@@ -993,9 +954,24 @@
                 </div>
 
                 <!-- Office Admin Dotted Box -->
-                <div class="admin-discount-box">
-                    <div class="admin-box-grid">
-                        <div class="admin-box-field">
+                <div class="admin-discount-container">
+                    <!-- Right Box (Employee details) -->
+                    <div class="admin-box-right">
+                        <div class="admin-field-row">
+                            <span>اسم الموظف/ة:</span>
+                            <span class="dotted-line" style="color: #111; padding-right: 6px;">
+                                {{ student.added_by.get_full_name|default:student.added_by.username|default:"" }}
+                            </span>
+                        </div>
+                        <div class="admin-field-row" style="margin-top: auto;">
+                            <span>توقيع الموظف/ة:</span>
+                            <span class="dotted-line"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Left Box (Discount & Date) -->
+                    <div class="admin-box-left">
+                        <div class="admin-field-row">
                             <span>قيمة الحسم (إن وجد):</span>
                             <span class="dotted-line" style="color: var(--accent-red); font-weight: 700; padding-right: 6px;">
                                 {% if student.discount_amount > 0 %}
@@ -1003,27 +979,15 @@
                                 {% endif %}
                             </span>
                         </div>
-                        <div class="admin-box-field" style="grid-column: span 2;">
+                        <div class="admin-field-row">
                             <span>سبب الحسم:</span>
                             <span class="dotted-line" style="color: #111; padding-right: 6px;">{{ student.discount_reason|default:"" }}</span>
                         </div>
-                    </div>
-                    <div class="admin-box-bottom">
-                        <div style="display: flex; width: 45%;">
-                            <span>اسم الموظف/ة:</span>
-                            <span class="dotted-line" style="color: #111; padding-right: 6px;">
-                                {{ student.added_by.get_full_name|default:student.added_by.username|default:"" }}
-                            </span>
-                        </div>
-                        <div style="display: flex; width: 30%;">
+                        <div class="admin-field-row">
                             <span>تاريخ ملء الاستمارة:</span>
                             <span class="dotted-line" style="color: #111; padding-right: 6px;">
                                 {{ student.registration_date|date:"Y/m/d" }}
                             </span>
-                        </div>
-                        <div style="display: flex; width: 25%;">
-                            <span>توقيع الموظف/ة:</span>
-                            <span class="dotted-line"></span>
                         </div>
                     </div>
                 </div>

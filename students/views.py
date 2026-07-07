@@ -3860,14 +3860,15 @@ def add_student_staff_note(request, student_id):
 def print_registration_form(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     academic_year = student.academic_year
-    academic_year_name = academic_year.name if academic_year else "شتاء 2026 / 2027 م"
+    academic_year_name = academic_year.name if academic_year else "صيف 2025 / 2026 م"
     
     # Process how_knew_us choice to match checkbox labels
     how_knew = student.how_knew_us
     is_social = (how_knew == 'social')
     is_friend = (how_knew == 'friend')
     is_ads = (how_knew in ['ad', 'ads'])
-    is_other = (how_knew == 'other' or (how_knew and how_knew not in ['social', 'friend', 'ad', 'ads']))
+    is_tv = (how_knew == 'tv')
+    is_other = (how_knew == 'other' or (how_knew and how_knew not in ['social', 'friend', 'ad', 'ads', 'tv']))
     
     other_source_text = ""
     if is_other and how_knew:
@@ -3875,9 +3876,9 @@ def print_registration_form(request, student_id):
             
     # Academic levels checks
     # scientific options:
-    is_sci_listening = (student.academic_level == 'ثالث ثانوي علمي مستمع')
-    is_sci_new = (student.academic_level == 'ثالث ثانوي علمي مستجد')
-    is_sci_repeat = (student.academic_level == 'ثالث ثانوي علمي راسب ويعيد')
+    is_sci_listening = (student.academic_level == 'ثالع ثانوي علمي مستمع' or student.academic_level == 'ثالث ثانوي علمي مستمع')
+    is_sci_new = (student.academic_level == 'ثالع ثانوي علمي مستجد' or student.academic_level == 'ثالث ثانوي علمي مستجد')
+    is_sci_repeat = (student.academic_level == 'ثالث ثانوي علمي راسب ويعيد' or student.academic_level == 'ثالث ثانوي علمي " راسب ويعيد "')
     is_sci_pass_repeat = (student.academic_level == 'ثالث ثانوي علمي ناجح ويعيد')
     
     # literary options:
@@ -3905,6 +3906,7 @@ def print_registration_form(request, student_id):
         'is_social': is_social,
         'is_friend': is_friend,
         'is_ads': is_ads,
+        'is_tv': is_tv,
         'is_other': is_other,
         'other_source_text': other_source_text,
         'is_sci_listening': is_sci_listening,
