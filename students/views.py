@@ -3856,4 +3856,73 @@ def add_student_staff_note(request, student_id):
     return redirect('students:student_profile', student_id=student.id)
 
 
+@login_required
+def print_registration_form(request, student_id):
+    student = get_object_or_404(Student, id=student_id)
+    academic_year = student.academic_year
+    academic_year_name = academic_year.name if academic_year else "شتاء 2026 / 2027 م"
+    
+    # Process how_knew_us choice to match checkbox labels
+    how_knew = student.how_knew_us
+    is_social = (how_knew == 'social')
+    is_friend = (how_knew == 'friend')
+    is_ads = (how_knew in ['ad', 'ads'])
+    is_other = (how_knew == 'other' or (how_knew and how_knew not in ['social', 'friend', 'ad', 'ads']))
+    
+    other_source_text = ""
+    if is_other and how_knew:
+        other_source_text = how_knew if how_knew != 'other' else "أخرى"
+            
+    # Academic levels checks
+    # scientific options:
+    is_sci_listening = (student.academic_level == 'ثالث ثانوي علمي مستمع')
+    is_sci_new = (student.academic_level == 'ثالث ثانوي علمي مستجد')
+    is_sci_repeat = (student.academic_level == 'ثالث ثانوي علمي راسب ويعيد')
+    is_sci_pass_repeat = (student.academic_level == 'ثالث ثانوي علمي ناجح ويعيد')
+    
+    # literary options:
+    is_lit_listening = (student.academic_level == 'ثالث ثانوي أدبي مستمع')
+    is_lit_new = (student.academic_level == 'ثالث ثانوي أدبي مستجد')
+    is_lit_repeat = (student.academic_level == 'ثالث ثانوي أدبي راسب ويعيد')
+    is_lit_pass_repeat = (student.academic_level == 'ثالث ثانوي أدبي ناجح ويعيد')
+    
+    # registration status options:
+    is_need_nomination = (student.registration_status == 'يحتاج ترشيحي')
+    is_no_need_nomination = (student.registration_status == 'لا يحتاج ترشيحي')
+    is_in_school = (student.registration_status == 'مسجل في مدرسة')
+    is_not_in_school = (student.registration_status == 'غير مسجل في مدرسة')
+    
+    # Chronic disease name check
+    has_disease = False
+    disease_name = ""
+    if student.disease and student.disease.strip().lower() != 'none' and student.disease.strip() != '':
+        has_disease = True
+        disease_name = student.disease.strip()
+        
+    context = {
+        'student': student,
+        'academic_year_name': academic_year_name,
+        'is_social': is_social,
+        'is_friend': is_friend,
+        'is_ads': is_ads,
+        'is_other': is_other,
+        'other_source_text': other_source_text,
+        'is_sci_listening': is_sci_listening,
+        'is_sci_new': is_sci_new,
+        'is_sci_repeat': is_sci_repeat,
+        'is_sci_pass_repeat': is_sci_pass_repeat,
+        'is_lit_listening': is_lit_listening,
+        'is_lit_new': is_lit_new,
+        'is_lit_repeat': is_lit_repeat,
+        'is_lit_pass_repeat': is_lit_pass_repeat,
+        'is_need_nomination': is_need_nomination,
+        'is_no_need_nomination': is_no_need_nomination,
+        'is_in_school': is_in_school,
+        'is_not_in_school': is_not_in_school,
+        'has_disease': has_disease,
+        'disease_name': disease_name,
+    }
+    return render(request, 'students/registration_form_print.html', context)
+
+
     

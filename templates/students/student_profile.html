@@ -58,10 +58,14 @@
           دورة القيود المالية
         </a>
         <!-- في student_profile.html - أضف هذا الزر في قسم header-actions -->
-<a href="{% url 'students:update_student' student.id %}" class="btn btn-outline-primary">
-    <i class="fas fa-edit"></i>
-    تعديل البيانات
-</a>
+        <a href="{% url 'students:update_student' student.id %}" class="btn btn-outline-primary">
+            <i class="fas fa-edit"></i>
+            تعديل البيانات
+        </a>
+        <a class="btn btn-outline-info" href="{% url 'students:print_registration_form' student.id %}" target="_blank">
+            <i class="fas fa-print"></i>
+            طباعة استمارة الانتساب
+        </a>
         <a href="{% url 'students:register_course' student.id %}" class="btn btn-success">
           <i class="fas fa-user-plus"></i>
           تسجيل في دورة
