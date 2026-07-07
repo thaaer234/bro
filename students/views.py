@@ -3791,4 +3791,47 @@ def check_student_exists(request):
     return JsonResponse({'exists': False})
 
 
+@require_POST
+@login_required
+def update_student_notes_ajax(request):
+    import json
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            student_id = data.get('student_id')
+            is_quick = data.get('is_quick')
+            notes = data.get('notes', '')
+        else:
+            student_id = request.POST.get('student_id')
+            is_quick = request.POST.get('is_quick') == 'true' or request.POST.get('is_quick') == 'True'
+            notes = request.POST.get('notes', '')
+
+        if not student_id:
+            return JsonResponse({'success': False, 'message': 'معرف الطالب مطلوب.'}, status=400)
+
+        notes = (notes or '').strip()
+
+        if is_quick:
+            from quick.models import QuickStudent
+            quick_student = get_object_or_404(QuickStudent, id=student_id)
+            quick_student.notes = notes
+            quick_student.save(update_fields=['notes'])
+            
+            if quick_student.student:
+                quick_student.student.notes = notes
+                quick_student.student.save(update_fields=['notes'])
+        else:
+            student = get_object_or_404(Student, id=student_id)
+            student.notes = notes
+            student.save(update_fields=['notes'])
+            
+            if hasattr(student, 'quick_student_profile') and student.quick_student_profile:
+                student.quick_student_profile.notes = notes
+                student.quick_student_profile.save(update_fields=['notes'])
+
+        return JsonResponse({'success': True, 'message': 'تم تحديث الملاحظات بنجاح.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+
     

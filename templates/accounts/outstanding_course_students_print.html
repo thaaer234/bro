@@ -1,0 +1,343 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>طباعة كشف طلاب الدورة - {{ course.name }}</title>
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
+    <style>
+        body {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #fff;
+            color: #000;
+            margin: 0;
+            padding: 10mm;
+            direction: rtl;
+        }
+
+        /* A4 Layout Page Box setup */
+        @page {
+            size: A4 portrait;
+            margin: 12mm 12mm 15mm 12mm;
+        }
+
+        /* Printable Header styling */
+        .print-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #1d6b63;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-section img {
+            width: 75px;
+            height: 75px;
+            border-radius: 12px;
+            background: #fff;
+            padding: 2px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .logo-section h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800;
+            color: #1d6b63;
+        }
+
+        .logo-section p {
+            margin: 4px 0 0 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .print-meta {
+            text-align: left;
+            font-size: 12px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .print-meta strong {
+            color: #1d6b63;
+        }
+
+        /* Title Area */
+        .report-title-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .report-title {
+            display: inline-block;
+            font-size: 18px;
+            font-weight: 800;
+            color: #111;
+            border-bottom: 1.5px solid #333;
+            padding-bottom: 6px;
+        }
+
+        .filter-badge {
+            font-size: 12px;
+            color: #555;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        /* Table Styling for Printing */
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            font-size: 12px;
+        }
+
+        .print-table th, .print-table td {
+            border: 1px solid #666 !important;
+            padding: 8px 10px !important;
+            text-align: right;
+            vertical-align: middle;
+        }
+
+        .print-table th {
+            background-color: #f3f4f6 !important;
+            color: #000 !important;
+            font-weight: 800;
+            text-align: center;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .amount-cell {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 700;
+            text-align: left !important;
+        }
+
+        .text-center {
+            text-align: center !important;
+        }
+
+        .text-end {
+            text-align: left !important; /* aligned left for amounts in LTR styling */
+        }
+
+        /* Summary Cards in Print */
+        .summary-boxes {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .summary-box {
+            border: 1px solid #999;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            background-color: #fafafa !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .summary-box h6 {
+            margin: 0 0 6px 0;
+            font-size: 11px;
+            font-weight: 700;
+            color: #555;
+        }
+
+        .summary-box p {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 800;
+            color: #111;
+        }
+
+        /* Print Signatures */
+        .print-signatures {
+            margin-top: 50px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            text-align: center;
+            font-size: 13px;
+            page-break-inside: avoid;
+        }
+
+        .signature-col {
+            padding-top: 40px;
+            border-top: 1px dashed #999;
+            font-weight: 700;
+            color: #333;
+        }
+
+        /* Utility style for browser print button */
+        .floating-print-bar {
+            background-color: #f3f4f6;
+            border-bottom: 1px solid #ddd;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        @media print {
+            .floating-print-bar {
+                display: none !important;
+            }
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating action bar for easy manual triggers -->
+    <div class="floating-print-bar">
+        <span style="font-weight: 700; color: #1d6b63;"><i class="fas fa-file-pdf me-2"></i>معاينة الطباعة لورق A4</span>
+        <div>
+            <button onclick="window.print()" class="btn btn-sm btn-primary px-3" style="background-color: #1d6b63; border: none; font-family: 'Cairo'; font-weight: 700;">
+                <i class="fas fa-print me-1"></i> بدء الطباعة
+            </button>
+            <button onclick="window.close()" class="btn btn-sm btn-secondary px-3 ms-2" style="font-family: 'Cairo'; font-weight: 700;">
+                إغلاق النافذة
+            </button>
+        </div>
+    </div>
+
+    <!-- كشف ترويسة المعهد المطبوع -->
+    <div class="print-header">
+        <div class="logo-section">
+            <img src="{% static 'img/logo.png' %}" alt="شعار المعهد">
+            <div>
+                <h3>معهد اليمان للعلوم واللغات</h3>
+                <p>التميز في التعليم وبناء المهارات</p>
+            </div>
+        </div>
+        <div class="print-meta">
+            <div><strong>تاريخ الطباعة:</strong> {% now "Y-m-d H:i" %}</div>
+            <div><strong>منشئ التقرير:</strong> {{ request.user.get_full_name|default:request.user.username }}</div>
+            <div><strong>الفصل الدراسي:</strong> {{ course.academic_year.name }}</div>
+        </div>
+    </div>
+
+    <!-- عنوان الكشف -->
+    <div class="report-title-container">
+        <div class="report-title">كشف المبالغ المستحقة والمسددة لطلاب الدورة</div>
+        <div style="font-size: 15px; font-weight: 700; margin-top: 6px; color: #1d6b63;">
+            الدورة: {{ course.name }} {% if course.name_ar %}({{ course.name_ar }}){% endif %}
+        </div>
+        <div class="filter-badge">
+            حالة الطلاب المعروضة: 
+            {% if current_filter == 'all' %}
+                جميع الطلاب المسجلين
+            {% elif current_filter == 'paid' %}
+                الطلاب المسددين فقط
+            {% else %}
+                الطلاب المطالبين بمدفوعات (المتبقي > 0)
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- الصناديق المالية الإجمالية في الطباعة -->
+    <div class="summary-boxes">
+        <div class="summary-box">
+            <h6>إجمالي الطلاب بالتقرير</h6>
+            <p>{{ total_students }} طالب</p>
+        </div>
+        <div class="summary-box">
+            <h6>إجمالي الصافي المستحق</h6>
+            <p>{{ total_net_due|floatformat:2 }} ل.س</p>
+        </div>
+        <div class="summary-box">
+            <h6>إجمالي المبالغ المدفوعة</h6>
+            <p style="color: #1d6b63;">{{ total_paid|floatformat:2 }} ل.س</p>
+        </div>
+        <div class="summary-box">
+            <h6>إجمالي الذمم المتبقية</h6>
+            <p style="color: #a3472f;">{{ total_remaining|floatformat:2 }} ل.س</p>
+        </div>
+    </div>
+
+    <!-- جدول كشف الطلاب المرتب أبجدياً -->
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th width="5%">#</th>
+                <th width="30%">اسم الطالب ثلاثي</th>
+                <th width="20%">الشعبة الدراسية</th>
+                <th width="11%">الصافي المستحق</th>
+                <th width="11%">المدفوع</th>
+                <th width="11%">المتبقي</th>
+                <th width="12%">الحالة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in student_data %}
+            <tr>
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td style="font-weight: 700;">
+                    {{ row.student.full_name }}
+                    {% if row.student.phone %}
+                        <div style="font-size: 10px; font-weight: normal; color: #555; margin-top: 2px;">الهاتف: {{ row.student.phone }}</div>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% with classroom=row.current_classroom %}
+                        {% if classroom %}
+                            {{ classroom.name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    {% endwith %}
+                </td>
+                <td class="amount-cell">{{ row.net_due|floatformat:2 }}</td>
+                <td class="amount-cell">{{ row.paid_total|floatformat:2 }}</td>
+                <td class="amount-cell" style="font-weight: 800;">{{ row.remaining|floatformat:2 }}</td>
+                <td class="text-center" style="font-weight: 700;">
+                    {% if row.is_fully_paid %}
+                        مسدد
+                    {% else %}
+                        غير مسدد
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center" style="padding: 20px !important; color: #666;">لا يوجد طلاب مسجلين في هذه الدورة تبعا للفلتر المختار.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- التوقيعات المعتمدة أسفل الصفحة -->
+    <div class="print-signatures">
+        <div class="signature-col">توقيع المحاسب المسؤول</div>
+        <div class="signature-col">ختم إدارة المعهد المعتمد</div>
+        <div class="signature-col">توقيع مدير المعهد</div>
+    </div>
+
+    <!-- سكريبت التشغيل التلقائي للطباعة -->
+    <script>
+        window.onload = function() {
+            // تشغيل نافذة الطباعة بعد تحميل الصفحة مباشرة
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        };
+    </script>
+</body>
+</html>

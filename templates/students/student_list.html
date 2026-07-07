@@ -173,6 +173,14 @@
                             {% if student.student_number %}
                             <br><small class="text-muted">رقم: {{ student.student_number }}</small>
                             {% endif %}
+                            <div class="student-notes-wrapper" id="notes-preview-{{ student.id }}-{% if student.is_quick %}quick{% else %}regular{% endif %}">
+                                {% if student.notes %}
+                                    <div class="student-notes-preview text-muted mt-1" style="font-size: 11px; display: flex; align-items: center; gap: 4px;" title="{{ student.notes }}">
+                                        <i class="fas fa-sticky-note" style="color: #eab308;"></i>
+                                        <span>{{ student.notes|truncatechars:40 }}</span>
+                                    </div>
+                                {% endif %}
+                            </div>
                         </td>
                         <td>
                             {% if student.display_phone != "-" %}
@@ -204,6 +212,14 @@
                                     <a href="{{ student.profile_url|default:'#' }}" class="btn btn-sm btn-info" title="عرض الملف">
                                         <i class="fas fa-eye"></i>
                                     </a>
+                                    <button class="btn btn-sm btn-outline-warning quick-note-btn"
+                                            data-student-id="{{ student.id }}"
+                                            data-student-name="{{ student.full_name|escape }}"
+                                            data-is-quick="true"
+                                            data-notes="{{ student.notes|escape }}"
+                                            title="تعديل الملاحظات">
+                                        <i class="fas fa-sticky-note"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-danger delete-student-btn"
                                             data-student-id="{{ student.id }}"
                                             data-student-name="{{ student.full_name|escape }}"
@@ -220,6 +236,14 @@
                                     <a href="{% url 'students:update_student' student.id %}" class="btn btn-sm btn-warning" title="تعديل">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    <button class="btn btn-sm btn-outline-warning quick-note-btn"
+                                            data-student-id="{{ student.id }}"
+                                            data-student-name="{{ student.full_name|escape }}"
+                                            data-is-quick="false"
+                                            data-notes="{{ student.notes|escape }}"
+                                            title="تعديل الملاحظات">
+                                        <i class="fas fa-sticky-note"></i>
+                                    </button>
                                     <button class="btn btn-sm btn-danger delete-student-btn" 
                                             data-student-id="{{ student.id }}"
                                             data-student-name="{{ student.full_name|escape }}"

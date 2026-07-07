@@ -2287,8 +2287,12 @@ class OutstandingCoursesView(LoginRequiredMixin, TemplateView):
 class OutstandingCourseStudentsView(LoginRequiredMixin, TemplateView):
     template_name = 'accounts/outstanding_course_students.html'
     
+    def get_template_names(self):
+        if self.request.GET.get('print') == '1':
+            return ['accounts/outstanding_course_students_print.html']
+        return [self.template_name]
+    
     def get_context_data(self, course_id=None, **kwargs):
-        context = super().get_context_data(**kwargs)
         academic_year = _current_academic_year(self.request)
         course_qs = Course.objects.filter(pk=course_id)
         if academic_year:
@@ -2315,6 +2319,7 @@ class OutstandingCourseStudentsView(LoginRequiredMixin, TemplateView):
         print(f"إجمالي الطلاب المجموعين: {len(all_enrolled_students)}")
         
         if not all_enrolled_students:
+            context = super().get_context_data(**kwargs)
             context.update({
                 'course': course,
                 'student_data': [],
@@ -2342,6 +2347,12 @@ class OutstandingCourseStudentsView(LoginRequiredMixin, TemplateView):
         filter_type = self.request.GET.get('filter', 'all')
         filtered_students, filtered_statistics = self.apply_filter(student_data, filter_type)
         
+        # ترتيب أبجدي لطباعة الكشوفات
+        is_print = self.request.GET.get('print') == '1'
+        if is_print:
+            filtered_students.sort(key=lambda x: (x['student'].full_name or '').lower())
+            
+        context = super().get_context_data(**kwargs)
         context.update({
             'course': course,
             'student_data': filtered_students,

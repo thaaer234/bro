@@ -121,6 +121,14 @@
                                 <a href="{% url 'students:student_profile' student.id %}">{{ student.full_name }}</a>
                             {% endif %}
                             </strong>
+                            <div class="student-notes-wrapper" id="notes-preview-{{ student.id }}-{% if student.is_quick %}quick{% else %}regular{% endif %}">
+                                {% if student.notes %}
+                                    <div class="student-notes-preview text-muted mt-1" style="font-size: 11px; display: flex; align-items: center; gap: 4px;" title="{{ student.notes }}">
+                                        <i class="fas fa-sticky-note" style="color: #eab308;"></i>
+                                        <span>{{ student.notes|truncatechars:40 }}</span>
+                                    </div>
+                                {% endif %}
+                            </div>
                         </td>
                         <td>{{ student.phone|default:student.father_phone|default:"-" }}</td>
                         <td>
@@ -142,6 +150,14 @@
                             <a href="{% url 'quick:student_profile' student.id %}" class="btn btn-sm btn-info">
                                 <i class="fas fa-eye"></i>
                             </a>
+                            <button class="btn btn-sm btn-outline-warning quick-note-btn"
+                                    data-student-id="{{ student.id }}"
+                                    data-student-name="{{ student.full_name|escape }}"
+                                    data-is-quick="true"
+                                    data-notes="{{ student.notes|escape }}"
+                                    title="تعديل الملاحظات">
+                                <i class="fas fa-sticky-note"></i>
+                            </button>
                             {% else %}
                             <a href="{% url 'students:student_profile' student.id %}" class="btn btn-sm btn-info">
                                 <i class="fas fa-eye"></i>
@@ -151,6 +167,14 @@
                                 <i class="fas fa-edit"></i>
                             </a>
                             {% endif %}
+                            <button class="btn btn-sm btn-outline-warning quick-note-btn"
+                                    data-student-id="{{ student.id }}"
+                                    data-student-name="{{ student.full_name|escape }}"
+                                    data-is-quick="false"
+                                    data-notes="{{ student.notes|escape }}"
+                                    title="تعديل الملاحظات">
+                                <i class="fas fa-sticky-note"></i>
+                            </button>
                             <button class="btn btn-sm btn-danger delete-btn" data-id="{{ student.id }}">
                                 <i class="fas fa-trash"></i>
                             </button>

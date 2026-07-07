@@ -13,6 +13,7 @@ urlpatterns = [
     path('quick/', require_employee_perm('students_view')(views.QuickStudentsAllView.as_view()), name='quick_students_all'),
     path('search/', require_employee_perm('students_view')(views.StudentSearchView.as_view()), name='student_search'),
     path('check-student-exists/', views.check_student_exists, name='check_student_exists'),
+    path('ajax/update-notes/', require_employee_perm('students_edit')(views.update_student_notes_ajax), name='update_student_notes'),
 
     # ملفات الطلاب الشخصية
     path('<int:student_id>/profile/', require_employee_perm('students_profile')(views.StudentProfileView.as_view()), name='student_profile'),

@@ -94,9 +94,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
         <h2>جميع طلاب الدورة - {{ course.name }}{% if course.name_ar %} / {{ course.name_ar }}{% endif %}</h2>
         <div>
-            <button onclick="window.print()" class="btn btn-outline-dark me-2 btn-report">
+            <a href="?print=1{% if current_filter != 'all' %}&filter={{ current_filter }}{% endif %}" class="btn btn-outline-dark me-2 btn-report" target="_blank">
                 <i class="fas fa-print me-1"></i> طباعة الجدول
-            </button>
+            </a>
             <a href="{% url 'accounts:outstanding_due_cards' course.id %}" class="btn btn-warning me-2 btn-report" target="_blank">
                 <i class="fas fa-id-card me-1"></i> بطاقات مبالغ مستحقة
             </a>
