@@ -7,6 +7,100 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/attendance.css' %}">
+<style>
+    .module-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+        padding: 20px 24px;
+        border-radius: 16px;
+        color: #fff;
+        margin-bottom: 24px;
+        box-shadow: 0 10px 30px rgba(118, 75, 162, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .module-header h2 {
+        margin: 0;
+        font-family: 'Cocon Next Arabic', 'Tajawal', sans-serif;
+        font-size: 1.6rem;
+        font-weight: bold;
+    }
+    .stats-bar {
+        background: #fff;
+        border: 1px solid rgba(118, 75, 162, 0.08);
+        border-radius: 16px;
+        padding: 16px 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 20px rgba(118, 75, 162, 0.04);
+    }
+    .stats-item {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 140px;
+    }
+    .stats-label {
+        font-size: 0.82rem;
+        color: #7b6d90;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .stats-value {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: var(--text);
+    }
+    .attendance-row.has-attendance {
+        background-color: rgba(46, 204, 113, 0.03) !important;
+    }
+    .table thead th {
+        font-family: 'Cocon Next Arabic', 'Tajawal', sans-serif;
+        font-weight: bold;
+        text-align: center;
+        vertical-align: middle;
+        background-color: var(--primary) !important;
+        color: #fff !important;
+        border: none;
+        padding: 12px;
+    }
+    .table tbody td {
+        vertical-align: middle;
+        padding: 10px 12px;
+    }
+    .btn-check:checked + .btn-outline-success {
+        background-color: #2ecc71 !important;
+        border-color: #2ecc71 !important;
+        color: #fff !important;
+    }
+    .btn-check:checked + .btn-outline-secondary {
+        background-color: #95a5a6 !important;
+        border-color: #95a5a6 !important;
+        color: #fff !important;
+    }
+    .teacher-name {
+        font-size: 1.05rem;
+        color: var(--text);
+        font-weight: bold;
+    }
+    .session-input, .half-session-input {
+        max-width: 90px;
+        font-weight: bold;
+        text-align: center;
+    }
+    .form-actions .btn {
+        padding: 10px 24px;
+        font-family: 'Cocon Next Arabic', sans-serif;
+        font-size: 1rem;
+        border-radius: 12px;
+    }
+</style>
 {% endblock %}
 {% block content %}
 {% now "Y-m-d" as today %}
@@ -148,17 +242,22 @@
                                 <span class="badge bg-secondary">{{ item.branch_label }}</span>
                             </td>
                             <td>
-                                <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                                    <label class="btn btn-sm btn-outline-success attendance-status present-option">
-                                        <input type="radio" name="status_{{ teacher.id }}_{{ item.branch_code }}" 
-                                               value="present" autocomplete="off"
-                                               {% if attendance and attendance.status == 'present' %}checked{% endif %}>
+                                <div class="btn-group" role="group" aria-label="حالة الحضور">
+                                    <input type="radio" class="btn-check status-radio-present" 
+                                           name="status_{{ teacher.id }}_{{ item.branch_code }}" 
+                                           id="status_present_{{ teacher.id }}_{{ item.branch_code }}"
+                                           value="present" autocomplete="off"
+                                           {% if attendance and attendance.status == 'present' %}checked{% endif %}>
+                                    <label class="btn btn-sm btn-outline-success" for="status_present_{{ teacher.id }}_{{ item.branch_code }}">
                                         <i class="fas fa-user-check"></i> حاضر
                                     </label>
-                                    <label class="btn btn-sm btn-outline-secondary attendance-status no-duty-option">
-                                        <input type="radio" name="status_{{ teacher.id }}_{{ item.branch_code }}" 
-                                               value="no_duty" autocomplete="off"
-                                               {% if not attendance or attendance.status == 'no_duty' %}checked{% endif %}>
+
+                                    <input type="radio" class="btn-check status-radio-noduty" 
+                                           name="status_{{ teacher.id }}_{{ item.branch_code }}" 
+                                           id="status_noduty_{{ teacher.id }}_{{ item.branch_code }}"
+                                           value="no_duty" autocomplete="off"
+                                           {% if not attendance or attendance.status == 'no_duty' %}checked{% endif %}>
+                                    <label class="btn btn-sm btn-outline-secondary" for="status_noduty_{{ teacher.id }}_{{ item.branch_code }}">
                                         <i class="fas fa-user-slash"></i> ليس لديه دوام
                                     </label>
                                 </div>
@@ -368,12 +467,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const sessionInput = document.querySelector(`input[name="sessions_${teacherId}"]`);
         const halfSessionInput = document.querySelector(`input[name="half_sessions_${teacherId}"]`);
         const notesInput = document.querySelector(`input[name="notes_${teacherId}"]`);
-        const presentBtn = document.querySelector(`input[name="status_${teacherId}"][value="present"]`).parentElement;
-        const noDutyBtn = document.querySelector(`input[name="status_${teacherId}"][value="no_duty"]`).parentElement;
-        
-        // تحديث أزرار الحالة
-        presentBtn.classList.toggle('active', status === 'present');
-        noDutyBtn.classList.toggle('active', status === 'no_duty');
         
         if (status === 'present') {
             sessionInput.disabled = false;
