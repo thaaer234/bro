@@ -74,9 +74,9 @@ class TeacherAttendance(models.Model):
         try:
             if (self.status == 'present' and 
                 (self.session_count > 0 or self.half_session_count > 0) and 
-                self.teacher.get_hourly_rate_for_branch(self.branch)):
+                self.teacher.get_hourly_rate_for_branch(self.branch, date=self.date)):
                 
-                hourly_rate = self.teacher.get_hourly_rate_for_branch(self.branch) or Decimal('0')
+                hourly_rate = self.teacher.get_hourly_rate_for_branch(self.branch, date=self.date) or Decimal('0')
                 return hourly_rate * self.total_sessions
             return Decimal('0.00')
         except Exception:
@@ -129,4 +129,4 @@ class TeacherAttendance(models.Model):
         """التحقق من وجود بيانات راتب يمكن حسابها"""
         return (self.status == 'present' and 
                 (self.session_count > 0 or self.half_session_count > 0) and 
-                self.teacher.get_hourly_rate_for_branch(self.branch) is not None)
+                self.teacher.get_hourly_rate_for_branch(self.branch, date=self.date) is not None)

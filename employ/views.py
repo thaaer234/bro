@@ -1465,7 +1465,7 @@ class TeacherProfileView(DetailView):
         tables = []
         branches = self._get_attendance_branches(teacher, year) or self._get_teacher_branches(teacher)
         for branch in branches:
-            hourly_rate = teacher.get_hourly_rate_for_branch(branch)
+            hourly_rate = teacher.get_hourly_rate_for_branch(branch, date=timezone.now().date())
             rows = []
             monthly_qs = TeacherAttendance.objects.filter(
                 teacher=teacher,
@@ -1511,7 +1511,7 @@ class TeacherProfileView(DetailView):
                 'branch': branch,
                 'branch_label': self._branch_label(branch),
                 'branch_title': self._branch_title(branch),
-                'hourly_rate': teacher.get_hourly_rate_for_branch(branch),
+                'hourly_rate': teacher.get_hourly_rate_for_branch(branch, date=timezone.now().date()),
             })
         return items
 

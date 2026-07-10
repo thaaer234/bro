@@ -460,7 +460,7 @@ class TakeTeacherAttendanceView(TemplateView):
                         'branch': branch,
                         'branch_label': self._branch_label(branch),
                         'branch_code': branch_code,
-                        'hourly_rate': teacher.get_hourly_rate_for_branch(branch),
+                        'hourly_rate': teacher.get_hourly_rate_for_branch(branch, date=default_date),
                         'attendance': attendance_dict.get((teacher.id, branch)),
                     })
             

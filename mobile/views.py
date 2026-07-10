@@ -589,7 +589,7 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
         branches = teacher.get_branches_list() or [teacher.branch] if getattr(teacher, "branch", None) else []
         branch_monthly_tables = []
         for branch in branches:
-            hourly_rate = teacher.get_hourly_rate_for_branch(branch)
+            hourly_rate = teacher.get_hourly_rate_for_branch(branch, date=timezone.now().date())
             monthly_qs = TeacherAttendance.objects.filter(
                 teacher=teacher, branch=branch, status="present"
             )
