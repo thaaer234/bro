@@ -100,6 +100,62 @@
         font-size: 1rem;
         border-radius: 12px;
     }
+    
+    /* Custom Stepper Styles */
+    .custom-stepper {
+        display: inline-flex;
+        align-items: center;
+        border: 1.5px solid rgba(118, 75, 162, 0.15);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        max-width: 130px;
+        margin: 0 auto;
+    }
+    .stepper-btn {
+        border: none;
+        background: rgba(118, 75, 162, 0.05);
+        color: var(--primary);
+        font-weight: bold;
+        font-size: 1.2rem;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+        user-select: none;
+    }
+    .stepper-btn:hover {
+        background: var(--primary);
+        color: #fff;
+    }
+    .stepper-btn:active {
+        transform: scale(0.92);
+    }
+    .stepper-input {
+        border: none !important;
+        width: 45px !important;
+        height: 32px !important;
+        padding: 0 !important;
+        font-size: 1.05rem !important;
+        font-weight: bold !important;
+        color: var(--text) !important;
+        text-align: center !important;
+        background: transparent !important;
+        -moz-appearance: textfield;
+    }
+    .stepper-input::-webkit-outer-spin-button,
+    .stepper-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .stepper-input:disabled {
+        background: rgba(0, 0, 0, 0.03) !important;
+        color: #aaa !important;
+    }
 </style>
 {% endblock %}
 {% block content %}
@@ -263,25 +319,23 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="input-group input-group-sm">
+                                <div class="custom-stepper">
+                                    <button type="button" class="stepper-btn minus-btn" onclick="adjustStep('sessions_{{ teacher.id }}_{{ item.branch_code }}', -1)">-</button>
                                     <input type="number" name="sessions_{{ teacher.id }}_{{ item.branch_code }}" 
-                                           class="form-control session-input text-center" 
+                                           class="stepper-input form-control session-input text-center" 
                                            value="{% if attendance %}{{ attendance.session_count }}{% else %}0{% endif %}" 
-                                           min="0" max="12" step="1">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-clock"></i>
-                                    </span>
+                                           min="0" max="12" step="1" readonly>
+                                    <button type="button" class="stepper-btn plus-btn" onclick="adjustStep('sessions_{{ teacher.id }}_{{ item.branch_code }}', 1)">+</button>
                                 </div>
                             </td>
                             <td>
-                                <div class="input-group input-group-sm">
+                                <div class="custom-stepper">
+                                    <button type="button" class="stepper-btn minus-btn" onclick="adjustStep('half_sessions_{{ teacher.id }}_{{ item.branch_code }}', -1)">-</button>
                                     <input type="number" name="half_sessions_{{ teacher.id }}_{{ item.branch_code }}" 
-                                           class="form-control half-session-input text-center" 
+                                           class="stepper-input form-control half-session-input text-center" 
                                            value="{% if attendance %}{{ attendance.half_session_count }}{% else %}0{% endif %}" 
-                                           min="0" max="2" step="1">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-hourglass-half"></i>
-                                    </span>
+                                           min="0" max="10" step="1" readonly>
+                                    <button type="button" class="stepper-btn plus-btn" onclick="adjustStep('half_sessions_{{ teacher.id }}_{{ item.branch_code }}', 1)">+</button>
                                 </div>
                             </td>
                             <td class="text-center">
@@ -385,6 +439,20 @@
 <!-- CSS إضافي -->
 <!-- JavaScript -->
 <script>
+// Global Stepper Adjuster Function
+function adjustStep(inputName, amount) {
+    const input = document.querySelector(`input[name="${inputName}"]`);
+    if (!input || input.disabled) return;
+    let val = parseInt(input.value) || 0;
+    val = Math.max(0, val + amount);
+    const max = parseInt(input.getAttribute('max')) || 12;
+    if (val <= max) {
+        input.value = val;
+        // Trigger input event to update recalculations instantly
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // منع التواريخ المستقبلية
     const dateInput = document.getElementById('date');
