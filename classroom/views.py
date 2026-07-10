@@ -20,7 +20,10 @@ from django.template.loader import render_to_string
 from django.contrib.staticfiles import finders
 from django.conf import settings
 from employ.models import Teacher
-from xhtml2pdf import pisa
+try:
+    from xhtml2pdf import pisa
+except ImportError:
+    pisa = None
 try:
     from weasyprint import HTML
     from weasyprint.urls import default_url_fetcher

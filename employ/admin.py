@@ -8,7 +8,12 @@ from .models import (
     HRHoliday,
     Teacher,
     Vacation,
+    TeacherAcademicSalaryRate,
 )
+
+class TeacherAcademicSalaryRateInline(admin.TabularInline):
+    model = TeacherAcademicSalaryRate
+    extra = 1
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
@@ -37,10 +42,11 @@ class EmployeeAdmin(admin.ModelAdmin):
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'phone_number', 'salary_type', 'hourly_rate', 'monthly_salary', 'hire_date')
-    list_filter = ('salary_type', 'hire_date')
+    list_display = ('full_name', 'phone_number', 'salary_type', 'hourly_rate', 'monthly_salary', 'is_partner', 'partnership_percentage', 'hire_date')
+    list_filter = ('salary_type', 'is_partner', 'hire_date')
     search_fields = ('full_name', 'phone_number')
     ordering = ('-created_at',)
+    inlines = [TeacherAcademicSalaryRateInline]
 
 
 @admin.register(Vacation)

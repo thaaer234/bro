@@ -426,7 +426,34 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
     template_name = "mobile/teacher_dashboard.html"
     allowed_roles = ["teacher"]
 
+    def dispatch(self, request, *args, **kwargs):
+        # We need to make sure the user is authenticated by the mixin first
+        response = super().dispatch(request, *args, **kwargs)
+        if not hasattr(request, 'mobile_profile'):
+            return response
+            
+        teacher = request.mobile_profile
+        
+        # Check if they are setting a browsing mode
+        set_mode = request.GET.get('set_mode')
+        if set_mode in ['teacher', 'partner']:
+            request.session['mobile_active_mode'] = set_mode
+            return redirect('mobile:teacher_dashboard')
+            
+        # Check if we should display the mode selection page
+        choose_mode = request.GET.get('choose_mode')
+        if teacher.is_partner:
+            if choose_mode == '1' or 'mobile_active_mode' not in request.session:
+                self.template_name = "mobile/choose_mode.html"
+                
+        return response
+
     def get_context_data(self, **kwargs):
+        if self.template_name == "mobile/choose_mode.html":
+            return {
+                "teacher": self.request.mobile_profile,
+            }
+            
         context = super().get_context_data(**kwargs)
         teacher = self.request.mobile_profile
 
@@ -645,13 +672,30 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
             test.total_assignments = len(assignments)
             test.listened_count = len([a for a in assignments if a.is_listened])
 
+        # Partnership details
+        partner_account = None
+        partner_balance = Decimal('0.00')
+        if teacher.is_partner:
+            partner_account = teacher.get_partner_account()
+            if partner_account:
+                partner_balance = partner_account.get_net_balance()
+                
+        # Quick courses details
+        quick_sessions = list(teacher.quick_sessions.filter(is_active=True))
+        total_quick_earnings = sum((s.teacher_earnings for s in quick_sessions), Decimal('0.00'))
+
         warning_choices = StudentWarning.Severity.choices
 
         context.update(
             {
                 "teacher": teacher,
+                "active_mode": self.request.session.get("mobile_active_mode", "teacher"),
                 "subjects": subjects,
                 "classrooms": classroom_details,
+                "partner_account": partner_account,
+                "partner_balance": partner_balance,
+                "quick_sessions": quick_sessions,
+                "total_quick_earnings": total_quick_earnings,
                 "students_count": students_qs.count(),
                 "attendance_records": attendance_qs[:7],
                 "monthly_attendance": monthly_attendance_qs,
@@ -1000,6 +1044,7 @@ class TeacherStudentDetailView(MobileSessionRequiredMixin, TemplateView):
         context.update(
             {
                 "teacher": teacher,
+                "active_mode": self.request.session.get("mobile_active_mode", "teacher"),
                 "teacher_announcements": get_teacher_announcements(teacher, limit=6, mark_read=True),
                 "student": student,
                 "student_classrooms": student_classrooms,

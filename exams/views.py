@@ -3,7 +3,10 @@ from django.forms import modelformset_factory
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.loader import render_to_string
 from django.db.models import Q
-from xhtml2pdf import pisa
+try:
+    from xhtml2pdf import pisa
+except ImportError:
+    pisa = None
 from django.contrib import messages
 from django.urls import reverse
 import io

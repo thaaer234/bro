@@ -2,6 +2,7 @@
 {% load humanize %}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +11,14 @@
     <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
     <style>
         /* ===== Reset ===== */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
 
         :root {
             --primary: #1a4d8c;
@@ -19,31 +27,6 @@
             --text: #222;
             --muted: #666;
             --card-gap: 5mm;
-            
-            /* Customizer variables */
-            --logo-width: 70px;
-            --logo-display: block;
-            --card-height: 65mm;
-            --card-padding-v: 3.5mm;
-            --card-padding-h: 4.5mm;
-            --card-border-radius: 10px;
-            --card-border-style: solid;
-            --card-border-width: 2px;
-            --font-scale: 1;
-            
-            /* Visibility variables */
-            --student-name-display: flex;
-            --classroom-display: flex;
-            --amount-display: flex;
-            --course-display: flex;
-            --message-display: block;
-            --reason-display: flex;
-            --date-display: block;
-            --sig-admin-display: block;
-            --sig-parent-display: block;
-            
-            --page-padding-v: 6mm;
-            --page-padding-h: 8mm;
         }
 
         body {
@@ -54,217 +37,78 @@
             padding: 20px;
         }
 
-        /* ===== Premium Control Panel ===== */
+        /* ===== Screen-only controls ===== */
         .controls {
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-            border: 1px solid #e2e8f0;
-            padding: 20px;
-            max-width: 210mm;
-            margin: 0 auto 25px auto;
-            transition: all 0.3s ease;
-        }
-        .controls-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #edf2f7;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
+            justify-content: center;
             gap: 15px;
-            flex-wrap: wrap;
-        }
-        .controls-header h3 {
-            font-size: 18px;
-            color: var(--primary);
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .controls-tabs {
-            display: flex;
-            border-bottom: 2px solid #edf2f7;
             margin-bottom: 20px;
-            gap: 10px;
-            overflow-x: auto;
+            flex-wrap: wrap;
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
         }
-        .tab-btn {
-            background: none;
-            border: none;
-            padding: 10px 20px;
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 700;
-            color: #718096;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-            transition: all 0.2s;
-            white-space: nowrap;
-            display: flex;
+
+        .controls .btn {
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.2s;
         }
-        .tab-btn:hover {
-            color: var(--primary-light);
+
+        .btn-print {
+            background: var(--primary);
         }
-        .tab-btn.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
+
+        .btn-print:hover {
+            background: var(--primary-light);
         }
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
+
+        .btn-back {
+            background: #6c757d;
+            color: #fff;
         }
-        .tab-content.active {
-            display: block;
+
+        .btn-back:hover {
+            background: #5a6268;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .control-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-        }
+
         .control-item {
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 8px;
+            font-size: 13px;
+            font-weight: 700;
         }
+
         .control-item label {
-            font-size: 13px;
-            font-weight: 700;
-            color: #4a5568;
+            color: var(--primary);
+            white-space: nowrap;
         }
+
         .control-item input[type="text"],
-        .control-item input[type="file"],
-        .control-item select,
-        .control-item textarea {
-            padding: 10px 14px;
-            border: 1.5px solid #cbd5e0;
-            border-radius: 8px;
-            font-size: 13px;
+        .control-item input[type="file"] {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 12px;
             font-family: inherit;
-            color: #2d3748;
-            outline: none;
-            transition: all 0.2s;
-            background: #fff;
-            width: 100%;
         }
-        .control-item input[type="text"]:focus,
-        .control-item select:focus,
-        .control-item textarea:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(26, 77, 140, 0.15);
+
+        .control-item input[type="text"] {
+            width: 140px;
         }
-        .control-item.checkbox-item {
-            flex-direction: row;
-            align-items: center;
-            gap: 10px;
-            padding-top: 10px;
-        }
-        .control-item.checkbox-item label {
-            cursor: pointer;
-            font-size: 13px;
-            user-select: none;
-        }
-        .control-item.checkbox-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--primary);
-            cursor: pointer;
-        }
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .slider-container input[type="range"] {
-            flex: 1;
-            accent-color: var(--primary);
-            cursor: pointer;
-        }
-        .slider-container span {
-            font-size: 13px;
-            font-weight: 700;
-            color: #718096;
-            min-width: 45px;
-            text-align: left;
-        }
-        
-        .checkbox-item-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .checkbox-item-container label {
-            cursor: pointer;
-            font-size: 13px;
-            user-select: none;
-            font-weight: 600;
-            color: #4a5568;
-        }
-        .checkbox-item-container input[type="checkbox"] {
-            width: 17px;
-            height: 17px;
-            accent-color: var(--primary);
-            cursor: pointer;
-        }
-        
-        .templates-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .template-option {
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-        .template-option:hover {
-            border-color: var(--primary-light);
-            background: #f7fafc;
-        }
-        .template-option.active {
-            border-color: var(--primary);
-            background: rgba(26, 77, 140, 0.05);
-            font-weight: 700;
-        }
-        .tmpl-preview {
-            width: 40px;
-            height: 24px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .inline-controls {
-            border-top: 1px solid #edf2f7;
-            padding-top: 15px;
-            margin-top: 15px;
-        }
-        .btn {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 10px 22px; border: none; border-radius: 8px;
-            font-size: 14px; font-weight: 700; cursor: pointer;
-            text-decoration: none; color: #fff;
-            transition: all 0.2s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-        }
-        .btn-print { background: var(--primary); }
-        .btn-print:hover { background: var(--primary-light); transform: translateY(-1px); }
-        .btn-back { background: #6c757d; color: #fff; }
-        .btn-back:hover { background: #5a6268; transform: translateY(-1px); }
 
         /* ===== A4 page container ===== */
         .a4-page {
@@ -273,8 +117,8 @@
             min-height: 297mm;
             margin: 0 auto 20px auto;
             background: #fff;
-            padding: var(--page-padding-v) var(--page-padding-h);
-            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+            padding: 6mm 8mm;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
             border-radius: 4px;
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -286,20 +130,18 @@
 
         /* ===== Individual card ===== */
         .due-card {
-            border: var(--card-border-width) var(--card-border-style) var(--primary);
-            border-radius: var(--card-border-radius);
-            padding: var(--card-padding-v) var(--card-padding-h);
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            padding: 3.5mm 4.5mm;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            height: var(--card-height);
-            max-height: var(--card-height);
+            height: 65mm;
+            max-height: 65mm;
             overflow: hidden;
             box-sizing: border-box;
             position: relative;
             background: #fff;
-            font-size: calc(100% * var(--font-scale));
-            transition: all 0.2s;
         }
 
         /* Card header with logo */
@@ -307,24 +149,26 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding-bottom: 1.5mm;
-            border-bottom: var(--card-border-width) var(--card-border-style) var(--primary);
-            margin-bottom: 1.5mm;
+            padding-bottom: 2mm;
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: 2mm;
         }
+
         .card-top img {
-            width: var(--logo-width); 
+            width: 70px;
             height: auto;
             object-fit: contain;
-            display: var(--logo-display);
         }
+
         .card-top .inst-name {
-            font-size: calc(12px * var(--font-scale));
+            font-size: 12px;
             font-weight: 800;
             color: var(--primary);
             line-height: 1.2;
         }
+
         .card-top .inst-sub {
-            font-size: calc(8px * var(--font-scale));
+            font-size: 8px;
             color: var(--muted);
             font-weight: 600;
         }
@@ -339,59 +183,42 @@
         }
 
         .field-row {
+            display: flex;
             align-items: baseline;
             gap: 4px;
-        }
-        
-        .student-name-row {
-            display: var(--student-name-display);
-        }
-        
-        .student-classroom-row {
-            display: var(--classroom-display);
-        }
-        
-        .student-amount-row {
-            display: var(--amount-display);
-        }
-        
-        .student-course-row {
-            display: var(--course-display);
-        }
-        
-        .student-reason-row {
-            display: var(--reason-display);
         }
 
         .field-label {
             font-weight: 800;
             color: var(--primary);
             white-space: nowrap;
-            font-size: calc(10px * var(--font-scale));
+            font-size: 10px;
         }
+
         .field-value {
             flex: 1;
             border-bottom: 1px dotted var(--border);
             padding-bottom: 1px;
             font-weight: 700;
-            font-size: calc(10.5px * var(--font-scale));
+            font-size: 10.5px;
             color: #111;
         }
+
         .field-value.amount {
             color: #c0392b;
             font-weight: 800;
-            font-size: calc(11.5px * var(--font-scale));
+            font-size: 11.5px;
         }
 
         .card-message {
-            font-size: calc(9.5px * var(--font-scale));
+            font-size: 9.5px;
             color: #222;
-            line-height: 1.35;
+            line-height: 1.4;
             text-align: justify;
-            margin: 0.5mm 0;
+            margin: 1mm 0;
             font-weight: 500;
-            display: var(--message-display);
         }
+
         .card-message strong {
             color: var(--primary);
             font-weight: 800;
@@ -403,24 +230,12 @@
             justify-content: space-between;
             align-items: flex-end;
             margin-top: 1mm;
-            padding-top: 1mm;
+            padding-top: 1.5mm;
             border-top: 1px solid var(--border);
-            font-size: calc(9px * var(--font-scale));
+            font-size: 9px;
             color: var(--muted);
         }
-        
-        .card-date-item {
-            display: var(--date-display);
-        }
-        
-        .sig-admin-item {
-            display: var(--sig-admin-display);
-        }
-        
-        .sig-parent-item {
-            display: var(--sig-parent-display);
-        }
-        
+
         .card-footer-row .sig-block {
             text-align: center;
             position: relative;
@@ -428,12 +243,14 @@
             font-weight: 700;
             color: #333;
         }
+
         .card-footer-row .sig-line {
             width: 60px;
             border-top: 1px solid #aaa;
             margin-top: 4px;
             display: block;
         }
+
         .card-footer-row .signature-container {
             position: absolute;
             bottom: 8px;
@@ -446,6 +263,7 @@
             justify-content: center;
             pointer-events: none;
         }
+
         .card-footer-row .signature-container img {
             max-width: 100%;
             max-height: 100%;
@@ -459,6 +277,7 @@
                 size: A4 portrait;
                 margin: 0;
             }
+
             body {
                 background: #fff !important;
                 padding: 0 !important;
@@ -466,19 +285,23 @@
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            .controls { display: none !important; }
+
+            .controls {
+                display: none !important;
+            }
 
             .a4-page {
                 width: 210mm !important;
                 height: 297mm !important;
                 min-height: 297mm !important;
                 margin: 0 !important;
-                padding: var(--page-padding-v) var(--page-padding-h) !important;
+                padding: 6mm 8mm !important;
                 box-shadow: none !important;
                 border-radius: 0 !important;
                 page-break-after: always;
                 break-after: page;
             }
+
             .a4-page:last-child {
                 page-break-after: auto;
                 break-after: auto;
@@ -491,231 +314,41 @@
         }
     </style>
 </head>
+
 <body>
 
-    <!-- Controls Panel -->
+    <!-- Controls -->
     <div class="controls">
-        <div class="controls-header">
-            <h3><i class="fas fa-sliders-h"></i> لوحة تحكم وتخصيص بطاقات المطالبة</h3>
-            <div>
-                <button class="btn btn-print" onclick="window.print()">
-                    <i class="fas fa-print"></i> طباعة البطاقات
-                </button>
-                <a href="{% url 'accounts:outstanding_course_students' course.id %}" class="btn btn-back">
-                    <i class="fas fa-arrow-right"></i> رجوع للقائمة
-                </a>
-            </div>
+        <button class="btn btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i> طباعة البطاقات
+        </button>
+
+        <div class="control-item">
+            <label for="deadline-input">المدة أقصاها:</label>
+            <input type="text" id="deadline-input" placeholder="مثال: 3 أيام" value="أسبوع">
         </div>
-        
-        <!-- Tabs -->
-        <div class="controls-tabs">
-            <button class="tab-btn active" onclick="switchTab('tab-templates')">
-                <i class="fas fa-palette"></i> قوالب التصميم
-            </button>
-            <button class="tab-btn" onclick="switchTab('tab-logo')">
-                <i class="fas fa-image"></i> الشعار
-            </button>
-            <button class="tab-btn" onclick="switchTab('tab-content')">
-                <i class="fas fa-edit"></i> نصوص البطاقة
-            </button>
-            <button class="tab-btn" onclick="switchTab('tab-dimensions')">
-                <i class="fas fa-arrows-alt"></i> الأبعاد والتنسيقات
-            </button>
+
+        <div class="control-item">
+            <label for="signature-input">صورة توقيع الإدارة:</label>
+            <input type="file" id="signature-input" accept="image/*">
         </div>
-        
-        <!-- Tab 1: Templates -->
-        <div id="tab-templates" class="tab-content active">
-            <div class="templates-grid">
-                <div class="template-option active" data-template="classic" onclick="selectTemplate('classic')">
-                    <div class="tmpl-preview" style="background: #1a4d8c;"></div>
-                    <span>أزرق كلاسيكي</span>
-                </div>
-                <div class="template-option" data-template="royal" onclick="selectTemplate('royal')">
-                    <div class="tmpl-preview" style="background: #8a6d3b;"></div>
-                    <span>ذهبي ملكي</span>
-                </div>
-                <div class="template-option" data-template="emerald" onclick="selectTemplate('emerald')">
-                    <div class="tmpl-preview" style="background: #16a085;"></div>
-                    <span>أخضر زمردي</span>
-                </div>
-                <div class="template-option" data-template="charcoal" onclick="selectTemplate('charcoal')">
-                    <div class="tmpl-preview" style="background: #2c3e50;"></div>
-                    <span>رمادي مبسط</span>
-                </div>
-            </div>
-            
-            <div class="control-row inline-controls">
-                <div class="control-item" style="max-width: 250px;">
-                    <label for="primary-color-picker">اللون الأساسي للبطاقة:</label>
-                    <input type="color" id="primary-color-picker" value="#1a4d8c">
-                </div>
-            </div>
-        </div>
-        
-        <!-- Tab 2: Logo -->
-        <div id="tab-logo" class="tab-content">
-            <div class="control-grid">
-                <div class="control-item">
-                    <label for="logo-width-slider">عرض الشعار:</label>
-                    <div class="slider-container">
-                        <input type="range" id="logo-width-slider" min="40" max="180" value="70">
-                        <span id="logo-width-val">70px</span>
-                    </div>
-                </div>
-                <div class="control-item">
-                    <label for="logo-file-input">تحميل شعار مخصص:</label>
-                    <input type="file" id="logo-file-input" accept="image/*">
-                </div>
-                <div class="control-item checkbox-item">
-                    <input type="checkbox" id="hide-logo-check">
-                    <label for="hide-logo-check">إخفاء الشعار بالكامل</label>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Tab 3: Content -->
-        <div id="tab-content" class="tab-content">
-            <div class="control-grid">
-                <div class="control-item">
-                    <label for="inst-name-input">اسم المعهد:</label>
-                    <input type="text" id="inst-name-input" value="معهد اليمان للعلوم واللغات">
-                </div>
-                <div class="control-item">
-                    <label for="inst-sub-input">العنوان الفرعي للمعهد:</label>
-                    <input type="text" id="inst-sub-input" value="Al-Yman Institute for Sciences & Languages">
-                </div>
-                <div class="control-item">
-                    <label for="deadline-input">المدة أقصاها (المهلة):</label>
-                    <input type="text" id="deadline-input" value="أسبوع">
-                </div>
-                <div class="control-item">
-                    <label for="reason-value-input">السبب:</label>
-                    <input type="text" id="reason-value-input" value="عدم إكمال الأقساط">
-                </div>
-                <div class="control-item">
-                    <label for="sig-admin-input">مسمى التوقيع الأول (اليمين):</label>
-                    <input type="text" id="sig-admin-input" value="الإدارة">
-                </div>
-                <div class="control-item">
-                    <label for="sig-parent-input">مسمى التوقيع الثاني (اليسار):</label>
-                    <input type="text" id="sig-parent-input" value="ولي الأمر">
-                </div>
-                <div class="control-item" style="grid-column: span 2;">
-                    <label for="signature-input">صورة توقيع الإدارة (اختياري):</label>
-                    <input type="file" id="signature-input" accept="image/*">
-                </div>
-                <div class="control-item" style="grid-column: span 2;">
-                    <label for="message-template-input">صيغة رسالة المطالبة (استخدم المتغيرات {student} و {amount} و {deadline}):</label>
-                    <textarea id="message-template-input" rows="3">إلى ولي أمر الطالب {student} وقوعاً منه بتسديد مبلغ وقدره {amount} خلال مدة أقصاها {deadline} وذلك لاستمرار الطالب بالدراسة والاستفادة من الخدمات التعليمية والتربوية المقدمة وإلّا سيتم اتخاذ الإجراء المناسب.</textarea>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Tab 4: Dimensions & Layout -->
-        <div id="tab-dimensions" class="tab-content">
-            <div class="control-grid">
-                <div class="control-item">
-                    <label for="card-height-slider">ارتفاع البطاقة (مم):</label>
-                    <div class="slider-container">
-                        <input type="range" id="card-height-slider" min="55" max="80" value="65">
-                        <span id="card-height-val">65mm</span>
-                    </div>
-                </div>
-                <div class="control-item">
-                    <label for="card-gap-slider">الفراغ بين البطاقات (مم):</label>
-                    <div class="slider-container">
-                        <input type="range" id="card-gap-slider" min="0" max="15" value="5">
-                        <span id="card-gap-val">5mm</span>
-                    </div>
-                </div>
-                <div class="control-item">
-                    <label for="card-radius-slider">حواف البطاقة الدائرية (بكسل):</label>
-                    <div class="slider-container">
-                        <input type="range" id="card-radius-slider" min="0" max="25" value="10">
-                        <span id="card-radius-val">10px</span>
-                    </div>
-                </div>
-                <div class="control-item">
-                    <label for="font-scale-slider">حجم الخطوط الداخلي:</label>
-                    <div class="slider-container">
-                        <input type="range" id="font-scale-slider" min="0.8" max="1.3" step="0.05" value="1">
-                        <span id="font-scale-val">1.0x</span>
-                    </div>
-                </div>
-                <div class="control-item">
-                    <label for="border-style-select">نوع خط الإطار:</label>
-                    <select id="border-style-select">
-                        <option value="solid" selected>خط متصل (Solid)</option>
-                        <option value="double">خط مزدوج (Double)</option>
-                        <option value="dashed">خط مقطع (Dashed)</option>
-                        <option value="dotted">نقاط (Dotted)</option>
-                    </select>
-                </div>
-                <div class="control-item">
-                    <label for="border-width-slider">سمك الإطار (بكسل):</label>
-                    <div class="slider-container">
-                        <input type="range" id="border-width-slider" min="1" max="6" value="2">
-                        <span id="border-width-val">2px</span>
-                    </div>
-                </div>
-                
-                <!-- Card Elements Visibility Grid -->
-                <div class="control-item" style="grid-column: span 2; border-top: 1px solid #edf2f7; padding-top: 15px; margin-top: 10px;">
-                    <label style="font-size: 14px; margin-bottom: 10px; display: block; color: var(--primary);">عرض وإخفاء عناصر البطاقة:</label>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-                        <div class="checkbox-item-container">
-                            <input type="checkbox" id="show-name-check" checked>
-                            <label for="show-name-check">اسم الطالب</label>
-                        </div>
-                        <div class="checkbox-item-container">
-                            <input type="checkbox" id="show-classroom-check" checked>
-                            <label for="show-classroom-check">الشعبة</label>
-                        </div>
-                        <div class="checkbox-item-container">
-                            <input type="checkbox" id="show-amount-check" checked>
-                            <label for="show-amount-check">المبلغ المستحق</label>
-                        </div>
-                        <div class="checkbox-item-container">
-                            <input type="checkbox" id="show-course-check" checked>
-                            <label for="show-course-check">اسم الدورة</label>
-                        </div>
-                        <div class="checkbox-item-container">
-                            <input type="checkbox" id="show-message-check" checked>
-                            <label for="show-message-check">رسالة المطالبة</label>
-                        </div>
-                        <div class="checkbox-item-container">
-                            <input type="checkbox" id="show-reason-check" checked>
-                            <label for="show-reason-check">السبب</label>
-                        </div>
-                        <div class="checkbox-item-container">
-                            <input type="checkbox" id="show-date-check" checked>
-                            <label for="show-date-check">التاريخ</label>
-                        </div>
-                        <div class="checkbox-item-container">
-                            <input type="checkbox" id="show-sig-admin-check" checked>
-                            <label for="show-sig-admin-check">توقيع الإدارة</label>
-                        </div>
-                        <div class="checkbox-item-container">
-                            <input type="checkbox" id="show-sig-parent-check" checked>
-                            <label for="show-sig-parent-check">توقيع ولي الأمر</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+
+        <a href="{% url 'accounts:outstanding_course_students' course.id %}" class="btn btn-back">
+            <i class="fas fa-arrow-right"></i> رجوع للقائمة
+        </a>
     </div>
 
     {% for student in outstanding_students %}
-        {# Open a new A4 page every 8 cards #}
-        {% if forloop.counter0|divisibleby:8 %}
-            {% if not forloop.first %}</div>{% endif %}
-            <div class="a4-page">
+    {# Open a new A4 page every 8 cards #}
+    {% if forloop.counter0|divisibleby:8 %}
+    {% if not forloop.first %}</div>{% endif %}
+    <div class="a4-page">
         {% endif %}
 
         <div class="due-card">
             <!-- Header -->
             <div class="card-top">
-                <img class="inst-logo-img" src="{% static 'img/alyama.png' %}" alt="شعار المعهد">
+                <img src="{% static 'img/alyama.png' %}" alt="شعار المعهد">
                 <div>
                     <div class="inst-name">معهد اليمان للعلوم واللغات</div>
                     <div class="inst-sub">Al-Yman Institute for Sciences & Languages</div>
@@ -724,21 +357,15 @@
 
             <!-- Body -->
             <div class="card-body-content">
-                <div class="field-row student-name-row">
+                <div class="field-row">
                     <span class="field-label">اسم الطالب:</span>
-                    <span class="field-value student-name-text">{{ student.student.full_name }}</span>
+                    <span class="field-value">{{ student.student.full_name }}</span>
                 </div>
-                
-                <div class="field-row student-classroom-row">
-                    <span class="field-label">الشعبة:</span>
-                    <span class="field-value student-classroom-text">{{ student.current_classroom.name|default:"غير محدد" }}</span>
-                </div>
-                
-                <div class="field-row student-amount-row">
+                <div class="field-row">
                     <span class="field-label">المبلغ وقدره:</span>
-                    <span class="field-value amount student-amount-text" data-amount="{{ student.remaining|floatformat:0|intcomma }}">{{ student.remaining|floatformat:0|intcomma }} ل.س</span>
+                    <span class="field-value amount">{{ student.remaining|floatformat:0|intcomma }} ل.س</span>
                 </div>
-                <div class="field-row student-course-row">
+                <div class="field-row">
                     <span class="field-label">الدورة:</span>
                     <span class="field-value">{{ course.name }}</span>
                 </div>
@@ -752,26 +379,26 @@
                     وإلّا سيتم اتخاذ الإجراء المناسب.
                 </div>
 
-                <div class="field-row student-reason-row">
-                    <span class="field-label reason-label-text">السبب:</span>
-                    <span class="field-value reason-value-text">عدم إكمال الأقساط</span>
+                <div class="field-row">
+                    <span class="field-label">السبب:</span>
+                    <span class="field-value">عدم إكمال الأقساط</span>
                 </div>
             </div>
 
             <!-- Footer -->
             <div class="card-footer-row">
-                <div class="card-date-item">
+                <div>
                     <strong>التاريخ:</strong> {% now "Y-m-d" %}
                 </div>
-                <div class="sig-block sig-admin-item">
-                    <span class="sig-admin-label">الإدارة</span>
+                <div class="sig-block">
+                    الإدارة
                     <div class="signature-container">
                         <img class="admin-sig-img" src="" alt="" style="display: none;">
                     </div>
                     <span class="sig-line"></span>
                 </div>
-                <div class="sig-block sig-parent-item">
-                    <span class="sig-parent-label">ولي الأمر</span>
+                <div class="sig-block">
+                    ولي الأمر
                     <span class="sig-line"></span>
                 </div>
             </div>
@@ -779,250 +406,46 @@
 
         {# Close the last A4 page #}
         {% if forloop.last %}
-            </div>
-        {% endif %}
+    </div>
+    {% endif %}
     {% empty %}
-        <div class="a4-page" style="display:flex; align-items:center; justify-content:center;">
-            <div style="text-align:center; color:#999; font-size:18px;">
-                <i class="fas fa-check-circle" style="font-size:48px; margin-bottom:16px; display:block; color:#27ae60;"></i>
-                <strong>لا يوجد طلاب غير مسددين في هذه الدورة</strong>
-                <p style="margin-top:8px; font-size:14px;">جميع الطلاب مسددين بالكامل</p>
-            </div>
+    <div class="a4-page" style="display:flex; align-items:center; justify-content:center;">
+        <div style="text-align:center; color:#999; font-size:18px;">
+            <i class="fas fa-check-circle"
+                style="font-size:48px; margin-bottom:16px; display:block; color:#27ae60;"></i>
+            <strong>لا يوجد طلاب غير مسددين في هذه الدورة</strong>
+            <p style="margin-top:8px; font-size:14px;">جميع الطلاب مسددين بالكامل</p>
         </div>
+    </div>
     {% endfor %}
 
     <!-- Client-side logic for real-time customizations -->
     <script>
-        const templatesConfig = {
-            classic: {
-                primary: '#1a4d8c',
-                borderStyle: 'solid',
-                borderWidth: 2,
-                borderRadius: 10,
-                bg: '#ffffff'
-            },
-            royal: {
-                primary: '#8a6d3b',
-                borderStyle: 'double',
-                borderWidth: 4,
-                borderRadius: 12,
-                bg: '#faf8f5'
-            },
-            emerald: {
-                primary: '#16a085',
-                borderStyle: 'solid',
-                borderWidth: 1.5,
-                borderRadius: 6,
-                bg: '#f9fcfb'
-            },
-            charcoal: {
-                primary: '#2c3e50',
-                borderStyle: 'dashed',
-                borderWidth: 1.5,
-                borderRadius: 4,
-                bg: '#f8f9fa'
-            }
-        };
+        document.addEventListener('DOMContentLoaded', function () {
+            const deadlineInput = document.getElementById('deadline-input');
+            const signatureInput = document.getElementById('signature-input');
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Activate clicked tab
-            event.currentTarget.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
-        }
-
-        function selectTemplate(templateName) {
-            document.querySelectorAll('.template-option').forEach(opt => {
-                opt.classList.remove('active');
-                if (opt.getAttribute('data-template') === templateName) {
-                    opt.classList.add('active');
-                }
-            });
-
-            const config = templatesConfig[templateName];
-            if (config) {
-                // Update controls
-                document.getElementById('primary-color-picker').value = config.primary;
-                document.getElementById('border-style-select').value = config.borderStyle;
-                document.getElementById('border-width-slider').value = config.borderWidth;
-                document.getElementById('border-width-val').textContent = config.borderWidth + 'px';
-                document.getElementById('card-radius-slider').value = config.borderRadius;
-                document.getElementById('card-radius-val').textContent = config.borderRadius + 'px';
-                
-                // Update values
-                applyStyles();
-            }
-        }
-
-        function applyStyles() {
-            const root = document.documentElement;
-            
-            // Primary Color
-            const primaryColor = document.getElementById('primary-color-picker').value;
-            root.style.setProperty('--primary', primaryColor);
-            root.style.setProperty('--primary-light', primaryColor + 'cc');
-            
-            // Logo width
-            const logoWidth = document.getElementById('logo-width-slider').value;
-            root.style.setProperty('--logo-width', logoWidth + 'px');
-            document.getElementById('logo-width-val').textContent = logoWidth + 'px';
-            
-            // Hide Logo
-            const hideLogo = document.getElementById('hide-logo-check').checked;
-            root.style.setProperty('--logo-display', hideLogo ? 'none' : 'block');
-            
-            // Visibility Toggles
-            root.style.setProperty('--student-name-display', document.getElementById('show-name-check').checked ? 'flex' : 'none');
-            root.style.setProperty('--classroom-display', document.getElementById('show-classroom-check').checked ? 'flex' : 'none');
-            root.style.setProperty('--amount-display', document.getElementById('show-amount-check').checked ? 'flex' : 'none');
-            root.style.setProperty('--course-display', document.getElementById('show-course-check').checked ? 'flex' : 'none');
-            root.style.setProperty('--message-display', document.getElementById('show-message-check').checked ? 'block' : 'none');
-            root.style.setProperty('--reason-display', document.getElementById('show-reason-check').checked ? 'flex' : 'none');
-            root.style.setProperty('--date-display', document.getElementById('show-date-check').checked ? 'block' : 'none');
-            root.style.setProperty('--sig-admin-display', document.getElementById('show-sig-admin-check').checked ? 'block' : 'none');
-            root.style.setProperty('--sig-parent-display', document.getElementById('show-sig-parent-check').checked ? 'block' : 'none');
-            
-            // Dimensions
-            const cardHeight = document.getElementById('card-height-slider').value;
-            root.style.setProperty('--card-height', cardHeight + 'mm');
-            document.getElementById('card-height-val').textContent = cardHeight + 'mm';
-            
-            const cardGap = document.getElementById('card-gap-slider').value;
-            root.style.setProperty('--card-gap', cardGap + 'mm');
-            document.getElementById('card-gap-val').textContent = cardGap + 'mm';
-            
-            const cardRadius = document.getElementById('card-radius-slider').value;
-            root.style.setProperty('--card-radius', cardRadius + 'px');
-            document.getElementById('card-radius-val').textContent = cardRadius + 'px';
-            
-            const fontScale = document.getElementById('font-scale-slider').value;
-            root.style.setProperty('--font-scale', fontScale);
-            document.getElementById('font-scale-val').textContent = fontScale + 'x';
-            
-            const borderStyle = document.getElementById('border-style-select').value;
-            root.style.setProperty('--card-border-style', borderStyle);
-            
-            const borderWidth = document.getElementById('border-width-slider').value;
-            root.style.setProperty('--card-border-width', borderWidth + 'px');
-            document.getElementById('border-width-val').textContent = borderWidth + 'px';
-            
-            // Card backgrounds based on templates
-            const activeTemplateEl = document.querySelector('.template-option.active');
-            if (activeTemplateEl) {
-                const activeTemplate = activeTemplateEl.getAttribute('data-template');
-                const bg = templatesConfig[activeTemplate]?.bg || '#ffffff';
-                document.querySelectorAll('.due-card').forEach(card => {
-                    card.style.background = bg;
+            // 1. Live deadline update
+            if (deadlineInput) {
+                deadlineInput.addEventListener('input', function () {
+                    const text = this.value.trim() || '....................';
+                    document.querySelectorAll('.deadline-text').forEach(function (el) {
+                        el.textContent = text;
+                    });
                 });
-            }
-            
-            // Text updates
-            const instName = document.getElementById('inst-name-input').value.trim();
-            document.querySelectorAll('.inst-name').forEach(el => el.textContent = instName);
-            
-            const instSub = document.getElementById('inst-sub-input').value.trim();
-            document.querySelectorAll('.inst-sub').forEach(el => el.textContent = instSub);
-            
-            const deadlineVal = document.getElementById('deadline-input').value.trim() || '..........';
-            
-            const reasonVal = document.getElementById('reason-value-input').value.trim();
-            document.querySelectorAll('.reason-value-text').forEach(el => el.textContent = reasonVal);
-            
-            const sigAdmin = document.getElementById('sig-admin-input').value.trim();
-            document.querySelectorAll('.sig-admin-label').forEach(el => el.textContent = sigAdmin);
-            
-            const sigParent = document.getElementById('sig-parent-input').value.trim();
-            document.querySelectorAll('.sig-parent-label').forEach(el => el.textContent = sigParent);
-
-            // Message template update
-            const messageTemplate = document.getElementById('message-template-input').value;
-            document.querySelectorAll('.due-card').forEach(card => {
-                const studentName = card.querySelector('.student-name-text').textContent.trim();
-                const amountText = card.querySelector('.student-amount-text').getAttribute('data-amount') + ' ل.س';
-                
-                // Replace variables
-                let msg = messageTemplate
-                    .replace(/{student}/g, `<strong>${studentName}</strong>`)
-                    .replace(/{amount}/g, `<strong>${amountText}</strong>`)
-                    .replace(/{deadline}/g, `<strong class="deadline-text">${deadlineVal}</strong>`);
-                
-                card.querySelector('.card-message').innerHTML = msg;
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Register event listeners for live styling updates
-            const inputElements = [
-                'primary-color-picker',
-                'logo-width-slider',
-                'hide-logo-check',
-                'card-height-slider',
-                'card-gap-slider',
-                'card-radius-slider',
-                'font-scale-slider',
-                'border-style-select',
-                'border-width-slider',
-                'inst-name-input',
-                'inst-sub-input',
-                'deadline-input',
-                'reason-value-input',
-                'sig-admin-input',
-                'sig-parent-input',
-                'message-template-input',
-                'show-name-check',
-                'show-classroom-check',
-                'show-amount-check',
-                'show-course-check',
-                'show-message-check',
-                'show-reason-check',
-                'show-date-check',
-                'show-sig-admin-check',
-                'show-sig-parent-check'
-            ];
-
-            inputElements.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    const eventType = (element.type === 'checkbox' || element.tagName === 'SELECT') ? 'change' : 'input';
-                    element.addEventListener(eventType, applyStyles);
-                }
-            });
-
-            // 1. Live custom logo image upload
-            const logoInput = document.getElementById('logo-file-input');
-            if (logoInput) {
-                logoInput.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            const dataUrl = event.target.result;
-                            document.querySelectorAll('.inst-logo-img').forEach(function(img) {
-                                img.src = dataUrl;
-                                img.style.display = 'block';
-                            });
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
+                // Trigger initial value
+                deadlineInput.dispatchEvent(new Event('input'));
             }
 
             // 2. Live signature image upload
-            const signatureInput = document.getElementById('signature-input');
             if (signatureInput) {
-                signatureInput.addEventListener('change', function(e) {
+                signatureInput.addEventListener('change', function (e) {
                     const file = e.target.files[0];
                     if (file) {
                         const reader = new FileReader();
-                        reader.onload = function(event) {
+                        reader.onload = function (event) {
                             const dataUrl = event.target.result;
-                            document.querySelectorAll('.admin-sig-img').forEach(function(img) {
+                            document.querySelectorAll('.admin-sig-img').forEach(function (img) {
                                 img.src = dataUrl;
                                 img.style.display = 'block';
                             });
@@ -1031,10 +454,8 @@
                     }
                 });
             }
-
-            // Initialize initial values
-            applyStyles();
         });
     </script>
 </body>
+
 </html>

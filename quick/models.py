@@ -32,6 +32,28 @@ class AcademicYear(models.Model):
     def __str__(self):
         return f"{self.name} - {self.year}"
 
+    @classmethod
+    def get_academic_year_for_date(cls, target_date):
+        if not target_date:
+            return cls.objects.filter(is_active=True).first() or cls.objects.first()
+        
+        # target_date could be date or datetime
+        if hasattr(target_date, 'date'):
+            target_date = target_date.date()
+            
+        ay = cls.objects.filter(start_date__lte=target_date, end_date__gte=target_date).first()
+        if ay:
+            return ay
+            
+        # Fallback 1: match by start_date year
+        ay_year = cls.objects.filter(start_date__year=target_date.year).first()
+        if ay_year:
+            return ay_year
+            
+        # Fallback 2: return active or first
+        return cls.objects.filter(is_active=True).first() or cls.objects.first()
+
+
 class QuickCourse(models.Model):
     COURSE_TYPE_CHOICES = [
         ('INTENSIVE', 'مكثفة'),
@@ -150,6 +172,19 @@ class QuickCourseSession(models.Model):
     )
     notes = models.TextField(blank=True, verbose_name='ملاحظات')
     is_active = models.BooleanField(default=True, verbose_name='نشط')
+    teacher = models.ForeignKey('employ.Teacher', on_delete=models.SET_NULL, null=True, blank=True, related_name='quick_sessions', verbose_name='المدرس')
+    teacher_pay_type = models.CharField(
+        max_length=20, 
+        choices=[('fixed', 'مبلغ ثابت'), ('percentage', 'نسبة من رسوم الطلاب')], 
+        default='fixed', 
+        verbose_name='نوع استحقاق المعلم'
+    )
+    teacher_pay_value = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=Decimal('0.00'), 
+        verbose_name='قيمة استحقاق المعلم'
+    )
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_quick_sessions')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -216,6 +251,16 @@ class QuickCourseSession(models.Model):
     def is_attendance_open(self):
         today = timezone.localdate()
         return self.start_date <= today <= self.end_date and self.is_active
+
+    @property
+    def teacher_earnings(self):
+        if not self.teacher:
+            return Decimal('0.00')
+        if self.teacher_pay_type == 'fixed':
+            return self.teacher_pay_value
+        elif self.teacher_pay_type == 'percentage':
+            return Decimal(str(self.enrolled_count)) * (self.course.price or Decimal('0.00')) * (self.teacher_pay_value / Decimal('100.0'))
+        return Decimal('0.00')
 
     @property
     def display_code(self):

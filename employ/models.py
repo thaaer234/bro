@@ -919,6 +919,14 @@ class Teacher(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    is_partner = models.BooleanField(default=False, verbose_name="شريك")
+    partnership_percentage = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=Decimal('0.00'), 
+        verbose_name="نسبة الشراكة (%)"
+    )
 
     def __str__(self):
         return self.full_name
@@ -952,7 +960,27 @@ class Teacher(models.Model):
 
         return normalized
 
-    def get_hourly_rate_for_branch(self, branch):
+    def get_hourly_rate_for_branch(self, branch, academic_year=None, date=None):
+        if not academic_year and date:
+            from quick.models import AcademicYear
+            academic_year = AcademicYear.get_academic_year_for_date(date)
+            
+        if academic_year:
+            rate_obj = self.academic_salary_rates.filter(academic_year=academic_year).first()
+            if rate_obj:
+                branch_map = {
+                    self.BranchChoices.SCIENTIFIC: 'hourly_rate_scientific',
+                    self.BranchChoices.LITERARY: 'hourly_rate_literary',
+                    self.BranchChoices.NINTH_GRADE: 'hourly_rate_ninth',
+                    self.BranchChoices.PREPARATORY: 'hourly_rate_preparatory',
+                }
+                field_name = branch_map.get(branch)
+                if field_name:
+                    rate = getattr(rate_obj, field_name, None)
+                    if rate and rate > 0:
+                        return rate
+                return rate_obj.hourly_rate or Decimal('0.00')
+
         branch_map = {
             self.BranchChoices.SCIENTIFIC: 'hourly_rate_scientific',
             self.BranchChoices.LITERARY: 'hourly_rate_literary',
@@ -1013,26 +1041,81 @@ class Teacher(models.Model):
         )
         return self._sum_total_sessions(attendances)
 
-    def calculate_monthly_salary(self, year=None, month=None):
+    def get_salary_type_for_year(self, academic_year=None):
+        if academic_year:
+            rate_obj = self.academic_salary_rates.filter(academic_year=academic_year).first()
+            if rate_obj:
+                return rate_obj.salary_type
+        return self.salary_type
+
+    def get_monthly_salary_for_year(self, academic_year=None):
+        if academic_year:
+            rate_obj = self.academic_salary_rates.filter(academic_year=academic_year).first()
+            if rate_obj:
+                return rate_obj.monthly_salary
+        return self.monthly_salary
+
+    def get_partner_account(self):
+        """الحصول على حساب رأس مال الشراكة للشريك"""
+        from accounts.models import Account
+        try:
+            # نحاول المطابقة برمز الحساب 301-XXXX
+            return Account.objects.get(
+                code=f"301-{self.pk:04d}",
+                name_ar__contains=self.full_name
+            )
+        except Account.DoesNotExist:
+            # نحاول البحث عن أي حساب EQUITY يبدأ بـ 301 ويحتوي على اسم المعلم
+            return Account.objects.filter(
+                code__startswith="301",
+                name_ar__contains=self.full_name
+            ).first()
+        except Exception:
+            return None
+
+    def calculate_monthly_salary(self, year=None, month=None, academic_year=None):
         if year is None:
             year = timezone.now().year
         if month is None:
             month = timezone.now().month
-        if self.salary_type == 'hourly':
-            return self.calculate_monthly_hourly_total(year, month)
-        if self.salary_type == 'monthly':
-            return self.monthly_salary or Decimal('0')
-        if self.salary_type == 'mixed':
-            monthly_base = self.monthly_salary or Decimal('0')
-            hourly_total = self.calculate_monthly_hourly_total(year, month)
+            
+        if not academic_year:
+            from quick.models import AcademicYear
+            from datetime import date
+            try:
+                test_date = date(year, month, 15)
+                academic_year = AcademicYear.get_academic_year_for_date(test_date)
+            except Exception:
+                pass
+                
+        salary_type = self.get_salary_type_for_year(academic_year)
+        monthly_salary = self.get_monthly_salary_for_year(academic_year) or Decimal('0')
+        
+        if salary_type == 'hourly':
+            return self.calculate_monthly_hourly_total(year, month, academic_year)
+        if salary_type == 'monthly':
+            return monthly_salary
+        if salary_type == 'mixed':
+            monthly_base = monthly_salary
+            hourly_total = self.calculate_monthly_hourly_total(year, month, academic_year)
             return monthly_base + hourly_total
         return Decimal('0.00')
 
-    def calculate_monthly_hourly_total(self, year=None, month=None):
+    def calculate_monthly_hourly_total(self, year=None, month=None, academic_year=None):
         if year is None:
             year = timezone.now().year
         if month is None:
             month = timezone.now().month
+            
+        if not academic_year:
+            from quick.models import AcademicYear
+            from datetime import date
+            try:
+                test_date = date(year, month, 15)
+                academic_year = AcademicYear.get_academic_year_for_date(test_date)
+            except Exception:
+                pass
+                
         from attendance.models import TeacherAttendance
         total = Decimal('0.00')
         attendances = TeacherAttendance.objects.filter(
@@ -1042,7 +1125,7 @@ class Teacher(models.Model):
             status='present'
         )
         for att in attendances:
-            total += att.total_sessions * self.get_hourly_rate_for_branch(att.branch)
+            total += att.total_sessions * self.get_hourly_rate_for_branch(att.branch, academic_year=academic_year)
         return total
 
     def get_salary_account(self):
@@ -1129,6 +1212,42 @@ class Teacher(models.Model):
     def save(self, *args, **kwargs):
         """حفظ بسيط بدون أي تعيينات تلقائية"""
         super().save(*args, **kwargs)
+
+# =============================
+# Teacher Academic Salary Rate
+# =============================
+
+class TeacherAcademicSalaryRate(models.Model):
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='academic_salary_rates')
+    academic_year = models.ForeignKey('quick.AcademicYear', on_delete=models.CASCADE, verbose_name='السنة الدراسية')
+    salary_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('hourly', 'ساعي'),
+            ('monthly', 'شهري ثابت'),
+            ('mixed', 'مختلط (شهري + ساعي)')
+        ],
+        default='hourly',
+        verbose_name='نوع الراتب'
+    )
+    hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='أجر الساعة الأساسي')
+    hourly_rate_scientific = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='أجر الساعة علمي')
+    hourly_rate_literary = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='أجر الساعة أدبي')
+    hourly_rate_ninth = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='أجر الساعة تاسع')
+    hourly_rate_preparatory = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='أجر الساعة تمهيدي')
+    monthly_salary = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name='راتب شهري ثابت')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'أجر المدرس السنوي'
+        verbose_name_plural = 'أجور المدرسين السنوية'
+        unique_together = ('teacher', 'academic_year')
+
+    def __str__(self):
+        return f"{self.teacher.full_name} - {self.academic_year.name}"
+
 # =============================
 # Vacation
 # =============================
@@ -1239,28 +1358,105 @@ class ManualTeacherSalary(models.Model):
         self.net_salary = max(Decimal('0'), self.gross_salary - self.advance_deduction)
         super().save(*args, **kwargs)
     
-    def mark_as_paid(self):
-        """تسجيل الراتب كمُدفوع"""
+    def mark_as_paid(self, user=None):
+        """تسجيل الراتب كمُدفوع وإنشاء القيود المحاسبية وتحديث حالة السلف بشكل صحيح"""
+        if self.is_paid:
+            return
+            
         self.is_paid = True
         self.paid_date = timezone.now().date()
         self.save()
         
-        # إذا كان هناك خصم سلف، تحديث حالة السلف
+        # 1. تحديث السلف غير المسددة للمعلم (الأقدم أولاً عبر كل التواريخ)
         if self.advance_deduction > 0:
             from accounts.models import TeacherAdvance
-            # تحديث السلف القديمة لهذا الشهر
             advances = TeacherAdvance.objects.filter(
                 teacher=self.teacher,
-                date__year=self.year,
-                date__month=self.month,
                 is_repaid=False
-            )
+            ).order_by('date')
+            
+            remaining_deduction = self.advance_deduction
             for advance in advances:
-                if self.advance_deduction >= advance.outstanding_amount:
+                if remaining_deduction <= 0:
+                    break
+                outstanding = advance.outstanding_amount
+                if outstanding <= remaining_deduction:
+                    advance.repaid_amount += outstanding
                     advance.is_repaid = True
-                    advance.repaid_amount = advance.outstanding_amount
-                    self.advance_deduction -= advance.outstanding_amount
+                    remaining_deduction -= outstanding
                 else:
-                    advance.repaid_amount += self.advance_deduction
-                    self.advance_deduction = Decimal('0')
+                    advance.repaid_amount += remaining_deduction
+                    remaining_deduction = Decimal('0')
                 advance.save()
+                
+        # 2. إنشاء القيد المحاسبي للدفع
+        if user:
+            try:
+                self.create_salary_journal_entry(user)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Error creating salary journal entry: {e}")
+
+    def create_salary_journal_entry(self, user):
+        """إنشاء القيد المحاسبي لراتب المعلم: مدين مصاريف الرواتب، دائن السلف، دائن الصندوق/البنك"""
+        from accounts.models import JournalEntry, Transaction, Account, get_user_cash_account, get_or_create_teacher_advance_account
+        
+        # 1. حساب مصاريف رواتب المعلم 501-XXXX
+        salary_expense_account = self.teacher.get_salary_account()
+        if not salary_expense_account:
+            parent_acc = Account.objects.filter(code='501').first()
+            salary_expense_account = Account.objects.create(
+                code=f"501-{self.teacher.pk:04d}",
+                name_ar=f"رواتب - {self.teacher.full_name}",
+                account_type='EXPENSE',
+                parent=parent_acc
+            )
+            
+        cash_account = get_user_cash_account(user, fallback_code='121-1')
+        
+        # إنشاء قيد اليومية
+        entry = JournalEntry.objects.create(
+            date=self.paid_date or timezone.now().date(),
+            description=f"دفع راتب المدرس {self.teacher.full_name} - شهر {self.month} سنة {self.year}",
+            entry_type='SALARY',
+            total_amount=self.gross_salary,
+            created_by=user
+        )
+        
+        # مدين: مصاريف الرواتب (الراتب الإجمالي)
+        Transaction.objects.create(
+            journal_entry=entry,
+            account=salary_expense_account,
+            amount=self.gross_salary,
+            is_debit=True,
+            description=f"الراتب الإجمالي - {self.teacher.full_name}"
+        )
+        
+        # دائن: حساب سلف المدرسين (اقتطاع السلفة)
+        if self.advance_deduction > 0:
+            advance_account = self.teacher.get_teacher_advance_account() or get_or_create_teacher_advance_account(self.teacher)
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=advance_account,
+                amount=self.advance_deduction,
+                is_debit=False,
+                description=f"اقتطاع سلفة من راتب {self.teacher.full_name}"
+            )
+            
+        # دائن: الصندوق/البنك (صافي الراتب المدفوع)
+        if self.net_salary > 0:
+            Transaction.objects.create(
+                journal_entry=entry,
+                account=cash_account,
+                amount=self.net_salary,
+                is_debit=False,
+                description=f"صافي الراتب المدفوع نقداً - {self.teacher.full_name}"
+            )
+            
+        # ترحيل القيد
+        try:
+            entry.post_entry(user)
+        except Exception:
+            pass
+            
+        return entry

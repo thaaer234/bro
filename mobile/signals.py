@@ -2,7 +2,8 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from accounts.models import StudentReceipt
-from attendance.models import Attendance
+from attendance.models import Attendance, TeacherAttendance
+from decimal import Decimal
 from exams.models import ExamGrade
 from students.models import StudentWarning
 
@@ -49,6 +50,40 @@ def _create_notification(student, notification_type, title, message, teacher=Non
         except Exception:
             continue
 
+
+@receiver(post_save, sender=TeacherAttendance)
+def teacher_attendance_notification(sender, instance, created, **kwargs):
+    if not created:
+        return
+    if instance.status != 'present':
+        return
+        
+    teacher = instance.teacher
+    from quick.models import AcademicYear
+    ay = AcademicYear.get_academic_year_for_date(instance.date)
+    salary_type = teacher.get_salary_type_for_year(ay)
+    
+    if salary_type in ['hourly', 'mixed']:
+        hourly_rate = teacher.get_hourly_rate_for_branch(instance.branch, academic_year=ay) or Decimal('0.00')
+        earned_amount = hourly_rate * instance.total_sessions
+        
+        # Send push notification to teacher's device
+        tokens = list(MobileDeviceToken.objects.filter(user_type="teacher", user_id=teacher.id).values_list("token", flat=True))
+        if tokens:
+            title = "تسجيل حضور وحساب الجلسات"
+            message = f"تم تسجيل حضورك اليوم بنجاح.\nعدد الحصص: {instance.get_total_sessions_display()}\nالأجر المحتسب: {earned_amount:,.0f} ل.س."
+            data = {"type": "teacher_attendance", "attendance_id": instance.id}
+            
+            for token in tokens:
+                try:
+                    send_expo_message(
+                        token,
+                        title=title,
+                        body=message,
+                        data=data,
+                    )
+                except Exception:
+                    continue
 
 @receiver(post_save, sender=Attendance)
 def attendance_notification(sender, instance, created, **kwargs):

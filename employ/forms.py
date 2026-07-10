@@ -42,6 +42,8 @@ class TeacherForm(forms.ModelForm):
             'hourly_rate_ninth',
             'hourly_rate_preparatory',
             'monthly_salary',
+            'is_partner',
+            'partnership_percentage',
             'notes',
         ]
         widgets = {
@@ -55,6 +57,8 @@ class TeacherForm(forms.ModelForm):
             'hourly_rate_ninth': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
             'hourly_rate_preparatory': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
             'monthly_salary': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
+            'is_partner': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'partnership_percentage': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
             'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'ملاحظات إضافية'}),
         }
         labels = {
@@ -64,6 +68,8 @@ class TeacherForm(forms.ModelForm):
             'salary_type': 'نوع الراتب',
             'hourly_rate': 'أجر الساعة (ل.س)',
             'monthly_salary': 'الراتب الشهري الثابت (ل.س)',
+            'is_partner': 'شريك مساهم',
+            'partnership_percentage': 'نسبة الشراكة (%)',
             'notes': 'ملاحظات',
         }
 

@@ -53,32 +53,81 @@
 {% endblock %}
 
 {% block content %}
-<div class="card reveal" id="overview">
-  <div class="section-title">
-    <i class="fas fa-bolt"></i>
-    لوحة المدرس
+{% if teacher.is_partner %}
+<div class="card reveal" style="padding: 14px 20px; border-radius: 18px; border: 1.5px solid var(--primary); background: linear-gradient(135deg, rgba(118, 75, 162, 0.04) 0%, #ffffff 100%); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+  <div style="text-align: right;">
+    <span class="muted" style="font-size: 0.78rem;">وضع التصفح النشط:</span>
+    <h4 style="font-size: 0.98rem; font-family: 'Cocon Next Arabic', sans-serif; color: var(--primary); margin-top: 2px;">
+      {% if active_mode == 'partner' %}
+        <i class="fas fa-handshake" style="color: #d4af37;"></i> وضع الشريك المساهم
+      {% else %}
+        <i class="fas fa-chalkboard-user"></i> وضع المدرس
+      {% endif %}
+    </h4>
   </div>
-
-  <div class="pill-row">
-    <div class="pill">
-      <strong>{{ classrooms|length }}</strong>
-      <span>الشعب المرتبطة</span>
-    </div>
-    <div class="pill">
-      <strong>{{ subjects|length }}</strong>
-      <span>مواد التدريس</span>
-    </div>
-    <div class="pill">
-      <strong>{{ students_count|default:0 }}</strong>
-      <span>طلاب مرتبطون</span>
-    </div>
-    <div class="pill">
-      <strong>{{ attendance_summary.present|default:0 }}</strong>
-      <span>أيام حضور مسجلة</span>
-    </div>
-  </div>
+  <a href="?choose_mode=1" style="background: var(--primary); color: #fff; padding: 8px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+    <i class="fas fa-rotate"></i>
+    <span>تبديل الوضع</span>
+  </a>
 </div>
+{% endif %}
 
+{% if active_mode == 'partner' %}
+  <!-- Partner Overview -->
+  <div class="card reveal" id="overview" style="border: 1.5px solid #d4af37; background: linear-gradient(135deg, rgba(212, 175, 55, 0.04) 0%, #ffffff 100%);">
+    <div class="section-title" style="color: #8a6d3b;">
+      <i class="fas fa-chart-pie"></i>
+      خلاصة الشراكة المالية
+    </div>
+    <div class="pill-row">
+      <div class="pill">
+        <strong style="color: #8a6d3b;">{{ teacher.partnership_percentage }}%</strong>
+        <span>نسبة الشراكة</span>
+      </div>
+      <div class="pill">
+        <strong style="color: #27ae60;">{{ partner_balance|floatformat:0|intcomma }} ل.س</strong>
+        <span>رصيد حساب الملكية</span>
+      </div>
+      <div class="pill">
+        <strong style="color: #3498db;">{{ quick_sessions|length }}</strong>
+        <span>كلاسات سريعة نشطة</span>
+      </div>
+      <div class="pill">
+        <strong style="color: #2ecc71;">{{ total_quick_earnings|floatformat:0|intcomma }} ل.س</strong>
+        <span>أرباح كلاساتك السريعة</span>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <!-- Regular Teacher Overview -->
+  <div class="card reveal" id="overview">
+    <div class="section-title">
+      <i class="fas fa-bolt"></i>
+      لوحة المدرس
+    </div>
+
+    <div class="pill-row">
+      <div class="pill">
+        <strong>{{ classrooms|length }}</strong>
+        <span>الشعب المرتبطة</span>
+      </div>
+      <div class="pill">
+        <strong>{{ subjects|length }}</strong>
+        <span>مواد التدريس</span>
+      </div>
+      <div class="pill">
+        <strong>{{ students_count|default:0 }}</strong>
+        <span>طلاب مرتبطون</span>
+      </div>
+      <div class="pill">
+        <strong>{{ attendance_summary.present|default:0 }}</strong>
+        <span>أيام حضور مسجلة</span>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% if active_mode != 'partner' %}
 <div class="card reveal" style="animation-delay: 0.03s;">
   <div class="section-title">
     <i class="fas fa-id-badge"></i>
@@ -173,6 +222,18 @@
       <strong>الراتب والسلف</strong>
       <span>رواتبك والسلف المتبقية</span>
     </a>
+    <a class="action-card section-link" data-target="quick-courses-info" style="border: 1px solid #3498db; background: linear-gradient(135deg, rgba(52, 152, 219, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%);">
+      <i class="fas fa-graduation-cap" style="color: #3498db;"></i>
+      <strong>كلاسات الدورات السريعة</strong>
+      <span>أعداد الطلاب والمستحقات المباشرة</span>
+    </a>
+    {% if teacher.is_partner %}
+    <a class="action-card section-link" data-target="partnership-info" style="border: 1px solid #d4af37; background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, rgba(255, 255, 255, 0.95) 100%);">
+      <i class="fas fa-handshake" style="color: #d4af37;"></i>
+      <strong style="color: #8a6d3b;">بوابة الشريك المساهم</strong>
+      <span>نسبتك وحقوقك وحساب الشراكة المالي</span>
+    </a>
+    {% endif %}
     <a class="action-card section-link" data-target="actions">
       <i class="fas fa-pen"></i>
       <strong>إجراءات سريعة</strong>
@@ -180,6 +241,27 @@
     </a>
   </div>
 </div>
+{% else %}
+<!-- Partner Action Grid -->
+<div class="card reveal" style="animation-delay: 0.04s;">
+  <div class="section-title">
+    <i class="fas fa-table-cells"></i>
+    بوابات الشريك المساهم
+  </div>
+  <div class="action-grid">
+    <a class="action-card section-link" data-target="partnership-info" style="border: 1px solid #d4af37; background: linear-gradient(135deg, rgba(212, 175, 55, 0.04) 0%, #ffffff 100%);">
+      <i class="fas fa-handshake" style="color: #d4af37;"></i>
+      <strong style="color: #8a6d3b;">الحساب المالي ونسبة الشراكة</strong>
+      <span>عرض الحساب المالي الجاري والأرباح بالتفصيل</span>
+    </a>
+    <a class="action-card section-link" data-target="quick-courses-info" style="border: 1px solid #3498db; background: linear-gradient(135deg, rgba(52, 152, 219, 0.04) 0%, #ffffff 100%);">
+      <i class="fas fa-graduation-cap" style="color: #3498db;"></i>
+      <strong style="color: #2980b9;">كلاسات ومستحقات الدورات السريعة</strong>
+      <span>تفاصيل الدورات السريعة، الطلاب والمستحقات المباشرة</span>
+    </a>
+  </div>
+</div>
+{% endif %}
 
 <div class="card reveal collapsible-section" id="teacher-info" style="animation-delay: 0.045s;">
   <div class="section-title">
@@ -443,6 +525,71 @@
     {% endfor %}
   </div>
 </div>
+
+<div class="card reveal collapsible-section" id="quick-courses-info" style="animation-delay: 0.28s;">
+  <div class="section-title">
+    <i class="fas fa-graduation-cap"></i>
+    كلاسات الدورات السريعة
+  </div>
+  
+  <div class="pill-row">
+    <div class="pill">
+      <strong>{{ quick_sessions|length }}</strong>
+      <span>كلاسات نشطة</span>
+    </div>
+    <div class="pill">
+      <strong>{{ total_quick_earnings|floatformat:0|intcomma }} ل.س</strong>
+      <span>إجمالي المستحقات</span>
+    </div>
+  </div>
+
+  <div class="list" style="margin-top: 15px;">
+    {% for session in quick_sessions %}
+    <div class="list-item">
+      <h4 style="color: var(--primary);">{{ session.course.name }} — {{ session.title }}</h4>
+      <p class="muted">تاريخ البدء والانتهاء: {{ session.start_date|date:"d/m/Y" }} إلى {{ session.end_date|date:"d/m/Y" }}</p>
+      <p class="muted">الدوام: {{ session.meeting_days|default:"غير محدد" }} (من {{ session.start_time|time:"H:i" }} إلى {{ session.end_time|time:"H:i"|default:"غير محدد" }})</p>
+      <p class="muted">عدد الطلاب المسجلين: <strong>{{ session.enrolled_count }}</strong> طالب</p>
+      <p class="muted">نوع استحقاق المعلم: {{ session.get_teacher_pay_type_display }}</p>
+      <p class="muted">قيمة الاستحقاق المقررة: {{ session.teacher_pay_value|floatformat:0|intcomma }} ل.س</p>
+      <p style="margin-top: 5px; font-weight: bold; color: #27ae60;">مستحقاتك المحتسبة من الكلاس: {{ session.teacher_earnings|floatformat:0|intcomma }} ل.س</p>
+    </div>
+    {% empty %}
+    <div class="list-item">
+      <p class="muted">لا توجد كلاسات دورات سريعة مرتبطة بك حالياً.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if teacher.is_partner %}
+<div class="card reveal collapsible-section" id="partnership-info" style="animation-delay: 0.29s; border: 1.5px solid #d4af37;">
+  <div class="section-title" style="color: #8a6d3b;">
+    <i class="fas fa-handshake"></i>
+    بوابة الشريك المساهم
+  </div>
+  
+  <div class="list">
+    <div class="list-item">
+      <h4>معلومات الشراكة</h4>
+      <p class="muted">المساهم: {{ teacher.full_name }}</p>
+      <p class="muted">حالة الحساب: شريك مساهم نشط</p>
+      <p class="muted">نسبة الأرباح من الشراكة: <strong style="color: #8a6d3b; font-size: 1.1rem;">{{ teacher.partnership_percentage }}%</strong></p>
+    </div>
+    
+    <div class="list-item">
+      <h4>الحساب المالي للشراكة</h4>
+      {% if partner_account %}
+      <p class="muted">الحساب المرتبط: {{ partner_account.code }} - {{ partner_account.name }}</p>
+      <p style="margin-top: 5px; font-size: 1.15rem; font-weight: bold; color: #27ae60;">صافي الرصيد المستحق: {{ partner_balance|floatformat:0|intcomma }} ل.س</p>
+      <p class="muted" style="font-size: 0.85rem; margin-top: 8px;">ملاحظة: هذا الرصيد يمثل حقوقك ورصيد حساب الشراكة الخاص بك المسجل في شجرة الحسابات (حقوق الملكية 301) لحظة بلحظة.</p>
+      {% else %}
+      <p class="muted" style="color: #c0392b;">لا يوجد حساب رأس مال شراكة نشط (كود 301-XXXX) مسجل باسمك في النظام المالي للشركة. يرجى مراجعة المحاسب لربط حسابك.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <div class="card reveal collapsible-section" id="finance" style="animation-delay: 0.3s;">
   <div class="section-title">

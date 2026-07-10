@@ -104,10 +104,10 @@ class QuickCourseSessionAdmin(AcademicYearScopedAdminMixin, admin.ModelAdmin):
         'course': 'academic_year',
         'time_option': 'course__academic_year',
     }
-    list_display = ['title', 'course', 'start_date', 'end_date', 'start_time', 'capacity', 'is_active']
-    list_filter = ['is_active', 'course__course_type', 'start_date']
-    search_fields = ['title', 'code', 'course__name', 'room_name']
-    raw_id_fields = ['course', 'created_by']
+    list_display = ['title', 'course', 'teacher', 'teacher_pay_type', 'teacher_pay_value', 'start_date', 'end_date', 'start_time', 'capacity', 'is_active']
+    list_filter = ['is_active', 'course__course_type', 'teacher', 'start_date']
+    search_fields = ['title', 'code', 'course__name', 'room_name', 'teacher__full_name']
+    raw_id_fields = ['course', 'teacher', 'created_by']
 
 
 @admin.register(QuickCourseTimeOption)

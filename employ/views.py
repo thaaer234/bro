@@ -68,7 +68,10 @@ from .services import (
 )
 from .biometric_sync import BiometricAutoSyncService
 from .email_notifications import send_weekly_biometric_summary
-from xhtml2pdf import pisa
+try:
+    from xhtml2pdf import pisa
+except ImportError:
+    pisa = None
 try:
     from weasyprint import HTML
     from weasyprint.urls import default_url_fetcher
@@ -2755,36 +2758,8 @@ class PayManualSalaryView(LoginRequiredMixin, View):
             return redirect('employ:teacher_profile', pk=salary.teacher.pk)
         
         try:
-            # تسجيل الدفع فقط
-            salary.is_paid = True
-            salary.paid_date = timezone.now().date()
-            salary.save()
-            
-            # تحديث حالة السلف إذا كان هناك خصم
-            if salary.advance_deduction > 0:
-                from accounts.models import TeacherAdvance
-                # تحديث السلف القديمة لهذا الشهر
-                advances = TeacherAdvance.objects.filter(
-                    teacher=salary.teacher,
-                    date__year=salary.year,
-                    date__month=salary.month,
-                    is_repaid=False
-                ).order_by('date')
-                
-                remaining_deduction = salary.advance_deduction
-                for advance in advances:
-                    if remaining_deduction <= 0:
-                        break
-                    
-                    if advance.outstanding_amount <= remaining_deduction:
-                        advance.is_repaid = True
-                        advance.repaid_amount = advance.outstanding_amount
-                        remaining_deduction -= advance.outstanding_amount
-                    else:
-                        advance.repaid_amount += remaining_deduction
-                        remaining_deduction = Decimal('0')
-                    
-                    advance.save()
+            # تسجيل الدفع وإنشاء القيد وتحديث السلف بآلية موحدة
+            salary.mark_as_paid(request.user)
             
             messages.success(request, f'تم دفع راتب شهر {salary.get_month_display()} {salary.year} للمدرس {salary.teacher.full_name}')
             
