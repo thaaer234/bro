@@ -30,7 +30,18 @@
             --card-border-style: solid;
             --card-border-width: 2px;
             --font-scale: 1;
+            
+            /* Visibility variables */
+            --student-name-display: flex;
             --classroom-display: flex;
+            --amount-display: flex;
+            --course-display: flex;
+            --message-display: block;
+            --reason-display: flex;
+            --date-display: block;
+            --sig-admin-display: block;
+            --sig-parent-display: block;
+            
             --page-padding-v: 6mm;
             --page-padding-h: 8mm;
         }
@@ -184,6 +195,26 @@
             min-width: 45px;
             text-align: left;
         }
+        
+        .checkbox-item-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-item-container label {
+            cursor: pointer;
+            font-size: 13px;
+            user-select: none;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        .checkbox-item-container input[type="checkbox"] {
+            width: 17px;
+            height: 17px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+        
         .templates-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -308,13 +339,28 @@
         }
 
         .field-row {
-            display: flex;
             align-items: baseline;
             gap: 4px;
         }
         
+        .student-name-row {
+            display: var(--student-name-display);
+        }
+        
         .student-classroom-row {
             display: var(--classroom-display);
+        }
+        
+        .student-amount-row {
+            display: var(--amount-display);
+        }
+        
+        .student-course-row {
+            display: var(--course-display);
+        }
+        
+        .student-reason-row {
+            display: var(--reason-display);
         }
 
         .field-label {
@@ -344,6 +390,7 @@
             text-align: justify;
             margin: 0.5mm 0;
             font-weight: 500;
+            display: var(--message-display);
         }
         .card-message strong {
             color: var(--primary);
@@ -361,6 +408,19 @@
             font-size: calc(9px * var(--font-scale));
             color: var(--muted);
         }
+        
+        .card-date-item {
+            display: var(--date-display);
+        }
+        
+        .sig-admin-item {
+            display: var(--sig-admin-display);
+        }
+        
+        .sig-parent-item {
+            display: var(--sig-parent-display);
+        }
+        
         .card-footer-row .sig-block {
             text-align: center;
             position: relative;
@@ -434,7 +494,7 @@
 <body>
 
     <!-- Controls Panel -->
-    <div class="controls animate-fade">
+    <div class="controls">
         <div class="controls-header">
             <h3><i class="fas fa-sliders-h"></i> لوحة تحكم وتخصيص بطاقات المطالبة</h3>
             <div>
@@ -598,9 +658,48 @@
                         <span id="border-width-val">2px</span>
                     </div>
                 </div>
-                <div class="control-item checkbox-item">
-                    <input type="checkbox" id="show-classroom-check" checked>
-                    <label for="show-classroom-check">عرض حقل "الشعبة" للطالب</label>
+                
+                <!-- Card Elements Visibility Grid -->
+                <div class="control-item" style="grid-column: span 2; border-top: 1px solid #edf2f7; padding-top: 15px; margin-top: 10px;">
+                    <label style="font-size: 14px; margin-bottom: 10px; display: block; color: var(--primary);">عرض وإخفاء عناصر البطاقة:</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                        <div class="checkbox-item-container">
+                            <input type="checkbox" id="show-name-check" checked>
+                            <label for="show-name-check">اسم الطالب</label>
+                        </div>
+                        <div class="checkbox-item-container">
+                            <input type="checkbox" id="show-classroom-check" checked>
+                            <label for="show-classroom-check">الشعبة</label>
+                        </div>
+                        <div class="checkbox-item-container">
+                            <input type="checkbox" id="show-amount-check" checked>
+                            <label for="show-amount-check">المبلغ المستحق</label>
+                        </div>
+                        <div class="checkbox-item-container">
+                            <input type="checkbox" id="show-course-check" checked>
+                            <label for="show-course-check">اسم الدورة</label>
+                        </div>
+                        <div class="checkbox-item-container">
+                            <input type="checkbox" id="show-message-check" checked>
+                            <label for="show-message-check">رسالة المطالبة</label>
+                        </div>
+                        <div class="checkbox-item-container">
+                            <input type="checkbox" id="show-reason-check" checked>
+                            <label for="show-reason-check">السبب</label>
+                        </div>
+                        <div class="checkbox-item-container">
+                            <input type="checkbox" id="show-date-check" checked>
+                            <label for="show-date-check">التاريخ</label>
+                        </div>
+                        <div class="checkbox-item-container">
+                            <input type="checkbox" id="show-sig-admin-check" checked>
+                            <label for="show-sig-admin-check">توقيع الإدارة</label>
+                        </div>
+                        <div class="checkbox-item-container">
+                            <input type="checkbox" id="show-sig-parent-check" checked>
+                            <label for="show-sig-parent-check">توقيع ولي الأمر</label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -625,7 +724,7 @@
 
             <!-- Body -->
             <div class="card-body-content">
-                <div class="field-row">
+                <div class="field-row student-name-row">
                     <span class="field-label">اسم الطالب:</span>
                     <span class="field-value student-name-text">{{ student.student.full_name }}</span>
                 </div>
@@ -635,11 +734,11 @@
                     <span class="field-value student-classroom-text">{{ student.current_classroom.name|default:"غير محدد" }}</span>
                 </div>
                 
-                <div class="field-row">
+                <div class="field-row student-amount-row">
                     <span class="field-label">المبلغ وقدره:</span>
                     <span class="field-value amount student-amount-text" data-amount="{{ student.remaining|floatformat:0|intcomma }}">{{ student.remaining|floatformat:0|intcomma }} ل.س</span>
                 </div>
-                <div class="field-row">
+                <div class="field-row student-course-row">
                     <span class="field-label">الدورة:</span>
                     <span class="field-value">{{ course.name }}</span>
                 </div>
@@ -653,7 +752,7 @@
                     وإلّا سيتم اتخاذ الإجراء المناسب.
                 </div>
 
-                <div class="field-row">
+                <div class="field-row student-reason-row">
                     <span class="field-label reason-label-text">السبب:</span>
                     <span class="field-value reason-value-text">عدم إكمال الأقساط</span>
                 </div>
@@ -661,17 +760,17 @@
 
             <!-- Footer -->
             <div class="card-footer-row">
-                <div>
+                <div class="card-date-item">
                     <strong>التاريخ:</strong> {% now "Y-m-d" %}
                 </div>
-                <div class="sig-block">
+                <div class="sig-block sig-admin-item">
                     <span class="sig-admin-label">الإدارة</span>
                     <div class="signature-container">
                         <img class="admin-sig-img" src="" alt="" style="display: none;">
                     </div>
                     <span class="sig-line"></span>
                 </div>
-                <div class="sig-block">
+                <div class="sig-block sig-parent-item">
                     <span class="sig-parent-label">ولي الأمر</span>
                     <span class="sig-line"></span>
                 </div>
@@ -778,9 +877,16 @@
             const hideLogo = document.getElementById('hide-logo-check').checked;
             root.style.setProperty('--logo-display', hideLogo ? 'none' : 'block');
             
-            // Show Classroom
-            const showClassroom = document.getElementById('show-classroom-check').checked;
-            root.style.setProperty('--classroom-display', showClassroom ? 'flex' : 'none');
+            // Visibility Toggles
+            root.style.setProperty('--student-name-display', document.getElementById('show-name-check').checked ? 'flex' : 'none');
+            root.style.setProperty('--classroom-display', document.getElementById('show-classroom-check').checked ? 'flex' : 'none');
+            root.style.setProperty('--amount-display', document.getElementById('show-amount-check').checked ? 'flex' : 'none');
+            root.style.setProperty('--course-display', document.getElementById('show-course-check').checked ? 'flex' : 'none');
+            root.style.setProperty('--message-display', document.getElementById('show-message-check').checked ? 'block' : 'none');
+            root.style.setProperty('--reason-display', document.getElementById('show-reason-check').checked ? 'flex' : 'none');
+            root.style.setProperty('--date-display', document.getElementById('show-date-check').checked ? 'block' : 'none');
+            root.style.setProperty('--sig-admin-display', document.getElementById('show-sig-admin-check').checked ? 'block' : 'none');
+            root.style.setProperty('--sig-parent-display', document.getElementById('show-sig-parent-check').checked ? 'block' : 'none');
             
             // Dimensions
             const cardHeight = document.getElementById('card-height-slider').value;
@@ -856,7 +962,6 @@
                 'primary-color-picker',
                 'logo-width-slider',
                 'hide-logo-check',
-                'show-classroom-check',
                 'card-height-slider',
                 'card-gap-slider',
                 'card-radius-slider',
@@ -869,7 +974,16 @@
                 'reason-value-input',
                 'sig-admin-input',
                 'sig-parent-input',
-                'message-template-input'
+                'message-template-input',
+                'show-name-check',
+                'show-classroom-check',
+                'show-amount-check',
+                'show-course-check',
+                'show-message-check',
+                'show-reason-check',
+                'show-date-check',
+                'show-sig-admin-check',
+                'show-sig-parent-check'
             ];
 
             inputElements.forEach(id => {
