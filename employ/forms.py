@@ -28,6 +28,13 @@ class TeacherForm(forms.ModelForm):
         required=True,
         label='الفروع التي يدرسها'
     )
+    academic_year = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        label='ربط الأسعار بفصل دراسي محدد',
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_academic_year'}),
+        empty_label='--- الأسعار الافتراضية (بدون فصل) ---'
+    )
 
     class Meta:
         model = Teacher
@@ -44,6 +51,7 @@ class TeacherForm(forms.ModelForm):
             'monthly_salary',
             'is_partner',
             'partnership_percentage',
+            'academic_year',
             'notes',
         ]
         widgets = {
@@ -75,6 +83,9 @@ class TeacherForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from quick.models import AcademicYear
+        if 'academic_year' in self.fields:
+            self.fields['academic_year'].queryset = AcademicYear.objects.all()
 
         # القيمة الابتدائية للفروع عند التعديل
         if self.instance and self.instance.pk and self.instance.branches:

@@ -125,6 +125,19 @@
 
 
 
+                        <!-- ربط الفصل الدراسي -->
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label for="id_academic_year" class="form-label" style="font-weight: bold; color: var(--primary);">
+                                    {{ form.academic_year.label }}
+                                </label>
+                                {{ form.academic_year }}
+                                <div class="form-text text-muted">
+                                    اختر الفصل الدراسي إذا كنت تريد تحديد أجور مخصصة لهذا الفصل فقط. اترك الحقل فارغاً لتعديل الأجور الافتراضية للمعلم.
+                                </div>
+                            </div>
+                        </div>
+
                                                         <div class="row">
                                     <div class="col-12">
                                         <h6 class="border-top pt-3">أسعار الساعة حسب الفرع</h6>
@@ -258,6 +271,58 @@ document.addEventListener('DOMContentLoaded', function() {
         checkbox.addEventListener('change', updateBranchRateFields);
     });
     
+    // Academic Year dynamic rates loading
+    const academicYearSelect = document.getElementById('id_academic_year');
+    const inputScientific = document.getElementById('id_hourly_rate_scientific');
+    const inputLiterary = document.getElementById('id_hourly_rate_literary');
+    const inputNinth = document.getElementById('id_hourly_rate_ninth');
+    const inputPreparatory = document.getElementById('id_hourly_rate_preparatory');
+    const inputHourly = document.getElementById('id_hourly_rate');
+    const inputMonthly = document.getElementById('id_monthly_salary');
+
+    const defaultRates = {
+        'scientific': "{{ teacher.hourly_rate_scientific|default:0.0 }}",
+        'literary': "{{ teacher.hourly_rate_literary|default:0.0 }}",
+        'ninth': "{{ teacher.hourly_rate_ninth|default:0.0 }}",
+        'preparatory': "{{ teacher.hourly_rate_preparatory|default:0.0 }}",
+        'hourly_rate': "{{ teacher.hourly_rate|default:0.0 }}",
+        'monthly_salary': "{{ teacher.monthly_salary|default:0.0 }}",
+        'salary_type': "{{ teacher.salary_type|default:'hourly' }}"
+    };
+    
+    const academicRates = {{ rates_json|safe|default:"{}" }};
+
+    if (academicYearSelect) {
+        academicYearSelect.addEventListener('change', function() {
+            const selectedAy = this.value;
+            if (selectedAy && academicRates[selectedAy]) {
+                const r = academicRates[selectedAy];
+                if (inputScientific) inputScientific.value = r.scientific;
+                if (inputLiterary) inputLiterary.value = r.literary;
+                if (inputNinth) inputNinth.value = r.ninth;
+                if (inputPreparatory) inputPreparatory.value = r.preparatory;
+                if (inputHourly) inputHourly.value = r.hourly_rate;
+                if (inputMonthly) inputMonthly.value = r.monthly_salary;
+                if (salaryTypeSelect) {
+                    salaryTypeSelect.value = r.salary_type;
+                    updateSalaryFields();
+                }
+            } else {
+                // Restore defaults
+                if (inputScientific) inputScientific.value = defaultRates.scientific;
+                if (inputLiterary) inputLiterary.value = defaultRates.literary;
+                if (inputNinth) inputNinth.value = defaultRates.ninth;
+                if (inputPreparatory) inputPreparatory.value = defaultRates.preparatory;
+                if (inputHourly) inputHourly.value = defaultRates.hourly_rate;
+                if (inputMonthly) inputMonthly.value = defaultRates.monthly_salary;
+                if (salaryTypeSelect) {
+                    salaryTypeSelect.value = defaultRates.salary_type;
+                    updateSalaryFields();
+                }
+            }
+        });
+    }
+
     // Initialize on page load
     updateSalaryFields();
     updateBranchRateFields();

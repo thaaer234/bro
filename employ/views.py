@@ -732,8 +732,61 @@ class TeacherUpdateView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('employ:teachers')
 
     def form_valid(self, form):
+        teacher = form.save(commit=False)
+        academic_year = form.cleaned_data.get('academic_year')
+        
+        if academic_year:
+            from employ.models import TeacherAcademicSalaryRate
+            from decimal import Decimal
+            rate_obj, _ = TeacherAcademicSalaryRate.objects.get_or_create(
+                teacher=teacher,
+                academic_year=academic_year
+            )
+            rate_obj.hourly_rate_scientific = form.cleaned_data.get('hourly_rate_scientific') or Decimal('0.00')
+            rate_obj.hourly_rate_literary = form.cleaned_data.get('hourly_rate_literary') or Decimal('0.00')
+            rate_obj.hourly_rate_ninth = form.cleaned_data.get('hourly_rate_ninth') or Decimal('0.00')
+            rate_obj.hourly_rate_preparatory = form.cleaned_data.get('hourly_rate_preparatory') or Decimal('0.00')
+            rate_obj.hourly_rate = form.cleaned_data.get('hourly_rate') or Decimal('0.00')
+            rate_obj.monthly_salary = form.cleaned_data.get('monthly_salary') or Decimal('0.00')
+            rate_obj.salary_type = form.cleaned_data.get('salary_type') or 'hourly'
+            rate_obj.save()
+            
+            # Restore original default base rates to base teacher
+            if teacher.pk:
+                original = Teacher.objects.get(pk=teacher.pk)
+                teacher.hourly_rate_scientific = original.hourly_rate_scientific
+                teacher.hourly_rate_literary = original.hourly_rate_literary
+                teacher.hourly_rate_ninth = original.hourly_rate_ninth
+                teacher.hourly_rate_preparatory = original.hourly_rate_preparatory
+                teacher.hourly_rate = original.hourly_rate
+                teacher.monthly_salary = original.monthly_salary
+                teacher.salary_type = original.salary_type
+                
+        teacher.save()
+        form.save_m2m()
         messages.success(self.request, 'تم تحديث بيانات المعلم بنجاح.')
-        return super().form_valid(form)
+        from django.shortcuts import redirect
+        return redirect(self.success_url)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = self.object
+        
+        # Serialize year-specific rates
+        import json
+        rates_data = {}
+        for rate in teacher.academic_salary_rates.all():
+            rates_data[rate.academic_year_id] = {
+                'scientific': float(rate.hourly_rate_scientific),
+                'literary': float(rate.hourly_rate_literary),
+                'ninth': float(rate.hourly_rate_ninth),
+                'preparatory': float(rate.hourly_rate_preparatory),
+                'hourly_rate': float(rate.hourly_rate),
+                'monthly_salary': float(rate.monthly_salary),
+                'salary_type': rate.salary_type,
+            }
+        context['rates_json'] = json.dumps(rates_data)
+        return context
 
 
 # -----------------------------
