@@ -59,12 +59,12 @@ class TeacherForm(forms.ModelForm):
             'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'أدخل رقم الهاتف'}),
             'hire_date': DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'salary_type': forms.Select(attrs={'class': 'form-control'}),
-            'hourly_rate': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
-            'hourly_rate_scientific': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
-            'hourly_rate_literary': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
-            'hourly_rate_ninth': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
-            'hourly_rate_preparatory': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
-            'monthly_salary': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
+            'hourly_rate': forms.TextInput(attrs={'class': 'form-control financial-input', 'placeholder': '0.00'}),
+            'hourly_rate_scientific': forms.TextInput(attrs={'class': 'form-control financial-input', 'placeholder': '0.00'}),
+            'hourly_rate_literary': forms.TextInput(attrs={'class': 'form-control financial-input', 'placeholder': '0.00'}),
+            'hourly_rate_ninth': forms.TextInput(attrs={'class': 'form-control financial-input', 'placeholder': '0.00'}),
+            'hourly_rate_preparatory': forms.TextInput(attrs={'class': 'form-control financial-input', 'placeholder': '0.00'}),
+            'monthly_salary': forms.TextInput(attrs={'class': 'form-control financial-input', 'placeholder': '0.00'}),
             'is_partner': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'partnership_percentage': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
             'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'ملاحظات إضافية'}),
@@ -100,6 +100,16 @@ class TeacherForm(forms.ModelForm):
         self.fields['monthly_salary'].required = False
         self.fields['notes'].required = False
         self.fields['salary_type'].required = False
+
+    def full_clean(self):
+        # تنظيف الفواصل المالية من البيانات المدخلة قبل إجراء التحقق من صحة الحقول
+        if hasattr(self, 'data') and self.data:
+            self.data = self.data.copy()
+            for field in ['hourly_rate', 'hourly_rate_scientific', 'hourly_rate_literary', 'hourly_rate_ninth', 'hourly_rate_preparatory', 'monthly_salary']:
+                val = self.data.get(field)
+                if val and isinstance(val, str):
+                    self.data[field] = val.replace(',', '')
+        super().full_clean()
 
     def clean(self):
         cleaned_data = super().clean()

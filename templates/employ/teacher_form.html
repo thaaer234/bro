@@ -117,11 +117,26 @@
                         </div>
 
                         <!-- معلومات الراتب -->
-                        {% comment %} <div class="d-none">
-                            {{ form.salary_type }}
-                            {{ form.hourly_rate }}
-                            {{ form.monthly_salary }}
-                        </div> {% endcomment %}
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.salary_type.id_for_label }}" class="form-label" style="font-weight: bold; color: var(--primary);">
+                                    {{ form.salary_type.label }}
+                                </label>
+                                {{ form.salary_type }}
+                            </div>
+                            <div class="col-md-4 mb-3" id="group-hourly-rate">
+                                <label for="{{ form.hourly_rate.id_for_label }}" class="form-label" style="font-weight: bold; color: var(--primary);">
+                                    {{ form.hourly_rate.label }}
+                                </label>
+                                {{ form.hourly_rate }}
+                            </div>
+                            <div class="col-md-4 mb-3" id="group-monthly-salary">
+                                <label for="{{ form.monthly_salary.id_for_label }}" class="form-label" style="font-weight: bold; color: var(--primary);">
+                                    {{ form.monthly_salary.label }}
+                                </label>
+                                {{ form.monthly_salary }}
+                            </div>
+                        </div>
 
 
 
@@ -216,21 +231,25 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     
+    const groupHourlyRate = document.getElementById('group-hourly-rate');
+    const groupMonthlySalary = document.getElementById('group-monthly-salary');
+
     function updateSalaryFields() {
         const salaryType = salaryTypeSelect.value;
         
-        // Reset all fields
-        hourlyRateField.required = false;
-        monthlySalaryField.required = false;
-        
-        // Set requirements based on salary type
         if (salaryType === 'hourly') {
+            if (groupHourlyRate) groupHourlyRate.classList.remove('d-none');
+            if (groupMonthlySalary) groupMonthlySalary.classList.add('d-none');
             hourlyRateField.required = true;
             monthlySalaryField.required = false;
         } else if (salaryType === 'monthly') {
+            if (groupHourlyRate) groupHourlyRate.classList.add('d-none');
+            if (groupMonthlySalary) groupMonthlySalary.classList.remove('d-none');
             hourlyRateField.required = false;
             monthlySalaryField.required = true;
         } else if (salaryType === 'mixed') {
+            if (groupHourlyRate) groupHourlyRate.classList.remove('d-none');
+            if (groupMonthlySalary) groupMonthlySalary.classList.remove('d-none');
             hourlyRateField.required = true;
             monthlySalaryField.required = true;
         }
@@ -320,6 +339,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     updateSalaryFields();
                 }
             }
+        });
+    }
+
+    // Format financial inputs on load and on typing
+    const financialInputs = document.querySelectorAll('.financial-input');
+    
+    function formatValueWithCommas(value) {
+        if (value === undefined || value === null || value === '') return '';
+        let cleanVal = value.toString().replace(/,/g, '');
+        cleanVal = cleanVal.replace(/[^0-9.]/g, '');
+        const parts = cleanVal.split('.');
+        if (parts.length > 2) {
+            cleanVal = parts[0] + '.' + parts.slice(1).join('');
+        }
+        if (parts[0]) {
+            parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
+        }
+        return parts.join('.');
+    }
+    
+    financialInputs.forEach(input => {
+        // Format on load
+        input.value = formatValueWithCommas(input.value);
+        
+        // Format while typing
+        input.addEventListener('input', function() {
+            const start = this.selectionStart;
+            const originalLen = this.value.length;
+            this.value = formatValueWithCommas(this.value);
+            const newLen = this.value.length;
+            this.setSelectionRange(start + (newLen - originalLen), start + (newLen - originalLen));
+        });
+    });
+
+    // Clean commas right before submitting
+    const mainForm = document.querySelector('form');
+    if (mainForm) {
+        mainForm.addEventListener('submit', function() {
+            financialInputs.forEach(input => {
+                input.value = input.value.replace(/,/g, '');
+            });
         });
     }
 
