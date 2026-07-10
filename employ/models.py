@@ -1210,8 +1210,29 @@ class Teacher(models.Model):
         return account is not None
 
     def save(self, *args, **kwargs):
-        """حفظ بسيط بدون أي تعيينات تلقائية"""
+        """حفظ المدرس وإنشاء حساب رأس المال للشريك تلقائياً إذا تم تعيينه كشريك"""
         super().save(*args, **kwargs)
+        
+        if self.is_partner:
+            from accounts.models import Account
+            account_code = f"301-{self.pk:04d}"
+            # التحقق مما إذا كان الحساب موجوداً بالفعل
+            exists = Account.objects.filter(code=account_code).exists()
+            if not exists:
+                parent_acc = Account.objects.filter(code='301').first()
+                if not parent_acc:
+                    parent_acc = Account.objects.filter(account_type='EQUITY').first()
+                
+                try:
+                    Account.objects.create(
+                        code=account_code,
+                        name_ar=f"رأس مال الشراكة - {self.full_name}",
+                        account_type='EQUITY',
+                        parent=parent_acc
+                    )
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(f"Error creating partner account for teacher {self.full_name}: {e}")
 
 # =============================
 # Teacher Academic Salary Rate
