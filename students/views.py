@@ -2002,8 +2002,10 @@ def quick_receipt(request, student_id):
             
         amount = Decimal(request.POST.get('amount', '0'))
         paid_amount = Decimal(request.POST.get('paid_amount', '0'))
-        discount_percent = Decimal(request.POST.get('discount_percent', str(student.discount_percent or 0)))
-        discount_amount = Decimal(request.POST.get('discount_amount', str(student.discount_amount or 0)))
+        
+        post_discount_percent = request.POST.get('discount_percent')
+        post_discount_amount = request.POST.get('discount_amount')
+        
         is_free = str(request.POST.get('is_free', '')).lower() == 'true'
         receipt_date_str = request.POST.get('receipt_date')
         
@@ -2120,6 +2122,21 @@ def quick_receipt(request, student_id):
     except (Studentenrollment.DoesNotExist, Course.DoesNotExist) as e:
         return JsonResponse({'ok': False, 'error': 'الدورة أو التسجيل غير موجود'})
     
+    # تحديد نسبة وقيمة الخصم للإيصال بناءً على التسجيل أو الطالب
+    if post_discount_percent is not None:
+        discount_percent = Decimal(post_discount_percent)
+    elif enrollment:
+        discount_percent = enrollment.discount_percent
+    else:
+        discount_percent = student.discount_percent or Decimal('0')
+
+    if post_discount_amount is not None:
+        discount_amount = Decimal(post_discount_amount)
+    elif enrollment:
+        discount_amount = enrollment.discount_amount
+    else:
+        discount_amount = student.discount_amount or Decimal('0')
+
     # السماح بدفع 0 ل.س (خصم 100%)
     if paid_amount < 0:
         return JsonResponse({'ok': False, 'error': 'المبلغ المدفوع غير صالح'})

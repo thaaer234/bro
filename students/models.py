@@ -312,12 +312,6 @@ class Student(models.Model):
             enrollment.discount_amount = discount_amount
             enrollment.save()
             
-            # تحديث قيم الحسم في ملف الطالب الشخصي (البروفايل)
-            self.discount_percent = discount_percent
-            self.discount_amount = discount_amount
-            self.discount_reason = discount_reason
-            self.save(update_fields=['discount_percent', 'discount_amount', 'discount_reason'])
-            
             # حساب المبلغ الصافي الجديد
             new_after_percent = enrollment.total_amount - (enrollment.total_amount * discount_percent / Decimal('100'))
             new_net_amount = max(Decimal('0'), new_after_percent - discount_amount)

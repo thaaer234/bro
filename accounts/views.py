@@ -3420,16 +3420,26 @@ def student_receipt_print(request, pk):
     # Calculate totals for print view
     course_price = receipt.course.price or Decimal('0') if receipt.course else receipt.amount or Decimal('0')
     
-    # Calculate net due and paid total
-    if receipt.student_profile and receipt.course:
-        # Use student's default discounts
-        discount_percent = receipt.student_profile.discount_percent or Decimal('0')
-        discount_amount = receipt.student_profile.discount_amount or Decimal('0')
+    # Calculate net due and paid total using enrollment discount (specific to this course)
+    if receipt.enrollment:
+        discount_percent = receipt.enrollment.discount_percent or Decimal('0')
+        discount_amount = receipt.enrollment.discount_amount or Decimal('0')
+        
+        gross_amt = receipt.enrollment.total_amount or course_price
+        after_percent = gross_amt - (gross_amt * discount_percent / Decimal('100'))
+        net_due = max(Decimal('0'), after_percent - discount_amount)
+        
+        paid_total = StudentReceipt.objects.filter(
+            enrollment=receipt.enrollment,
+            date__lte=receipt.date
+        ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+    elif receipt.student_profile and receipt.course:
+        discount_percent = receipt.discount_percent or Decimal('0')
+        discount_amount = receipt.discount_amount or Decimal('0')
         
         after_percent = course_price - (course_price * discount_percent / Decimal('100'))
         net_due = max(Decimal('0'), after_percent - discount_amount)
         
-        # Calculate paid total including this receipt
         paid_total = StudentReceipt.objects.filter(
             student_profile=receipt.student_profile,
             course=receipt.course,
@@ -3437,7 +3447,7 @@ def student_receipt_print(request, pk):
         ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
     else:
         # Fallback for legacy receipts
-        net_due = receipt.net_amount or receipt.amount or Decimal('0')
+        net_due = receipt.amount or Decimal('0')
         paid_total = receipt.paid_amount or Decimal('0')
         discount_percent = receipt.discount_percent or Decimal('0')
         discount_amount = receipt.discount_amount or Decimal('0')
