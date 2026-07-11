@@ -285,14 +285,40 @@ def get_students(request):
         return JsonResponse({'error': 'يجب تحديد معرف الشعبة'}, status=400)
     
     try:
+        classroom = get_object_or_404(Classroom, id=classroom_id)
+        
         # جلب الطلاب عبر علاقة التسجيل في الشعبة
-        students = Student.objects.filter(
+        students_qs = Student.objects.filter(
             classroom_enrollments__classroom_id=classroom_id
         ).distinct()
+        
         current_year = getattr(request, 'current_academic_year', None)
         if current_year:
-            students = students.filter(academic_year=current_year)
-        students = students.values('id', 'full_name')
+            students_qs = students_qs.filter(academic_year=current_year)
+            
+        # إضافة حقل المواد المسجلة (كامل المواد أو مواد محددة) من Studentenrollment
+        from django.db.models import Subquery, OuterRef, Value, F
+        from django.db.models.functions import Coalesce
+        from accounts.models import Studentenrollment
+        
+        if classroom.course:
+            sub = Studentenrollment.objects.filter(
+                student=OuterRef('pk'),
+                course=classroom.course
+            ).values('subjects_note')[:1]
+        else:
+            sub_qs = Studentenrollment.objects.filter(student=OuterRef('pk'))
+            if current_year:
+                sub_qs = sub_qs.filter(academic_year=current_year)
+            sub = sub_qs.values('subjects_note')[:1]
+            
+        students_qs = students_qs.annotate(
+            annotated_subjects=Subquery(sub)
+        ).annotate(
+            subjects_note=Coalesce(F('annotated_subjects'), Value('كامل المواد'))
+        )
+        
+        students = students_qs.values('id', 'full_name', 'subjects_note')
         
         if not students.exists():
             return JsonResponse({'error': 'لا يوجد طلاب في هذه الشعبة'}, status=404)
