@@ -104,12 +104,16 @@ class attendance(ListView):
     def get_queryset(self):
         queryset = Attendance.objects.select_related('classroom').order_by('-date')
         current_year = getattr(self.request, 'current_academic_year', None)
-        if current_year:
-            queryset = queryset.filter(student__academic_year=current_year)
+        
         branch = self.request.GET.get('branch') or ''
         classroom_id = self.request.GET.get('classroom') or ''
         search = (self.request.GET.get('q') or '').strip()
         month_param = self.request.GET.get('month')
+        
+        # Only filter by current_academic_year if no specific month/archive is explicitly requested
+        if current_year and not month_param:
+            queryset = queryset.filter(student__academic_year=current_year)
+
         if month_param is None:
             month_param = (self.request.GET.get('month') or '').strip()
             if not month_param:
@@ -183,10 +187,8 @@ class attendance(ListView):
             classrooms = classrooms.filter(enrollments__student__academic_year=current_year).distinct()
         context['classrooms'] = classrooms
         
-        if current_year:
-            context['months'] = Attendance.objects.filter(student__academic_year=current_year).dates('date', 'month', order='DESC')
-        else:
-            context['months'] = Attendance.objects.dates('date', 'month', order='DESC')
+        # Show all months with attendance across all academic years so history is always navigatable
+        context['months'] = Attendance.objects.dates('date', 'month', order='DESC')
         
         context['filters'] = {
             'branch': branch,
