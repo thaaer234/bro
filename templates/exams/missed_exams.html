@@ -119,6 +119,10 @@
                         <label class="form-label fw-semibold">تاريخ الانتهاء</label>
                         <input type="date" name="end_date" value="{{ filters.end_date }}" class="form-control">
                     </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold text-danger">الحد الأدنى للاختبارات المتخلفة</label>
+                        <input type="number" name="min_missed" value="{{ filters.min_missed|default:'1' }}" min="1" class="form-control fw-bold text-danger">
+                    </div>
                 </div>
                 <div class="d-flex justify-content-end mt-3 gap-2">
                     <a href="{% url 'exams:missed_exams_report' %}" class="btn btn-light border">مسح الفلاتر</a>
@@ -140,10 +144,8 @@
                         <tr>
                             <th class="ps-4">الطالب</th>
                             <th>الشعبة</th>
-                            <th>الاختبار</th>
-                            <th>المادة</th>
-                            <th>تاريخ الاختبار</th>
-                            <th>حالة التخلف</th>
+                            <th class="text-center">عدد الاختبارات الفائتة</th>
+                            <th>تفاصيل الاختبارات المتخلف عنها</th>
                             <th class="text-center" width="220">إرسال إشعار (واتساب)</th>
                         </tr>
                     </thead>
@@ -155,29 +157,37 @@
                                     {{ item.student.full_name }}
                                 </a>
                             </td>
-                            <td>{{ item.exam.classroom.name }}</td>
-                            <td>{{ item.exam.name }}</td>
-                            <td>{{ item.exam.subject.name }}</td>
-                            <td>{{ item.exam.exam_date|date:"Y-m-d" }}</td>
+                            <td>{{ item.classroom.name }}</td>
+                            <td class="text-center fw-bold text-danger" style="font-size: 1.1rem;">
+                                {{ item.missed_count }}
+                            </td>
                             <td>
-                                {% if item.grade.status == 'absent' %}
-                                    <span class="badge badge-absent px-2 py-1"><i class="fas fa-user-times mr-1"></i> غائب</span>
-                                {% elif item.grade.status == 'not_submitted' %}
-                                    <span class="badge badge-not-submitted px-2 py-1"><i class="fas fa-file-excel mr-1"></i> غير مقدم</span>
-                                {% else %}
-                                    <span class="badge badge-incomplete px-2 py-1"><i class="fas fa-hourglass-start mr-1"></i> لم ترصد بعد</span>
-                                {% endif %}
+                                <ul class="list-unstyled mb-0 small">
+                                    {% for missed in item.missed_list %}
+                                        <li class="mb-1">
+                                            <i class="fas fa-circle text-danger me-1" style="font-size: 0.5rem;"></i>
+                                            <strong>{{ missed.exam.subject.name }}</strong> - {{ missed.exam.name }} ({{ missed.exam.exam_date|date:"Y-m-d" }}) -
+                                            {% if missed.grade.status == 'absent' %}
+                                                <span class="badge badge-absent py-0">غائب</span>
+                                            {% elif missed.grade.status == 'not_submitted' %}
+                                                <span class="badge badge-not-submitted py-0">غير مقدم</span>
+                                            {% else %}
+                                                <span class="badge badge-incomplete py-0">ناقصة</span>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
                             </td>
                             <td class="text-center pe-4">
                                 <button type="button" class="btn btn-sm btn-wa" 
-                                        onclick="openNotificationModal('{{ item.student.full_name }}', '{{ item.exam.name }}', '{{ item.exam.subject.name }}', '{{ item.exam.exam_date|date:"Y-m-d" }}', '{{ item.status_label }}', '{{ item.phones.student }}', '{{ item.phones.father }}', '{{ item.phones.mother }}')">
+                                        onclick="openNotificationModal('{{ item.student.full_name }}', '{{ item.missed_count }}', '{{ item.phones.student }}', '{{ item.phones.father }}', '{{ item.phones.mother }}', '{{ item.warning_msg|escapejs }}', '{{ item.parent_msg|escapejs }}')">
                                     <i class="fab fa-whatsapp mr-1"></i> إرسال تنبيه
                                 </button>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
+                            <td colspan="5" class="text-center py-5 text-muted">
                                 <i class="fas fa-clipboard-list fa-3x mb-3 text-secondary"></i><br>
                                 لا توجد سجلات تخلف مطابقة للخيارات المحددة.
                             </td>
@@ -240,9 +250,9 @@
 <script>
     let currentData = {};
 
-    function openNotificationModal(studentName, examName, subjectName, examDate, statusLabel, studentPhone, fatherPhone, motherPhone) {
+    function openNotificationModal(studentName, missedCount, studentPhone, fatherPhone, motherPhone, warningMsg, parentMsg) {
         currentData = {
-            studentName, examName, subjectName, examDate, statusLabel, studentPhone, fatherPhone, motherPhone
+            studentName, missedCount, studentPhone, fatherPhone, motherPhone, warningMsg, parentMsg
         };
         
         // Build recipient options
@@ -297,9 +307,9 @@
         let message = "";
         
         if (type === 'warning') {
-            message = `السلام عليكم، نود إعلامكم بأن الطالب ${currentData.studentName} قد تخلف (${currentData.statusLabel}) عن تقديم اختبار ${currentData.examName} لمادة ${currentData.subjectName} بتاريخ ${currentData.examDate}. يرجى الالتزام والمتابعة.`;
+            message = currentData.warningMsg;
         } else {
-            message = `السلام عليكم، يرجى من ولي أمر الطالب ${currentData.studentName} مراجعة إدارة المعهد بخصوص تخلف الطالب (${currentData.statusLabel}) عن تقديم اختبار ${currentData.examName} لمادة ${currentData.subjectName} بتاريخ ${currentData.examDate}.`;
+            message = currentData.parentMsg;
         }
         
         document.getElementById('messageTextarea').value = message;

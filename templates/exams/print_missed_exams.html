@@ -3,235 +3,491 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>طباعة تقرير المتخلفين عن الاختبارات</title>
+    <title>تقرير الطلاب المتخلفين عن الامتحانات - معهد اليمن</title>
+    <!-- استدعاء خطوط Google Fonts للخط العربي الحديث -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
     <style>
+        /* إعدادات خطوط الصفحة وهوامشها للمطبوعات */
+        @page {
+            size: A4 portrait;
+            margin: 15mm 12mm 15mm 12mm;
+        }
+        
         body {
-            font-family: "Cairo", "Segoe UI", Tahoma, sans-serif;
+            font-family: 'Cairo', 'Tajawal', "Segoe UI", Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            color: #333;
+            padding: 0;
+            color: #1e293b;
             background-color: #fff;
             direction: rtl;
+            font-size: 13px;
+            line-height: 1.5;
         }
+
+        /* حاوية التقرير الرئيسية */
+        .report-container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* رأس الصفحة (Header) */
         .print-header {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
             align-items: center;
-            border-bottom: 3px double #1a4d8c;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
         }
+
         .print-header .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            text-align: right;
         }
+
         .print-header .logo-section img {
-            width: 80px;
-            height: 80px;
+            height: 70px;
+            width: 70px;
             object-fit: contain;
         }
-        .print-header .logo-section .institute-title {
-            margin: 0;
-            font-size: 20px;
-            color: #1a4d8c;
-            font-weight: bold;
+
+        .print-header .report-title-section {
+            text-align: center;
         }
-        .print-header .report-meta {
+
+        .print-header .report-title-section h1 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0 0 5px 0;
+            color: #1e3a8a;
+            letter-spacing: -0.5px;
+        }
+
+        .print-header .report-title-section h2 {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0;
+            color: #475569;
+        }
+
+        .print-header .org-info-section {
             text-align: left;
-            font-size: 13px;
-            color: #555;
+            font-size: 11px;
+            color: #334155;
             line-height: 1.6;
         }
-        .report-title-container {
-            text-align: center;
+
+        /* شريط البيانات الفوقي الفلاتر النشطة */
+        .filter-meta-strip {
+            display: flex;
+            justify-content: space-between;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+
+        .filter-meta-strip span {
+            color: #475569;
+        }
+
+        .filter-meta-strip strong {
+            color: #0f172a;
+        }
+
+        /* شريط المعلومات الإحصائية (KPI Strip) */
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
             margin-bottom: 25px;
         }
-        .report-title-container h2 {
-            margin: 0 0 10px 0;
-            color: #1a4d8c;
-            font-size: 22px;
-            font-weight: bold;
+
+        .kpi-card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
         }
-        .report-title-container p {
-            margin: 0;
-            font-size: 14px;
-            color: #666;
+
+        .kpi-card .kpi-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e3a8a;
+            margin-bottom: 2px;
         }
+
+        .kpi-card .kpi-label {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* تنسيق جدول البيانات */
         .print-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 40px;
-            font-size: 14px;
+            margin-bottom: 25px;
+            font-size: 12px;
         }
+
         .print-table th, .print-table td {
             border: 1px solid #cbd5e1;
-            padding: 10px 12px;
+            padding: 8px 10px;
             text-align: right;
+            vertical-align: middle;
         }
+
         .print-table th {
-            background-color: #f1f5f9;
-            color: #1e293b;
-            font-weight: bold;
+            background-color: #1e3a8a;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 12px;
+            border-color: #1e3a8a;
         }
+
         .print-table tr:nth-child(even) {
             background-color: #f8fafc;
         }
-        .badge {
+
+        /* ألوان حالات الغياب/التخلف المشروطة */
+        .badge-count {
             display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
             font-size: 12px;
-            font-weight: bold;
+            text-align: center;
         }
-        .badge-absent {
+
+        .badge-yellow {
+            background-color: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fde047;
+        }
+
+        .badge-orange {
+            background-color: #ffedd5;
+            color: #ea580c;
+            border: 1px solid #fed7aa;
+        }
+
+        .badge-red {
             background-color: #fee2e2;
-            color: #ef4444;
+            color: #dc2626;
             border: 1px solid #fca5a5;
         }
-        .badge-not-submitted {
-            background-color: #fef3c7;
-            color: #d97706;
-            border: 1px solid #fcd34d;
+
+        /* تفاصيل الاختبارات داخل الخلية */
+        .exams-list-cell {
+            padding: 0;
+            margin: 0;
+            list-style: none;
         }
-        .badge-incomplete {
-            background-color: #f3f4f6;
-            color: #6b7280;
-            border: 1px solid #d1d5db;
+
+        .exams-list-cell li {
+            padding: 2px 0;
+            border-bottom: 1px dashed #e2e8f0;
         }
-        .print-signatures {
+
+        .exams-list-cell li:last-child {
+            border-bottom: none;
+        }
+
+        /* الملخص السفلي (Report Summary) */
+        .summary-section {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: #f8fafc;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-section h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #1e3a8a;
+            font-weight: 700;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px 30px;
+        }
+
+        .summary-item {
             display: flex;
             justify-content: space-between;
-            margin-top: 50px;
-            padding: 0 20px;
+            font-size: 12px;
         }
+
+        .summary-item span {
+            color: #475569;
+        }
+
+        .summary-item strong {
+            color: #0f172a;
+        }
+
+        /* التوقيعات */
+        .signatures-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding: 0 40px;
+        }
+
         .signature-box {
             text-align: center;
-            width: 200px;
-            line-height: 1.8;
+            width: 180px;
         }
-        .signature-box .line {
+
+        .signature-box span {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .signature-box .signature-line {
+            margin-top: 35px;
+            border-top: 1px dashed #64748b;
+        }
+
+        /* تذييل الصفحة (Footer) */
+        .print-footer {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 8px;
             margin-top: 40px;
-            border-top: 1px dashed #333;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #64748b;
         }
-        @media print {
-            .no-print {
-                display: none;
-            }
-            body {
-                padding: 0;
-            }
-            @page {
-                size: A4;
-                margin: 20mm;
-            }
-        }
-        .no-print-btn-container {
+
+        /* أزرار غير قابلة للطباعة */
+        .no-print-bar {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            background-color: #f1f5f9;
+            padding: 10px;
+            border-radius: 8px;
         }
-        .btn-print-action {
-            background-color: #1a4d8c;
+
+        .btn-print {
+            background-color: #1e3a8a;
             color: #fff;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 6px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 13px;
             cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
         }
-        .btn-print-action:hover {
-            background-color: #123866;
+
+        .btn-print:hover {
+            background-color: #172554;
+        }
+
+        /* معالجة الطباعة */
+        @media print {
+            .no-print-bar {
+                display: none !important;
+            }
+            body {
+                background-color: #fff;
+                color: #000;
+            }
+            /* تحويل الألوان للتوافق التام مع الطباعة باللون الأسود والأبيض */
+            .print-table th {
+                background-color: #e2e8f0 !important;
+                color: #000 !important;
+                border-color: #000 !important;
+            }
+            .kpi-card, .summary-section, .filter-meta-strip {
+                background-color: #fff !important;
+                border: 1px solid #000 !important;
+            }
+            .badge-count {
+                background-color: transparent !important;
+                border: 1px solid #000 !important;
+                color: #000 !important;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="no-print no-print-btn-container">
-        <button class="btn-print-action" onclick="window.print()">🖨️ بدء الطباعة الآن</button>
+
+    <!-- شريط الإجراءات قبل الطباعة -->
+    <div class="no-print-bar">
+        <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> بدء طباعة التقرير (A4)</button>
     </div>
 
-    <!-- ترويسة التقرير الرسمية -->
-    <div class="print-header">
-        <div class="logo-section">
-            <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" onerror="this.src='https://placehold.co/100x100?text=Logo'">
-            <div>
-                <h1 class="institute-title">معهد اليمن</h1>
-                <span style="font-size: 12px; color: #555;">للتعليم والتدريب الأكاديمي</span>
+    <div class="report-container">
+        <!-- رأس الصفحة (Header) -->
+        <header class="print-header">
+            <div class="logo-section">
+                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" onerror="this.src='https://placehold.co/100x100?text=Logo'">
             </div>
-        </div>
-        <div class="report-meta">
-            <div><strong>تاريخ الطباعة:</strong> {{ print_date|date:"Y-m-d" }}</div>
-            {% if classroom_filter %}
-                <div><strong>الشعبة:</strong> {{ classroom_filter.name }}</div>
-            {% endif %}
-            <div><strong>نوع التقرير:</strong> تقرير المتخلفين عن الاختبارات</div>
-        </div>
-    </div>
+            <div class="report-title-section">
+                <h1>مـعـهـد الـيـمـن</h1>
+                <h2>تقرير الطلاب المتخلفين عن امتحانين أو أكثر</h2>
+            </div>
+            <div class="org-info-section">
+                <strong>القسم الرئيسي</strong><br>
+                <span>شعبة المتابعة والتدقيق الأكاديمي</span><br>
+                <span>الجمهورية العربية السورية</span>
+            </div>
+        </header>
 
-    <div class="report-title-container">
-        <h2>تقرير الطلاب المتخلفين عن تقديم الاختبارات</h2>
-        <p>يظهر هذا التقرير أسماء الطلاب وحالات تخلفهم عن الاختبارات المحددة وفق الفلاتر النشطة</p>
-    </div>
-
-    <!-- جدول البيانات -->
-    <table class="print-table">
-        <thead>
-            <tr>
-                <th width="5%">#</th>
-                <th>اسم الطالب</th>
-                <th>الشعبة</th>
-                <th>المادة</th>
-                <th>اسم الاختبار/السبر</th>
-                <th>تاريخ الاختبار</th>
-                <th width="15%">حالة التخلف</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in report_data %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td><strong>{{ item.student.full_name }}</strong></td>
-                <td>{{ item.exam.classroom.name }}</td>
-                <td>{{ item.exam.subject.name }}</td>
-                <td>{{ item.exam.name }}</td>
-                <td>{{ item.exam.exam_date|date:"Y-m-d" }}</td>
-                <td>
-                    {% if item.grade.status == 'absent' %}
-                        <span class="badge badge-absent">غائب</span>
-                    {% elif item.grade.status == 'not_submitted' %}
-                        <span class="badge badge-not-submitted">غير مقدم</span>
-                    {% else %}
-                        <span class="badge badge-incomplete">ناقصة</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" style="text-align: center; padding: 30px; color: #666;">لا توجد بيانات متخلفين مطابقة.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <!-- التواقيع الرسمية -->
-    <div class="print-signatures">
-        <div class="signature-box">
-            <strong>موجه القسم</strong>
-            <div class="line"></div>
+        <!-- شريط الفلاتر النشطة -->
+        <div class="filter-meta-strip">
+            <span><strong>العام الدراسي:</strong> {{ current_year.name|default:"2026-2027" }}</span>
+            <span><strong>الفصل الدراسي:</strong> الفصل الدراسي الحالي</span>
+            <span><strong>المرحلة/الصف:</strong> {% if classroom_filter %}{{ classroom_filter.get_branches_display }}{% else %}كل المراحل{% endif %}</span>
+            <span><strong>تاريخ التصدير:</strong> {{ print_date|date:"Y-m-d" }}</span>
         </div>
-        <div class="signature-box">
-            <strong>إدارة المعهد</strong>
-            <div class="line"></div>
+
+        <!-- شريط المعلومات الإحصائية (KPI Strip) -->
+        <section class="kpi-strip">
+            <div class="kpi-card">
+                <div class="kpi-value">{{ stats.total_students_count }}</div>
+                <div class="kpi-label">إجمالي الطلاب بالشعب</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">{{ stats.missed_students_count }}</div>
+                <div class="kpi-label">عدد الطلاب المتخلفين</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">{{ stats.total_missed_exams_count }}</div>
+                <div class="kpi-label">إجمالي الامتحانات الفائتة</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">{{ stats.avg_missed_exams }}</div>
+                <div class="kpi-label">معدل التخلف لكل طالب متخلف</div>
+            </div>
+        </section>
+
+        <!-- الجدول الرئيسي للطلاب المتخلفين -->
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th width="4%">#</th>
+                    <th width="20%">اسم الطالب</th>
+                    <th width="12%">الرقم الأكاديمي</th>
+                    <th width="10%">الصف</th>
+                    <th width="10%">الشعبة</th>
+                    <th width="14%" class="text-center">الامتحانات الفائتة</th>
+                    <th width="20%">المواد والتفاصيل</th>
+                    <th width="10%">معدل الغياب</th>
+                    <th width="10%">ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in report_data %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td><strong>{{ item.student.full_name }}</strong></td>
+                    <td>{{ item.student.student_number|default:"-" }}</td>
+                    <td>{{ item.student.get_branch_display|default:"-" }}</td>
+                    <td>{{ item.classroom.name }}</td>
+                    <td style="text-align: center;">
+                        {% if item.missed_count == 2 %}
+                            <span class="badge-count badge-yellow">2 امتحانين</span>
+                        {% elif item.missed_count == 3 %}
+                            <span class="badge-count badge-orange">3 امتحانات</span>
+                        {% else %}
+                            <span class="badge-count badge-red">{{ item.missed_count }} امتحانات</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <ul class="exams-list-cell">
+                            {% for missed in item.missed_list %}
+                            <li>
+                                <span>{{ missed.exam.subject.name }} ({{ missed.exam.name }})</span> -
+                                <small style="color: #64748b;">{{ missed.status_label }}</small>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td style="text-align: center; font-weight: 600;">
+                        {{ item.absence_rate|floatformat:1 }}%
+                    </td>
+                    <td>
+                        {% if item.absence_rate >= 50 %}
+                            <span style="color: #dc2626; font-weight: bold;">تنبيه فصل</span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 30px; color: #64748b;">لا توجد بيانات متخلفين مطابقة للخيارات المحددة.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- القسم السفلي لملخص التقرير الأكاديمي -->
+        <section class="summary-section">
+            <h3>ملخص التقرير الإداري والأكاديمي</h3>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span>إجمالي الطلاب المتخلفين:</span>
+                    <strong>{{ stats.missed_students_count }} طالب وطالبة</strong>
+                </div>
+                <div class="summary-item">
+                    <span>أعلى شعبة من حيث عدد المتخلفين:</span>
+                    <strong>{{ stats.highest_classroom }}</strong>
+                </div>
+                <div class="summary-item">
+                    <span>أكثر مادة يوجد بها متخلفون:</span>
+                    <strong>{{ stats.highest_subject }}</strong>
+                </div>
+                <div class="summary-item">
+                    <span>متوسط عدد الامتحانات المتخلف عنها لكل طالب:</span>
+                    <strong>{{ stats.avg_missed_exams }} اختبار/سبر</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- التواقيع -->
+        <footer class="signatures-section">
+            <div class="signature-box">
+                <span>توقيع موجه القسم الأكاديمي</span>
+                <div class="signature-line"></div>
+            </div>
+            <div class="signature-box">
+                <span>توقيع إدارة المعهد</span>
+                <div class="signature-line"></div>
+            </div>
+        </footer>
+
+        <!-- تذييل الصفحة -->
+        <div class="print-footer">
+            <span>نظام الإدارة الإلكتروني - معهد اليمن</span>
+            <span>وقت إنشاء التقرير: {{ print_time }}</span>
+            <span>المستخدم الحالي: {{ request.user.username }}</span>
+            <span>صفحة 1 من 1</span>
         </div>
     </div>
 
     <script>
-        // فتح حوار الطباعة تلقائياً عند تحميل الصفحة بالكامل
+        // إطلاق حوار الطباعة عند تحميل الصفحة
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 window.print();
-            }, 500);
+            }, 600);
         });
     </script>
 </body>

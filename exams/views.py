@@ -472,6 +472,12 @@ def missed_exams_report(request):
     status_filter = request.GET.get('status')
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+    min_missed = request.GET.get('min_missed', '1')
+    
+    try:
+        min_missed_val = int(min_missed)
+    except ValueError:
+        min_missed_val = 1
     
     # Query missed grades
     grades_qs = ExamGrade.objects.select_related('student', 'exam', 'exam__classroom', 'exam__subject', 'exam__exam_type')
@@ -504,51 +510,86 @@ def missed_exams_report(request):
         
     grades_qs = grades_qs.order_by('-exam__exam_date', 'student__full_name')
     
-    report_data = []
+    # Pre-calculate classroom exams count for absence rate
+    classroom_exams_count = {}
+    for c in classrooms:
+        exams_c = Exam.objects.filter(classroom=c)
+        if start_date:
+            exams_c = exams_c.filter(exam_date__gte=start_date)
+        if end_date:
+            exams_c = exams_c.filter(exam_date__lte=end_date)
+        classroom_exams_count[c.id] = exams_c.count()
+    
+    # Group by student
+    grouped_data = {}
     for grade in grades_qs:
         student = grade.student
-        exam = grade.exam
-        
-        status_label = "ناقصة (لم ترصد بعد)"
+        if student.id not in grouped_data:
+            grouped_data[student.id] = {
+                'student': student,
+                'classroom': grade.exam.classroom,
+                'missed_count': 0,
+                'missed_list': []
+            }
+            
+        status_label = "ناقصة"
         if grade.status == 'absent':
             status_label = "غائب"
         elif grade.status == 'not_submitted':
             status_label = "غير مقدم"
             
-        phones = {
-            'student': student.phone or '',
-            'father': student.father_phone or '',
-            'mother': student.mother_phone or '',
-        }
-        
-        # Build text templates
-        warning_msg = f"السلام عليكم، نود إعلامكم بأن الطالب {student.full_name} قد تخلف ({status_label}) عن تقديم اختبار {exam.name} لمادة {exam.subject.name} بتاريخ {exam.exam_date}. يرجى الالتزام والمتابعة."
-        parent_msg = f"السلام عليكم، يرجى من ولي أمر الطالب {student.full_name} مراجعة إدارة المعهد بخصوص تخلف الطالب ({status_label}) عن تقديم اختبار {exam.name} لمادة {exam.subject.name} بتاريخ {exam.exam_date}."
-        
-        wa_urls = {}
-        for role, phone in phones.items():
-            if phone:
-                clean_phone = phone.strip().replace('+', '').replace(' ', '')
-                if not clean_phone.startswith('963') and not clean_phone.startswith('00963'):
-                    if clean_phone.startswith('0'):
-                        clean_phone = '963' + clean_phone[1:]
-                    else:
-                        clean_phone = '963' + clean_phone
-                
-                wa_urls[f"{role}_warning"] = f"https://wa.me/{clean_phone}?text={quote(warning_msg)}"
-                wa_urls[f"{role}_parent"] = f"https://wa.me/{clean_phone}?text={quote(parent_msg)}"
-            else:
-                wa_urls[f"{role}_warning"] = ""
-                wa_urls[f"{role}_parent"] = ""
-                
-        report_data.append({
+        grouped_data[student.id]['missed_count'] += 1
+        grouped_data[student.id]['missed_list'].append({
             'grade': grade,
-            'student': student,
-            'exam': exam,
-            'status_label': status_label,
-            'phones': phones,
-            'wa_urls': wa_urls
+            'exam': grade.exam,
+            'status_label': status_label
         })
+        
+    report_data = []
+    for s_id, data in grouped_data.items():
+        if data['missed_count'] >= min_missed_val:
+            student = data['student']
+            exam_names = ", ".join([f"{item['exam'].name} ({item['exam'].subject.name})" for item in data['missed_list']])
+            
+            phones = {
+                'student': student.phone or '',
+                'father': student.father_phone or '',
+                'mother': student.mother_phone or '',
+            }
+            
+            warning_msg = f"السلام عليكم، نود إعلامكم بأن الطالب {student.full_name} قد تخلف عن تقديم {data['missed_count']} اختبارات وهي: ({exam_names}). يرجى الالتزام والمتابعة."
+            parent_msg = f"السلام عليكم، يرجى من ولي أمر الطالب {student.full_name} مراجعة إدارة المعهد بسبب تخلف الطالب عن تقديم {data['missed_count']} اختبارات وهي: ({exam_names})."
+            
+            wa_urls = {}
+            for role, phone in phones.items():
+                if phone:
+                    clean_phone = phone.strip().replace('+', '').replace(' ', '')
+                    if not clean_phone.startswith('963') and not clean_phone.startswith('00963'):
+                        if clean_phone.startswith('0'):
+                            clean_phone = '963' + clean_phone[1:]
+                        else:
+                            clean_phone = '963' + clean_phone
+                    
+                    wa_urls[f"{role}_warning"] = f"https://wa.me/{clean_phone}?text={quote(warning_msg)}"
+                    wa_urls[f"{role}_parent"] = f"https://wa.me/{clean_phone}?text={quote(parent_msg)}"
+                else:
+                    wa_urls[f"{role}_warning"] = ""
+                    wa_urls[f"{role}_parent"] = ""
+                    
+            data['phones'] = phones
+            data['wa_urls'] = wa_urls
+            data['warning_msg'] = warning_msg
+            data['parent_msg'] = parent_msg
+            
+            # Absence rate calculation
+            c_id = data['classroom'].id
+            total_class_exams = classroom_exams_count.get(c_id, 0)
+            data['absence_rate'] = (data['missed_count'] / total_class_exams * 100) if total_class_exams > 0 else 0
+            
+            report_data.append(data)
+            
+    # Sort by missed count descending
+    report_data.sort(key=lambda x: (-x['missed_count'], x['student'].full_name))
         
     context = {
         'classrooms': classrooms,
@@ -562,6 +603,7 @@ def missed_exams_report(request):
             'status': status_filter or 'all_missed',
             'start_date': start_date or '',
             'end_date': end_date or '',
+            'min_missed': min_missed,
         }
     }
     return render(request, 'exams/missed_exams.html', context)
@@ -586,7 +628,13 @@ def print_missed_exams(request):
     status_filter = request.GET.get('status')
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+    min_missed = request.GET.get('min_missed', '1')
     
+    try:
+        min_missed_val = int(min_missed)
+    except ValueError:
+        min_missed_val = 1
+        
     grades_qs = ExamGrade.objects.select_related('student', 'exam', 'exam__classroom', 'exam__subject')
     grades_qs = grades_qs.filter(exam__classroom__in=classrooms)
     
@@ -615,24 +663,91 @@ def print_missed_exams(request):
         
     grades_qs = grades_qs.order_by('-exam__exam_date', 'student__full_name')
     
-    report_data = []
+    # Pre-calculate classroom exams count for absence rate
+    classroom_exams_count = {}
+    for c in classrooms:
+        exams_c = Exam.objects.filter(classroom=c)
+        if start_date:
+            exams_c = exams_c.filter(exam_date__gte=start_date)
+        if end_date:
+            exams_c = exams_c.filter(exam_date__lte=end_date)
+        classroom_exams_count[c.id] = exams_c.count()
+    
+    # Group by student
+    grouped_data = {}
     for grade in grades_qs:
-        status_label = "ناقصة (لم ترصد)"
+        student = grade.student
+        if student.id not in grouped_data:
+            grouped_data[student.id] = {
+                'student': student,
+                'classroom': grade.exam.classroom,
+                'missed_count': 0,
+                'missed_list': []
+            }
+            
+        status_label = "ناقصة"
         if grade.status == 'absent':
             status_label = "غائب"
         elif grade.status == 'not_submitted':
             status_label = "غير مقدم"
             
-        report_data.append({
+        grouped_data[student.id]['missed_count'] += 1
+        grouped_data[student.id]['missed_list'].append({
             'grade': grade,
-            'student': grade.student,
             'exam': grade.exam,
             'status_label': status_label
         })
         
+    report_data = []
+    for s_id, data in grouped_data.items():
+        if data['missed_count'] >= min_missed_val:
+            # Absence rate calculation
+            c_id = data['classroom'].id
+            total_class_exams = classroom_exams_count.get(c_id, 0)
+            data['absence_rate'] = (data['missed_count'] / total_class_exams * 100) if total_class_exams > 0 else 0
+            report_data.append(data)
+            
+    report_data.sort(key=lambda x: (-x['missed_count'], x['student'].full_name))
+    
+    # Statistics calculations
+    if classroom_id:
+        total_students_count = Student.objects.filter(classroom_enrollments__classroom_id=classroom_id).distinct().count()
+    else:
+        total_students_count = Student.objects.filter(classroom_enrollments__classroom__in=classrooms).distinct().count()
+        
+    missed_students_count = len(report_data)
+    total_missed_exams_count = sum(item['missed_count'] for item in report_data)
+    
+    # Classroom with highest missed students
+    classroom_counts = {}
+    for item in report_data:
+        c_name = item['classroom'].name
+        classroom_counts[c_name] = classroom_counts.get(c_name, 0) + 1
+    highest_classroom = max(classroom_counts, key=classroom_counts.get) if classroom_counts else "-"
+    
+    # Subject with highest missed students
+    subject_counts = {}
+    for item in report_data:
+        for missed in item['missed_list']:
+            s_name = missed['exam'].subject.name
+            subject_counts[s_name] = subject_counts.get(s_name, 0) + 1
+    highest_subject = max(subject_counts, key=subject_counts.get) if subject_counts else "-"
+    
+    avg_missed_exams = (total_missed_exams_count / missed_students_count) if missed_students_count > 0 else 0
+        
     context = {
         'report_data': report_data,
         'print_date': timezone.now().date(),
-        'classroom_filter': Classroom.objects.filter(pk=classroom_id).first() if classroom_id else None
+        'print_time': timezone.now().strftime('%H:%M:%S'),
+        'current_year': current_year,
+        'classroom_filter': Classroom.objects.filter(pk=classroom_id).first() if classroom_id else None,
+        'stats': {
+            'total_students_count': total_students_count,
+            'missed_students_count': missed_students_count,
+            'total_missed_exams_count': total_missed_exams_count,
+            'highest_classroom': highest_classroom,
+            'highest_subject': highest_subject,
+            'avg_missed_exams': round(avg_missed_exams, 1)
+        }
     }
     return render(request, 'exams/print_missed_exams.html', context)
