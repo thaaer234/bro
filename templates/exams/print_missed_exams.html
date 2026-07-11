@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>طباعة تقرير المتخلفين عن الاختبارات</title>
+    <style>
+        body {
+            font-family: "Cairo", "Segoe UI", Tahoma, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            background-color: #fff;
+            direction: rtl;
+        }
+        .print-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px double #1a4d8c;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .print-header .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .print-header .logo-section img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+        .print-header .logo-section .institute-title {
+            margin: 0;
+            font-size: 20px;
+            color: #1a4d8c;
+            font-weight: bold;
+        }
+        .print-header .report-meta {
+            text-align: left;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+        .report-title-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .report-title-container h2 {
+            margin: 0 0 10px 0;
+            color: #1a4d8c;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .report-title-container p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+        .print-table th, .print-table td {
+            border: 1px solid #cbd5e1;
+            padding: 10px 12px;
+            text-align: right;
+        }
+        .print-table th {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            font-weight: bold;
+        }
+        .print-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-absent {
+            background-color: #fee2e2;
+            color: #ef4444;
+            border: 1px solid #fca5a5;
+        }
+        .badge-not-submitted {
+            background-color: #fef3c7;
+            color: #d97706;
+            border: 1px solid #fcd34d;
+        }
+        .badge-incomplete {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+        }
+        .print-signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            padding: 0 20px;
+        }
+        .signature-box {
+            text-align: center;
+            width: 200px;
+            line-height: 1.8;
+        }
+        .signature-box .line {
+            margin-top: 40px;
+            border-top: 1px dashed #333;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+            @page {
+                size: A4;
+                margin: 20mm;
+            }
+        }
+        .no-print-btn-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        .btn-print-action {
+            background-color: #1a4d8c;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .btn-print-action:hover {
+            background-color: #123866;
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print no-print-btn-container">
+        <button class="btn-print-action" onclick="window.print()">🖨️ بدء الطباعة الآن</button>
+    </div>
+
+    <!-- ترويسة التقرير الرسمية -->
+    <div class="print-header">
+        <div class="logo-section">
+            <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" onerror="this.src='https://placehold.co/100x100?text=Logo'">
+            <div>
+                <h1 class="institute-title">معهد اليمن</h1>
+                <span style="font-size: 12px; color: #555;">للتعليم والتدريب الأكاديمي</span>
+            </div>
+        </div>
+        <div class="report-meta">
+            <div><strong>تاريخ الطباعة:</strong> {{ print_date|date:"Y-m-d" }}</div>
+            {% if classroom_filter %}
+                <div><strong>الشعبة:</strong> {{ classroom_filter.name }}</div>
+            {% endif %}
+            <div><strong>نوع التقرير:</strong> تقرير المتخلفين عن الاختبارات</div>
+        </div>
+    </div>
+
+    <div class="report-title-container">
+        <h2>تقرير الطلاب المتخلفين عن تقديم الاختبارات</h2>
+        <p>يظهر هذا التقرير أسماء الطلاب وحالات تخلفهم عن الاختبارات المحددة وفق الفلاتر النشطة</p>
+    </div>
+
+    <!-- جدول البيانات -->
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th width="5%">#</th>
+                <th>اسم الطالب</th>
+                <th>الشعبة</th>
+                <th>المادة</th>
+                <th>اسم الاختبار/السبر</th>
+                <th>تاريخ الاختبار</th>
+                <th width="15%">حالة التخلف</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in report_data %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td><strong>{{ item.student.full_name }}</strong></td>
+                <td>{{ item.exam.classroom.name }}</td>
+                <td>{{ item.exam.subject.name }}</td>
+                <td>{{ item.exam.name }}</td>
+                <td>{{ item.exam.exam_date|date:"Y-m-d" }}</td>
+                <td>
+                    {% if item.grade.status == 'absent' %}
+                        <span class="badge badge-absent">غائب</span>
+                    {% elif item.grade.status == 'not_submitted' %}
+                        <span class="badge badge-not-submitted">غير مقدم</span>
+                    {% else %}
+                        <span class="badge badge-incomplete">ناقصة</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 30px; color: #666;">لا توجد بيانات متخلفين مطابقة.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- التواقيع الرسمية -->
+    <div class="print-signatures">
+        <div class="signature-box">
+            <strong>موجه القسم</strong>
+            <div class="line"></div>
+        </div>
+        <div class="signature-box">
+            <strong>إدارة المعهد</strong>
+            <div class="line"></div>
+        </div>
+    </div>
+
+    <script>
+        // فتح حوار الطباعة تلقائياً عند تحميل الصفحة بالكامل
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

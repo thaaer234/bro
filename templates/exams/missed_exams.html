@@ -52,9 +52,14 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0 fw-bold text-dark"><i class="fas fa-user-clock text-warning mr-2"></i> تقرير الطلاب المتخلفين عن الاختبارات</h2>
-        <a href="{% url 'exams:dashboard' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> العودة للوحة الاختبارات
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'exams:print_missed_exams' %}?{{ request.GET.urlencode }}" target="_blank" class="btn btn-success">
+                <i class="fas fa-print me-1"></i> طباعة التقرير
+            </a>
+            <a href="{% url 'exams:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> العودة للوحة الاختبارات
+            </a>
+        </div>
     </div>
 
     <!-- لوحة الإعداد المتقدمة (الفلاتر) -->
@@ -75,13 +80,18 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">المادة</label>
-                        <select name="subject" class="form-control">
-                            <option value="">كل المواد</option>
+                        <label class="form-label fw-semibold">المواد (اختر مادة أو أكثر)</label>
+                        <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto; background: #fafafa;">
                             {% for s in subjects %}
-                                <option value="{{ s.id }}" {% if filters.subject == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="subject" value="{{ s.id }}" id="subject_{{ s.id }}"
+                                           {% if s.id|stringformat:"s" in filters.subjects %}checked{% endif %}>
+                                    <label class="form-check-label small" for="subject_{{ s.id }}">
+                                        {{ s.name }}
+                                    </label>
+                                </div>
                             {% endfor %}
-                        </select>
+                        </div>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label fw-semibold">نوع الاختبار</label>

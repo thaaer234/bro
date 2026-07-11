@@ -467,7 +467,7 @@ def missed_exams_report(request):
     
     # Filters from GET
     classroom_id = request.GET.get('classroom')
-    subject_id = request.GET.get('subject')
+    subject_ids = request.GET.getlist('subject')
     exam_type_id = request.GET.get('exam_type')
     status_filter = request.GET.get('status')
     start_date = request.GET.get('start_date')
@@ -481,8 +481,10 @@ def missed_exams_report(request):
     
     if classroom_id:
         grades_qs = grades_qs.filter(exam__classroom_id=classroom_id)
-    if subject_id:
-        grades_qs = grades_qs.filter(exam__subject_id=subject_id)
+    if subject_ids:
+        clean_subject_ids = [int(sid) for sid in subject_ids if sid.isdigit()]
+        if clean_subject_ids:
+            grades_qs = grades_qs.filter(exam__subject_id__in=clean_subject_ids)
     if exam_type_id:
         grades_qs = grades_qs.filter(exam__exam_type_id=exam_type_id)
         
@@ -555,7 +557,7 @@ def missed_exams_report(request):
         'report_data': report_data,
         'filters': {
             'classroom': classroom_id or '',
-            'subject': subject_id or '',
+            'subjects': [str(sid) for sid in subject_ids],
             'exam_type': exam_type_id or '',
             'status': status_filter or 'all_missed',
             'start_date': start_date or '',
@@ -563,3 +565,74 @@ def missed_exams_report(request):
         }
     }
     return render(request, 'exams/missed_exams.html', context)
+
+
+def print_missed_exams(request):
+    """طباعة تقرير المتخلفين عن الاختبارات"""
+    classrooms = Classroom.objects.filter(is_active=True)
+    if not request.user.is_superuser:
+        classrooms = classrooms.filter(is_visible=True)
+        
+    current_year = getattr(request, 'current_academic_year', None)
+    if current_year:
+        classrooms = classrooms.filter(
+            Q(course__academic_year=current_year) |
+            Q(enrollments__student__academic_year=current_year)
+        ).distinct()
+        
+    classroom_id = request.GET.get('classroom')
+    subject_ids = request.GET.getlist('subject')
+    exam_type_id = request.GET.get('exam_type')
+    status_filter = request.GET.get('status')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    grades_qs = ExamGrade.objects.select_related('student', 'exam', 'exam__classroom', 'exam__subject')
+    grades_qs = grades_qs.filter(exam__classroom__in=classrooms)
+    
+    if classroom_id:
+        grades_qs = grades_qs.filter(exam__classroom_id=classroom_id)
+    if subject_ids:
+        clean_subject_ids = [int(sid) for sid in subject_ids if sid.isdigit()]
+        if clean_subject_ids:
+            grades_qs = grades_qs.filter(exam__subject_id__in=clean_subject_ids)
+    if exam_type_id:
+        grades_qs = grades_qs.filter(exam__exam_type_id=exam_type_id)
+        
+    if status_filter == 'absent':
+        grades_qs = grades_qs.filter(status='absent')
+    elif status_filter == 'not_submitted':
+        grades_qs = grades_qs.filter(status='not_submitted')
+    elif status_filter == 'incomplete':
+        grades_qs = grades_qs.filter(status='present', grade__isnull=True)
+    else:
+        grades_qs = grades_qs.filter(Q(status__in=['absent', 'not_submitted']) | Q(grade__isnull=True))
+        
+    if start_date:
+        grades_qs = grades_qs.filter(exam__exam_date__gte=start_date)
+    if end_date:
+        grades_qs = grades_qs.filter(exam__exam_date__lte=end_date)
+        
+    grades_qs = grades_qs.order_by('-exam__exam_date', 'student__full_name')
+    
+    report_data = []
+    for grade in grades_qs:
+        status_label = "ناقصة (لم ترصد)"
+        if grade.status == 'absent':
+            status_label = "غائب"
+        elif grade.status == 'not_submitted':
+            status_label = "غير مقدم"
+            
+        report_data.append({
+            'grade': grade,
+            'student': grade.student,
+            'exam': grade.exam,
+            'status_label': status_label
+        })
+        
+    context = {
+        'report_data': report_data,
+        'print_date': timezone.now().date(),
+        'classroom_filter': Classroom.objects.filter(pk=classroom_id).first() if classroom_id else None
+    }
+    return render(request, 'exams/print_missed_exams.html', context)
