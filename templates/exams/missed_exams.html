@@ -153,9 +153,13 @@
                         {% for item in report_data %}
                         <tr>
                             <td class="ps-4">
-                                <a href="{% url 'students:student_profile' item.student.id %}" class="fw-bold text-decoration-none text-dark">
+                                <a href="{% url 'students:student_profile' item.student.id %}" class="fw-bold text-decoration-none text-dark d-block">
                                     {{ item.student.full_name }}
                                 </a>
+                                <span class="text-muted small">
+                                    <i class="fas fa-book-open text-secondary me-1" style="font-size: 0.8rem;"></i>
+                                    {{ item.subjects_note }}
+                                </span>
                             </td>
                             <td>{{ item.classroom.name }}</td>
                             <td class="text-center fw-bold text-danger" style="font-size: 1.1rem;">

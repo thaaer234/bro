@@ -522,14 +522,29 @@ def missed_exams_report(request):
     
     # Group by student
     grouped_data = {}
+    from accounts.models import Studentenrollment
     for grade in grades_qs:
         student = grade.student
         if student.id not in grouped_data:
+            course = grade.exam.classroom.course
+            subjects_note = "كامل المواد"
+            if course:
+                enrollment = Studentenrollment.objects.filter(student=student, course=course).first()
+            else:
+                enrollment_qs = Studentenrollment.objects.filter(student=student)
+                if current_year:
+                    enrollment_qs = enrollment_qs.filter(academic_year=current_year)
+                enrollment = enrollment_qs.first()
+                
+            if enrollment and enrollment.subjects_note:
+                subjects_note = enrollment.subjects_note
+                
             grouped_data[student.id] = {
                 'student': student,
                 'classroom': grade.exam.classroom,
                 'missed_count': 0,
-                'missed_list': []
+                'missed_list': [],
+                'subjects_note': subjects_note
             }
             
         status_label = "ناقصة"
@@ -675,14 +690,29 @@ def print_missed_exams(request):
     
     # Group by student
     grouped_data = {}
+    from accounts.models import Studentenrollment
     for grade in grades_qs:
         student = grade.student
         if student.id not in grouped_data:
+            course = grade.exam.classroom.course
+            subjects_note = "كامل المواد"
+            if course:
+                enrollment = Studentenrollment.objects.filter(student=student, course=course).first()
+            else:
+                enrollment_qs = Studentenrollment.objects.filter(student=student)
+                if current_year:
+                    enrollment_qs = enrollment_qs.filter(academic_year=current_year)
+                enrollment = enrollment_qs.first()
+                
+            if enrollment and enrollment.subjects_note:
+                subjects_note = enrollment.subjects_note
+                
             grouped_data[student.id] = {
                 'student': student,
                 'classroom': grade.exam.classroom,
                 'missed_count': 0,
-                'missed_list': []
+                'missed_list': [],
+                'subjects_note': subjects_note
             }
             
         status_label = "ناقصة"
