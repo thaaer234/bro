@@ -40,7 +40,18 @@ def _ensure_exam_grades_for_classroom(exam):
 
 def exams_dashboard(request):
     """لوحة التحكم الرئيسية للاختبارات"""
-    classrooms = Classroom.objects.all()
+    classrooms = Classroom.objects.filter(is_active=True)
+    if not request.user.is_superuser:
+        classrooms = classrooms.filter(is_visible=True)
+        
+    current_year = getattr(request, 'current_academic_year', None)
+    if current_year:
+        classrooms = classrooms.filter(
+            Q(course__academic_year=current_year) |
+            Q(enrollments__student__academic_year=current_year)
+        ).distinct()
+        
+    classrooms = classrooms.order_by('name')
     return render(request, 'exams/dashboard.html', {'classrooms': classrooms})
 
 def exam_list(request, classroom_id):
