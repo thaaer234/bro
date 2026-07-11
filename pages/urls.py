@@ -21,5 +21,6 @@ urlpatterns = [
     path('app-users-report/', require_superuser(views.app_users_report), name='app_users_report'),
     path('student-app-guide/', views.StudentAppGuideView.as_view(), name='student_app_guide'),
     path('track-click/', views.track_click_event, name='track_click'),
+    path('api/global-search/', views.global_search_api, name='global_search_api'),
 ]
    

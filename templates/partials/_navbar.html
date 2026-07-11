@@ -54,6 +54,13 @@
 
     </div>
 
+    <div class="px-3 mb-3">
+        <button type="button" onclick="openGlobalSearch()" class="btn btn-dark w-100 rounded-pill text-start py-2 border-secondary d-flex align-items-center justify-content-between" style="background: rgba(255,255,255,0.06); font-size: 0.85rem; color: #a0aec0; border: 1px solid rgba(255,255,255,0.15);">
+            <span><i class="fas fa-search me-2"></i> بحث سريع في النظام...</span>
+            <kbd class="small text-muted bg-dark border border-secondary px-2 rounded" style="font-size: 0.65rem;">Ctrl+K</kbd>
+        </button>
+    </div>
+
     <nav class="sidebar-menu" aria-label="أقسام النظام">
         {% if user.is_superuser or 'admin_dashboard' in emp_perms %}
         <a href="{% url 'pages:index' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'pages' and request.resolver_match.url_name == 'index' %}active{% endif %}" {% if request.resolver_match and request.resolver_match.app_name == 'pages' and request.resolver_match.url_name == 'index' %}aria-current="page"{% endif %}>

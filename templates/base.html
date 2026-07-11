@@ -127,6 +127,229 @@
     </div>
     {% endif %}
 
+    {% if user.is_authenticated %}
+    <!-- نافذة البحث السريع الذكي (Spotlight Search) -->
+    <div id="spotlight-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; justify-content: center; padding-top: 10vh;">
+        <div class="spotlight-container" style="background: var(--bg-1, #ffffff); border-radius: 16px; border: 1px solid var(--border, #e2e8f0); width: 100%; max-width: 650px; height: fit-content; max-height: 70vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+            <!-- شريط المدخلات -->
+            <div class="d-flex align-items-center border-bottom px-3 py-2" style="background: var(--bg-2, #f8fafc);">
+                <i class="fas fa-search text-muted me-2" style="font-size: 1.1rem;"></i>
+                <input type="text" id="spotlight-input" class="form-control border-0 bg-transparent shadow-none" placeholder="بحث عام وسريع في النظام... (مثال: أحمد، شعبة أ، صندوق)" style="font-size: 1.1rem; direction: rtl;" autocomplete="off">
+                <button type="button" class="btn-close ms-2" id="spotlight-close-btn" aria-label="إغلاق"></button>
+            </div>
+            <!-- نتائج البحث -->
+            <div id="spotlight-results" style="overflow-y: auto; max-height: 50vh; padding: 10px 0;">
+                <div class="text-center py-4 text-muted" id="spotlight-placeholder">
+                    <i class="fas fa-search fa-2x mb-2 text-secondary"></i>
+                    <p class="mb-0 small">اكتب اسم طالب، شعبة، مادة، مدرس، حساب مالي، أو وجهة نظام...</p>
+                </div>
+            </div>
+            <!-- تذييل تعليمات المودال -->
+            <div class="px-3 py-2 border-top d-flex justify-content-between text-muted small" style="background: var(--bg-2, #f8fafc); font-size: 0.75rem;">
+                <div>تنقل بـ <kbd class="px-1 bg-light border rounded">↑</kbd> <kbd class="px-1 bg-light border rounded">↓</kbd> واضغط <kbd class="px-1 bg-light border rounded">Enter</kbd> للذهاب فورا</div>
+                <div>اضغط <kbd class="px-1 bg-light border rounded">Esc</kbd> للإغلاق</div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        /* أنماط البحث السريع المتقدم */
+        .spotlight-result-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            text-decoration: none;
+            color: var(--text-1, #1e293b);
+            border-left: 3px solid transparent;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+        .spotlight-result-item:hover, .spotlight-result-item.selected {
+            background-color: var(--bg-2, #f1f5f9);
+            border-left-color: var(--primary, #1e3a8a);
+            outline: none;
+            text-decoration: none;
+            color: var(--text-1, #1e293b);
+        }
+        .spotlight-result-category {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--primary, #1e3a8a);
+            background: var(--primary-light, #eff6ff);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: auto;
+        }
+        #spotlight-input:focus {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+    </style>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const overlay = document.getElementById('spotlight-overlay');
+        const input = document.getElementById('spotlight-input');
+        const resultsContainer = document.getElementById('spotlight-results');
+        const placeholder = document.getElementById('spotlight-placeholder');
+        const closeBtn = document.getElementById('spotlight-close-btn');
+        let searchTimeout = null;
+        let selectedIndex = -1;
+        let currentItems = [];
+
+        if (!overlay) return;
+
+        // دالة فتح البحث
+        window.openGlobalSearch = function() {
+            overlay.style.display = 'flex';
+            input.value = '';
+            resultsContainer.innerHTML = placeholder.outerHTML;
+            selectedIndex = -1;
+            currentItems = [];
+            setTimeout(() => input.focus(), 50);
+        };
+
+        // دالة إغلاق البحث
+        window.closeGlobalSearch = function() {
+            overlay.style.display = 'none';
+        };
+
+        // زر الإغلاق
+        closeBtn.addEventListener('click', closeGlobalSearch);
+
+        // إغلاق عند النقر خارج الصندوق
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                closeGlobalSearch();
+            }
+        });
+
+        // تشغيل الاختصارات العامة
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + K أو الضغط على مفتاح / لفتح البحث
+            if ((e.ctrlKey && e.key.toLowerCase() === 'k') || (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA')) {
+                e.preventDefault();
+                openGlobalSearch();
+            }
+            // إغلاق بالـ Esc
+            if (e.key === 'Escape' && overlay.style.display === 'flex') {
+                closeGlobalSearch();
+            }
+        });
+
+        // معالجة الكتابة والبحث الفوري
+        input.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = input.value.trim();
+
+            if (!query) {
+                resultsContainer.innerHTML = placeholder.outerHTML;
+                currentItems = [];
+                selectedIndex = -1;
+                return;
+            }
+
+            // إظهار علامة التحميل
+            resultsContainer.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                    <p class="mb-0 small">جاري البحث في النظام بالكامل...</p>
+                </div>
+            `;
+
+            searchTimeout = setTimeout(function() {
+                fetch(`/api/global-search/?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const results = data.results || [];
+                        currentItems = results;
+                        selectedIndex = -1;
+
+                        if (results.length === 0) {
+                            resultsContainer.innerHTML = `
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-info-circle fa-2x mb-2 text-warning"></i>
+                                    <p class="mb-0 small">لم يتم العثور على أي نتائج مطابقة لـ "${query}"</p>
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        let html = '';
+                        results.forEach((item, idx) => {
+                            html += `
+                                <a href="${item.url}" class="spotlight-result-item" data-index="${idx}">
+                                    <div class="d-flex align-items-center justify-content-center bg-light rounded-circle me-3" style="width: 36px; height: 36px; min-width: 36px; margin-left: 12px;">
+                                        <i class="${item.icon} text-secondary"></i>
+                                    </div>
+                                    <div style="flex-grow: 1; text-align: right;">
+                                        <div class="fw-bold" style="font-size: 0.9rem; color: var(--text-1);">${item.title}</div>
+                                        <small class="text-muted">${item.description}</small>
+                                    </div>
+                                    <span class="spotlight-result-category">${item.category}</span>
+                                </a>
+                            `;
+                        });
+                        resultsContainer.innerHTML = html;
+
+                        // ربط الأحداث للعناصر الجديدة
+                        document.querySelectorAll('.spotlight-result-item').forEach(el => {
+                            el.addEventListener('mouseenter', function() {
+                                const idx = parseInt(this.getAttribute('data-index'));
+                                setSelectedIndex(idx);
+                            });
+                        });
+                    })
+                    .catch(err => {
+                        resultsContainer.innerHTML = `
+                            <div class="text-center py-4 text-danger">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                <p class="mb-0 small">حدث خطأ أثناء إجراء البحث. يرجى المحاولة لاحقاً.</p>
+                            </div>
+                        `;
+                    });
+            }, 300);
+        });
+
+        // دالة تحديد العنصر النشط بالكيبورد
+        function setSelectedIndex(index) {
+            const items = document.querySelectorAll('.spotlight-result-item');
+            items.forEach(item => item.classList.remove('selected'));
+            selectedIndex = index;
+            if (selectedIndex >= 0 && selectedIndex < items.length) {
+                items[selectedIndex].classList.add('selected');
+                items[selectedIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        // معالجة التنقل بالكيبورد (الأسهم و Enter)
+        input.addEventListener('keydown', function(e) {
+            const items = document.querySelectorAll('.spotlight-result-item');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                let nextIdx = selectedIndex + 1;
+                if (nextIdx >= items.length) nextIdx = 0;
+                setSelectedIndex(nextIdx);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                let prevIdx = selectedIndex - 1;
+                if (prevIdx < 0) prevIdx = items.length - 1;
+                setSelectedIndex(prevIdx);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedIndex >= 0 && selectedIndex < currentItems.length) {
+                    window.location.href = currentItems[selectedIndex].url;
+                } else if (currentItems.length > 0) {
+                    window.location.href = currentItems[0].url;
+                }
+            }
+        });
+    });
+    </script>
+    {% endif %}
+
     <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
     <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/script.js' %}"></script>

@@ -1367,3 +1367,146 @@ class ReceptionDailyReportView(LoginRequiredMixin, TemplateView):
         })
         return context
 
+
+@login_required
+def global_search_api(request):
+    """البحث العام والشامل في النظام"""
+    query = request.GET.get('q', '').strip()
+    if not query:
+        from django.http import JsonResponse
+        return JsonResponse({'results': []})
+        
+    results = []
+    
+    # استيراد برمجيات ونماذج النظام للبحث
+    from django.http import JsonResponse
+    from django.urls import reverse
+    from django.db.models import Q
+    from students.models import Student
+    from quick.models import QuickStudent
+    from classroom.models import Classroom
+    from courses.models import Subject
+    from employ.models import Employee, Teacher
+    from accounts.models import Account
+
+    # 1. روابط النظام الثابتة والذكية
+    nav_links = [
+        {"title": "تسجيل الحضور اليومي للطلاب", "url": reverse('attendance:take_attendance'), "category": "روابط النظام", "description": "تسجيل حضور وغياب الطلاب اليومي والشعبي"},
+        {"title": "تقرير الطلاب المتخلفين عن الاختبارات", "url": reverse('exams:missed_exams_report'), "category": "روابط النظام", "description": "تقرير المتخلفين عن تقديم السبر والاختبارات الدورية"},
+        {"title": "لوحة التحكم بالاختبارات والامتحانات", "url": reverse('exams:dashboard'), "category": "روابط النظام", "description": "إدارة الاختبارات والنوعيات والدرجات"},
+        {"title": "إضافة طالب جديد (تسجيل)", "url": reverse('students:student_type_choice'), "category": "روابط النظام", "description": "تسجيل طالب جديد في شعب المعهد"},
+        {"title": "قائمة الطلاب النظاميين", "url": reverse('students:student'), "category": "روابط النظام", "description": "استعراض الطلاب النظاميين المسجلين بالدورات الطويلة"},
+        {"title": "شجرة الحسابات والدليل المحاسبي", "url": reverse('accounts:chart_of_accounts'), "category": "روابط النظام", "description": "شجرة الحسابات المالية العامة"},
+        {"title": "دفتر اليومية العامة وسندات القيد", "url": reverse('accounts:dashboard'), "category": "روابط النظام", "description": "التحكم بالوصولات والقيود المالية اليومية"},
+        {"title": "مركز الأمان وصلاحيات المستخدمين", "url": "/security/", "category": "روابط النظام", "description": "إدارة حماية الجلسات وصلاحيات الأمان"},
+        {"title": "خريطة الموقع والأقسام", "url": reverse('pages:sitemap'), "category": "روابط النظام", "description": "خريطة الموقع التفاعلية لكل الأقسام"},
+        {"title": "دليل المستخدم والتعليمات", "url": reverse('manuals:home'), "category": "روابط النظام", "description": "مركز مساعدة ودليل المستخدم لتشغيل المنصة"},
+    ]
+    
+    for link in nav_links:
+        if query.lower() in link['title'].lower() or query.lower() in link['description'].lower():
+            results.append({
+                'title': link['title'],
+                'url': link['url'],
+                'category': link['category'],
+                'description': link['description'],
+                'icon': 'fas fa-link'
+            })
+            
+    # 2. الطلاب النظاميون
+    students = Student.objects.filter(
+        Q(full_name__icontains=query) |
+        Q(phone__icontains=query) |
+        Q(student_number__icontains=query) |
+        Q(father_phone__icontains=query)
+    )[:10]
+    for s in students:
+        results.append({
+            'title': s.full_name,
+            'url': reverse('students:student_profile', args=[s.id]),
+            'category': 'الطلاب النظاميون',
+            'description': f"رقم أكاديمي: {s.student_number or '-'} | هاتف: {s.phone or s.father_phone or '-'}",
+            'icon': 'fas fa-user-graduate'
+        })
+        
+    # 3. الطلاب السريعون
+    quick_students = QuickStudent.objects.filter(
+        Q(full_name__icontains=query) |
+        Q(phone__icontains=query) |
+        Q(student_number__icontains=query)
+    )[:10]
+    for qs in quick_students:
+        results.append({
+            'title': qs.full_name,
+            'url': reverse('quick:student_profile', args=[qs.id]),
+            'category': 'الطلاب السريعون',
+            'description': f"رقم أكاديمي: {qs.student_number or '-'} | هاتف: {qs.phone or '-'}",
+            'icon': 'fas fa-user-bolt'
+        })
+        
+    # 4. الشعب الدراسية
+    classrooms = Classroom.objects.filter(name__icontains=query)[:5]
+    for c in classrooms:
+        results.append({
+            'title': c.name,
+            'url': reverse('classroom:classroom_students', args=[c.id]),
+            'category': 'الشعب الصفية',
+            'description': f"كورس: {c.course.name if c.course else 'غير محدد'}",
+            'icon': 'fas fa-users'
+        })
+        
+    # 5. المواد الدراسية
+    subjects = Subject.objects.filter(name__icontains=query)[:5]
+    for sub in subjects:
+        results.append({
+            'title': sub.name,
+            'url': reverse('courses:subject_list'),
+            'category': 'المواد الدراسية',
+            'description': f"مادة دراسية بالنظام",
+            'icon': 'fas fa-book'
+        })
+        
+    # 6. المدرسون
+    teachers = Teacher.objects.filter(
+        Q(full_name__icontains=query) |
+        Q(phone__icontains=query)
+    )[:5]
+    for t in teachers:
+        results.append({
+            'title': t.full_name,
+            'url': reverse('employ:teachers'),
+            'category': 'المدرسون',
+            'description': f"هاتف: {t.phone or '-'}",
+            'icon': 'fas fa-chalkboard-user'
+        })
+        
+    # 7. الموظفون
+    employees = Employee.objects.filter(
+        Q(full_name__icontains=query) |
+        Q(phone__icontains=query)
+    )[:5]
+    for emp in employees:
+        results.append({
+            'title': emp.full_name,
+            'url': reverse('employ:employee_register'),
+            'category': 'الموظفون',
+            'description': f"هاتف: {emp.phone or '-'} | حالة: {emp.get_status_display()}",
+            'icon': 'fas fa-user-tie'
+        })
+        
+    # 8. الحسابات المالية
+    accounts = Account.objects.filter(
+        Q(name__icontains=query) |
+        Q(code__icontains=query)
+    )[:10]
+    for acc in accounts:
+        results.append({
+            'title': f"{acc.code} - {acc.name}",
+            'url': f"/accounts/ledger/?account_id={acc.id}",
+            'category': 'الحسابات المالية',
+            'description': f"نوع الحساب: {acc.get_account_type_display()} | طبيعة الحساب: {acc.get_normal_balance_display()}",
+            'icon': 'fas fa-wallet'
+        })
+        
+    return JsonResponse({'results': results})
+
