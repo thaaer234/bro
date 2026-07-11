@@ -314,9 +314,13 @@
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'exams_view' in emp_perms %}
-                <a href="{% url 'exams:dashboard' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'exams' %}active{% endif %}">
+                <a href="{% url 'exams:dashboard' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'exams' and request.resolver_match.url_name != 'missed_exams_report' %}active{% endif %}">
                     <i class="fas fa-square-poll-vertical"></i>
                     <span>العلامات</span>
+                </a>
+                <a href="{% url 'exams:missed_exams_report' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'missed_exams_report' %}active{% endif %}">
+                    <i class="fas fa-user-clock"></i>
+                    <span>تقرير التخلف</span>
                 </a>
                 {% endif %}
             </div>

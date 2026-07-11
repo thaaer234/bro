@@ -72,36 +72,52 @@
             </div>
 
             <!-- ملخص سريع -->
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3>{{ total_students }}</h3>
-                            <p class="text-muted">إجمالي الطلاب</p>
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <div class="card text-center shadow-sm">
+                        <div class="card-body py-3">
+                            <h3 class="fw-bold text-dark">{{ total_students }}</h3>
+                            <p class="text-muted small mb-0">إجمالي الطلاب</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3 class="text-success">{{ entered_grades }}</h3>
-                            <p class="text-muted">العلامات المدخلة</p>
+                <div class="col-md-2">
+                    <div class="card text-center shadow-sm">
+                        <div class="card-body py-3">
+                            <h3 class="fw-bold text-success">{{ entered_grades }}</h3>
+                            <p class="text-muted small mb-0">العلامات المدخلة</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3 class="text-warning">{{ missing_grades }}</h3>
-                            <p class="text-muted">العلامات الناقصة</p>
+                <div class="col-md-2">
+                    <div class="card text-center shadow-sm">
+                        <div class="card-body py-3">
+                            <h3 class="fw-bold text-danger">{{ absent_count }}</h3>
+                            <p class="text-muted small mb-0">غائب</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3 class="text-info">{{ percentage_entered }}%</h3>
-                            <p class="text-muted">نسبة الإدخال</p>
+                <div class="col-md-2">
+                    <div class="card text-center shadow-sm">
+                        <div class="card-body py-3">
+                            <h3 class="fw-bold text-warning">{{ not_submitted_count }}</h3>
+                            <p class="text-muted small mb-0">غير مقدم</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card text-center shadow-sm">
+                        <div class="card-body py-3">
+                            <h3 class="fw-bold text-secondary">{{ missing_grades }}</h3>
+                            <p class="text-muted small mb-0">العلامات الناقصة</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="card text-center shadow-sm">
+                        <div class="card-body py-3">
+                            <h3 class="fw-bold text-info">{{ percentage_entered }}%</h3>
+                            <p class="text-muted small mb-0">نسبة الإدخال</p>
                         </div>
                     </div>
                 </div>

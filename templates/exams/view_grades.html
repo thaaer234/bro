@@ -67,10 +67,14 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if exam_grade.grade %}
+                                        {% if exam_grade.status == 'absent' %}
+                                            <span class="badge bg-danger">غائب</span>
+                                        {% elif exam_grade.status == 'not_submitted' %}
+                                            <span class="badge bg-warning text-dark">غير مقدم</span>
+                                        {% elif exam_grade.grade is not None %}
                                             <span class="badge bg-success">مدخلة</span>
                                         {% else %}
-                                            <span class="badge bg-warning">ناقصة</span>
+                                            <span class="badge bg-secondary">ناقصة</span>
                                         {% endif %}
                                     </td>
                                 </tr>

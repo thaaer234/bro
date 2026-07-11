@@ -8,6 +8,13 @@ class Exam(models.Model):
     name = models.CharField(max_length=200, verbose_name=_('اسم الاختبار'))
     classroom = models.ForeignKey('classroom.Classroom', on_delete=models.CASCADE, verbose_name="الشعبة")
     subject = models.ForeignKey('courses.Subject', on_delete=models.CASCADE, verbose_name=_('المادة'))
+    exam_type = models.ForeignKey(
+        'exams.ExamType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="نوع الاختبار"
+    )
     exam_date = models.DateField(verbose_name=_('تاريخ الاختبار'))
     max_grade = models.DecimalField(
         max_digits=5, 
@@ -28,8 +35,20 @@ class Exam(models.Model):
         return f"{self.name} - {self.classroom.name} - {self.subject.name}"
 
 class ExamGrade(models.Model):
+    STATUS_CHOICES = [
+        ('present', 'مقدم / Present'),
+        ('absent', 'غائب / Absent'),
+        ('not_submitted', 'غير مقدم / Not Submitted'),
+    ]
+    
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, verbose_name=_('الاختبار'))
     student = models.ForeignKey('students.Student', on_delete=models.CASCADE, verbose_name=_('الطالب'))
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='present',
+        verbose_name="حالة التقديم"
+    )
     grade = models.DecimalField(
         max_digits=5, 
         decimal_places=2, 

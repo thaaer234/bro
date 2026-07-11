@@ -88,10 +88,14 @@
                                     </td>
                                     <td>
                                         <!-- التعديل هنا: تصحيح حالة العلامة -->
-                                        {% if exam_grade.grade is not None %}
+                                        {% if exam_grade.status == 'absent' %}
+                                            <span class="badge bg-danger">غائب</span>
+                                        {% elif exam_grade.status == 'not_submitted' %}
+                                            <span class="badge bg-warning text-dark">غير مقدم</span>
+                                        {% elif exam_grade.grade is not None %}
                                             <span class="badge bg-success">مدخلة</span>
                                         {% else %}
-                                            <span class="badge bg-warning">ناقصة</span>
+                                            <span class="badge bg-secondary">ناقصة</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -102,38 +106,52 @@
                     
                     <!-- إحصائيات -->
                     <div class="mt-4">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <h3>{{ total_students }}</h3>
-                                        <p class="text-muted">إجمالي الطلاب</p>
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <div class="card text-center shadow-sm">
+                                    <div class="card-body py-2">
+                                        <h4 class="fw-bold text-dark">{{ total_students }}</h4>
+                                        <p class="text-muted small mb-0">إجمالي الطلاب</p>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <h3 class="text-success">
-                                            {{ entered_grades }}
-                                        </h3>
-                                        <p class="text-muted">العلامات المدخلة</p>
+                            <div class="col-md-2">
+                                <div class="card text-center shadow-sm">
+                                    <div class="card-body py-2">
+                                        <h4 class="fw-bold text-success">{{ entered_grades }}</h4>
+                                        <p class="text-muted small mb-0">العلامات المدخلة</p>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <h3 class="text-warning">{{ missing_grades }}</h3>
-                                        <p class="text-muted">العلامات الناقصة</p>
+                            <div class="col-md-2">
+                                <div class="card text-center shadow-sm">
+                                    <div class="card-body py-2">
+                                        <h4 class="fw-bold text-danger">{{ absent_count }}</h4>
+                                        <p class="text-muted small mb-0">غائب</p>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <h3 class="text-info">{{ percentage_entered|floatformat:1 }}%</h3>
-                                        <p class="text-muted">نسبة الإدخال</p>
+                            <div class="col-md-2">
+                                <div class="card text-center shadow-sm">
+                                    <div class="card-body py-2">
+                                        <h4 class="fw-bold text-warning">{{ not_submitted_count }}</h4>
+                                        <p class="text-muted small mb-0">غير مقدم</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center shadow-sm">
+                                    <div class="card-body py-2">
+                                        <h4 class="fw-bold text-secondary">{{ missing_grades }}</h4>
+                                        <p class="text-muted small mb-0">العلامات الناقصة</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center shadow-sm">
+                                    <div class="card-body py-2">
+                                        <h4 class="fw-bold text-info">{{ percentage_entered|floatformat:1 }}%</h4>
+                                        <p class="text-muted small mb-0">نسبة الإدخال</p>
                                     </div>
                                 </div>
                             </div>

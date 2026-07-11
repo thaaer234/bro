@@ -7,13 +7,16 @@ from .models import Exam, ExamType, ExamGrade, StudentExam
 class ExamForm(forms.ModelForm):
     class Meta:
         model = Exam
-        fields = ['name', 'subject', 'exam_date', 'max_grade', 'notes']
+        fields = ['name', 'subject', 'exam_type', 'exam_date', 'max_grade', 'notes']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'اسم الاختبار (مثال: اختبار الفصل الأول, امتحان عملي...)'
             }),
             'subject': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'exam_type': forms.Select(attrs={
                 'class': 'form-control'
             }),
             'exam_date': forms.DateInput(attrs={
@@ -35,17 +38,20 @@ class ExamForm(forms.ModelForm):
 class ExamGradesForm(forms.ModelForm):
     class Meta:
         model = ExamGrade
-        fields = ['student', 'grade', 'notes']
+        fields = ['student', 'status', 'grade', 'notes']
         widgets = {
             'student': forms.HiddenInput(),
+            'status': forms.Select(attrs={
+                'class': 'form-control form-control-sm status-select'
+            }),
             'grade': forms.NumberInput(attrs={
-                'class': 'form-control',
+                'class': 'form-control form-control-sm grade-input',
                 'step': '0.1',
                 'min': '0',
                 'placeholder': 'أدخل العلامة'
             }),
             'notes': forms.TextInput(attrs={
-                'class': 'form-control',
+                'class': 'form-control form-control-sm',
                 'placeholder': 'ملاحظات خاصة بالطالب'
             })
         }

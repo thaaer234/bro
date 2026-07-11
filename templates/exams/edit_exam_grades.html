@@ -2,8 +2,6 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-
-
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/exams.css' %}">
 {% endblock %}
@@ -43,9 +41,10 @@
                                 <thead class="bg-light">
                                     <tr>
                                         <th width="5%">#</th>
-                                        <th width="30%">اسم الطالب</th>
-                                        <th width="20%">العلامة</th>
-                                        <th width="35%">ملاحظات</th>
+                                        <th width="25%">اسم الطالب</th>
+                                        <th width="15%">حالة التقديم</th>
+                                        <th width="15%">العلامة</th>
+                                        <th width="30%">ملاحظات</th>
                                         <th width="10%">النسبة</th>
                                     </tr>
                                 </thead>
@@ -56,6 +55,14 @@
                                         <td>
                                             {{ form.instance.student.full_name }}
                                             {{ form.student }}
+                                        </td>
+                                        <td>
+                                            {{ form.status }}
+                                            {% if form.status.errors %}
+                                                <div class="text-danger small">
+                                                    {{ form.status.errors }}
+                                                </div>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             <!-- استخدام حقل Django Form مع ID مخصص -->
@@ -140,6 +147,18 @@ function calculatePercentage(input) {
     }
 }
 
+function handleStatusChange(statusSelect) {
+    const row = statusSelect.closest('tr');
+    const gradeInput = row.querySelector('input[name$="-grade"]');
+    if (statusSelect.value !== 'present') {
+        gradeInput.value = '';
+        gradeInput.disabled = true;
+        calculatePercentage(gradeInput);
+    } else {
+        gradeInput.disabled = false;
+    }
+}
+
 // حساب النسب عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', function() {
     const gradeInputs = document.querySelectorAll('input[name$="-grade"]');
@@ -157,17 +176,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // حساب النسبة الأولية
         calculatePercentage(input);
     });
+
+    const statusSelects = document.querySelectorAll('select[name$="-status"]');
+    statusSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            handleStatusChange(this);
+        });
+        // حساب أولى عند التحميل
+        handleStatusChange(select);
+    });
 });
 
-// تنظيف القيم قبل الإرسال
+// تفعيل الحقول قبل الإرسال لضمان عدم ضياع البيانات
 document.getElementById('examGradesForm').addEventListener('submit', function(e) {
     const gradeInputs = document.querySelectorAll('input[name$="-grade"]');
     gradeInputs.forEach(input => {
+        input.disabled = false;
         if (input.value.includes(',')) {
             input.value = input.value.replace(/,/g, '');
         }
     });
 });
 </script>
-
 {% endblock %}

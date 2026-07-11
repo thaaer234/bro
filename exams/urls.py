@@ -6,6 +6,7 @@ app_name = 'exams'
 
 urlpatterns = [
     path('', require_employee_perm('exams_view')(views.exams_dashboard), name='dashboard'),
+    path('missed/', require_employee_perm('exams_view')(views.missed_exams_report), name='missed_exams_report'),
     
     # مسارات الاختبارات
     path('<int:classroom_id>/exams/', require_employee_perm('exams_view')(views.exam_list), name='exam_list'),

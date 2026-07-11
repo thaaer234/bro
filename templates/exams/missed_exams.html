@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        background-color: #fff;
+    }
+    .report-card {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    }
+    .badge-absent {
+        background-color: #fee2e2;
+        color: #ef4444;
+        border: 1px solid #fca5a5;
+    }
+    .badge-not-submitted {
+        background-color: #fef3c7;
+        color: #d97706;
+        border: 1px solid #fcd34d;
+    }
+    .badge-incomplete {
+        background-color: #f3f4f6;
+        color: #6b7280;
+        border: 1px solid #d1d5db;
+    }
+    .btn-wa {
+        background-color: #25d366;
+        color: white;
+        font-weight: 600;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    .btn-wa:hover {
+        background-color: #128c7e;
+        color: white;
+        transform: translateY(-1px);
+    }
+    .modal-content {
+        border-radius: 16px;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0 fw-bold text-dark"><i class="fas fa-user-clock text-warning mr-2"></i> تقرير الطلاب المتخلفين عن الاختبارات</h2>
+        <a href="{% url 'exams:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> العودة للوحة الاختبارات
+        </a>
+    </div>
+
+    <!-- لوحة الإعداد المتقدمة (الفلاتر) -->
+    <div class="card filter-card mb-4">
+        <div class="card-header bg-light py-3">
+            <h5 class="mb-0 text-dark fw-bold"><i class="fas fa-sliders mr-2"></i> لوحة الإعداد المتقدمة والفلترة</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">الشعبة</label>
+                        <select name="classroom" class="form-control">
+                            <option value="">كل الشعب النشطة</option>
+                            {% for c in classrooms %}
+                                <option value="{{ c.id }}" {% if filters.classroom == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">المادة</label>
+                        <select name="subject" class="form-control">
+                            <option value="">كل المواد</option>
+                            {% for s in subjects %}
+                                <option value="{{ s.id }}" {% if filters.subject == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">نوع الاختبار</label>
+                        <select name="exam_type" class="form-control">
+                            <option value="">كل الأنواع</option>
+                            {% for t in exam_types %}
+                                <option value="{{ t.id }}" {% if filters.exam_type == t.id|stringformat:"s" %}selected{% endif %}>{{ t.name }} - {{ t.subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">حالة التخلف</label>
+                        <select name="status" class="form-control">
+                            <option value="all_missed" {% if filters.status == 'all_missed' %}selected{% endif %}>جميع المتخلفين</option>
+                            <option value="absent" {% if filters.status == 'absent' %}selected{% endif %}>غائب</option>
+                            <option value="not_submitted" {% if filters.status == 'not_submitted' %}selected{% endif %}>غير مقدم</option>
+                            <option value="incomplete" {% if filters.status == 'incomplete' %}selected{% endif %}>لم ترصد بعد</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">تاريخ البدء</label>
+                        <input type="date" name="start_date" value="{{ filters.start_date }}" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">تاريخ الانتهاء</label>
+                        <input type="date" name="end_date" value="{{ filters.end_date }}" class="form-control">
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-3 gap-2">
+                    <a href="{% url 'exams:missed_exams_report' %}" class="btn btn-light border">مسح الفلاتر</a>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-search me-1"></i> تصفية وتحديث</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول التقرير -->
+    <div class="card report-card">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+            <h5 class="mb-0 fw-bold text-dark">النتائج المطابقة للبحث ({{ report_data|length }})</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">الطالب</th>
+                            <th>الشعبة</th>
+                            <th>الاختبار</th>
+                            <th>المادة</th>
+                            <th>تاريخ الاختبار</th>
+                            <th>حالة التخلف</th>
+                            <th class="text-center" width="220">إرسال إشعار (واتساب)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report_data %}
+                        <tr>
+                            <td class="ps-4">
+                                <a href="{% url 'students:student_profile' item.student.id %}" class="fw-bold text-decoration-none text-dark">
+                                    {{ item.student.full_name }}
+                                </a>
+                            </td>
+                            <td>{{ item.exam.classroom.name }}</td>
+                            <td>{{ item.exam.name }}</td>
+                            <td>{{ item.exam.subject.name }}</td>
+                            <td>{{ item.exam.exam_date|date:"Y-m-d" }}</td>
+                            <td>
+                                {% if item.grade.status == 'absent' %}
+                                    <span class="badge badge-absent px-2 py-1"><i class="fas fa-user-times mr-1"></i> غائب</span>
+                                {% elif item.grade.status == 'not_submitted' %}
+                                    <span class="badge badge-not-submitted px-2 py-1"><i class="fas fa-file-excel mr-1"></i> غير مقدم</span>
+                                {% else %}
+                                    <span class="badge badge-incomplete px-2 py-1"><i class="fas fa-hourglass-start mr-1"></i> لم ترصد بعد</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center pe-4">
+                                <button type="button" class="btn btn-sm btn-wa" 
+                                        onclick="openNotificationModal('{{ item.student.full_name }}', '{{ item.exam.name }}', '{{ item.exam.subject.name }}', '{{ item.exam.exam_date|date:"Y-m-d" }}', '{{ item.status_label }}', '{{ item.phones.student }}', '{{ item.phones.father }}', '{{ item.phones.mother }}')">
+                                    <i class="fab fa-whatsapp mr-1"></i> إرسال تنبيه
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-clipboard-list fa-3x mb-3 text-secondary"></i><br>
+                                لا توجد سجلات تخلف مطابقة للخيارات المحددة.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال إعداد وإرسال الإشعار -->
+<div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-header-title mb-0" id="notificationModalLabel"><i class="fab fa-whatsapp mr-2"></i> إرسال إشعار تخلف عن الاختبار</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">الجهة المستلمة</label>
+                    <div class="d-flex flex-column gap-2" id="recipientOptions">
+                        <!-- Options filled by JS -->
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">نوع الإشعار</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="notification_type" id="typeWarning" value="warning" checked onchange="updateMessagePreview()">
+                            <label class="form-check-label fw-semibold" for="typeWarning">
+                                إنذار تقصير
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="notification_type" id="typeParent" value="parent" onchange="updateMessagePreview()">
+                            <label class="form-check-label fw-semibold" for="typeParent">
+                                مراجعة أهل
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">نص الإشعار (يمكنك تعديله)</label>
+                    <textarea class="form-control" id="messageTextarea" rows="4" style="font-size: 0.9rem;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success" onclick="sendWhatsApp()"><i class="fab fa-whatsapp me-1"></i> فتح المحادثة وإرسال</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentData = {};
+
+    function openNotificationModal(studentName, examName, subjectName, examDate, statusLabel, studentPhone, fatherPhone, motherPhone) {
+        currentData = {
+            studentName, examName, subjectName, examDate, statusLabel, studentPhone, fatherPhone, motherPhone
+        };
+        
+        // Build recipient options
+        let optionsHtml = '';
+        if (studentPhone) {
+            optionsHtml += `
+                <div class="form-check border p-2 rounded">
+                    <input class="form-check-input" type="radio" name="recipient_phone" id="recStudent" value="${studentPhone}" checked>
+                    <label class="form-check-label fw-semibold" for="recStudent">
+                        الطالب (${studentName}) - ${studentPhone}
+                    </label>
+                </div>
+            `;
+        }
+        if (fatherPhone) {
+            optionsHtml += `
+                <div class="form-check border p-2 rounded">
+                    <input class="form-check-input" type="radio" name="recipient_phone" id="recFather" value="${fatherPhone}" ${!studentPhone ? 'checked' : ''}>
+                    <label class="form-check-label fw-semibold" for="recFather">
+                        والد الطالب (${studentName}) - ${fatherPhone}
+                    </label>
+                </div>
+            `;
+        }
+        if (motherPhone) {
+            optionsHtml += `
+                <div class="form-check border p-2 rounded">
+                    <input class="form-check-input" type="radio" name="recipient_phone" id="recMother" value="${motherPhone}" ${(!studentPhone && !fatherPhone) ? 'checked' : ''}>
+                    <label class="form-check-label fw-semibold" for="recMother">
+                        والدة الطالب (${studentName}) - ${motherPhone}
+                    </label>
+                </div>
+            `;
+        }
+        
+        if (!optionsHtml) {
+            optionsHtml = '<p class="text-danger small">لا توجد أرقام هواتف مسجلة لهذا الطالب أو ذويه.</p>';
+        }
+        
+        document.getElementById('recipientOptions').innerHTML = optionsHtml;
+        
+        // Default text preview
+        updateMessagePreview();
+        
+        // Show modal
+        var myModal = new bootstrap.Modal(document.getElementById('notificationModal'));
+        myModal.show();
+    }
+
+    function updateMessagePreview() {
+        const type = document.querySelector('input[name="notification_type"]:checked').value;
+        let message = "";
+        
+        if (type === 'warning') {
+            message = `السلام عليكم، نود إعلامكم بأن الطالب ${currentData.studentName} قد تخلف (${currentData.statusLabel}) عن تقديم اختبار ${currentData.examName} لمادة ${currentData.subjectName} بتاريخ ${currentData.examDate}. يرجى الالتزام والمتابعة.`;
+        } else {
+            message = `السلام عليكم، يرجى من ولي أمر الطالب ${currentData.studentName} مراجعة إدارة المعهد بخصوص تخلف الطالب (${currentData.statusLabel}) عن تقديم اختبار ${currentData.examName} لمادة ${currentData.subjectName} بتاريخ ${currentData.examDate}.`;
+        }
+        
+        document.getElementById('messageTextarea').value = message;
+    }
+
+    function sendWhatsApp() {
+        const checkedPhone = document.querySelector('input[name="recipient_phone"]:checked');
+        if (!checkedPhone) {
+            alert('يرجى اختيار رقم مستلم واحد على الأقل.');
+            return;
+        }
+        
+        let phone = checkedPhone.value.trim().replace('+', '').replace(' ', '');
+        
+        // Format to country code 963 if not set
+        if (!phone.startsWith('963') && !phone.startsWith('00963')) {
+            if (phone.startsWith('0')) {
+                phone = '963' + phone.substring(1);
+            } else {
+                phone = '963' + phone;
+            }
+        }
+        
+        const text = encodeURIComponent(document.getElementById('messageTextarea').value);
+        const url = `https://wa.me/${phone}?text=${text}`;
+        
+        window.open(url, '_blank');
+        
+        // Hide modal
+        bootstrap.Modal.getInstance(document.getElementById('notificationModal')).hide();
+    }
+</script>
+{% endblock %}

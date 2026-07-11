@@ -12,7 +12,7 @@ from django.urls import reverse
 import io
 import re
 from urllib.parse import quote
-from .models import Exam, ExamGrade
+from .models import Exam, ExamGrade, ExamType
 from classroom.models import Classroom
 from courses.models import Subject
 from students.models import Student
@@ -35,7 +35,7 @@ def _ensure_exam_grades_for_classroom(exam):
         ExamGrade.objects.get_or_create(
             exam=exam,
             student=student,
-            defaults={'grade': None, 'notes': ''}
+            defaults={'grade': None, 'notes': '', 'status': 'present'}
         )
 
 def exams_dashboard(request):
@@ -84,6 +84,7 @@ def create_exam(request, classroom_id):
                 ExamGrade.objects.create(
                     exam=exam, 
                     student=student,
+                    status='present',
                     grade=None,
                     notes=''
                 )
@@ -138,14 +139,18 @@ def exam_detail(request, exam_id):
     
     # حساب الإحصائيات
     total_students = exam_grades.count()
-    entered_grades = exam_grades.exclude(grade__isnull=True).count()
-    missing_grades = total_students - entered_grades
+    entered_grades = exam_grades.filter(status='present', grade__isnull=False).count()
+    absent_count = exam_grades.filter(status='absent').count()
+    not_submitted_count = exam_grades.filter(status='not_submitted').count()
+    missing_grades = exam_grades.filter(status='present', grade__isnull=True).count()
     percentage_entered = (entered_grades / total_students * 100) if total_students > 0 else 0
     
     return render(request, 'exams/exam_detail.html', {
         'exam': exam,
         'total_students': total_students,
         'entered_grades': entered_grades,
+        'absent_count': absent_count,
+        'not_submitted_count': not_submitted_count,
         'missing_grades': missing_grades,
         'percentage_entered': round(percentage_entered, 1)
     })
@@ -160,8 +165,10 @@ def view_exam_grades(request, exam_id):
     
     # حساب الإحصائيات
     total_students = exam_grades.count()
-    entered_grades = exam_grades.filter(grade__isnull=False).count()
-    missing_grades = exam_grades.filter(grade__isnull=True).count()
+    entered_grades = exam_grades.filter(status='present', grade__isnull=False).count()
+    absent_count = exam_grades.filter(status='absent').count()
+    not_submitted_count = exam_grades.filter(status='not_submitted').count()
+    missing_grades = exam_grades.filter(status='present', grade__isnull=True).count()
     percentage_entered = (entered_grades / total_students * 100) if total_students > 0 else 0
     
     return render(request, 'exams/view_exam_grades.html', {
@@ -169,6 +176,8 @@ def view_exam_grades(request, exam_id):
         'exam_grades': exam_grades,
         'total_students': total_students,
         'entered_grades': entered_grades,
+        'absent_count': absent_count,
+        'not_submitted_count': not_submitted_count,
         'missing_grades': missing_grades,
         'percentage_entered': round(percentage_entered, 1)
     })
@@ -437,3 +446,120 @@ def delete_exam(request, exam_id):
     return render(request, 'exams/delete_exam_confirm.html', {
         'exam': exam
     })
+
+
+def missed_exams_report(request):
+    """تقرير المتخلفين عن الاختبارات"""
+    classrooms = Classroom.objects.filter(is_active=True)
+    if not request.user.is_superuser:
+        classrooms = classrooms.filter(is_visible=True)
+        
+    current_year = getattr(request, 'current_academic_year', None)
+    if current_year:
+        classrooms = classrooms.filter(
+            Q(course__academic_year=current_year) |
+            Q(enrollments__student__academic_year=current_year)
+        ).distinct()
+        
+    classrooms = classrooms.order_by('name')
+    subjects = Subject.objects.all().order_by('name')
+    exam_types = ExamType.objects.all().order_by('name')
+    
+    # Filters from GET
+    classroom_id = request.GET.get('classroom')
+    subject_id = request.GET.get('subject')
+    exam_type_id = request.GET.get('exam_type')
+    status_filter = request.GET.get('status')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    # Query missed grades
+    grades_qs = ExamGrade.objects.select_related('student', 'exam', 'exam__classroom', 'exam__subject', 'exam__exam_type')
+    
+    # Filter by classrooms active/visible
+    grades_qs = grades_qs.filter(exam__classroom__in=classrooms)
+    
+    if classroom_id:
+        grades_qs = grades_qs.filter(exam__classroom_id=classroom_id)
+    if subject_id:
+        grades_qs = grades_qs.filter(exam__subject_id=subject_id)
+    if exam_type_id:
+        grades_qs = grades_qs.filter(exam__exam_type_id=exam_type_id)
+        
+    if status_filter == 'absent':
+        grades_qs = grades_qs.filter(status='absent')
+    elif status_filter == 'not_submitted':
+        grades_qs = grades_qs.filter(status='not_submitted')
+    elif status_filter == 'incomplete':
+        grades_qs = grades_qs.filter(status='present', grade__isnull=True)
+    else:  # 'all_missed' or default
+        grades_qs = grades_qs.filter(Q(status__in=['absent', 'not_submitted']) | Q(grade__isnull=True))
+        
+    if start_date:
+        grades_qs = grades_qs.filter(exam__exam_date__gte=start_date)
+    if end_date:
+        grades_qs = grades_qs.filter(exam__exam_date__lte=end_date)
+        
+    grades_qs = grades_qs.order_by('-exam__exam_date', 'student__full_name')
+    
+    report_data = []
+    for grade in grades_qs:
+        student = grade.student
+        exam = grade.exam
+        
+        status_label = "ناقصة (لم ترصد بعد)"
+        if grade.status == 'absent':
+            status_label = "غائب"
+        elif grade.status == 'not_submitted':
+            status_label = "غير مقدم"
+            
+        phones = {
+            'student': student.phone or '',
+            'father': student.father_phone or '',
+            'mother': student.mother_phone or '',
+        }
+        
+        # Build text templates
+        warning_msg = f"السلام عليكم، نود إعلامكم بأن الطالب {student.full_name} قد تخلف ({status_label}) عن تقديم اختبار {exam.name} لمادة {exam.subject.name} بتاريخ {exam.exam_date}. يرجى الالتزام والمتابعة."
+        parent_msg = f"السلام عليكم، يرجى من ولي أمر الطالب {student.full_name} مراجعة إدارة المعهد بخصوص تخلف الطالب ({status_label}) عن تقديم اختبار {exam.name} لمادة {exam.subject.name} بتاريخ {exam.exam_date}."
+        
+        wa_urls = {}
+        for role, phone in phones.items():
+            if phone:
+                clean_phone = phone.strip().replace('+', '').replace(' ', '')
+                if not clean_phone.startswith('963') and not clean_phone.startswith('00963'):
+                    if clean_phone.startswith('0'):
+                        clean_phone = '963' + clean_phone[1:]
+                    else:
+                        clean_phone = '963' + clean_phone
+                
+                wa_urls[f"{role}_warning"] = f"https://wa.me/{clean_phone}?text={quote(warning_msg)}"
+                wa_urls[f"{role}_parent"] = f"https://wa.me/{clean_phone}?text={quote(parent_msg)}"
+            else:
+                wa_urls[f"{role}_warning"] = ""
+                wa_urls[f"{role}_parent"] = ""
+                
+        report_data.append({
+            'grade': grade,
+            'student': student,
+            'exam': exam,
+            'status_label': status_label,
+            'phones': phones,
+            'wa_urls': wa_urls
+        })
+        
+    context = {
+        'classrooms': classrooms,
+        'subjects': subjects,
+        'exam_types': exam_types,
+        'report_data': report_data,
+        'filters': {
+            'classroom': classroom_id or '',
+            'subject': subject_id or '',
+            'exam_type': exam_type_id or '',
+            'status': status_filter or 'all_missed',
+            'start_date': start_date or '',
+            'end_date': end_date or '',
+        }
+    }
+    return render(request, 'exams/missed_exams.html', context)
