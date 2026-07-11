@@ -47,6 +47,55 @@ def get_weeks_for_month(year, month):
             })
     return weeks
 
+def build_nested_attendance_data(queryset, weeks_list, today_date):
+    # Group queryset by date and classroom
+    records = list(queryset.values('classroom_id', 'date')
+                   .annotate(
+                       student_count=Count('id'),
+                       classroom_name=F('classroom__name'),
+                       classroom_branch=F('classroom__branches')
+                   )
+                   .order_by('-date', 'classroom__name'))
+    
+    from collections import defaultdict
+    records_by_date = defaultdict(list)
+    for r in records:
+        records_by_date[r['date']].append(r)
+        
+    today_records = records_by_date.get(today_date, [])
+    
+    nested_weeks = []
+    from datetime import datetime
+    for wk in weeks_list:
+        w_start = datetime.strptime(wk['start'], '%Y-%m-%d').date()
+        w_end = datetime.strptime(wk['end'], '%Y-%m-%d').date()
+        
+        # Find days in this week
+        week_days = []
+        for d in sorted(records_by_date.keys(), reverse=True):
+            if w_start <= d <= w_end:
+                if d == today_date:
+                    continue  # exclude today from the general weeks list
+                week_days.append({
+                    'date': d,
+                    'records': records_by_date[d]
+                })
+        
+        if week_days:
+            # Sort the days within the week descending
+            week_days = sorted(week_days, key=lambda x: x['date'], reverse=True)
+            nested_weeks.append({
+                'number': wk['number'],
+                'start': wk['start'],
+                'end': wk['end'],
+                'label': wk['label'],
+                'days': week_days
+            })
+            
+    # Sort the nested weeks descending by their week start date
+    nested_weeks = sorted(nested_weeks, key=lambda x: x['start'], reverse=True)
+    return today_records, nested_weeks
+
 class attendance(ListView):
     model = Attendance
     template_name = 'attendance/attendance.html'
@@ -95,85 +144,41 @@ class attendance(ListView):
         search = (self.request.GET.get('q') or '').strip()
         month_param = (self.request.GET.get('month') or '').strip()
         
-        # Determine if any filter is active
-        is_filtered = bool(
-            branch or classroom_id or search or 
-            self.request.GET.get('week_start') or 
-            self.request.GET.get('week_end') or 
-            self.request.GET.get('month')
-        )
-        
         today = timezone.localdate()
-        days_to_saturday = (today.weekday() + 2) % 7
-        current_week_start = today - timedelta(days=days_to_saturday)
-        current_week_end = current_week_start + timedelta(days=6)
         
         # If not month_param in GET, we default to the current month
         if not month_param:
             month_param = today.strftime('%Y-%m')
 
-        # Base queryset for today and week
-        base_queryset = Attendance.objects.select_related('classroom')
-        current_year = getattr(self.request, 'current_academic_year', None)
-        if current_year:
-            base_queryset = base_queryset.filter(student__academic_year=current_year)
-
-        # Today's summary (only if not filtered)
-        today_summary = []
-        if not is_filtered:
-            today_qs = base_queryset.filter(date=today)
-            today_summary = (today_qs.values('classroom_id', 'date')
-                             .annotate(
-                                 student_count=Count('id'), 
-                                 classroom_name=F('classroom__name'),
-                                 classroom_branch=F('classroom__branches')
-                             )
-                             .order_by('classroom__name'))
-
-        # Week's summary (only if not filtered)
-        week_summary = []
-        if not is_filtered:
-            week_summary_qs = base_queryset.filter(date__range=[current_week_start, current_week_end]).exclude(date=today)
-            week_summary = (week_summary_qs.values('classroom_id', 'date')
-                            .annotate(
-                                student_count=Count('id'), 
-                                classroom_name=F('classroom__name'),
-                                classroom_branch=F('classroom__branches')
-                            )
-                            .order_by('-date', 'classroom__name'))
-
-        # General filtered/selected summary
-        filtered = self.get_queryset()
-        summary = (filtered.values('classroom_id', 'date')
-                   .annotate(
-                       student_count=Count('id'), 
-                       classroom_name=F('classroom__name'),
-                       classroom_branch=F('classroom__branches')
-                   )
-                   .order_by('-date', 'classroom__name'))
+        # Get filtered queryset
+        filtered_qs = self.get_queryset()
 
         # Compute weeks of the current selected month
-        weeks = []
+        weeks_list = []
         if month_param:
             try:
                 year_str, month_str = month_param.split('-', 1)
-                weeks = get_weeks_for_month(int(year_str), int(month_str))
+                weeks_list = get_weeks_for_month(int(year_str), int(month_str))
             except ValueError:
                 pass
 
-        context['is_filtered'] = is_filtered
+        # Build hierarchical nested weeks and days
+        today_records, nested_weeks = build_nested_attendance_data(filtered_qs, weeks_list, today)
+
         context['today_date'] = today
-        context['current_week_start'] = current_week_start
-        context['current_week_end'] = current_week_end
-        context['today_summary'] = today_summary
-        context['week_summary'] = week_summary
-        context['summary'] = summary
-        context['weeks'] = weeks
-        context['current_week_start_param'] = self.request.GET.get('week_start') or ''
-        context['current_week_end_param'] = self.request.GET.get('week_end') or ''
+        context['today_records'] = today_records
+        context['nested_weeks'] = nested_weeks
+        context['weeks'] = weeks_list
+        context['current_month'] = month_param
+        
+        is_filtered = bool(branch or classroom_id or search or 
+                           self.request.GET.get('week_start') or 
+                           self.request.GET.get('week_end'))
+        context['is_filtered'] = is_filtered
         
         context['branches'] = Classroom.BranchChoices.choices
         classrooms = Classroom.objects.filter(is_active=True).order_by('name')
+        current_year = getattr(self.request, 'current_academic_year', None)
         if current_year:
             classrooms = classrooms.filter(enrollments__student__academic_year=current_year).distinct()
         context['classrooms'] = classrooms
@@ -183,7 +188,6 @@ class attendance(ListView):
         else:
             context['months'] = Attendance.objects.dates('date', 'month', order='DESC')
         
-        context['current_month'] = month_param
         context['filters'] = {
             'branch': branch,
             'classroom': classroom_id,
