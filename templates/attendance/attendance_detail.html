@@ -4,7 +4,7 @@
 {% load static %}
 {% block content %}
 <div class="module-header">
-    <h2>تفاصيل الحضور - {{ classroom.name }} - {{ date }}</h2>
+    <h2>تفاصيل الحضور - {{ classroom.name }}{% if classroom.branches %} - {{ classroom.get_branches_display }}{% endif %} - {{ date }}</h2>
     <div class="header-actions">
         <a href="{% url 'attendance:attendance' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> العودة للسجل

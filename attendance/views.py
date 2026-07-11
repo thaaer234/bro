@@ -25,6 +25,28 @@ import json
 
 # Create your views here.
 
+def get_weeks_for_month(year, month):
+    import calendar
+    from datetime import date
+    # Start week on Sunday (6) or Saturday (5). Let's use Saturday to align with standard Middle East weeks.
+    cal = calendar.Calendar(firstweekday=5)
+    weeks = []
+    month_start = date(year, month, 1)
+    _, last_day = calendar.monthrange(year, month)
+    month_end = date(year, month, last_day)
+    
+    for i, week_dates in enumerate(cal.monthdatescalendar(year, month), 1):
+        start = max(week_dates[0], month_start)
+        end = min(week_dates[-1], month_end)
+        if start <= end:
+            weeks.append({
+                'number': i,
+                'start': start.strftime('%Y-%m-%d'),
+                'end': end.strftime('%Y-%m-%d'),
+                'label': f"الأسبوع {i} (من {start.strftime('%d-%m')} إلى {end.strftime('%d-%m')})"
+            })
+    return weeks
+
 class attendance(ListView):
     model = Attendance
     template_name = 'attendance/attendance.html'
@@ -38,9 +60,11 @@ class attendance(ListView):
         branch = self.request.GET.get('branch') or ''
         classroom_id = self.request.GET.get('classroom') or ''
         search = (self.request.GET.get('q') or '').strip()
-        month_param = (self.request.GET.get('month') or '').strip()
-        if not month_param:
-            month_param = timezone.now().date().strftime('%Y-%m')
+        month_param = self.request.GET.get('month')
+        if month_param is None:
+            month_param = (self.request.GET.get('month') or '').strip()
+            if not month_param:
+                month_param = timezone.now().date().strftime('%Y-%m')
 
         if branch:
             queryset = queryset.filter(classroom__branches=branch)
@@ -55,6 +79,12 @@ class attendance(ListView):
             except ValueError:
                 pass
 
+        # Filter by week if specified
+        week_start = self.request.GET.get('week_start')
+        week_end = self.request.GET.get('week_end')
+        if week_start and week_end:
+            queryset = queryset.filter(date__range=[week_start, week_end])
+
         return queryset
     
     def get_context_data(self, **kwargs):
@@ -64,30 +94,105 @@ class attendance(ListView):
         classroom_id = self.request.GET.get('classroom') or ''
         search = (self.request.GET.get('q') or '').strip()
         month_param = (self.request.GET.get('month') or '').strip()
+        
+        # Determine if any filter is active
+        is_filtered = bool(
+            branch or classroom_id or search or 
+            self.request.GET.get('week_start') or 
+            self.request.GET.get('week_end') or 
+            self.request.GET.get('month')
+        )
+        
+        today = timezone.localdate()
+        days_to_saturday = (today.weekday() + 2) % 7
+        current_week_start = today - timedelta(days=days_to_saturday)
+        current_week_end = current_week_start + timedelta(days=6)
+        
+        # If not month_param in GET, we default to the current month
         if not month_param:
-            month_param = timezone.now().date().strftime('%Y-%m')
-        # تجميع التواريخ لكل شعبة
+            month_param = today.strftime('%Y-%m')
+
+        # Base queryset for today and week
+        base_queryset = Attendance.objects.select_related('classroom')
+        current_year = getattr(self.request, 'current_academic_year', None)
+        if current_year:
+            base_queryset = base_queryset.filter(student__academic_year=current_year)
+
+        # Today's summary (only if not filtered)
+        today_summary = []
+        if not is_filtered:
+            today_qs = base_queryset.filter(date=today)
+            today_summary = (today_qs.values('classroom_id', 'date')
+                             .annotate(
+                                 student_count=Count('id'), 
+                                 classroom_name=F('classroom__name'),
+                                 classroom_branch=F('classroom__branches')
+                             )
+                             .order_by('classroom__name'))
+
+        # Week's summary (only if not filtered)
+        week_summary = []
+        if not is_filtered:
+            week_summary_qs = base_queryset.filter(date__range=[current_week_start, current_week_end]).exclude(date=today)
+            week_summary = (week_summary_qs.values('classroom_id', 'date')
+                            .annotate(
+                                student_count=Count('id'), 
+                                classroom_name=F('classroom__name'),
+                                classroom_branch=F('classroom__branches')
+                            )
+                            .order_by('-date', 'classroom__name'))
+
+        # General filtered/selected summary
         filtered = self.get_queryset()
-        context['summary'] = (filtered.values('classroom_id', 'date')
-                                      .annotate(student_count=Count('id'), classroom_name=F('classroom__name'))
-                                      .order_by('-date', 'classroom__name'))
+        summary = (filtered.values('classroom_id', 'date')
+                   .annotate(
+                       student_count=Count('id'), 
+                       classroom_name=F('classroom__name'),
+                       classroom_branch=F('classroom__branches')
+                   )
+                   .order_by('-date', 'classroom__name'))
+
+        # Compute weeks of the current selected month
+        weeks = []
+        if month_param:
+            try:
+                year_str, month_str = month_param.split('-', 1)
+                weeks = get_weeks_for_month(int(year_str), int(month_str))
+            except ValueError:
+                pass
+
+        context['is_filtered'] = is_filtered
+        context['today_date'] = today
+        context['current_week_start'] = current_week_start
+        context['current_week_end'] = current_week_end
+        context['today_summary'] = today_summary
+        context['week_summary'] = week_summary
+        context['summary'] = summary
+        context['weeks'] = weeks
+        context['current_week_start_param'] = self.request.GET.get('week_start') or ''
+        context['current_week_end_param'] = self.request.GET.get('week_end') or ''
+        
         context['branches'] = Classroom.BranchChoices.choices
         classrooms = Classroom.objects.filter(is_active=True).order_by('name')
-        current_year = getattr(self.request, 'current_academic_year', None)
         if current_year:
             classrooms = classrooms.filter(enrollments__student__academic_year=current_year).distinct()
         context['classrooms'] = classrooms
+        
         if current_year:
             context['months'] = Attendance.objects.filter(student__academic_year=current_year).dates('date', 'month', order='DESC')
         else:
             context['months'] = Attendance.objects.dates('date', 'month', order='DESC')
+        
         context['current_month'] = month_param
         context['filters'] = {
             'branch': branch,
             'classroom': classroom_id,
             'q': search,
+            'week_start': self.request.GET.get('week_start') or '',
+            'week_end': self.request.GET.get('week_end') or '',
         }
         return context
+
 
 class TakeAttendanceView(View):
     template_name = 'attendance/take_attendance.html'

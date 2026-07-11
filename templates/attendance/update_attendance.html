@@ -11,7 +11,7 @@
 
 <div class="module-header">
     <h2>تعديل الحضور</h2>
-    <p>الشعبة: {{ classroom.name }} - التاريخ: {{ date }}</p>
+    <p>الشعبة: {{ classroom.name }}{% if classroom.branches %} - {{ classroom.get_branches_display }}{% endif %} - التاريخ: {{ date }}</p>
 </div>
 {% include "partials/_alerts.html" %}
 

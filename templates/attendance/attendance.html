@@ -18,27 +18,65 @@
 </div>
 {% include "partials/_alerts.html" %}
 
+<style>
+    .card-header .fa-chevron-down {
+        transition: transform 0.2s ease;
+    }
+    .card-header.collapsed .fa-chevron-down {
+        transform: rotate(-90deg);
+    }
+</style>
+
 {% if months %}
 <div class="archive-section" style="margin: 16px 0;">
-    <h4 style="margin-bottom: 12px;">أرشيف الحضور حسب الشهر</h4>
+    <h4 style="margin-bottom: 12px;"><i class="fas fa-archive"></i> أرشيف الحضور حسب الشهر</h4>
     <div class="archive-list" style="display:flex; flex-wrap:wrap; gap:8px;">
         <a href="?{% if filters.branch %}branch={{ filters.branch }}&{% endif %}{% if filters.classroom %}classroom={{ filters.classroom }}&{% endif %}{% if filters.q %}q={{ filters.q }}{% endif %}"
-           class="btn btn-sm btn-outline-primary">
+           class="btn btn-sm {% if not is_filtered %}btn-primary{% else %}btn-outline-primary{% endif %}">
             كل الشهور
         </a>
         {% for month in months %}
             {% with month_value=month|date:"Y-m" %}
                 <a href="?month={{ month_value }}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}{% if filters.classroom %}&classroom={{ filters.classroom }}{% endif %}{% if filters.q %}&q={{ filters.q }}{% endif %}"
-                   class="btn btn-sm {% if current_month == month_value %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                   class="btn btn-sm {% if current_month == month_value and not filters.week_start %}btn-primary{% else %}btn-outline-primary{% endif %}">
                     حضور {{ month_value }}
                 </a>
             {% endwith %}
         {% endfor %}
     </div>
+    
+    {% if weeks %}
+    <div class="weeks-archive-section" style="margin-top: 12px; padding: 12px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+        <h5 style="margin-bottom: 8px; color: #495057; font-size: 14px; font-weight: 600;"><i class="fas fa-calendar-week"></i> أسابيع شهر {{ current_month }}:</h5>
+        <div class="weeks-list" style="display:flex; flex-wrap:wrap; gap:8px;">
+            <a href="?month={{ current_month }}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}{% if filters.classroom %}&classroom={{ filters.classroom }}{% endif %}{% if filters.q %}&q={{ filters.q }}{% endif %}"
+               class="btn btn-sm {% if not current_week_start_param %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                كل الأسابيع
+            </a>
+            {% for week in weeks %}
+                <a href="?month={{ current_month }}&week_start={{ week.start }}&week_end={{ week.end }}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}{% if filters.classroom %}&classroom={{ filters.classroom }}{% endif %}{% if filters.q %}&q={{ filters.q }}{% endif %}"
+                   class="btn btn-sm {% if current_week_start_param == week.start and current_week_end_param == week.end %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    {{ week.label }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
 <form method="get" class="filter-bar" style="margin: 16px 0;">
+    <!-- الاحتفاظ بالشهر والأسبوع المحددين عند تصفية الفروع أو الشعب -->
+    {% if current_month %}
+        <input type="hidden" name="month" value="{{ current_month }}">
+    {% endif %}
+    {% if current_week_start_param %}
+        <input type="hidden" name="week_start" value="{{ current_week_start_param }}">
+    {% endif %}
+    {% if current_week_end_param %}
+        <input type="hidden" name="week_end" value="{{ current_week_end_param }}">
+    {% endif %}
+
     <div class="row" style="gap: 12px; align-items: flex-end;">
         <div class="col">
             <label for="branch-filter">الفرع</label>
@@ -54,7 +92,9 @@
             <select id="classroom-filter" name="classroom" class="form-control">
                 <option value="">كل الشعب</option>
                 {% for classroom in classrooms %}
-                    <option value="{{ classroom.id }}" {% if filters.classroom == classroom.id|stringformat:"s" %}selected{% endif %}>{{ classroom.name }}</option>
+                    <option value="{{ classroom.id }}" {% if filters.classroom == classroom.id|stringformat:"s" %}selected{% endif %}>
+                        {{ classroom.name }}{% if classroom.branches %} - {{ classroom.get_branches_display }}{% endif %}
+                    </option>
                 {% endfor %}
             </select>
         </div>
@@ -69,43 +109,195 @@
     </div>
 </form>
 
-<div class="table-container">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>الشعبة</th>
-                <th>تاريخ الحضور</th>
-                <th>عدد الطلاب</th>
-                <th>الإجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in summary %}
-                <tr>
-                    <td>{{ item.classroom_name }}</td>
-                    <td>{{ item.date|date:"Y-m-d" }}</td>
-                    <td>{{ item.student_count }}</td>
-                    <td>
-                        <a href="{% url 'attendance:attendance_detail' item.classroom_id item.date|date:'Y-m-d' %}" class="btn btn-sm btn-info">
-                            <i class="fas fa-eye"></i> عرض التفاصيل
-                        </a>
-                        <a href="{% url 'attendance:update_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="btn btn-sm btn-warning">
-                            <i class="fas fa-edit"></i> تعديل
-                        </a>
-                        <form method="post" action="{% url 'attendance:delete_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="d-inline" onsubmit="return confirm('Delete this attendance record?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center">لا توجد سجلات حضور</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+{% if not is_filtered %}
+    <!-- 1. حضور اليوم -->
+    <div class="card mb-4 border-0 shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0 !important;">
+        <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center" style="cursor: pointer;" data-toggle="collapse" data-target="#todayCollapse" data-bs-toggle="collapse" data-bs-target="#todayCollapse" aria-expanded="true" aria-controls="todayCollapse">
+            <h5 class="mb-0 text-primary" style="font-weight: 700;">
+                <i class="fas fa-calendar-day mr-2"></i> حضور اليوم ({{ today_date|date:"Y-m-d" }})
+            </h5>
+            <i class="fas fa-chevron-down text-primary"></i>
+        </div>
+        <div id="todayCollapse" class="collapse show">
+            <div class="card-body p-0">
+                <div class="table-container m-0">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>الشعبة</th>
+                                <th>تاريخ الحضور</th>
+                                <th>عدد الطلاب</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in today_summary %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.classroom_name }}</strong>
+                                        {% if item.classroom_branch %}
+                                            <span class="badge bg-light text-dark border ml-2">
+                                                {% if item.classroom_branch == 'علمي' %}العلمي
+                                                {% elif item.classroom_branch == 'أدبي' %}الأدبي
+                                                {% elif item.classroom_branch == 'تاسع' %}الصف التاسع
+                                                {% else %}{{ item.classroom_branch }}
+                                                {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.date|date:"Y-m-d" }}</td>
+                                    <td>{{ item.student_count }}</td>
+                                    <td>
+                                        <a href="{% url 'attendance:attendance_detail' item.classroom_id item.date|date:'Y-m-d' %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> عرض التفاصيل
+                                        </a>
+                                        <a href="{% url 'attendance:update_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> تعديل
+                                        </a>
+                                        <form method="post" action="{% url 'attendance:delete_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="d-inline" onsubmit="return confirm('Delete this attendance record?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">لا توجد سجلات حضور لليوم بعد. يمكنك البدء بتسجيل حضور طلاب من الزر بالأعلى.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. حضور الأسبوع الحالي -->
+    <div class="card mb-4 border-0 shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0 !important;">
+        <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center" style="cursor: pointer;" data-toggle="collapse" data-target="#weekCollapse" data-bs-toggle="collapse" data-bs-target="#weekCollapse" aria-expanded="true" aria-controls="weekCollapse">
+            <h5 class="mb-0 text-success" style="font-weight: 700;">
+                <i class="fas fa-calendar-week mr-2"></i> حضور الأسبوع الحالي (من {{ current_week_start|date:"m-d" }} إلى {{ current_week_end|date:"m-d" }})
+            </h5>
+            <i class="fas fa-chevron-down text-success"></i>
+        </div>
+        <div id="weekCollapse" class="collapse show">
+            <div class="card-body p-0">
+                <div class="table-container m-0">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>الشعبة</th>
+                                <th>تاريخ الحضور</th>
+                                <th>عدد الطلاب</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in week_summary %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.classroom_name }}</strong>
+                                        {% if item.classroom_branch %}
+                                            <span class="badge bg-light text-dark border ml-2">
+                                                {% if item.classroom_branch == 'علمي' %}العلمي
+                                                {% elif item.classroom_branch == 'أدبي' %}الأدبي
+                                                {% elif item.classroom_branch == 'تاسع' %}الصف التاسع
+                                                {% else %}{{ item.classroom_branch }}
+                                                {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.date|date:"Y-m-d" }}</td>
+                                    <td>{{ item.student_count }}</td>
+                                    <td>
+                                        <a href="{% url 'attendance:attendance_detail' item.classroom_id item.date|date:'Y-m-d' %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> عرض التفاصيل
+                                        </a>
+                                        <a href="{% url 'attendance:update_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> تعديل
+                                        </a>
+                                        <form method="post" action="{% url 'attendance:delete_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="d-inline" onsubmit="return confirm('Delete this attendance record?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">لا توجد سجلات حضور أخرى في الأسبوع الحالي.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- 3. نتائج التصفية والأرشيف -->
+    <div class="card mb-4 border-0 shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0 !important;">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 text-dark" style="font-weight: 700;">
+                <i class="fas fa-filter mr-2"></i> سجلات الحضور المفلترة
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-container m-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>الشعبة</th>
+                            <th>تاريخ الحضور</th>
+                            <th>عدد الطلاب</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in summary %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.classroom_name }}</strong>
+                                    {% if item.classroom_branch %}
+                                        <span class="badge bg-light text-dark border ml-2">
+                                            {% if item.classroom_branch == 'علمي' %}العلمي
+                                            {% elif item.classroom_branch == 'أدبي' %}الأدبي
+                                            {% elif item.classroom_branch == 'تاسع' %}الصف التاسع
+                                            {% else %}{{ item.classroom_branch }}
+                                            {% endif %}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.date|date:"Y-m-d" }}</td>
+                                <td>{{ item.student_count }}</td>
+                                <td>
+                                    <a href="{% url 'attendance:attendance_detail' item.classroom_id item.date|date:'Y-m-d' %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i> عرض التفاصيل
+                                    </a>
+                                    <a href="{% url 'attendance:update_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </a>
+                                    <form method="post" action="{% url 'attendance:delete_attendance' item.classroom_id item.date|date:'Y-m-d' %}" class="d-inline" onsubmit="return confirm('Delete this attendance record?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">لا توجد سجلات حضور تطابق خيارات التصفية الحالية.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endif %}
 {% endblock %}
