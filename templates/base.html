@@ -128,61 +128,327 @@
     {% endif %}
 
     {% if user.is_authenticated %}
-    <!-- نافذة البحث السريع الذكي (Spotlight Search) -->
-    <div id="spotlight-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; justify-content: center; padding-top: 10vh;">
-        <div class="spotlight-container" style="background: var(--bg-1, #ffffff); border-radius: 16px; border: 1px solid var(--border, #e2e8f0); width: 100%; max-width: 650px; height: fit-content; max-height: 70vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
-            <!-- شريط المدخلات -->
-            <div class="d-flex align-items-center border-bottom px-3 py-2" style="background: var(--bg-2, #f8fafc);">
-                <i class="fas fa-search text-muted me-2" style="font-size: 1.1rem;"></i>
-                <input type="text" id="spotlight-input" class="form-control border-0 bg-transparent shadow-none" placeholder="بحث عام وسريع في النظام... (مثال: أحمد، شعبة أ، صندوق)" style="font-size: 1.1rem; direction: rtl;" autocomplete="off">
-                <button type="button" class="btn-close ms-2" id="spotlight-close-btn" aria-label="إغلاق"></button>
+    <!-- نافذة البحث السريع الذكي (Spotlight Search) المعزولة بالكامل -->
+    <div id="spotlight-overlay" class="spotlight-sys-overlay" style="display: none;">
+        <div class="spotlight-sys-container">
+            <!-- شريط البحث الفوقي -->
+            <div class="spotlight-sys-header">
+                <div class="spotlight-sys-search-wrapper">
+                    <i class="fas fa-search spotlight-sys-search-icon"></i>
+                    <input type="text" id="spotlight-input" placeholder="بحث عام وسريع في النظام... (مثال: أحمد، شعبة أ، صندوق)" autocomplete="off">
+                </div>
+                <button type="button" class="spotlight-sys-close-btn" id="spotlight-close-btn" aria-label="إغلاق">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             <!-- نتائج البحث -->
-            <div id="spotlight-results" style="overflow-y: auto; max-height: 50vh; padding: 10px 0;">
-                <div class="text-center py-4 text-muted" id="spotlight-placeholder">
-                    <i class="fas fa-search fa-2x mb-2 text-secondary"></i>
-                    <p class="mb-0 small">اكتب اسم طالب، شعبة، مادة، مدرس، حساب مالي، أو وجهة نظام...</p>
+            <div id="spotlight-results" class="spotlight-sys-results-list">
+                <div class="spotlight-sys-placeholder" id="spotlight-placeholder">
+                    <i class="fas fa-search-plus fa-3x spotlight-sys-pulse"></i>
+                    <h4>البحث الذكي والشامل في معهد اليمان</h4>
+                    <p>اكتب اسم طالب، شعبة، مادة، مدرس، حساب مالي، أو وجهة نظام...</p>
                 </div>
             </div>
             <!-- تذييل تعليمات المودال -->
-            <div class="px-3 py-2 border-top d-flex justify-content-between text-muted small" style="background: var(--bg-2, #f8fafc); font-size: 0.75rem;">
-                <div>تنقل بـ <kbd class="px-1 bg-light border rounded">↑</kbd> <kbd class="px-1 bg-light border rounded">↓</kbd> واضغط <kbd class="px-1 bg-light border rounded">Enter</kbd> للذهاب فورا</div>
-                <div>اضغط <kbd class="px-1 bg-light border rounded">Esc</kbd> للإغلاق</div>
+            <div class="spotlight-sys-footer">
+                <div class="spotlight-sys-instructions">
+                    <span>تنقل بـ <kbd>↑</kbd> <kbd>↓</kbd> واضغط <kbd>Enter</kbd> للذهاب فورا</span>
+                </div>
+                <div class="spotlight-sys-escape">
+                    <span>اضغط <kbd>Esc</kbd> للإغلاق</span>
+                </div>
             </div>
         </div>
     </div>
     
     <style>
-        /* أنماط البحث السريع المتقدم */
-        .spotlight-result-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 16px;
-            text-decoration: none;
-            color: var(--text-1, #1e293b);
-            border-left: 3px solid transparent;
-            transition: all 0.15s ease;
-            cursor: pointer;
+        /* كود CSS معزول بالكامل وبأعلى دقة */
+        .spotlight-sys-overlay {
+            position: fixed !important;
+            inset: 0 !important;
+            background: rgba(15, 23, 42, 0.6) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            z-index: 99999 !important;
+            display: none;
+            justify-content: center;
+            padding-top: 12vh;
+            box-sizing: border-box;
+            direction: rtl !important;
         }
-        .spotlight-result-item:hover, .spotlight-result-item.selected {
-            background-color: var(--bg-2, #f1f5f9);
-            border-left-color: var(--primary, #1e3a8a);
-            outline: none;
-            text-decoration: none;
-            color: var(--text-1, #1e293b);
+        
+        .spotlight-sys-container {
+            background: #ffffff !important;
+            border-radius: 20px !important;
+            border: 1px solid rgba(226, 232, 240, 0.8) !important;
+            width: 100% !important;
+            max-width: 700px !important;
+            height: fit-content !important;
+            max-height: 75vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.3) !important;
+            animation: spotlightFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        .spotlight-result-category {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--primary, #1e3a8a);
-            background: var(--primary-light, #eff6ff);
-            padding: 2px 8px;
-            border-radius: 4px;
-            margin-right: auto;
+
+        @keyframes spotlightFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
-        #spotlight-input:focus {
+        
+        .spotlight-sys-header {
+            display: flex !important;
+            align-items: center !important;
+            padding: 16px 20px !important;
+            background: #ffffff !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            gap: 12px !important;
+        }
+        
+        .spotlight-sys-search-wrapper {
+            position: relative !important;
+            flex-grow: 1 !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        
+        .spotlight-sys-search-icon {
+            position: absolute !important;
+            right: 14px !important;
+            font-size: 1.15rem !important;
+            color: #64748b !important;
+            pointer-events: none !important;
+        }
+        
+        .spotlight-sys-container input[type="text"]#spotlight-input {
+            width: 100% !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 12px !important;
+            padding: 12px 46px 12px 16px !important;
+            background: #f8fafc !important;
+            color: #0f172a !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            font-family: 'Cairo', sans-serif !important;
+            box-sizing: border-box !important;
             outline: none !important;
-            box-shadow: none !important;
+            transition: all 0.2s ease !important;
+            text-align: right !important;
+        }
+        
+        .spotlight-sys-container input[type="text"]#spotlight-input:focus {
+            background: #ffffff !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+        }
+        
+        .spotlight-sys-close-btn {
+            background: #f1f5f9 !important;
+            border: none !important;
+            border-radius: 10px !important;
+            width: 40px !important;
+            height: 40px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: #64748b !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+        }
+        
+        .spotlight-sys-close-btn:hover {
+            background: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+        
+        .spotlight-sys-results-list {
+            overflow-y: auto !important;
+            max-height: 52vh !important;
+            padding: 12px !important;
+            background: #ffffff !important;
+        }
+
+        /* تخصيص السكرول بار */
+        .spotlight-sys-results-list::-webkit-scrollbar {
+            width: 6px !important;
+        }
+        .spotlight-sys-results-list::-webkit-scrollbar-track {
+            background: transparent !important;
+        }
+        .spotlight-sys-results-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1 !important;
+            border-radius: 10px !important;
+        }
+        
+        .spotlight-sys-placeholder {
+            text-align: center !important;
+            padding: 40px 20px !important;
+            color: #64748b !important;
+        }
+        
+        .spotlight-sys-pulse {
+            color: #cbd5e1 !important;
+            margin-bottom: 16px !important;
+            animation: spotlightPulse 2s infinite ease-in-out;
+        }
+        
+        @keyframes spotlightPulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        
+        .spotlight-sys-placeholder h4 {
+            margin: 0 0 8px 0 !important;
+            font-size: 15px !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+        }
+        
+        .spotlight-sys-placeholder p {
+            margin: 0 !important;
+            font-size: 12px !important;
+            color: #64748b !important;
+        }
+        
+        /* عناصر نتيجة البحث الفردية */
+        .spotlight-sys-item {
+            display: flex !important;
+            align-items: center !important;
+            padding: 10px 14px !important;
+            text-decoration: none !important;
+            color: #334155 !important;
+            border-radius: 10px !important;
+            margin-bottom: 6px !important;
+            transition: all 0.15s ease !important;
+            border: 1px solid transparent !important;
+            cursor: pointer !important;
+            box-sizing: border-box !important;
+        }
+        
+        .spotlight-sys-item:last-child {
+            margin-bottom: 0 !important;
+        }
+        
+        .spotlight-sys-item:hover, .spotlight-sys-item.selected {
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            transform: translateX(-4px) !important;
+            outline: none !important;
+            text-decoration: none !important;
+            color: #0f172a !important;
+        }
+        
+        .spotlight-sys-item-icon-wrapper {
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            border-radius: 10px !important;
+            background: #f1f5f9 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-left: 12px !important;
+            color: #64748b !important;
+            transition: all 0.15s ease !important;
+        }
+        
+        .spotlight-sys-item:hover .spotlight-sys-item-icon-wrapper,
+        .spotlight-sys-item.selected .spotlight-sys-item-icon-wrapper {
+            background: #e2e8f0 !important;
+            color: #1e3a8a !important;
+        }
+        
+        .spotlight-sys-item-text {
+            flex-grow: 1 !important;
+            text-align: right !important;
+        }
+        
+        .spotlight-sys-item-title {
+            font-size: 13.5px !important;
+            font-weight: 700 !important;
+            margin-bottom: 2px !important;
+            color: #0f172a !important;
+        }
+        
+        .spotlight-sys-item-desc {
+            font-size: 11px !important;
+            color: #64748b !important;
+        }
+        
+        /* بادج التصنيفات الملونة والمعزولة */
+        .spotlight-sys-badge {
+            font-size: 10.5px !important;
+            font-weight: 700 !important;
+            padding: 3px 10px !important;
+            border-radius: 6px !important;
+            margin-right: auto !important;
+            display: inline-block !important;
+        }
+        
+        .spotlight-badge-links {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+            border: 1px solid #bfdbfe !important;
+        }
+        .spotlight-badge-regular {
+            background: #f0fdf4 !important;
+            color: #15803d !important;
+            border: 1px solid #bbf7d0 !important;
+        }
+        .spotlight-badge-quick {
+            background: #fffbeb !important;
+            color: #b45309 !important;
+            border: 1px solid #fef3c7 !important;
+        }
+        .spotlight-badge-classrooms {
+            background: #eef2ff !important;
+            color: #4338ca !important;
+            border: 1px solid #c7d2fe !important;
+        }
+        .spotlight-badge-subjects {
+            background: #faf5ff !important;
+            color: #6b21a8 !important;
+            border: 1px solid #e9d5ff !important;
+        }
+        .spotlight-badge-teachers {
+            background: #fdf2f8 !important;
+            color: #be185d !important;
+            border: 1px solid #fbcfe8 !important;
+        }
+        .spotlight-badge-finance {
+            background: #f0fdfa !important;
+            color: #0f766e !important;
+            border: 1px solid #99f6e4 !important;
+        }
+        
+        /* تذييل المودال */
+        .spotlight-sys-footer {
+            padding: 12px 20px !important;
+            background: #f8fafc !important;
+            border-top: 1px solid #e2e8f0 !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            font-size: 11px !important;
+            color: #64748b !important;
+        }
+        
+        .spotlight-sys-footer kbd {
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 4px !important;
+            padding: 1px 6px !important;
+            font-size: 10px !important;
+            font-family: monospace !important;
+            color: #334155 !important;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.1) !important;
         }
     </style>
 
@@ -198,6 +464,21 @@
         let currentItems = [];
 
         if (!overlay) return;
+
+        // دالة تحديد صنف البادج المناسب
+        function getCategoryBadgeClass(category) {
+            switch(category) {
+                case 'روابط النظام': return 'spotlight-badge-links';
+                case 'الطلاب النظاميون': return 'spotlight-badge-regular';
+                case 'الطلاب السريعون': return 'spotlight-badge-quick';
+                case 'الشعب الصفية': return 'spotlight-badge-classrooms';
+                case 'المواد الدراسية': return 'spotlight-badge-subjects';
+                case 'المدرسون': return 'spotlight-badge-teachers';
+                case 'الموظفون': return 'spotlight-badge-teachers';
+                case 'الحسابات المالية': return 'spotlight-badge-finance';
+                default: return 'spotlight-badge-links';
+            }
+        }
 
         // دالة فتح البحث
         window.openGlobalSearch = function() {
@@ -226,12 +507,10 @@
 
         // تشغيل الاختصارات العامة
         document.addEventListener('keydown', function(e) {
-            // Ctrl + K أو الضغط على مفتاح / لفتح البحث
             if ((e.ctrlKey && e.key.toLowerCase() === 'k') || (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA')) {
                 e.preventDefault();
                 openGlobalSearch();
             }
-            // إغلاق بالـ Esc
             if (e.key === 'Escape' && overlay.style.display === 'flex') {
                 closeGlobalSearch();
             }
@@ -277,23 +556,24 @@
 
                         let html = '';
                         results.forEach((item, idx) => {
+                            const badgeClass = getCategoryBadgeClass(item.category);
                             html += `
-                                <a href="${item.url}" class="spotlight-result-item" data-index="${idx}">
-                                    <div class="d-flex align-items-center justify-content-center bg-light rounded-circle me-3" style="width: 36px; height: 36px; min-width: 36px; margin-left: 12px;">
-                                        <i class="${item.icon} text-secondary"></i>
+                                <a href="${item.url}" class="spotlight-sys-item" data-index="${idx}">
+                                    <div class="spotlight-sys-item-icon-wrapper">
+                                        <i class="${item.icon}"></i>
                                     </div>
-                                    <div style="flex-grow: 1; text-align: right;">
-                                        <div class="fw-bold" style="font-size: 0.9rem; color: var(--text-1);">${item.title}</div>
-                                        <small class="text-muted">${item.description}</small>
+                                    <div class="spotlight-sys-item-text">
+                                        <div class="spotlight-sys-item-title">${item.title}</div>
+                                        <div class="spotlight-sys-item-desc">${item.description}</div>
                                     </div>
-                                    <span class="spotlight-result-category">${item.category}</span>
+                                    <span class="spotlight-sys-badge ${badgeClass}">${item.category}</span>
                                 </a>
                             `;
                         });
                         resultsContainer.innerHTML = html;
 
                         // ربط الأحداث للعناصر الجديدة
-                        document.querySelectorAll('.spotlight-result-item').forEach(el => {
+                        document.querySelectorAll('.spotlight-sys-item').forEach(el => {
                             el.addEventListener('mouseenter', function() {
                                 const idx = parseInt(this.getAttribute('data-index'));
                                 setSelectedIndex(idx);
@@ -313,7 +593,7 @@
 
         // دالة تحديد العنصر النشط بالكيبورد
         function setSelectedIndex(index) {
-            const items = document.querySelectorAll('.spotlight-result-item');
+            const items = document.querySelectorAll('.spotlight-sys-item');
             items.forEach(item => item.classList.remove('selected'));
             selectedIndex = index;
             if (selectedIndex >= 0 && selectedIndex < items.length) {
@@ -324,7 +604,7 @@
 
         // معالجة التنقل بالكيبورد (الأسهم و Enter)
         input.addEventListener('keydown', function(e) {
-            const items = document.querySelectorAll('.spotlight-result-item');
+            const items = document.querySelectorAll('.spotlight-sys-item');
             if (items.length === 0) return;
 
             if (e.key === 'ArrowDown') {

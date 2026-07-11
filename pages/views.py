@@ -1433,14 +1433,15 @@ def global_search_api(request):
     quick_students = QuickStudent.objects.filter(
         Q(full_name__icontains=query) |
         Q(phone__icontains=query) |
-        Q(student_number__icontains=query)
+        Q(student__student_number__icontains=query)
     )[:10]
     for qs in quick_students:
+        s_num = qs.student.student_number if qs.student else '-'
         results.append({
             'title': qs.full_name,
             'url': reverse('quick:student_profile', args=[qs.id]),
             'category': 'الطلاب السريعون',
-            'description': f"رقم أكاديمي: {qs.student_number or '-'} | هاتف: {qs.phone or '-'}",
+            'description': f"رقم أكاديمي: {s_num} | هاتف: {qs.phone or '-'}",
             'icon': 'fas fa-user-bolt'
         })
         
@@ -1469,28 +1470,33 @@ def global_search_api(request):
     # 6. المدرسون
     teachers = Teacher.objects.filter(
         Q(full_name__icontains=query) |
-        Q(phone__icontains=query)
+        Q(phone_number__icontains=query)
     )[:5]
     for t in teachers:
         results.append({
             'title': t.full_name,
             'url': reverse('employ:teachers'),
             'category': 'المدرسون',
-            'description': f"هاتف: {t.phone or '-'}",
+            'description': f"هاتف: {t.phone_number or '-'}",
             'icon': 'fas fa-chalkboard-user'
         })
         
     # 7. الموظفون
     employees = Employee.objects.filter(
-        Q(full_name__icontains=query) |
-        Q(phone__icontains=query)
+        Q(user__first_name__icontains=query) |
+        Q(user__last_name__icontains=query) |
+        Q(user__username__icontains=query) |
+        Q(phone_number__icontains=query)
     )[:5]
     for emp in employees:
+        emp_name = emp.user.get_full_name() if emp.user else ""
+        if not emp_name and emp.user:
+            emp_name = emp.user.username
         results.append({
-            'title': emp.full_name,
+            'title': emp_name,
             'url': reverse('employ:employee_register'),
             'category': 'الموظفون',
-            'description': f"هاتف: {emp.phone or '-'} | حالة: {emp.get_status_display()}",
+            'description': f"هاتف: {emp.phone_number or '-'} | حالة: {emp.get_employment_status_display() if hasattr(emp, 'get_employment_status_display') else '-'}",
             'icon': 'fas fa-user-tie'
         })
         
