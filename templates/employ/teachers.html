@@ -286,6 +286,12 @@
 
                         </a>
 
+                        {% if data.teacher.is_partner %}
+                        <a href="{% url 'employ:teacher_profile' data.teacher.pk %}#partnership-info" class="btn btn-sm btn-success" style="background-color: #2e7d32; border-color: #2e7d32;">
+                            <i class="fas fa-handshake"></i> تصفح كشريك
+                        </a>
+                        {% endif %}
+
                         <a href="{% url 'employ:update_teacher' data.teacher.pk %}" class="btn btn-sm btn-warning">
 
                             <i class="fas fa-edit"></i> تعديل
