@@ -361,6 +361,12 @@
                     <span class="field-label">اسم الطالب:</span>
                     <span class="field-value">{{ student.student.full_name }}</span>
                 </div>
+                {% if student.student.notes %}
+                <div class="field-row">
+                    <span class="field-label" style="color: #c0392b;"><i class="fas fa-sticky-note me-1"></i>ملاحظة الطالب:</span>
+                    <span class="field-value" style="color: #c0392b; font-weight: bold; border-bottom-color: #fecaca;">{{ student.student.notes }}</span>
+                </div>
+                {% endif %}
                 <div class="field-row">
                     <span class="field-label">المبلغ وقدره:</span>
                     <span class="field-value amount">{{ student.remaining|floatformat:0|intcomma }} ل.س</span>

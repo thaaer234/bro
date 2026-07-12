@@ -259,6 +259,11 @@
                                 {% if row.student.phone %}
                                 <small class="text-muted">{{ row.student.phone }}</small>
                                 {% endif %}
+                                {% if row.student.notes %}
+                                <div class="student-note mt-1" style="font-size: 0.8rem; background-color: #fff3cd; border-right: 3px solid #ffc107; padding: 2px 8px; border-radius: 0 4px 4px 0; color: #856404; display: inline-block;">
+                                    <i class="fas fa-sticky-note me-1"></i>ملاحظة: {{ row.student.notes }}
+                                </div>
+                                {% endif %}
                             </td>
                             <td>
                                 {% with classroom=row.current_classroom %}

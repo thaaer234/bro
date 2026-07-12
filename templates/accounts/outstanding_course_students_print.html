@@ -393,6 +393,11 @@
                         {% if row.student.phone %}
                             <span class="cell-phone"><i class="fas fa-phone" style="color: #1d6b63; margin-left: 4px;"></i>الهاتف: {{ row.student.phone }}</span>
                         {% endif %}
+                        {% if row.student.notes %}
+                            <span class="cell-phone text-danger" style="color: #c0392b; font-weight: bold; display: block; margin-top: 4px;">
+                                <i class="fas fa-sticky-note" style="margin-left: 4px;"></i>ملاحظة: {{ row.student.notes }}
+                            </span>
+                        {% endif %}
                     </td>
                     <td class="cell-center" style="font-weight: bold;">
                         {% with classroom=row.current_classroom %}

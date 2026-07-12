@@ -74,6 +74,11 @@
                             <a href="{% url 'students:student_profile' student_info.student.id %}" class="text-decoration-none fw-bold">
                                 {{ student_info.student.full_name }}
                             </a>
+                            {% if student_info.student.notes %}
+                            <div class="student-note mt-1" style="font-size: 0.8rem; background-color: #fff3cd; border-right: 3px solid #ffc107; padding: 2px 8px; border-radius: 0 4px 4px 0; color: #856404; display: inline-block;">
+                                <i class="fas fa-sticky-note me-1"></i>ملاحظة: {{ student_info.student.notes }}
+                            </div>
+                            {% endif %}
                         </td>
                         <td>{{ student_info.student.student_number|default:"-" }}</td>
                         <td>{{ student_info.student.phone|default:"-" }}</td>
