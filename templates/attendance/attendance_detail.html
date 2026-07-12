@@ -36,7 +36,15 @@
             {% for attendance in attendances %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td>{{ attendance.student.full_name }}</td>
+                <td>
+                    <strong>{{ attendance.student.full_name }}</strong>
+                    {% if attendance.subjects_note %}
+                        <br>
+                        <span class="badge {% if attendance.subjects_note == 'كامل المواد' %}bg-success{% else %}bg-warning text-dark{% endif %} mt-1" style="font-size: 0.75rem; font-weight: normal; display: inline-block; padding: 0.25em 0.5em; border-radius: 4px;">
+                            {{ attendance.subjects_note }}
+                        </span>
+                    {% endif %}
+                </td>
                 <td>
                     <span class="badge {% if attendance.status == 'present' %}bg-success{% elif attendance.status == 'absent' %}bg-danger{% else %}bg-warning{% endif %}">
                         {{ attendance.get_status_display }}

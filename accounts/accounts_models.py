@@ -575,8 +575,9 @@ class Transaction(models.Model):
                                      related_name='transactions', verbose_name='قيد اليومية / Journal Entry')
     account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='الحساب / Account')
     amount = models.DecimalField(max_digits=15, decimal_places=2, 
-                                validators=[MinValueValidator(Decimal('0.01'))],
+                                validators=[MinValueValidator(Decimal('0.00'))],
                                 verbose_name='المبلغ / Amount')
+    dollar_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, verbose_name='مبلغ الدولار / Dollar Amount')
     is_debit = models.BooleanField(verbose_name='مدين / Debit')
     description = models.CharField(max_length=500, blank=True, verbose_name='الوصف / Description')
     cost_center = models.ForeignKey(CostCenter, on_delete=models.SET_NULL, null=True, blank=True,

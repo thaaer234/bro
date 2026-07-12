@@ -336,7 +336,34 @@ class AttendanceDetailView(ListView):
     def get_queryset(self):
         classroom_id = self.kwargs.get('classroom_id')
         date = self.kwargs.get('date')
-        return Attendance.objects.filter(classroom_id=classroom_id, date=date)
+        classroom = get_object_or_404(Classroom, id=classroom_id)
+        
+        attendances = Attendance.objects.filter(classroom_id=classroom_id, date=date)
+        current_year = getattr(self.request, 'current_academic_year', None)
+        if current_year:
+            attendances = attendances.filter(student__academic_year=current_year)
+            
+        from django.db.models import Subquery, OuterRef, Value, F
+        from django.db.models.functions import Coalesce
+        from accounts.models import Studentenrollment
+        
+        if classroom.course:
+            sub = Studentenrollment.objects.filter(
+                student=OuterRef('student'),
+                course=classroom.course
+            ).values('subjects_note')[:1]
+        else:
+            sub_qs = Studentenrollment.objects.filter(student=OuterRef('student'))
+            if current_year:
+                sub_qs = sub_qs.filter(academic_year=current_year)
+            sub = sub_qs.values('subjects_note')[:1]
+            
+        attendances = attendances.annotate(
+            annotated_subjects=Subquery(sub)
+        ).annotate(
+            subjects_note=Coalesce(F('annotated_subjects'), Value('كامل المواد'))
+        )
+        return attendances
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -360,6 +387,27 @@ class UpdateAttendanceView(View):
         current_year = getattr(request, 'current_academic_year', None)
         if current_year:
             attendances = attendances.filter(student__academic_year=current_year)
+
+        from django.db.models import Subquery, OuterRef, Value, F
+        from django.db.models.functions import Coalesce
+        from accounts.models import Studentenrollment
+
+        if classroom.course:
+            sub = Studentenrollment.objects.filter(
+                student=OuterRef('student'),
+                course=classroom.course
+            ).values('subjects_note')[:1]
+        else:
+            sub_qs = Studentenrollment.objects.filter(student=OuterRef('student'))
+            if current_year:
+                sub_qs = sub_qs.filter(academic_year=current_year)
+            sub = sub_qs.values('subjects_note')[:1]
+
+        attendances = attendances.annotate(
+            annotated_subjects=Subquery(sub)
+        ).annotate(
+            subjects_note=Coalesce(F('annotated_subjects'), Value('كامل المواد'))
+        )
 
         return render(request, self.template_name, {
             'classroom': classroom,
@@ -816,17 +864,44 @@ def teacher_attendance_by_date(request, date):
         return redirect('attendance:teacher_attendance')
 
 def export_attendance_to_excel(request, classroom_id, date):
+    classroom = get_object_or_404(Classroom, id=classroom_id)
     # جلب بيانات الحضور
     attendances = Attendance.objects.filter(
         classroom_id=classroom_id, 
         date=date
     ).select_related('student')
     
+    current_year = getattr(request, 'current_academic_year', None)
+    if current_year:
+        attendances = attendances.filter(student__academic_year=current_year)
+        
+    from django.db.models import Subquery, OuterRef, Value, F
+    from django.db.models.functions import Coalesce
+    from accounts.models import Studentenrollment
+    
+    if classroom.course:
+        sub = Studentenrollment.objects.filter(
+            student=OuterRef('student'),
+            course=classroom.course
+        ).values('subjects_note')[:1]
+    else:
+        sub_qs = Studentenrollment.objects.filter(student=OuterRef('student'))
+        if current_year:
+            sub_qs = sub_qs.filter(academic_year=current_year)
+        sub = sub_qs.values('subjects_note')[:1]
+        
+    attendances = attendances.annotate(
+        annotated_subjects=Subquery(sub)
+    ).annotate(
+        subjects_note=Coalesce(F('annotated_subjects'), Value('كامل المواد'))
+    )
+    
     # إنشاء DataFrame من البيانات
     data = []
     for attendance in attendances:
         data.append({
             'اسم الطالب': attendance.student.full_name,
+            'المواد المسجلة': attendance.subjects_note,
             'الحالة': attendance.get_status_display(),
             'ملاحظات': attendance.notes or ''
         })
@@ -834,7 +909,6 @@ def export_attendance_to_excel(request, classroom_id, date):
     df = pd.DataFrame(data)
     
     # إنشاء اسم للملف
-    classroom = get_object_or_404(Classroom, id=classroom_id)
     filename = f"حضور_{classroom.name}_{date}.xlsx"
     
     # إنشاء الرد بـ Excel file

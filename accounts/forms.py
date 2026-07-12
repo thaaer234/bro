@@ -362,10 +362,14 @@ class JournalEntryForm(AcademicYearScopedFormMixin, forms.ModelForm):
 
 class TransactionForm(forms.ModelForm):
     amount = forms.CharField(widget=forms.TextInput(attrs={'placeholder': '0.00', 'inputmode': 'decimal', 'autocomplete': 'off'}))
+    dollar_amount = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': '0.00', 'inputmode': 'decimal', 'autocomplete': 'off'})
+    )
 
     class Meta:
         model = Transaction
-        fields = ['account', 'amount', 'is_debit', 'cost_center', 'description']
+        fields = ['account', 'amount', 'is_debit', 'cost_center', 'description', 'dollar_amount']
         widgets = {
             'description': forms.TextInput(attrs={'placeholder': 'Transaction description'}),
         }
@@ -380,6 +384,15 @@ class TransactionForm(forms.ModelForm):
         if not raw_value:
             return self.cleaned_data.get('amount')
         return Decimal(raw_value)
+
+    def clean_dollar_amount(self):
+        raw_value = str(self.cleaned_data.get('dollar_amount', '') or '').replace(',', '').replace('،', '').strip()
+        if not raw_value:
+            return None
+        try:
+            return Decimal(raw_value)
+        except Exception:
+            raise forms.ValidationError("مبلغ غير صحيح")
 
 # Create formset for transactions
 TransactionFormSet = inlineformset_factory(

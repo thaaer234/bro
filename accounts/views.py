@@ -1661,30 +1661,46 @@ class LedgerView(LoginRequiredMixin, TemplateView):
         # Get all transactions for this account and its descendants
         transactions = account.transactions_with_descendants(academic_year=academic_year).select_related('journal_entry').order_by('journal_entry__date', 'journal_entry__created_at')
         
-        # Calculate running balance
+        # Calculate running balance and totals
         running_balance = Decimal('0.00')
         transaction_data = []
+        total_debit = Decimal('0.00')
+        total_credit = Decimal('0.00')
+        total_dollar_amount = Decimal('0.00')
         
         for transaction in transactions:
             if transaction.is_debit:
+                total_debit += transaction.amount
                 if account.account_type in ['ASSET', 'EXPENSE']:
                     running_balance += transaction.amount
                 else:
                     running_balance -= transaction.amount
             else:  # Credit
+                total_credit += transaction.amount
                 if account.account_type in ['LIABILITY', 'EQUITY', 'REVENUE']:
                     running_balance += transaction.amount
                 else:
                     running_balance -= transaction.amount
+            
+            if transaction.dollar_amount:
+                total_dollar_amount += transaction.dollar_amount
             
             transaction_data.append({
                 'transaction': transaction,
                 'running_balance': running_balance,
             })
         
+        net_balance = account.get_net_balance(academic_year=academic_year)
+        is_dollar_account = account.code.startswith('122')
+        
         context.update({
             'account': account,
             'transaction_data': transaction_data,
+            'total_debit': total_debit,
+            'total_credit': total_credit,
+            'net_balance': net_balance,
+            'is_dollar_account': is_dollar_account,
+            'total_dollar_amount': total_dollar_amount,
         })
         
         return context

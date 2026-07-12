@@ -902,7 +902,7 @@ class QuickStudentReceipt(models.Model):
             return self.journal_entry
 
         paid_amount = self.paid_amount or Decimal('0')
-        if paid_amount <= 0:
+        if paid_amount < 0:
             return None
         
         # الحسابات الخاصة بالطلاب السريعين

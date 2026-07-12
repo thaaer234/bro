@@ -165,10 +165,15 @@
                                         </label>
                                     </div>
                                 </div>
-                                <div class="col-12">
+                                <div class="col-12 description-col">
                                     <label for="{{ form.description.id_for_label }}" class="form-label">الوصف</label>
                                     {{ form.description }}
                                     {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-3 dollar-amount-col" style="display: none;">
+                                    <label for="{{ form.dollar_amount.id_for_label }}" class="form-label">مبلغ الدولار ($)</label>
+                                    {{ form.dollar_amount }}
+                                    {% if form.dollar_amount.errors %}<div class="text-danger small">{{ form.dollar_amount.errors }}</div>{% endif %}
                                 </div>
                             </div>
 
@@ -266,9 +271,13 @@
                         <button type="button" class="entry-side-toggle__btn" data-side="credit">دائن</button>
                     </div>
                 </div>
-                <div class="col-12">
+                <div class="col-12 description-col">
                     <label for="{{ form.description.id_for_label }}" class="form-label">الوصف</label>
                     {{ form.description }}
+                </div>
+                <div class="col-md-3 dollar-amount-col" style="display: none;">
+                    <label for="{{ form.dollar_amount.id_for_label }}" class="form-label">مبلغ الدولار ($)</label>
+                    {{ form.dollar_amount }}
                 </div>
             </div>
             {% endwith %}
@@ -283,21 +292,44 @@ document.addEventListener('DOMContentLoaded', function() {
     let formIndex = {{ transaction_formset.total_form_count }};
 
     function normalizeAmount(value) {
-        return String(value || '')
-            .replace(/,/g, '')
-            .replace(/،/g, '')
-            .replace(/\s+/g, '')
-            .replace(/[^\d.]/g, '');
+        let val = String(value || '').trim();
+        let isNegative = val.startsWith('-');
+        let cleaned = val.replace(/,/g, '').replace(/،/g, '').replace(/\s+/g, '').replace(/[^\d.]/g, '');
+        return isNegative ? '-' + cleaned : cleaned;
     }
 
     function formatAmount(value) {
         const normalized = normalizeAmount(value);
         if (!normalized) return '';
-        const parts = normalized.split('.');
+        const isNegative = normalized.startsWith('-');
+        const absVal = isNegative ? normalized.slice(1) : normalized;
+        const parts = absVal.split('.');
         const integerPart = parts[0] || '0';
         const decimalPart = parts.length > 1 ? parts.slice(1).join('').slice(0, 2) : '';
         const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+        const formattedAbs = decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+        return isNegative ? '-' + formattedAbs : formattedAbs;
+    }
+
+    function toggleDollarField(row) {
+        const accountSelect = row.querySelector('select[name*="account"]');
+        const dollarCol = row.querySelector('.dollar-amount-col');
+        const descCol = row.querySelector('.description-col');
+        
+        if (!accountSelect || !dollarCol || !descCol) return;
+        
+        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+        const optionText = selectedOption ? (selectedOption.text || '') : '';
+        
+        if (optionText.trim().startsWith('122')) {
+            dollarCol.style.display = 'block';
+            descCol.className = 'col-md-9 description-col';
+        } else {
+            dollarCol.style.display = 'none';
+            descCol.className = 'col-12 description-col';
+            const dollarInput = dollarCol.querySelector('input');
+            if (dollarInput) dollarInput.value = '';
+        }
     }
 
     document.getElementById('add-transaction').addEventListener('click', function() {
@@ -332,6 +364,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.value = formatAmount(this.value);
             });
             input.value = formatAmount(input.value);
+        });
+
+        document.querySelectorAll('select[name*="account"]').forEach(function(select) {
+            if (select.dataset.accountBound === 'true') { return; }
+            select.dataset.accountBound = 'true';
+            select.addEventListener('change', function() {
+                const row = this.closest('.formset-row');
+                toggleDollarField(row);
+            });
+            const row = select.closest('.formset-row');
+            toggleDollarField(row);
         });
 
         document.querySelectorAll('input[name*="is_debit"]').forEach(function(checkbox) {

@@ -1547,7 +1547,8 @@ class JournalEntry(models.Model):
 class Transaction(models.Model):
     journal_entry = models.ForeignKey(JournalEntry, on_delete=models.CASCADE, related_name='transactions', verbose_name='قيد اليومية / Journal Entry')
     account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='transactions', verbose_name='الحساب / Account')
-    amount = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name='المبلغ / Amount')
+    amount = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))], verbose_name='المبلغ / Amount')
+    dollar_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True, verbose_name='مبلغ الدولار / Dollar Amount')
     is_debit = models.BooleanField(verbose_name='مدين / Debit')
     description = models.CharField(max_length=500, blank=True, verbose_name='الوصف / Description')
     cost_center = models.ForeignKey(CostCenter, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='مركز التكلفة / Cost Center')
@@ -1971,7 +1972,7 @@ class Studentenrollment(models.Model):
             return self.enrollment_journal_entry
         
         net_amount = self.net_amount
-        if net_amount <= 0:
+        if net_amount < 0:
             return None
         
         # Get accounts (pass course to scope AR under course)
@@ -2118,7 +2119,7 @@ class StudentReceipt(models.Model):
             return self.journal_entry
         
         paid_amount = self.paid_amount or Decimal('0')
-        if paid_amount <= 0:
+        if paid_amount < 0:
             return None
         
         cash_account = get_user_cash_account(user, fallback_code='121')
