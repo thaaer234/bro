@@ -1,0 +1,105 @@
+{% extends "mobile/teacher_base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="no-print" style="margin-bottom: 10px;">
+    <a href="{% url 'mobile:teacher_dashboard' %}" class="logout-btn" style="width: auto; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; font-weight: bold; border-radius: 14px;">
+        <i class="fas fa-arrow-right"></i>
+        <span>العودة للرئيسية</span>
+    </a>
+</div>
+
+<div class="card reveal" style="border: 1.5px solid var(--primary); background: linear-gradient(135deg, rgba(118, 75, 162, 0.03) 0%, #ffffff 100%);">
+    <div class="section-title" style="color: var(--primary);">
+        <i class="fas fa-handshake"></i>
+        دفتر أستاذ الشراكة
+    </div>
+    <div style="margin-top: 12px;">
+        <span class="muted" style="font-size: 0.8rem;">الحساب المالي:</span>
+        <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-top: 2px;">
+            {{ account.code }} — {{ account.name_ar|default:account.name }}
+        </h3>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 4px;">
+    <div class="card reveal" style="padding: 14px 18px; border-right: 4px solid var(--primary); animation-delay: 0.02s;">
+        <span class="muted" style="font-size: 0.78rem;">صافي الرصيد الحالي / Net Balance</span>
+        <h3 style="font-size: 1.5rem; font-weight: 900; color: var(--primary); margin-top: 4px; font-family: 'Courier New', Courier, monospace;">
+            {{ net_balance|floatformat:0|intcomma }} ل.س
+        </h3>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="card reveal" style="padding: 12px 14px; border-right: 4px solid #2ecc71; animation-delay: 0.04s;">
+            <span class="muted" style="font-size: 0.72rem;">إجمالي مدين (+)</span>
+            <h4 style="font-size: 1.1rem; font-weight: 800; color: #27ae60; margin-top: 4px; font-family: 'Courier New', Courier, monospace;">
+                {{ total_debit|floatformat:0|intcomma }}
+            </h4>
+        </div>
+        <div class="card reveal" style="padding: 12px 14px; border-right: 4px solid #e74c3c; animation-delay: 0.04s;">
+            <span class="muted" style="font-size: 0.72rem;">إجمالي دائن (-)</span>
+            <h4 style="font-size: 1.1rem; font-weight: 800; color: #c0392b; margin-top: 4px; font-family: 'Courier New', Courier, monospace;">
+                {{ total_credit|floatformat:0|intcomma }}
+            </h4>
+        </div>
+    </div>
+</div>
+
+<!-- Transactions List -->
+<div class="card reveal" style="animation-delay: 0.06s; margin-top: 4px;">
+    <div class="section-title">
+        <i class="fas fa-list-ul"></i>
+        الحركات المالية التفصيلية
+    </div>
+    
+    <div class="list" style="margin-top: 14px; display: flex; flex-direction: column; gap: 14px;">
+        {% for tx in transactions %}
+        <div class="list-item" style="border: 1px solid var(--border); border-radius: 16px; padding: 14px; background: #fafafa; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="badge" style="background: rgba(118, 75, 162, 0.08); color: var(--primary); font-weight: bold; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px;">
+                    قيد رقم #{{ tx.entry_number }}
+                </span>
+                <span class="muted" style="font-size: 0.75rem;">
+                    {{ tx.date|date:"Y-m-d" }}
+                </span>
+            </div>
+            
+            <p style="font-size: 0.88rem; font-weight: bold; color: var(--text); line-height: 1.4; margin: 2px 0;">
+                {{ tx.description }}
+            </p>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 4px;">
+                <div>
+                    <span class="muted" style="font-size: 0.72rem; display: block;">الحركة المباشرة:</span>
+                    {% if tx.debit > 0 %}
+                    <strong style="color: #27ae60; font-size: 0.95rem; font-family: 'Courier New', Courier, monospace;">
+                        +{{ tx.debit|floatformat:0|intcomma }} ل.س (مدين)
+                    </strong>
+                    {% elif tx.credit > 0 %}
+                    <strong style="color: #c0392b; font-size: 0.95rem; font-family: 'Courier New', Courier, monospace;">
+                        -{{ tx.credit|floatformat:0|intcomma }} ل.س (دائن)
+                    </strong>
+                    {% else %}
+                    <strong class="muted">-</strong>
+                    {% endif %}
+                </div>
+                
+                <div style="text-align: left;">
+                    <span class="muted" style="font-size: 0.72rem; display: block;">الرصيد المتراكم:</span>
+                    <strong style="font-size: 0.95rem; font-family: 'Courier New', Courier, monospace; color: var(--primary);">
+                        {{ tx.running_balance|floatformat:0|intcomma }} ل.س
+                    </strong>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="list-item" style="text-align: center; padding: 25px 0;">
+            <i class="fas fa-info-circle fa-2x muted" style="margin-bottom: 8px;"></i>
+            <p class="muted">لا توجد حركات مالية مسجلة على هذا الحساب.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

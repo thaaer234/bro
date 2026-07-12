@@ -675,10 +675,51 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
         # Partnership details
         partner_account = None
         partner_balance = Decimal('0.00')
+        partner_financial_data = None
         if teacher.is_partner:
-            partner_account = teacher.get_partner_account()
+            from accounts.models import Account
+            current_academic_year = getattr(self.request, 'current_academic_year', None)
+            
+            def get_group_accounts(prefix, exclude_prefixes=None):
+                qs = Account.objects.filter(code__startswith=prefix, is_active=True)
+                if exclude_prefixes:
+                    for ex in exclude_prefixes:
+                        qs = qs.exclude(code__startswith=ex)
+                
+                accounts_list = []
+                for acc in qs.order_by('code'):
+                    balance = acc.get_rollup_balance(academic_year=current_academic_year)
+                    accounts_list.append({
+                        'id': acc.id,
+                        'code': acc.code,
+                        'name': acc.name_ar or acc.name,
+                        'balance': balance,
+                        'account_type': acc.account_type,
+                    })
+                return accounts_list
+
+            partner_account_code = f"301-{teacher.pk:04d}"
+            partner_account = Account.objects.filter(code=partner_account_code).first()
+            partner_account_data = None
             if partner_account:
-                partner_balance = partner_account.get_net_balance()
+                partner_balance = partner_account.get_rollup_balance(academic_year=current_academic_year)
+                partner_account_data = {
+                    'id': partner_account.id,
+                    'code': partner_account.code,
+                    'name': partner_account.name_ar or partner_account.name,
+                    'balance': partner_balance,
+                    'account_type': partner_account.account_type,
+                }
+
+            partner_financial_data = {
+                'partner_account': partner_account_data,
+                'cash_accounts': get_group_accounts('10'),
+                'deposit_accounts': get_group_accounts('122'),
+                'employee_cashboxes': get_group_accounts('121'),
+                'assets_accounts': get_group_accounts('1', exclude_prefixes=['10', '12']),
+                'revenue_accounts': get_group_accounts('4'),
+                'expense_accounts': get_group_accounts('5'),
+            }
                 
         # Quick courses details
         quick_sessions = list(teacher.quick_sessions.filter(is_active=True))
@@ -694,6 +735,7 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                 "classrooms": classroom_details,
                 "partner_account": partner_account,
                 "partner_balance": partner_balance,
+                "partner_financial_data": partner_financial_data,
                 "quick_sessions": quick_sessions,
                 "total_quick_earnings": total_quick_earnings,
                 "students_count": students_qs.count(),
@@ -1056,6 +1098,93 @@ class TeacherStudentDetailView(MobileSessionRequiredMixin, TemplateView):
                 "active_tab": "home",
             }
         )
+        return context
+
+
+class MobileTeacherPartnerLedgerView(MobileSessionRequiredMixin, TemplateView):
+    """كشف تفصيلي لحساب الشريك بالموبايل (دفتر الأستاذ)"""
+    template_name = 'mobile/teacher_partner_ledger.html'
+    allowed_roles = ["teacher"]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        teacher = self.request.mobile_profile
+        
+        if not teacher.is_partner:
+            from django.http import Http404
+            raise Http404("هذا المدرس ليس شريكاً مساهماً")
+            
+        from accounts.models import Account, Transaction
+        from django.shortcuts import get_object_or_404
+        from decimal import Decimal
+        
+        account_id = self.kwargs.get('account_id')
+        account = get_object_or_404(Account, id=account_id)
+        
+        current_year = getattr(self.request, 'current_academic_year', None)
+        
+        # جلب المعاملات (دفتر الأستاذ) للحساب
+        transactions_qs = Transaction.objects.filter(account=account).select_related('journal_entry').order_by('journal_entry__date', 'id')
+        if current_year:
+            transactions_qs = transactions_qs.filter(journal_entry__academic_year=current_year)
+            
+        # حساب الرصيد المتراكم
+        transactions = []
+        running_balance = Decimal('0.00')
+        total_debit = Decimal('0.00')
+        total_credit = Decimal('0.00')
+        
+        for tx in transactions_qs:
+            amount = tx.amount or Decimal('0.00')
+            dollar_amount = tx.dollar_amount
+            is_debit = tx.is_debit
+            
+            if is_debit:
+                debit_val = amount
+                credit_val = Decimal('0.00')
+                total_debit += amount
+            else:
+                debit_val = Decimal('0.00')
+                credit_val = amount
+                total_credit += amount
+                
+            # حساب الرصيد المتراكم بناءً على نوع الحساب
+            if account.account_type in ['ASSET', 'EXPENSE']:
+                if is_debit:
+                    running_balance += amount
+                else:
+                    running_balance -= amount
+            else: # LIABILITY, EQUITY, REVENUE
+                if is_debit:
+                    running_balance -= amount
+                else:
+                    running_balance += amount
+                    
+            transactions.append({
+                'id': tx.id,
+                'date': tx.journal_entry.date,
+                'entry_number': tx.journal_entry.entry_number or tx.journal_entry.id,
+                'journal_entry_id': tx.journal_entry.id,
+                'description': tx.journal_entry.description,
+                'debit': debit_val,
+                'credit': credit_val,
+                'dollar_amount': dollar_amount,
+                'running_balance': running_balance,
+            })
+            
+        net_balance = account.get_rollup_balance(academic_year=current_year)
+        
+        context.update({
+            'teacher': teacher,
+            'account': account,
+            'transactions': transactions,
+            'total_debit': total_debit,
+            'total_credit': total_credit,
+            'net_balance': net_balance,
+            'current_year': current_year,
+            'active_mode': self.request.session.get("mobile_active_mode", "teacher"),
+            'active_tab': "home",
+        })
         return context
 
     def post(self, request, *args, **kwargs):

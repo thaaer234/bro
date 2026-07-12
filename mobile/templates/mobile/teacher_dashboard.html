@@ -6,6 +6,86 @@
 .collapsible-section.active { display: block; }
 .section-link { cursor: pointer; }
 
+/* Partner Accordion Styles */
+details.partner-acc-group {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    background: #fafafa;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+details.partner-acc-group summary {
+    padding: 14px 16px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+    user-select: none;
+}
+details.partner-acc-group summary::-webkit-details-marker {
+    display: none;
+}
+details.partner-acc-group[open] {
+    background: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(118, 75, 162, 0.05);
+}
+details.partner-acc-group[open] summary {
+    border-bottom: 1px solid var(--border);
+    color: var(--primary);
+}
+details.partner-acc-group summary .toggle-icon {
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+}
+details.partner-acc-group[open] summary .toggle-icon {
+    transform: rotate(180deg);
+}
+.partner-acc-list {
+    padding: 4px 0;
+}
+.partner-acc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 0.85rem;
+    transition: background-color 0.15s ease;
+}
+.partner-acc-item:last-child {
+    border-bottom: none;
+}
+.partner-acc-item:active {
+    background-color: var(--surface-soft);
+}
+.partner-acc-item .acc-code-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 70%;
+}
+.partner-acc-item .acc-code {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 500;
+}
+.partner-acc-item .acc-name {
+    font-weight: 700;
+    color: var(--text);
+}
+.partner-acc-item .acc-balance {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 800;
+    color: var(--primary);
+}
+
 .student-center-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -569,24 +649,159 @@
     بوابة الشريك المساهم
   </div>
   
-  <div class="list">
-    <div class="list-item">
-      <h4>معلومات الشراكة</h4>
-      <p class="muted">المساهم: {{ teacher.full_name }}</p>
-      <p class="muted">حالة الحساب: شريك مساهم نشط</p>
-      <p class="muted">نسبة الأرباح من الشراكة: <strong style="color: #8a6d3b; font-size: 1.1rem;">{{ teacher.partnership_percentage }}%</strong></p>
+  <div class="list" style="margin-top: 15px;">
+    <!-- معلومات الشراكة ونسبة الملكية -->
+    <div class="list-item" style="border-right: 4px solid #d4af37; padding: 12px; background: rgba(212, 175, 55, 0.04);">
+      <h4 style="color: #8a6d3b;">خلاصة الشراكة</h4>
+      <p class="muted">الشريك: {{ teacher.full_name }}</p>
+      <p class="muted">نسبة الشراكة المقررة: <strong style="color: #8a6d3b;">{{ teacher.partnership_percentage }}%</strong></p>
     </div>
-    
-    <div class="list-item">
-      <h4>الحساب المالي للشراكة</h4>
-      {% if partner_account %}
-      <p class="muted">الحساب المرتبط: {{ partner_account.code }} - {{ partner_account.name }}</p>
-      <p style="margin-top: 5px; font-size: 1.15rem; font-weight: bold; color: #27ae60;">صافي الرصيد المستحق: {{ partner_balance|floatformat:0|intcomma }} ل.س</p>
-      <p class="muted" style="font-size: 0.85rem; margin-top: 8px;">ملاحظة: هذا الرصيد يمثل حقوقك ورصيد حساب الشراكة الخاص بك المسجل في شجرة الحسابات (حقوق الملكية 301) لحظة بلحظة.</p>
-      {% else %}
-      <p class="muted" style="color: #c0392b;">لا يوجد حساب رأس مال شراكة نشط (كود 301-XXXX) مسجل باسمك في النظام المالي للشركة. يرجى مراجعة المحاسب لربط حسابك.</p>
-      {% endif %}
+
+    <!-- حساب الشراكة الخاص بك كشريك -->
+    {% if partner_financial_data.partner_account %}
+    <div class="list-item" style="border-right: 4px solid var(--primary); padding: 12px;">
+      <h4>حساب رأس مال الشراكة الخاص بك</h4>
+      <p class="muted">الرمز: {{ partner_financial_data.partner_account.code }}</p>
+      <a href="{% url 'mobile:teacher_partner_ledger' partner_financial_data.partner_account.id %}" class="partner-acc-item" style="padding: 10px 0; border: none;">
+        <div class="acc-code-name">
+          <span class="acc-name" style="color: var(--primary);">{{ partner_financial_data.partner_account.name }}</span>
+        </div>
+        <span class="badge bg-primary px-3 py-2 text-white" style="font-size: 0.9rem; border-radius: 8px;">
+          {{ partner_financial_data.partner_account.balance|floatformat:0|intcomma }} ل.س
+        </span>
+      </a>
     </div>
+    {% endif %}
+
+    <h4 style="margin: 15px 0 10px 0; font-size: 0.95rem; font-weight: bold; color: var(--text);">
+        تصفح حسابات المركز كشريك:
+    </h4>
+
+    <!-- الموجودات (الأصول الأخرى) -->
+    <details class="partner-acc-group">
+      <summary>
+         <span><i class="fas fa-box-open" style="color: #7f8c8d; margin-left: 8px;"></i> الموجودات (الأصول الأخرى)</span>
+         <i class="fas fa-chevron-down toggle-icon"></i>
+      </summary>
+      <div class="partner-acc-list">
+        {% for acc in partner_financial_data.assets_accounts %}
+        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="partner-acc-item">
+          <div class="acc-code-name">
+            <span class="acc-name">{{ acc.name }}</span>
+            <span class="acc-code">{{ acc.code }}</span>
+          </div>
+          <span class="acc-balance" style="color: #7f8c8d;">{{ acc.balance|floatformat:0|intcomma }} ل.س</span>
+        </a>
+        {% empty %}
+        <div class="p-3 text-muted text-center small">لا توجد موجودات أخرى نشطة</div>
+        {% endfor %}
+      </div>
+    </details>
+
+    <!-- النقدية والصناديق -->
+    <details class="partner-acc-group">
+      <summary>
+         <span><i class="fas fa-money-bill-wave" style="color: #27ae60; margin-left: 8px;"></i> النقدية والصناديق</span>
+         <i class="fas fa-chevron-down toggle-icon"></i>
+      </summary>
+      <div class="partner-acc-list">
+        {% for acc in partner_financial_data.cash_accounts %}
+        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="partner-acc-item">
+          <div class="acc-code-name">
+            <span class="acc-name">{{ acc.name }}</span>
+            <span class="acc-code">{{ acc.code }}</span>
+          </div>
+          <span class="acc-balance">{{ acc.balance|floatformat:0|intcomma }} ل.س</span>
+        </a>
+        {% empty %}
+        <div class="p-3 text-muted text-center small">لا توجد حسابات نقدية نشطة</div>
+        {% endfor %}
+      </div>
+    </details>
+
+    <!-- صندوق الأمانات ($) -->
+    <details class="partner-acc-group">
+      <summary>
+         <span><i class="fas fa-vault" style="color: #2980b9; margin-left: 8px;"></i> صندوق الأمانات ($)</span>
+         <i class="fas fa-chevron-down toggle-icon"></i>
+      </summary>
+      <div class="partner-acc-list">
+        {% for acc in partner_financial_data.deposit_accounts %}
+        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="partner-acc-item">
+          <div class="acc-code-name">
+            <span class="acc-name">{{ acc.name }}</span>
+            <span class="acc-code">{{ acc.code }}</span>
+          </div>
+          <span class="acc-balance" style="color: #2980b9;">{{ acc.balance|floatformat:0|intcomma }} ل.س</span>
+        </a>
+        {% empty %}
+        <div class="p-3 text-muted text-center small">لا توجد حسابات أمانات نشطة</div>
+        {% endfor %}
+      </div>
+    </details>
+
+    <!-- صناديق الموظفين -->
+    <details class="partner-acc-group">
+      <summary>
+         <span><i class="fas fa-user-shield" style="color: #f39c12; margin-left: 8px;"></i> صناديق الموظفين</span>
+         <i class="fas fa-chevron-down toggle-icon"></i>
+      </summary>
+      <div class="partner-acc-list">
+        {% for acc in partner_financial_data.employee_cashboxes %}
+        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="partner-acc-item">
+          <div class="acc-code-name">
+            <span class="acc-name">{{ acc.name }}</span>
+            <span class="acc-code">{{ acc.code }}</span>
+          </div>
+          <span class="acc-balance" style="color: #f39c12;">{{ acc.balance|floatformat:0|intcomma }} ل.س</span>
+        </a>
+        {% empty %}
+        <div class="p-3 text-muted text-center small">لا توجد صناديق موظفين نشطة</div>
+        {% endfor %}
+      </div>
+    </details>
+
+    <!-- الإيرادات -->
+    <details class="partner-acc-group">
+      <summary>
+         <span><i class="fas fa-handholding-usd" style="color: var(--primary); margin-left: 8px;"></i> الإيرادات</span>
+         <i class="fas fa-chevron-down toggle-icon"></i>
+      </summary>
+      <div class="partner-acc-list">
+        {% for acc in partner_financial_data.revenue_accounts %}
+        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="partner-acc-item">
+          <div class="acc-code-name">
+            <span class="acc-name">{{ acc.name }}</span>
+            <span class="acc-code">{{ acc.code }}</span>
+          </div>
+          <span class="acc-balance">{{ acc.balance|floatformat:0|intcomma }} ل.س</span>
+        </a>
+        {% empty %}
+        <div class="p-3 text-muted text-center small">لا توجد إيرادات نشطة</div>
+        {% endfor %}
+      </div>
+    </details>
+
+    <!-- المصاريف -->
+    <details class="partner-acc-group">
+      <summary>
+         <span><i class="fas fa-file-invoice-dollar" style="color: #c0392b; margin-left: 8px;"></i> المصاريف</span>
+         <i class="fas fa-chevron-down toggle-icon"></i>
+      </summary>
+      <div class="partner-acc-list">
+        {% for acc in partner_financial_data.expense_accounts %}
+        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="partner-acc-item">
+          <div class="acc-code-name">
+            <span class="acc-name">{{ acc.name }}</span>
+            <span class="acc-code">{{ acc.code }}</span>
+          </div>
+          <span class="acc-balance" style="color: #c0392b;">{{ acc.balance|floatformat:0|intcomma }} ل.س</span>
+        </a>
+        {% empty %}
+        <div class="p-3 text-muted text-center small">لا توجد مصاريف نشطة</div>
+        {% endfor %}
+      </div>
+    </details>
   </div>
 </div>
 {% endif %}
