@@ -1163,7 +1163,7 @@ class MobileTeacherPartnerLedgerView(MobileSessionRequiredMixin, TemplateView):
             transactions.append({
                 'id': tx.id,
                 'date': tx.journal_entry.date,
-                'entry_number': tx.journal_entry.entry_number or tx.journal_entry.id,
+                'entry_number': tx.journal_entry.reference or tx.journal_entry.id,
                 'journal_entry_id': tx.journal_entry.id,
                 'description': tx.journal_entry.description,
                 'debit': debit_val,
