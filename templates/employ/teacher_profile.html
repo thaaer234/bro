@@ -29,6 +29,11 @@
             <a href="{% url 'employ:add_manual_salary' teacher.pk %}" class="btn btn-outline-success">
                 {{ labels.salary_button }}
             </a>
+            {% if teacher.is_partner %}
+            <a href="{% url 'mobile:simulate_teacher' teacher.id %}" class="btn btn-success" style="background-color: #2e7d32; border-color: #2e7d32; color: white;">
+                <i class="fas fa-handshake"></i> تصفح كشريك (جوال)
+            </a>
+            {% endif %}
         </div>
     </div>
 
