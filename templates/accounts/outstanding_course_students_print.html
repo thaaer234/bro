@@ -393,10 +393,12 @@
                         {% if row.student.phone %}
                             <span class="cell-phone"><i class="fas fa-phone" style="color: #1d6b63; margin-left: 4px;"></i>الهاتف: {{ row.student.phone }}</span>
                         {% endif %}
-                        {% if row.student.notes %}
-                            <span class="cell-phone text-danger" style="color: #c0392b; font-weight: bold; display: block; margin-top: 4px;">
-                                <i class="fas fa-sticky-note" style="margin-left: 4px;"></i>ملاحظة: {{ row.student.notes }}
-                            </span>
+                        {% if row.student.staff_notes.all %}
+                            {% for note in row.student.staff_notes.all %}
+                                <span class="cell-phone text-danger" style="color: #c0392b; font-weight: bold; display: block; margin-top: 4px;">
+                                    <i class="fas fa-sticky-note" style="margin-left: 4px;"></i>{{ note.created_by.get_full_name|default:note.created_by.username }}: {{ note.text }} ({{ note.created_at|date:"Y-m-d H:i" }})
+                                </span>
+                            {% endfor %}
                         {% endif %}
                     </td>
                     <td class="cell-center" style="font-weight: bold;">

@@ -361,11 +361,13 @@
                     <span class="field-label">اسم الطالب:</span>
                     <span class="field-value">{{ student.student.full_name }}</span>
                 </div>
-                {% if student.student.notes %}
+                {% if student.student.staff_notes.all %}
+                {% for note in student.student.staff_notes.all %}
                 <div class="field-row">
-                    <span class="field-label" style="color: #c0392b;"><i class="fas fa-sticky-note me-1"></i>ملاحظة الطالب:</span>
-                    <span class="field-value" style="color: #c0392b; font-weight: bold; border-bottom-color: #fecaca;">{{ student.student.notes }}</span>
+                    <span class="field-label" style="color: #c0392b;"><i class="fas fa-sticky-note me-1"></i>ملاحظة الموظف:</span>
+                    <span class="field-value" style="color: #c0392b; font-weight: bold; border-bottom-color: #fecaca; font-size: 9px;">{{ note.created_by.get_full_name|default:note.created_by.username }}: {{ note.text }}</span>
                 </div>
+                {% endfor %}
                 {% endif %}
                 <div class="field-row">
                     <span class="field-label">المبلغ وقدره:</span>

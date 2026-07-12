@@ -259,9 +259,14 @@
                                 {% if row.student.phone %}
                                 <small class="text-muted">{{ row.student.phone }}</small>
                                 {% endif %}
-                                {% if row.student.notes %}
-                                <div class="student-note mt-1" style="font-size: 0.8rem; background-color: #fff3cd; border-right: 3px solid #ffc107; padding: 2px 8px; border-radius: 0 4px 4px 0; color: #856404; display: inline-block;">
-                                    <i class="fas fa-sticky-note me-1"></i>ملاحظة: {{ row.student.notes }}
+                                {% if row.student.staff_notes.all %}
+                                <div class="mt-1 d-flex flex-column gap-1" style="display: flex; flex-direction: column; gap: 4px;">
+                                    {% for note in row.student.staff_notes.all %}
+                                    <div class="student-note" style="font-size: 0.8rem; background-color: #fff3cd; border-right: 3px solid #ffc107; padding: 4px 8px; border-radius: 0 4px 4px 0; color: #856404; display: block; text-align: right;">
+                                        <i class="fas fa-sticky-note me-1"></i><strong>{{ note.created_by.get_full_name|default:note.created_by.username }}:</strong> {{ note.text }}
+                                        <small class="text-muted d-block" style="font-size: 0.7rem; color: #6c757d;">{{ note.created_at|date:"Y-m-d H:i" }}</small>
+                                    </div>
+                                    {% endfor %}
                                 </div>
                                 {% endif %}
                             </td>

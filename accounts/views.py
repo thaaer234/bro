@@ -2395,7 +2395,10 @@ class OutstandingCourseStudentsView(LoginRequiredMixin, TemplateView):
         print("=== جلب الطلاب من التسجيلات ===")
         
         # جلب جميع التسجيلات النشطة للدورة
-        enrollments = Studentenrollment.objects.filter(course=course, is_completed=False)
+        enrollments = Studentenrollment.objects.filter(
+            course=course, 
+            is_completed=False
+        ).select_related('student').prefetch_related('student__staff_notes')
         print(f"عدد التسجيلات النشطة: {enrollments.count()}")
         
         student_count = 0
@@ -2829,7 +2832,7 @@ class ClassroomDetailView(LoginRequiredMixin, TemplateView):
         """إضافة جميع الطلاب من enrollments"""
         if hasattr(classroom, 'enrollments'):
             print("  - الطريقة 1: البحث من خلال enrollments")
-            for enrollment in classroom.enrollments.all():
+            for enrollment in classroom.enrollments.select_related('student').prefetch_related('student__staff_notes').all():
                 student = self.get_student_from_anywhere(enrollment)
                 if student and student.id not in students_dict:
                     student_data = self.calculate_student_complete_data(student)
@@ -2841,7 +2844,7 @@ class ClassroomDetailView(LoginRequiredMixin, TemplateView):
         """إضافة جميع الطلاب من العلاقة المباشرة"""
         if hasattr(classroom, 'students'):
             print("  - الطريقة 2: البحث من خلال العلاقة المباشرة")
-            for student in classroom.students.all():
+            for student in classroom.students.prefetch_related('staff_notes').all():
                 if student.id not in students_dict:
                     student_data = self.calculate_student_complete_data(student)
                     students_dict[student.id] = student_data
@@ -2853,7 +2856,7 @@ class ClassroomDetailView(LoginRequiredMixin, TemplateView):
         try:
             from classroom.models import ClassroomEnrollment
             print("  - الطريقة 3: البحث من خلال ClassroomEnrollment")
-            enrollments = ClassroomEnrollment.objects.filter(classroom=classroom)
+            enrollments = ClassroomEnrollment.objects.filter(classroom=classroom).select_related('student').prefetch_related('student__staff_notes')
             for enrollment in enrollments:
                 if hasattr(enrollment, 'student') and enrollment.student:
                     student = enrollment.student
@@ -2868,7 +2871,7 @@ class ClassroomDetailView(LoginRequiredMixin, TemplateView):
     def add_all_students_from_all_students(self, classroom, students_dict):
         """إضافة جميع الطلاب من خلال التصفية"""
         print("  - الطريقة 4: البحث من خلال جميع الطلاب")
-        all_students = SProfile.objects.filter(is_active=True)
+        all_students = SProfile.objects.filter(is_active=True).prefetch_related('staff_notes')
         
         for student in all_students:
             if student.id not in students_dict:
