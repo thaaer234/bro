@@ -186,66 +186,13 @@
                             <td class="text-muted">{{ labels.balance }}</td>
                             <td class="fw-semibold text-danger">{{ advance_account_balance|floatformat:0 }} {{ labels.currency }}</td>
                         </tr>
-        <div class="card-body">
-            {% if branch_monthly_tables %}
-                {% for table in branch_monthly_tables %}
-                <div class="border rounded p-3 mb-3">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0">{{ table.branch_title }}</h6>
-                        <div class="text-muted small">{{ labels.hourly_rate }}: {{ table.hourly_rate|floatformat:0 }} {{ labels.currency }}</div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>{{ labels.month }}</th>
-                                    <th class="text-center">{{ labels.session_count }}</th>
-                                    <th class="text-center">{{ labels.due_amount }}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in table.rows %}
-                                <tr>
-                                    <td>{{ row.month_label }}</td>
-                                    <td class="text-center">{{ row.total_sessions|floatformat:1 }}</td>
-                                    <td class="text-center">{{ row.total_salary|floatformat:0 }} {{ labels.currency }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="text-muted small mt-2">{{ labels.monthly_formula }}</div>
-                </div>
-                {% endfor %}
-            {% else %}
-            <div class="text-muted">{{ labels.no_monthly_attendance }}</div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5 class="mb-0">{{ labels.advance_balance_title }}</h5>
-        </div>
-        <div class="card-body">
-            {% if advance_account %}
-            <div class="table-responsive">
-                <table class="table table-sm mb-0">
-                    <tbody>
-                        <tr>
-                            <td class="text-muted">{{ labels.account }}</td>
-                            <td class="fw-semibold">{{ advance_account.code }} - {{ advance_account.name }}</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">{{ labels.balance }}</td>
-                            <td class="fw-semibold text-danger">{{ advance_account_balance|floatformat:0 }} {{ labels.currency }}</td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
             {% else %}
             <div class="text-muted">{{ labels.no_advance_account }}</div>
             {% endif %}
+        </div>
     </div>
 
     {% if teacher.is_partner %}
