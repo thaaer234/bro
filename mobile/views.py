@@ -1607,3 +1607,24 @@ class MobileLogoutView(View):
         request.session.pop("mobile_login_role", None)
         request.session.pop("mobile_login_time", None)
         return redirect("mobile:welcome")
+
+
+class SimulateTeacherMobileView(View):
+    """عرض لوحة التحكم للجوال لمدرس معين لمحاكاة تصفحه كشريك من قبل المسؤول"""
+    def get(self, request, teacher_id):
+        from django.contrib.auth.mixins import LoginRequiredMixin
+        # تحقق يدوي للوصول السريع
+        if not request.user.is_authenticated or (not request.user.is_superuser and not request.user.is_staff):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("ليس لديك الصلاحية لتصفح حساب المدرس")
+            
+        from employ.models import Teacher
+        from django.shortcuts import get_object_or_404
+        teacher = get_object_or_404(Teacher, id=teacher_id)
+        
+        request.session['mobile_user_id'] = teacher.id
+        request.session['mobile_user_type'] = 'teacher'
+        request.session['mobile_active_mode'] = 'partner'
+        request.session['mobile_user_label'] = teacher.full_name
+        
+        return redirect('mobile:teacher_dashboard')

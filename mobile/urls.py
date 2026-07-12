@@ -17,6 +17,7 @@ from .views import (
     TeacherStudentDetailView,
     TeacherDashboardView,
     MobileTeacherPartnerLedgerView,
+    SimulateTeacherMobileView,
 )
 
 app_name = "mobile"
@@ -30,6 +31,11 @@ urlpatterns = [
     
     path("logout/", MobileLogoutView.as_view(), name="logout"),
     path("teacher/", TeacherDashboardView.as_view(), name="teacher_dashboard"),
+    path(
+        "teacher/simulate/<int:teacher_id>/",
+        SimulateTeacherMobileView.as_view(),
+        name="simulate_teacher",
+    ),
     path(
         "teacher/partner-ledger/<int:account_id>/",
         MobileTeacherPartnerLedgerView.as_view(),
