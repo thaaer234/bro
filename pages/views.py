@@ -1510,7 +1510,7 @@ def global_search_api(request):
             'title': f"{acc.code} - {acc.name}",
             'url': f"/accounts/ledger/?account_id={acc.id}",
             'category': 'الحسابات المالية',
-            'description': f"نوع الحساب: {acc.get_account_type_display()} | طبيعة الحساب: {acc.get_normal_balance_display()}",
+            'description': f"نوع الحساب: {acc.get_account_type_display()} | الرصيد: {acc.balance:,} ل.س",
             'icon': 'fas fa-wallet'
         })
         
