@@ -12,6 +12,7 @@ urlpatterns = [
     path('teacher-cards-print/pdf/', require_employee_perm('teachers_view')(views.teacher_cards_print_pdf), name="teacher_cards_print_pdf"),
     path('delete/<int:pk>/', require_employee_perm('teachers_delete')(views.TeacherDeleteView.as_view()), name="delete_teacher"),
     path('teacher/<int:pk>/', require_employee_perm('teachers_profile')(views.TeacherProfileView.as_view()), name='teacher_profile'),
+    path('teacher/<int:teacher_id>/partner-ledger/<int:account_id>/', require_employee_perm('teachers_profile')(views.TeacherPartnerLedgerView.as_view()), name='teacher_partner_ledger'),
     path('teacher/update/<int:pk>/', require_employee_perm('teachers_edit')(views.TeacherUpdateView.as_view()), name='update_teacher'),
     path('employee/<int:pk>/', require_employee_perm('hr_profile')(views.EmployeeProfileView.as_view()), name='employee_profile'),
     # path('employee/<int:pk>/pay-salary/', require_employee_perm('hr_salary_pay')(views.PayEmployeeSalaryView.as_view()), name='pay_employee_salary'),

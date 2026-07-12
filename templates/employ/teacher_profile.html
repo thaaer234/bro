@@ -186,13 +186,210 @@
                             <td class="text-muted">{{ labels.balance }}</td>
                             <td class="fw-semibold text-danger">{{ advance_account_balance|floatformat:0 }} {{ labels.currency }}</td>
                         </tr>
+        <div class="card-body">
+            {% if branch_monthly_tables %}
+                {% for table in branch_monthly_tables %}
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">{{ table.branch_title }}</h6>
+                        <div class="text-muted small">{{ labels.hourly_rate }}: {{ table.hourly_rate|floatformat:0 }} {{ labels.currency }}</div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>{{ labels.month }}</th>
+                                    <th class="text-center">{{ labels.session_count }}</th>
+                                    <th class="text-center">{{ labels.due_amount }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in table.rows %}
+                                <tr>
+                                    <td>{{ row.month_label }}</td>
+                                    <td class="text-center">{{ row.total_sessions|floatformat:1 }}</td>
+                                    <td class="text-center">{{ row.total_salary|floatformat:0 }} {{ labels.currency }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-muted small mt-2">{{ labels.monthly_formula }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="text-muted">{{ labels.no_monthly_attendance }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">{{ labels.advance_balance_title }}</h5>
+        </div>
+        <div class="card-body">
+            {% if advance_account %}
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted">{{ labels.account }}</td>
+                            <td class="fw-semibold">{{ advance_account.code }} - {{ advance_account.name }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">{{ labels.balance }}</td>
+                            <td class="fw-semibold text-danger">{{ advance_account_balance|floatformat:0 }} {{ labels.currency }}</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
             {% else %}
             <div class="text-muted">{{ labels.no_advance_account }}</div>
             {% endif %}
+    </div>
+
+    {% if teacher.is_partner %}
+    <!-- قسم الشراكة والمالية المتقدم -->
+    <div class="card mt-4 border-primary shadow">
+        <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between py-3">
+            <h5 class="mb-0 fw-bold"><i class="fas fa-chart-line me-2"></i>لوحة تحكم الشراكة والمالية / Partnership & Financial Hub</h5>
+            <span class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6">شراكة بنسبة {{ teacher.partnership_percentage }}%</span>
+        </div>
+        <div class="card-body p-4">
+            <!-- حساب الشريك الخاص -->
+            {% if partner_financial_data.partner_account %}
+            <div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center mb-4 p-3 rounded-3 shadow-sm">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-handshake fa-2x text-info me-3"></i>
+                    <div>
+                        <h6 class="mb-0 fw-bold">حساب الشراكة الخاص بك (رأس المال كشريك):</h6>
+                        <span class="text-muted small">{{ partner_financial_data.partner_account.code }} - {{ partner_financial_data.partner_account.name }}</span>
+                    </div>
+                </div>
+                <a href="{% url 'employ:teacher_partner_ledger' teacher.id partner_financial_data.partner_account.id %}" class="btn btn-primary fw-bold px-4 py-2 mt-2 mt-sm-0 shadow-sm">
+                    الرصيد: {{ partner_financial_data.partner_account.balance|floatformat:0 }} ل.س
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- شبكة تصنيفات الحسابات -->
+            <div class="row g-4">
+                <!-- الموجودات (الأصول الأخرى) -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-secondary shadow-sm">
+                        <div class="card-header bg-secondary text-white py-3">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-box-open me-2"></i>الموجودات (الأصول الأخرى)</h6>
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height: 280px; overflow-y: auto;">
+                            {% for acc in partner_financial_data.assets_accounts %}
+                            <a href="{% url 'employ:teacher_partner_ledger' teacher.id acc.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 text-decoration-none">
+                                <span class="small fw-semibold text-dark text-truncate" style="max-width: 65%;">{{ acc.code }} - {{ acc.name }}</span>
+                                <span class="badge bg-secondary rounded-pill px-3">{{ acc.balance|floatformat:0 }} ل.س</span>
+                            </a>
+                            {% empty %}
+                            <div class="p-3 text-muted small text-center">لا توجد موجودات أخرى نشطة</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- النقدية والصناديق -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-success shadow-sm">
+                        <div class="card-header bg-success text-white py-3">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-money-bill-wave me-2"></i>النقدية والصناديق</h6>
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height: 280px; overflow-y: auto;">
+                            {% for acc in partner_financial_data.cash_accounts %}
+                            <a href="{% url 'employ:teacher_partner_ledger' teacher.id acc.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 text-decoration-none">
+                                <span class="small fw-semibold text-dark text-truncate" style="max-width: 65%;">{{ acc.code }} - {{ acc.name }}</span>
+                                <span class="badge bg-success rounded-pill px-3">{{ acc.balance|floatformat:0 }} ل.س</span>
+                            </a>
+                            {% empty %}
+                            <div class="p-3 text-muted small text-center">لا توجد حسابات نقدية نشطة</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- صندوق الأمانات ($) -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-info shadow-sm">
+                        <div class="card-header bg-info text-white py-3">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-vault me-2"></i>صندوق الأمانات ($)</h6>
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height: 280px; overflow-y: auto;">
+                            {% for acc in partner_financial_data.deposit_accounts %}
+                            <a href="{% url 'employ:teacher_partner_ledger' teacher.id acc.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 text-decoration-none">
+                                <span class="small fw-semibold text-dark text-truncate" style="max-width: 65%;">{{ acc.code }} - {{ acc.name }}</span>
+                                <span class="badge bg-info text-dark rounded-pill px-3">{{ acc.balance|floatformat:0 }} ل.س</span>
+                            </a>
+                            {% empty %}
+                            <div class="p-3 text-muted small text-center">لا توجد حسابات أمانات نشطة</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- صناديق الموظفين -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-warning shadow-sm">
+                        <div class="card-header bg-warning text-dark py-3">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-user-shield me-2"></i>صناديق الموظفين</h6>
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height: 280px; overflow-y: auto;">
+                            {% for acc in partner_financial_data.employee_cashboxes %}
+                            <a href="{% url 'employ:teacher_partner_ledger' teacher.id acc.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 text-decoration-none">
+                                <span class="small fw-semibold text-dark text-truncate" style="max-width: 65%;">{{ acc.code }} - {{ acc.name }}</span>
+                                <span class="badge bg-warning text-dark rounded-pill px-3">{{ acc.balance|floatformat:0 }} ل.س</span>
+                            </a>
+                            {% empty %}
+                            <div class="p-3 text-muted small text-center">لا توجد صناديق موظفين نشطة</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- الإيرادات -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-primary shadow-sm">
+                        <div class="card-header bg-primary text-white py-3">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-hand-holding-usd me-2"></i>الإيرادات</h6>
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height: 280px; overflow-y: auto;">
+                            {% for acc in partner_financial_data.revenue_accounts %}
+                            <a href="{% url 'employ:teacher_partner_ledger' teacher.id acc.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 text-decoration-none">
+                                <span class="small fw-semibold text-dark text-truncate" style="max-width: 65%;">{{ acc.code }} - {{ acc.name }}</span>
+                                <span class="badge bg-primary rounded-pill px-3">{{ acc.balance|floatformat:0 }} ل.س</span>
+                            </a>
+                            {% empty %}
+                            <div class="p-3 text-muted small text-center">لا توجد حسابات إيرادات نشطة</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- المصاريف -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-danger shadow-sm">
+                        <div class="card-header bg-danger text-white py-3">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-file-invoice-dollar me-2"></i>المصاريف</h6>
+                        </div>
+                        <div class="list-group list-group-flush" style="max-height: 280px; overflow-y: auto;">
+                            {% for acc in partner_financial_data.expense_accounts %}
+                            <a href="{% url 'employ:teacher_partner_ledger' teacher.id acc.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 text-decoration-none">
+                                <span class="small fw-semibold text-dark text-truncate" style="max-width: 65%;">{{ acc.code }} - {{ acc.name }}</span>
+                                <span class="badge bg-danger rounded-pill px-3">{{ acc.balance|floatformat:0 }} ل.س</span>
+                            </a>
+                            {% empty %}
+                            <div class="p-3 text-muted small text-center">لا توجد حسابات مصاريف نشطة</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
