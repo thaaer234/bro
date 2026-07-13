@@ -5204,7 +5204,7 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
                         course=course
                     ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
                     
-                    remaining = course_price - paid_total
+                    remaining = enrollment.balance_due
                     
                     if remaining <= Decimal('0'):
                         fully_paid += 1
@@ -5667,7 +5667,7 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
                         course=course
                     ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
                     
-                    remaining = net_due - paid_total
+                    remaining = enrollment.balance_due
                     
                     if remaining <= Decimal('0'):
                         fully_paid += 1
@@ -6238,7 +6238,7 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
                         course=course
                     ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
                     
-                    remaining = net_due - paid_total
+                    remaining = enrollment.balance_due
                     
                     if remaining <= Decimal('0'):
                         fully_paid += 1
@@ -6864,7 +6864,7 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
                     course=course
                 ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
                 
-                remaining = net_due - paid_total
+                remaining = enrollment.balance_due
                 
                 if remaining <= Decimal('0'):
                     fully_paid += 1

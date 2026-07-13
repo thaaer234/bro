@@ -732,8 +732,11 @@ class Studentenrollment(models.Model):
 
     @property
     def balance_due(self):
-        """Calculate remaining balance due"""
-        return max(Decimal('0'), self.net_amount - self.amount_paid)
+        """Calculate remaining balance due from accounting ledger balance (AR account)"""
+        student_ar_account = Account.get_student_ar_account_for_course(self.student, self.course)
+        if student_ar_account:
+            return max(Decimal('0.00'), student_ar_account.get_net_balance())
+        return max(Decimal('0.00'), self.net_amount - self.amount_paid)
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding

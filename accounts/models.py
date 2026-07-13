@@ -1963,8 +1963,13 @@ class Studentenrollment(models.Model):
 
     @property
     def balance_due(self):
-        """Remaining balance due"""
-        return max(Decimal('0'), self.net_amount - self.amount_paid)
+        """Remaining balance due calculated from the actual accounting ledger balance (AR account)"""
+        student_ar_account = Account.get_student_ar_account_for_course(self.student, self.course)
+        if student_ar_account:
+            # رصيد حساب المدينين (Asset) = Debit - Credit
+            # جلب صافي الرصيد الفعلي من دفتر اليومية مباشرة لتأثير القيود اليدوية
+            return max(Decimal('0.00'), student_ar_account.get_net_balance())
+        return max(Decimal('0.00'), self.net_amount - self.amount_paid)
 
     def create_accrual_enrollment_entry(self, user):
         """Create enrollment accrual entry: DR Student AR, CR Deferred Revenue"""
