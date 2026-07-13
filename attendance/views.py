@@ -304,17 +304,14 @@ def get_students(request):
         
         student_ids = list(students_qs.values_list('id', flat=True))
         
-        # بناء قاموس student_id -> subjects_note
-        # نفس الـ filter المستخدم في ملف الطالب (is_completed=False)
+        # نفس منطق ملف الطالب: is_completed=False فقط، بدون فلتر course
+        # لأن الطالب قد يكون مسجلاً في دورة مختلفة عن دورة الشعبة
         enr_filter = {'student_id__in': student_ids, 'is_completed': False}
-        if classroom.course:
-            enr_filter['course'] = classroom.course
-        elif current_year:
+        if current_year:
             enr_filter['academic_year'] = current_year
         
         enrollments = Studentenrollment.objects.filter(**enr_filter).values('student_id', 'subjects_note')
         
-        # نأخذ آخر قيمة لكل طالب (ordered by -enrollment_date من Meta)
         subjects_map = {}
         for enr in enrollments:
             sid = enr['student_id']
@@ -354,10 +351,9 @@ class AttendanceDetailView(ListView):
         from accounts.models import Studentenrollment
         student_ids = list(attendances_qs.values_list('student_id', flat=True).distinct())
         
+        # بدون فلتر course - نفس منطق ملف الطالب
         enr_filter = {'student_id__in': student_ids, 'is_completed': False}
-        if classroom.course:
-            enr_filter['course'] = classroom.course
-        elif current_year:
+        if current_year:
             enr_filter['academic_year'] = current_year
         
         enrollments = Studentenrollment.objects.filter(**enr_filter).values('student_id', 'subjects_note')
@@ -367,15 +363,13 @@ class AttendanceDetailView(ListView):
             if sid not in subjects_map:
                 subjects_map[sid] = enr['subjects_note'] or 'كامل المواد'
         
-        # إضافة subjects_note كخاصية لكل سجل حضور
         result = []
         for att in attendances_qs.select_related('student'):
             att.subjects_note = subjects_map.get(att.student_id, 'كامل المواد')
             result.append(att)
         
-        # نحتفظ بالنتيجة في الآوبجكت للوصول لها من get_context_data
         self._attendances_result = result
-        return attendances_qs  # للحفاظ على توافق ListView
+        return attendances_qs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -409,10 +403,9 @@ class UpdateAttendanceView(View):
         from accounts.models import Studentenrollment
         student_ids = list(attendances_qs.values_list('student_id', flat=True).distinct())
         
+        # بدون فلتر course - نفس منطق ملف الطالب
         enr_filter = {'student_id__in': student_ids, 'is_completed': False}
-        if classroom.course:
-            enr_filter['course'] = classroom.course
-        elif current_year:
+        if current_year:
             enr_filter['academic_year'] = current_year
         
         enrollments = Studentenrollment.objects.filter(**enr_filter).values('student_id', 'subjects_note')
