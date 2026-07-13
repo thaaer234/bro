@@ -295,39 +295,42 @@ def get_students(request):
         current_year = getattr(request, 'current_academic_year', None)
         if current_year:
             students_qs = students_qs.filter(academic_year=current_year)
-            
-        # إضافة حقل المواد المسجلة (كامل المواد أو مواد محددة) من Studentenrollment
-        from django.db.models import Subquery, OuterRef, Value, F
-        from django.db.models.functions import Coalesce
+        
+        if not students_qs.exists():
+            return JsonResponse({'error': 'لا يوجد طلاب في هذه الشعبة'}, status=404)
+        
+        # جلب subjects_note مباشرة من Studentenrollment - نفس منطق ملف الطالب
         from accounts.models import Studentenrollment
         
+        student_ids = list(students_qs.values_list('id', flat=True))
+        
+        # بناء قاموس student_id -> subjects_note
+        # نفس الـ filter المستخدم في ملف الطالب (is_completed=False)
+        enr_filter = {'student_id__in': student_ids, 'is_completed': False}
         if classroom.course:
-            sub = Studentenrollment.objects.filter(
-                student=OuterRef('pk'),
-                course=classroom.course,
-                is_completed=False
-            ).values('subjects_note')[:1]
-        else:
-            sub_qs = Studentenrollment.objects.filter(
-                student=OuterRef('pk'),
-                is_completed=False
-            )
-            if current_year:
-                sub_qs = sub_qs.filter(academic_year=current_year)
-            sub = sub_qs.values('subjects_note')[:1]
-            
-        students_qs = students_qs.annotate(
-            annotated_subjects=Subquery(sub)
-        ).annotate(
-            subjects_note=Coalesce(F('annotated_subjects'), Value('كامل المواد'))
-        )
+            enr_filter['course'] = classroom.course
+        elif current_year:
+            enr_filter['academic_year'] = current_year
         
-        students = students_qs.values('id', 'full_name', 'subjects_note')
+        enrollments = Studentenrollment.objects.filter(**enr_filter).values('student_id', 'subjects_note')
         
-        if not students.exists():
-            return JsonResponse({'error': 'لا يوجد طلاب في هذه الشعبة'}, status=404)
-            
-        return JsonResponse(list(students), safe=False)
+        # نأخذ آخر قيمة لكل طالب (ordered by -enrollment_date من Meta)
+        subjects_map = {}
+        for enr in enrollments:
+            sid = enr['student_id']
+            if sid not in subjects_map:
+                subjects_map[sid] = enr['subjects_note'] or 'كامل المواد'
+        
+        students_data = []
+        for s in students_qs.values('id', 'full_name'):
+            sid = s['id']
+            students_data.append({
+                'id': sid,
+                'full_name': s['full_name'],
+                'subjects_note': subjects_map.get(sid, 'كامل المواد'),
+            })
+        
+        return JsonResponse(students_data, safe=False)
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -342,44 +345,50 @@ class AttendanceDetailView(ListView):
         date = self.kwargs.get('date')
         classroom = get_object_or_404(Classroom, id=classroom_id)
         
-        attendances = Attendance.objects.filter(classroom_id=classroom_id, date=date)
+        attendances_qs = Attendance.objects.filter(classroom_id=classroom_id, date=date)
         current_year = getattr(self.request, 'current_academic_year', None)
         if current_year:
-            attendances = attendances.filter(student__academic_year=current_year)
-            
-        from django.db.models import Subquery, OuterRef, Value, F
-        from django.db.models.functions import Coalesce
-        from accounts.models import Studentenrollment
+            attendances_qs = attendances_qs.filter(student__academic_year=current_year)
         
+        # جلب subjects_note مباشرة من Studentenrollment - نفس منطق ملف الطالب
+        from accounts.models import Studentenrollment
+        student_ids = list(attendances_qs.values_list('student_id', flat=True).distinct())
+        
+        enr_filter = {'student_id__in': student_ids, 'is_completed': False}
         if classroom.course:
-            sub = Studentenrollment.objects.filter(
-                student=OuterRef('student'),
-                course=classroom.course,
-                is_completed=False
-            ).values('subjects_note')[:1]
-        else:
-            sub_qs = Studentenrollment.objects.filter(
-                student=OuterRef('student'),
-                is_completed=False
-            )
-            if current_year:
-                sub_qs = sub_qs.filter(academic_year=current_year)
-            sub = sub_qs.values('subjects_note')[:1]
-            
-        attendances = attendances.annotate(
-            annotated_subjects=Subquery(sub)
-        ).annotate(
-            subjects_note=Coalesce(F('annotated_subjects'), Value('كامل المواد'))
-        )
-        return attendances
+            enr_filter['course'] = classroom.course
+        elif current_year:
+            enr_filter['academic_year'] = current_year
+        
+        enrollments = Studentenrollment.objects.filter(**enr_filter).values('student_id', 'subjects_note')
+        subjects_map = {}
+        for enr in enrollments:
+            sid = enr['student_id']
+            if sid not in subjects_map:
+                subjects_map[sid] = enr['subjects_note'] or 'كامل المواد'
+        
+        # إضافة subjects_note كخاصية لكل سجل حضور
+        result = []
+        for att in attendances_qs.select_related('student'):
+            att.subjects_note = subjects_map.get(att.student_id, 'كامل المواد')
+            result.append(att)
+        
+        # نحتفظ بالنتيجة في الآوبجكت للوصول لها من get_context_data
+        self._attendances_result = result
+        return attendances_qs  # للحفاظ على توافق ListView
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['classroom'] = get_object_or_404(Classroom, id=self.kwargs.get('classroom_id'))
         context['date'] = self.kwargs.get('date')
+        # استبدل القائمة بالنتيجة ذات الـ subjects_note المضافة
+        if hasattr(self, '_attendances_result'):
+            context['attendances'] = self._attendances_result
         return context
 
+
 ### لتعديل الحضور 
+    
 class UpdateAttendanceView(View):
     template_name = 'attendance/update_attendance.html'
     
@@ -391,41 +400,39 @@ class UpdateAttendanceView(View):
             messages.error(request, 'Invalid date format.')
             return redirect('attendance:attendance')
 
-        attendances = Attendance.objects.filter(classroom=classroom, date=date_obj)
+        attendances_qs = Attendance.objects.filter(classroom=classroom, date=date_obj)
         current_year = getattr(request, 'current_academic_year', None)
         if current_year:
-            attendances = attendances.filter(student__academic_year=current_year)
+            attendances_qs = attendances_qs.filter(student__academic_year=current_year)
 
-        from django.db.models import Subquery, OuterRef, Value, F
-        from django.db.models.functions import Coalesce
+        # جلب subjects_note مباشرة من Studentenrollment - نفس منطق ملف الطالب
         from accounts.models import Studentenrollment
-
+        student_ids = list(attendances_qs.values_list('student_id', flat=True).distinct())
+        
+        enr_filter = {'student_id__in': student_ids, 'is_completed': False}
         if classroom.course:
-            sub = Studentenrollment.objects.filter(
-                student=OuterRef('student'),
-                course=classroom.course,
-                is_completed=False
-            ).values('subjects_note')[:1]
-        else:
-            sub_qs = Studentenrollment.objects.filter(
-                student=OuterRef('student'),
-                is_completed=False
-            )
-            if current_year:
-                sub_qs = sub_qs.filter(academic_year=current_year)
-            sub = sub_qs.values('subjects_note')[:1]
-
-        attendances = attendances.annotate(
-            annotated_subjects=Subquery(sub)
-        ).annotate(
-            subjects_note=Coalesce(F('annotated_subjects'), Value('كامل المواد'))
-        )
+            enr_filter['course'] = classroom.course
+        elif current_year:
+            enr_filter['academic_year'] = current_year
+        
+        enrollments = Studentenrollment.objects.filter(**enr_filter).values('student_id', 'subjects_note')
+        subjects_map = {}
+        for enr in enrollments:
+            sid = enr['student_id']
+            if sid not in subjects_map:
+                subjects_map[sid] = enr['subjects_note'] or 'كامل المواد'
+        
+        attendances = []
+        for att in attendances_qs.select_related('student'):
+            att.subjects_note = subjects_map.get(att.student_id, 'كامل المواد')
+            attendances.append(att)
 
         return render(request, self.template_name, {
             'classroom': classroom,
             'date': date_obj,
             'attendances': attendances
         })
+
 
     def post(self, request, classroom_id, date):
         classroom = get_object_or_404(Classroom, id=classroom_id)
