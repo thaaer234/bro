@@ -304,10 +304,14 @@ def get_students(request):
         if classroom.course:
             sub = Studentenrollment.objects.filter(
                 student=OuterRef('pk'),
-                course=classroom.course
+                course=classroom.course,
+                is_completed=False
             ).values('subjects_note')[:1]
         else:
-            sub_qs = Studentenrollment.objects.filter(student=OuterRef('pk'))
+            sub_qs = Studentenrollment.objects.filter(
+                student=OuterRef('pk'),
+                is_completed=False
+            )
             if current_year:
                 sub_qs = sub_qs.filter(academic_year=current_year)
             sub = sub_qs.values('subjects_note')[:1]
@@ -350,10 +354,14 @@ class AttendanceDetailView(ListView):
         if classroom.course:
             sub = Studentenrollment.objects.filter(
                 student=OuterRef('student'),
-                course=classroom.course
+                course=classroom.course,
+                is_completed=False
             ).values('subjects_note')[:1]
         else:
-            sub_qs = Studentenrollment.objects.filter(student=OuterRef('student'))
+            sub_qs = Studentenrollment.objects.filter(
+                student=OuterRef('student'),
+                is_completed=False
+            )
             if current_year:
                 sub_qs = sub_qs.filter(academic_year=current_year)
             sub = sub_qs.values('subjects_note')[:1]
@@ -395,10 +403,14 @@ class UpdateAttendanceView(View):
         if classroom.course:
             sub = Studentenrollment.objects.filter(
                 student=OuterRef('student'),
-                course=classroom.course
+                course=classroom.course,
+                is_completed=False
             ).values('subjects_note')[:1]
         else:
-            sub_qs = Studentenrollment.objects.filter(student=OuterRef('student'))
+            sub_qs = Studentenrollment.objects.filter(
+                student=OuterRef('student'),
+                is_completed=False
+            )
             if current_year:
                 sub_qs = sub_qs.filter(academic_year=current_year)
             sub = sub_qs.values('subjects_note')[:1]
@@ -882,10 +894,14 @@ def export_attendance_to_excel(request, classroom_id, date):
     if classroom.course:
         sub = Studentenrollment.objects.filter(
             student=OuterRef('student'),
-            course=classroom.course
+            course=classroom.course,
+            is_completed=False
         ).values('subjects_note')[:1]
     else:
-        sub_qs = Studentenrollment.objects.filter(student=OuterRef('student'))
+        sub_qs = Studentenrollment.objects.filter(
+            student=OuterRef('student'),
+            is_completed=False
+        )
         if current_year:
             sub_qs = sub_qs.filter(academic_year=current_year)
         sub = sub_qs.values('subjects_note')[:1]
