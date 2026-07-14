@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 d-flex flex-column align-items-center justify-content-center" style="min-height: 70vh;">
+    <div class="card shadow-lg border-0 rounded-4 overflow-hidden text-center p-5" style="max-width: 600px; width: 100%; background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);">
+        
+        <!-- Icon / Header -->
+        <div class="mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-circle mb-3" style="width: 80px; height: 80px;">
+                <i class="fas fa-user-cog fa-3x"></i>
+            </div>
+            <h2 class="fw-bold text-dark mb-2">مرحباً، {{ teacher.full_name }}</h2>
+            <p class="text-muted fs-5">هذا الحساب يمتلك صلاحيات مزدوجة (مدرّس وشريك مساهم). يرجى اختيار واجهة التصفح المطلوبة:</p>
+        </div>
+
+        <hr class="my-4 text-muted opacity-25">
+
+        <!-- Choice Buttons -->
+        <div class="d-grid gap-3">
+            <a href="?mode=teacher" class="btn btn-outline-primary btn-lg py-3 rounded-3 shadow-sm transition-all d-flex align-items-center justify-content-center gap-3">
+                <i class="fas fa-chalkboard-teacher fa-lg"></i>
+                <div class="text-start">
+                    <div class="fw-bold fs-5">التصفح كمدرّس</div>
+                    <small class="text-muted d-block mt-1">عرض الحضور، الحصص، وأجر ساعات التدريس</small>
+                </div>
+            </a>
+            
+            <a href="?mode=partner" class="btn btn-success btn-lg py-3 rounded-3 shadow-sm transition-all d-flex align-items-center justify-content-center gap-3" style="background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); border: none;">
+                <i class="fas fa-handshake fa-lg text-white"></i>
+                <div class="text-start text-white">
+                    <div class="fw-bold fs-5">التصفح كشريك مساهم</div>
+                    <small class="text-white-50 d-block mt-1">عرض حسابات الشراكة، النقدية، والصناديق</small>
+                </div>
+            </a>
+        </div>
+
+        <div class="mt-4 text-center">
+            <a href="{% url 'employ:teachers' %}" class="text-decoration-none text-muted">
+                <i class="fas fa-arrow-right me-1"></i> العودة لقائمة المدرسين
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .transition-all {
+        transition: all 0.3s ease;
+    }
+    .transition-all:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+    }
+</style>
+{% endblock %}

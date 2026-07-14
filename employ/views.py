@@ -1202,6 +1202,29 @@ class TeacherProfileView(DetailView):
     template_name = 'employ/teacher_profile.html'
     context_object_name = 'teacher'
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object.is_partner:
+            mode = request.GET.get('mode')
+            if mode == 'teacher':
+                self.template_name = 'employ/teacher_profile.html'
+            elif mode == 'partner':
+                self.template_name = 'employ/partner_profile.html'
+            else:
+                context = {'teacher': self.object}
+                return self.response_class(
+                    request=self.request,
+                    template='employ/teacher_profile_choice.html',
+                    context=context,
+                    using=self.template_engine
+                )
+        else:
+            self.template_name = 'employ/teacher_profile.html'
+            
+        context = self.get_context_data(object=self.object)
+        context['mode'] = request.GET.get('mode', '')
+        return self.render_to_response(context)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         teacher = self.get_object()

@@ -7212,3 +7212,50 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         wb.save(response)
         return response
+
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+from django.contrib.auth.decorators import login_required
+
+@login_required
+@require_GET
+def account_details_api(request, account_id):
+    from accounts.models import Account, Transaction
+    try:
+        account = Account.objects.get(id=account_id)
+        current_year = getattr(request, 'current_academic_year', None)
+        
+        # Calculate rollup balance
+        balance = account.get_rollup_balance(academic_year=current_year)
+        
+        # Get last 10 transactions
+        transactions_qs = Transaction.objects.filter(account=account).select_related('journal_entry').order_by('-journal_entry__date', '-id')[:10]
+        
+        txs_data = []
+        for tx in transactions_qs:
+            txs_data.append({
+                'id': tx.id,
+                'journal_entry_id': tx.journal_entry.id,
+                'journal_entry_num': tx.journal_entry.entry_number or tx.journal_entry.id,
+                'date': tx.journal_entry.date.strftime('%Y-%m-%d') if tx.journal_entry.date else '',
+                'description': tx.description or tx.journal_entry.description or '',
+                'debit': float(tx.amount) if tx.is_debit else 0.0,
+                'credit': float(tx.amount) if not tx.is_debit else 0.0,
+            })
+            
+        return JsonResponse({
+            'status': 'success',
+            'account': {
+                'id': account.id,
+                'code': account.code,
+                'name': account.name_ar or account.name,
+                'balance': float(balance),
+            },
+            'transactions': txs_data
+        })
+    except Account.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Account not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+

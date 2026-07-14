@@ -163,4 +163,5 @@ urlpatterns = [
     path('cost-centers/<int:pk>/update/', require_employee_perm('accounting_cost_centers')(views.CostCenterUpdateView.as_view()), name='cost_center_update'),
     path('cost-centers/<int:pk>/financial-report/', require_employee_perm('accounting_reports')(views.CostCenterFinancialReportView.as_view()), name='cost_center_financial_report'),
     path('cost-center/<int:pk>/detailed-report/', require_employee_perm('accounting_reports')(views.CostCenterDetailedReportView.as_view()), name='cost_center_detailed_report'),
+    path('api/account-details/<int:account_id>/', views.account_details_api, name='account_details_api'),
 ]

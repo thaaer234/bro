@@ -927,6 +927,14 @@ class Teacher(models.Model):
         default=Decimal('0.00'), 
         verbose_name="نسبة الشراكة (%)"
     )
+    partner_account = models.ForeignKey(
+        'accounts.Account',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='partner_teachers',
+        verbose_name='حساب الشريك الخاص'
+    )
 
     def __str__(self):
         return self.full_name
@@ -1057,6 +1065,8 @@ class Teacher(models.Model):
 
     def get_partner_account(self):
         """الحصول على حساب رأس مال الشراكة للشريك"""
+        if self.partner_account:
+            return self.partner_account
         from accounts.models import Account
         try:
             # نحاول المطابقة برمز الحساب 301-XXXX

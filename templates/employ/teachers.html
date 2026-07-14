@@ -166,7 +166,7 @@
 
                         <div>
 
-                            <strong>{{ data.teacher.full_name }}</strong>
+                            <a href="{% url 'employ:teacher_profile' data.teacher.id %}" class="text-decoration-none text-dark"><strong>{{ data.teacher.full_name }}</strong></a>
 
                             <br>
 
@@ -279,10 +279,8 @@
                 <td>
 
                     <div class="d-flex gap-2">
-
-
-                        <i class="fas fa-edit"></i> تعديل
-
+                        <a href="{% url 'employ:update_teacher' data.teacher.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit"></i> تعديل
                         </a>
 
                         <button type="button" class="btn btn-sm btn-danger" onclick="deleteTeacher({{ data.teacher.pk }}, '{{ data.teacher.full_name }}')">
