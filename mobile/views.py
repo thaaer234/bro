@@ -453,6 +453,13 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                     using=self.template_engine
                 )
                 
+        # Determine template based on active mode
+        active_mode = request.session.get('mobile_active_mode', 'teacher')
+        if active_mode == 'partner' and teacher.is_partner:
+            self.template_name = "mobile/partner_dashboard.html"
+        else:
+            self.template_name = "mobile/teacher_dashboard.html"
+            
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
 
