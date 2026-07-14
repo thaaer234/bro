@@ -166,7 +166,7 @@
                             </thead>
                             <tbody>
                                 {% for row in table.rows %}
-                                <tr onclick="showAttendanceDetails('{{ table.branch }}', '{{ table.branch_title }}', {{ row.month }}, '{{ row.month_name }}')" style="cursor: pointer;" class="table-row-clickable">
+                                <tr onclick="showAttendanceDetails('{{ table.branch }}', '{{ table.branch_title|escapejs }}', {{ row.month }}, '{{ row.month_name|escapejs }}')" style="cursor: pointer;" class="table-row-clickable">
                                     <td><i class="fas fa-search-plus text-primary me-1"></i> {{ row.month_label }}</td>
                                     <td class="text-center">{{ row.total_sessions|floatformat:1 }}</td>
                                     <td class="text-center font-monospace fw-semibold">{{ row.total_salary|floatformat:0 }} {{ labels.currency }}</td>
@@ -302,8 +302,41 @@ function showAttendanceDetails(branch, branchTitle, month, monthName) {
         });
     }
     
-    const modal = new bootstrap.Modal(document.getElementById('attendanceDetailsModal'));
-    modal.show();
+    try {
+        const modalElement = document.getElementById('attendanceDetailsModal');
+        if (window.bootstrap && window.bootstrap.Modal) {
+            const modal = new window.bootstrap.Modal(modalElement);
+            modal.show();
+        } else if (window.$ && typeof window.$.fn.modal === 'function') {
+            window.$('#attendanceDetailsModal').modal('show');
+        } else if (window.jQuery && typeof window.jQuery.fn.modal === 'function') {
+            window.jQuery('#attendanceDetailsModal').modal('show');
+        } else {
+            // Fallback يدوي إذا لم يتم تحميل Bootstrap JS بالكامل
+            modalElement.style.display = 'block';
+            modalElement.classList.add('show');
+            document.body.classList.add('modal-open');
+            
+            // إنشاء خلفية داكنة للمودال يدوياً
+            let backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'modalBackdropFallback';
+            document.body.appendChild(backdrop);
+            
+            // تفعيل زر الإغلاق يدوياً
+            const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+            closeButtons.forEach(btn => {
+                btn.onclick = function() {
+                    modalElement.style.display = 'none';
+                    modalElement.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                    if (backdrop) backdrop.remove();
+                };
+            });
+        }
+    } catch (e) {
+        console.error("Error opening modal: ", e);
+    }
 }
 </script>
 
