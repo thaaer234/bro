@@ -292,10 +292,22 @@ details.partner-acc-group[open] summary .toggle-icon {
     <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.78rem;">
       {% for adv in advances %}
         {% if adv.outstanding_amount > 0 %}
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(192, 57, 43, 0.1); padding-bottom: 4px;">
-          <span>سلفة بتاريخ {{ adv.date|date:"d/m/Y" }} {% if adv.purpose %}({{ adv.purpose }}){% endif %}</span>
-          <strong style="color: #c0392b; font-family: monospace;">{{ adv.outstanding_amount|floatformat:0|intcomma }} ل.س</strong>
-        </div>
+          {% if adv.journal_entry %}
+          <a href="/accounts/journal/{{ adv.journal_entry.id }}/" target="_blank" style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(192, 57, 43, 0.1); padding-bottom: 6px; text-decoration: none; color: inherit; cursor: pointer;">
+          {% else %}
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(192, 57, 43, 0.1); padding-bottom: 6px;">
+          {% endif %}
+            <span>
+              سلفة بتاريخ {{ adv.date|date:"d/m/Y" }} 
+              {% if adv.purpose %}({{ adv.purpose }}){% endif %}
+              {% if adv.journal_entry %} <i class="fas fa-file-invoice" style="font-size: 0.75rem; color: var(--primary); margin-right: 4px;"></i>{% endif %}
+            </span>
+            <strong style="color: #c0392b; font-family: monospace;">{{ adv.outstanding_amount|floatformat:0|intcomma }} ل.س</strong>
+          {% if adv.journal_entry %}
+          </a>
+          {% else %}
+          </div>
+          {% endif %}
         {% endif %}
       {% endfor %}
     </div>
