@@ -653,6 +653,28 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
         advance_account_balance = (
             advance_account.get_net_balance() if advance_account else Decimal("0")
         )
+        current_month_branch_details = []
+        total_current_month_salary = Decimal("0.00")
+        for branch in branches:
+            hourly_rate = teacher.get_hourly_rate_for_branch(branch, date=timezone.now().date())
+            current_month_att = TeacherAttendance.objects.filter(
+                teacher=teacher, branch=branch, status="present",
+                date__year=current_year, date__month=current_month
+            )
+            sessions_count = sum((att.total_sessions for att in current_month_att), Decimal("0.00"))
+            total_earned = sessions_count * (hourly_rate or Decimal("0.00"))
+            total_current_month_salary += total_earned
+            
+            if sessions_count > 0 or (hourly_rate and hourly_rate > 0):
+                current_month_branch_details.append({
+                    'branch_name': dict(Teacher.BranchChoices.choices).get(branch, branch),
+                    'hourly_rate': hourly_rate,
+                    'sessions_count': sessions_count,
+                    'total_earned': total_earned
+                })
+        
+        net_salary_estimate = total_current_month_salary - outstanding_advances
+
         salaries = ManualTeacherSalary.objects.filter(
             teacher=teacher
         ).order_by("-year", "-month")[:6]
@@ -663,9 +685,9 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
             ).count(),
             "outstanding_advances": outstanding_advances,
             "total_advances": total_advances_amount,
-            "monthly_salary_estimate": teacher.calculate_monthly_salary(
-                year=current_year, month=current_month
-            ),
+            "monthly_salary_estimate": total_current_month_salary,
+            "net_salary_estimate": net_salary_estimate,
+            "current_month_branch_details": current_month_branch_details,
             "monthly_present_days": monthly_present_days,
             "monthly_absent_days": monthly_absent_days,
             "monthly_total_sessions": monthly_total_sessions,
@@ -772,6 +794,12 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
 
         warning_choices = StudentWarning.Severity.choices
 
+        attendance_records_list = list(attendance_qs[:7])
+        for record in attendance_records_list:
+            rate = teacher.get_hourly_rate_for_branch(record.branch, date=record.date)
+            record.hourly_rate = rate
+            record.calculated_earnings = record.total_sessions * (rate or Decimal("0.00"))
+
         context.update(
             {
                 "teacher": teacher,
@@ -790,7 +818,7 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                 "quick_sessions": quick_sessions,
                 "total_quick_earnings": total_quick_earnings,
                 "students_count": students_qs.count(),
-                "attendance_records": attendance_qs[:7],
+                "attendance_records": attendance_records_list,
                 "monthly_attendance": monthly_attendance_qs,
                 "attendance_summary": attendance_summary,
                 "recent_grades": recent_grades,
