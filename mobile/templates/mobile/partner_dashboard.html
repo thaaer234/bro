@@ -263,7 +263,11 @@
 <!-- VIEW 1: HOME (الرئيسية) -->
 <div id="view-home" class="app-view active">
     <!-- Visa/Wallet Card Visual - Capital Account -->
+    {% if partner_account %}
+    <a href="{% url 'mobile:teacher_partner_ledger' partner_account.id %}" class="wallet-card reveal" style="text-decoration: none; display: block;">
+    {% else %}
     <div class="wallet-card reveal">
+    {% endif %}
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
                 <div class="wallet-label">معهد العلوم واللغات — رأس المال</div>
@@ -275,12 +279,23 @@
         <div class="wallet-card-balance">
             {{ partner_balance|floatformat:0|intcomma }} ل.س
         </div>
+
+        <div style="display: flex; gap: 15px; margin-bottom: 12px; font-size: 0.72rem; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px;">
+            <div>
+                <span style="color: #99f6e4;">إجمالي مدين (+):</span>
+                <span style="font-weight: bold; font-family: monospace;">{{ partner_total_debit|floatformat:0|intcomma }} ل.س</span>
+            </div>
+            <div>
+                <span style="color: #99f6e4;">إجمالي دائن (-):</span>
+                <span style="font-weight: bold; font-family: monospace;">{{ partner_total_credit|floatformat:0|intcomma }} ل.س</span>
+            </div>
+        </div>
         
         <div class="wallet-card-holder">
             <div>
                 <div class="wallet-label">حساب الملكية والجاري المربوط</div>
                 <div class="wallet-value">
-                    {% if partner_account %}{{ partner_account.code }} — {{ partner_account.name_ar|default:partner_account.name }}{% else %}لم يتم ربط حساب{% endif %}
+                    {% if partner_account %}{{ partner_account.code }} — {{ partner_account.name }}{% else %}لم يتم ربط حساب{% endif %}
                 </div>
             </div>
             <div style="text-align: left;">
@@ -288,10 +303,18 @@
                 <div class="wallet-value" style="color: #fef08a;">{{ teacher.partnership_percentage }}%</div>
             </div>
         </div>
+    {% if partner_account %}
+    </a>
+    {% else %}
     </div>
+    {% endif %}
 
     <!-- Visa/Wallet Card Visual - Drawings Account -->
+    {% if partner_drawings_account %}
+    <a href="{% url 'mobile:teacher_partner_ledger' partner_drawings_account.id %}" class="wallet-card reveal" style="background: linear-gradient(135deg, #6b21a8 0%, #4c1d95 60%, #3b0764 100%); box-shadow: 0 12px 25px rgba(107, 33, 168, 0.25); border: 1px solid rgba(255, 255, 255, 0.15); margin-top: 10px; text-decoration: none; display: block;">
+    {% else %}
     <div class="wallet-card reveal" style="background: linear-gradient(135deg, #6b21a8 0%, #4c1d95 60%, #3b0764 100%); box-shadow: 0 12px 25px rgba(107, 33, 168, 0.25); border: 1px solid rgba(255, 255, 255, 0.15); margin-top: 10px;">
+    {% endif %}
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
                 <div class="wallet-label">معهد العلوم واللغات — مسحوبات الشريك</div>
@@ -302,6 +325,17 @@
         
         <div class="wallet-card-balance" style="color: #fca5a5;">
             {{ partner_drawings_balance|floatformat:0|intcomma }} ل.س
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-bottom: 12px; font-size: 0.72rem; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 8px;">
+            <div>
+                <span style="color: #ddd6fe;">إجمالي مدين (+):</span>
+                <span style="font-weight: bold; font-family: monospace;">{{ partner_drawings_total_debit|floatformat:0|intcomma }} ل.س</span>
+            </div>
+            <div>
+                <span style="color: #ddd6fe;">إجمالي دائن (-):</span>
+                <span style="font-weight: bold; font-family: monospace;">{{ partner_drawings_total_credit|floatformat:0|intcomma }} ل.س</span>
+            </div>
         </div>
         
         <div class="wallet-card-holder">
@@ -316,7 +350,11 @@
                 <div class="wallet-value" style="color: #fca5a5;">نشط (مدين)</div>
             </div>
         </div>
+    {% if partner_drawings_account %}
+    </a>
+    {% else %}
     </div>
+    {% endif %}
 
     <!-- Quick Statistics Grid -->
     <div class="stats-grid reveal" style="animation-delay: 0.05s;">

@@ -708,7 +708,11 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                     })
                 return accounts_list
 
+            from accounts.models import Transaction
             partner_account = teacher.get_partner_account()
+            partner_balance = Decimal('0.00')
+            partner_total_debit = Decimal('0.00')
+            partner_total_credit = Decimal('0.00')
             partner_account_data = None
             if partner_account:
                 partner_balance = partner_account.get_rollup_balance(academic_year=current_academic_year)
@@ -719,9 +723,19 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                     'balance': partner_balance,
                     'account_type': partner_account.account_type,
                 }
+                partner_txs = Transaction.objects.filter(account=partner_account)
+                if current_academic_year:
+                    partner_txs = partner_txs.filter(journal_entry__academic_year=current_academic_year)
+                for tx in partner_txs:
+                    if tx.is_debit:
+                        partner_total_debit += tx.amount
+                    else:
+                        partner_total_credit += tx.amount
 
             partner_drawings_account = teacher.get_partner_drawings_account()
             partner_drawings_balance = Decimal('0.00')
+            partner_drawings_total_debit = Decimal('0.00')
+            partner_drawings_total_credit = Decimal('0.00')
             partner_drawings_account_data = None
             if partner_drawings_account:
                 partner_drawings_balance = partner_drawings_account.get_rollup_balance(academic_year=current_academic_year)
@@ -732,6 +746,14 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                     'balance': partner_drawings_balance,
                     'account_type': partner_drawings_account.account_type,
                 }
+                drawings_txs = Transaction.objects.filter(account=partner_drawings_account)
+                if current_academic_year:
+                    drawings_txs = drawings_txs.filter(journal_entry__academic_year=current_academic_year)
+                for tx in drawings_txs:
+                    if tx.is_debit:
+                        partner_drawings_total_debit += tx.amount
+                    else:
+                        partner_drawings_total_credit += tx.amount
 
             partner_financial_data = {
                 'partner_account': partner_account_data,
@@ -758,8 +780,12 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                 "classrooms": classroom_details,
                 "partner_account": partner_account,
                 "partner_balance": partner_balance,
+                "partner_total_debit": partner_total_debit if 'partner_total_debit' in locals() else Decimal('0.00'),
+                "partner_total_credit": partner_total_credit if 'partner_total_credit' in locals() else Decimal('0.00'),
                 "partner_drawings_account": partner_drawings_account if 'partner_drawings_account' in locals() else None,
                 "partner_drawings_balance": partner_drawings_balance if 'partner_drawings_balance' in locals() else Decimal('0.00'),
+                "partner_drawings_total_debit": partner_drawings_total_debit if 'partner_drawings_total_debit' in locals() else Decimal('0.00'),
+                "partner_drawings_total_credit": partner_drawings_total_credit if 'partner_drawings_total_credit' in locals() else Decimal('0.00'),
                 "partner_financial_data": partner_financial_data,
                 "quick_sessions": quick_sessions,
                 "total_quick_earnings": total_quick_earnings,
