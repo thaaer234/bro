@@ -262,11 +262,11 @@
 
 <!-- VIEW 1: HOME (الرئيسية) -->
 <div id="view-home" class="app-view active">
-    <!-- Visa/Wallet Card Visual -->
+    <!-- Visa/Wallet Card Visual - Capital Account -->
     <div class="wallet-card reveal">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
-                <div class="wallet-label">معهد العلوم واللغات</div>
+                <div class="wallet-label">معهد العلوم واللغات — رأس المال</div>
                 <div class="wallet-value" style="font-size: 1.05rem;">{{ teacher.full_name }}</div>
             </div>
             <div class="wallet-card-chip"></div>
@@ -290,6 +290,34 @@
         </div>
     </div>
 
+    <!-- Visa/Wallet Card Visual - Drawings Account -->
+    <div class="wallet-card reveal" style="background: linear-gradient(135deg, #6b21a8 0%, #4c1d95 60%, #3b0764 100%); box-shadow: 0 12px 25px rgba(107, 33, 168, 0.25); border: 1px solid rgba(255, 255, 255, 0.15); margin-top: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div class="wallet-label">معهد العلوم واللغات — مسحوبات الشريك</div>
+                <div class="wallet-value" style="font-size: 1.05rem;">{{ teacher.full_name }}</div>
+            </div>
+            <div class="wallet-card-chip" style="background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);"></div>
+        </div>
+        
+        <div class="wallet-card-balance" style="color: #fca5a5;">
+            {{ partner_drawings_balance|floatformat:0|intcomma }} ل.س
+        </div>
+        
+        <div class="wallet-card-holder">
+            <div>
+                <div class="wallet-label">حساب مسحوبات الشريك المربوط</div>
+                <div class="wallet-value">
+                    {% if partner_drawings_account %}{{ partner_drawings_account.code }} — {{ partner_drawings_account.name }}{% else %}لم يتم ربط حساب{% endif %}
+                </div>
+            </div>
+            <div style="text-align: left;">
+                <div class="wallet-label">الحالة</div>
+                <div class="wallet-value" style="color: #fca5a5;">نشط (مدين)</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Quick Statistics Grid -->
     <div class="stats-grid reveal" style="animation-delay: 0.05s;">
         <div class="stat-box">
@@ -303,9 +331,9 @@
             <span class="stat-box-value">{{ partner_balance|floatformat:0|intcomma }} ل.س</span>
         </div>
         <div class="stat-box">
-            <span class="stat-box-icon" style="color: #3b82f6;"><i class="fas fa-graduation-cap"></i></span>
-            <span class="stat-box-title">الكلاسات النشطة</span>
-            <span class="stat-box-value">{{ quick_sessions|length }}</span>
+            <span class="stat-box-icon" style="color: #8b5cf6;"><i class="fas fa-hand-holding-dollar"></i></span>
+            <span class="stat-box-title">مسحوبات الشريك</span>
+            <span class="stat-box-value">{{ partner_drawings_balance|floatformat:0|intcomma }} ل.س</span>
         </div>
         <div class="stat-box">
             <span class="stat-box-icon" style="color: #10b981;"><i class="fas fa-money-bill-trend-up"></i></span>
@@ -328,12 +356,27 @@
                     <i class="fas fa-landmark" style="color: #0e6a8e; font-size: 1.2rem;"></i>
                     <div style="text-align: right;">
                         <span class="muted" style="font-size: 0.72rem; display: block;">حصة الملكية الحالية</span>
-                        <strong style="font-size: 0.85rem;">{% if partner_account %}{{ partner_account.name }}{% else %}جاري الشريك{% endif %}</strong>
+                        <strong style="font-size: 0.85rem;">{% if partner_account %}{{ partner_account.name }}{% else %}جاري الشريك (رأس المال){% endif %}</strong>
                     </div>
                 </div>
                 <div style="text-align: left;">
                     <span style="font-weight: 800; color: #0e6a8e; font-family: monospace;">{{ partner_balance|floatformat:0|intcomma }} ل.س</span>
-                    <span class="muted" style="font-size: 0.65rem; display: block; color: #27ae60;"><i class="fas fa-check-circle"></i> رصيد نشط</span>
+                    <span class="muted" style="font-size: 0.65rem; display: block; color: #27ae60;"><i class="fas fa-check-circle"></i> رصيد دائن</span>
+                </div>
+            </div>
+
+            <!-- Drawings Link -->
+            <div onclick="switchTab('accounts')" class="list-item" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-hand-holding-dollar" style="color: #6b21a8; font-size: 1.2rem;"></i>
+                    <div style="text-align: right;">
+                        <span class="muted" style="font-size: 0.72rem; display: block;">مسحوبات الشريك الحالية</span>
+                        <strong style="font-size: 0.85rem;">{% if partner_drawings_account %}{{ partner_drawings_account.name }}{% else %}مسحوبات الشريك{% endif %}</strong>
+                    </div>
+                </div>
+                <div style="text-align: left;">
+                    <span style="font-weight: 800; color: #6b21a8; font-family: monospace;">{{ partner_drawings_balance|floatformat:0|intcomma }} ل.س</span>
+                    <span class="muted" style="font-size: 0.65rem; display: block; color: #e74c3c;"><i class="fas fa-circle-minus"></i> رصيد مدين</span>
                 </div>
             </div>
 
@@ -380,6 +423,45 @@
             المركز المالي والحسابات الجارية
         </div>
         <p class="muted" style="font-size: 0.78rem; margin-top: 4px; line-height: 1.4;">انقر على أي من الحسابات الفرعية التالية لتتمكن من استعراض كشف الحساب التفصيلي والدفاتر الخاصة بها.</p>
+    </div>
+
+    <!-- Group: Linked Partner Accounts -->
+    <div class="accounts-container reveal" style="animation-delay: 0.02s; border: 1.5px solid #0e6a8e; margin-bottom: 20px;">
+        <div class="accounts-header" style="background: rgba(14, 106, 142, 0.1); color: #0e6a8e;">
+            <span><i class="fas fa-handshake" style="margin-left: 6px;"></i>حسابات الشراكة المربوطة</span>
+            <span class="badge" style="background: #0e6a8e;">2</span>
+        </div>
+        <div class="list">
+            {% if partner_account %}
+            <a href="{% url 'mobile:teacher_partner_ledger' partner_account.id %}" class="account-row">
+                <div class="account-info">
+                    <span class="account-code">{{ partner_account.code }}</span>
+                    <span class="account-name fw-bold" style="color: #0e6a8e;">{{ partner_account.name }} (رأس المال)</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span class="account-value" style="color: #27ae60;">{{ partner_balance|floatformat:0|intcomma }} ل.س</span>
+                    <i class="fas fa-chevron-left account-arrow"></i>
+                </div>
+            </a>
+            {% else %}
+            <div class="account-row text-muted" style="font-size: 0.8rem; padding: 14px 16px;">لم يتم ربط حساب رأس المال</div>
+            {% endif %}
+
+            {% if partner_drawings_account %}
+            <a href="{% url 'mobile:teacher_partner_ledger' partner_drawings_account.id %}" class="account-row">
+                <div class="account-info">
+                    <span class="account-code">{{ partner_drawings_account.code }}</span>
+                    <span class="account-name fw-bold" style="color: #6b21a8;">{{ partner_drawings_account.name }} (المسحوبات)</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span class="account-value" style="color: #c0392b;">{{ partner_drawings_balance|floatformat:0|intcomma }} ل.س</span>
+                    <i class="fas fa-chevron-left account-arrow"></i>
+                </div>
+            </a>
+            {% else %}
+            <div class="account-row text-muted" style="font-size: 0.8rem; padding: 14px 16px;">لم يتم ربط حساب مسحوبات</div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Group 1: Assets -->

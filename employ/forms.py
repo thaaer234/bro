@@ -52,6 +52,7 @@ class TeacherForm(forms.ModelForm):
             'is_partner',
             'partnership_percentage',
             'partner_account',
+            'partner_drawings_account',
             'academic_year',
             'notes',
         ]
@@ -69,6 +70,7 @@ class TeacherForm(forms.ModelForm):
             'is_partner': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'partnership_percentage': forms.NumberInput(attrs={'step': '0.01', 'class': 'form-control', 'placeholder': '0.00'}),
             'partner_account': forms.Select(attrs={'class': 'form-control form-select', 'id': 'id_partner_account'}),
+            'partner_drawings_account': forms.Select(attrs={'class': 'form-control form-select', 'id': 'id_partner_drawings_account'}),
             'notes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'ملاحظات إضافية'}),
         }
         labels = {
@@ -80,7 +82,8 @@ class TeacherForm(forms.ModelForm):
             'monthly_salary': 'الراتب الشهري الثابت (ل.س)',
             'is_partner': 'شريك مساهم',
             'partnership_percentage': 'نسبة الشراكة (%)',
-            'partner_account': 'حساب الشريك الخاص',
+            'partner_account': 'حساب الشريك الخاص (رأس المال)',
+            'partner_drawings_account': 'حساب مسحوبات الشريك',
             'notes': 'ملاحظات',
         }
 
@@ -92,6 +95,8 @@ class TeacherForm(forms.ModelForm):
             self.fields['academic_year'].queryset = AcademicYear.objects.all()
         if 'partner_account' in self.fields:
             self.fields['partner_account'].queryset = Account.objects.filter(is_active=True).order_by('code')
+        if 'partner_drawings_account' in self.fields:
+            self.fields['partner_drawings_account'].queryset = Account.objects.filter(is_active=True).order_by('code')
 
         # القيمة الابتدائية للفروع عند التعديل
         if self.instance and self.instance.pk and self.instance.branches:

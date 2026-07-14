@@ -708,8 +708,7 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                     })
                 return accounts_list
 
-            partner_account_code = f"301-{teacher.pk:04d}"
-            partner_account = Account.objects.filter(code=partner_account_code).first()
+            partner_account = teacher.get_partner_account()
             partner_account_data = None
             if partner_account:
                 partner_balance = partner_account.get_rollup_balance(academic_year=current_academic_year)
@@ -721,8 +720,22 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                     'account_type': partner_account.account_type,
                 }
 
+            partner_drawings_account = teacher.get_partner_drawings_account()
+            partner_drawings_balance = Decimal('0.00')
+            partner_drawings_account_data = None
+            if partner_drawings_account:
+                partner_drawings_balance = partner_drawings_account.get_rollup_balance(academic_year=current_academic_year)
+                partner_drawings_account_data = {
+                    'id': partner_drawings_account.id,
+                    'code': partner_drawings_account.code,
+                    'name': partner_drawings_account.name_ar or partner_drawings_account.name,
+                    'balance': partner_drawings_balance,
+                    'account_type': partner_drawings_account.account_type,
+                }
+
             partner_financial_data = {
                 'partner_account': partner_account_data,
+                'partner_drawings_account': partner_drawings_account_data,
                 'cash_accounts': get_group_accounts('10'),
                 'deposit_accounts': get_group_accounts('122'),
                 'employee_cashboxes': get_group_accounts('121'),
@@ -745,6 +758,8 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
                 "classrooms": classroom_details,
                 "partner_account": partner_account,
                 "partner_balance": partner_balance,
+                "partner_drawings_account": partner_drawings_account if 'partner_drawings_account' in locals() else None,
+                "partner_drawings_balance": partner_drawings_balance if 'partner_drawings_balance' in locals() else Decimal('0.00'),
                 "partner_financial_data": partner_financial_data,
                 "quick_sessions": quick_sessions,
                 "total_quick_earnings": total_quick_earnings,

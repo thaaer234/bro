@@ -933,7 +933,15 @@ class Teacher(models.Model):
         null=True,
         blank=True,
         related_name='partner_teachers',
-        verbose_name='حساب الشريك الخاص'
+        verbose_name='حساب الشريك الخاص (رأس المال)'
+    )
+    partner_drawings_account = models.ForeignKey(
+        'accounts.Account',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='partner_drawings_teachers',
+        verbose_name='حساب مسحوبات الشريك'
     )
 
     def __str__(self):
@@ -1079,6 +1087,25 @@ class Teacher(models.Model):
             return Account.objects.filter(
                 code__startswith="301",
                 name_ar__contains=self.full_name
+            ).first()
+        except Exception:
+            return None
+
+    def get_partner_drawings_account(self):
+        """الحصول على حساب مسحوبات الشريك"""
+        if self.partner_drawings_account:
+            return self.partner_drawings_account
+        from accounts.models import Account
+        try:
+            # نحاول البحث عن أي حساب يحتوي على مسحوبات واسم المعلم
+            return Account.objects.filter(
+                name_ar__contains=self.full_name
+            ).filter(
+                name_ar__contains="مسحوبات"
+            ).first() or Account.objects.filter(
+                name__icontains=self.full_name
+            ).filter(
+                name__icontains="drawings"
             ).first()
         except Exception:
             return None
