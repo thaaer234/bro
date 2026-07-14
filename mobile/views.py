@@ -428,9 +428,11 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         # We need to make sure the user is authenticated by the mixin first
-        response = super().dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
         if not hasattr(request, 'mobile_profile'):
-            return response
+            return redirect('mobile:welcome')
             
         teacher = request.mobile_profile
         
@@ -444,16 +446,17 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
         choose_mode = request.GET.get('choose_mode')
         if teacher.is_partner:
             if choose_mode == '1' or 'mobile_active_mode' not in request.session:
-                self.template_name = "mobile/choose_mode.html"
+                return self.response_class(
+                    request=request,
+                    template='mobile/choose_mode.html',
+                    context={'teacher': teacher},
+                    using=self.template_engine
+                )
                 
-        return response
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
-        if self.template_name == "mobile/choose_mode.html":
-            return {
-                "teacher": self.request.mobile_profile,
-            }
-            
         context = super().get_context_data(**kwargs)
         teacher = self.request.mobile_profile
 

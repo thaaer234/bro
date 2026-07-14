@@ -1106,7 +1106,12 @@ details.partner-acc-group[open] summary .toggle-icon {
   if (hashTarget) {
     openSection(hashTarget, false);
   } else if (sections.length) {
-    sections[0].classList.add('active');
+    const defaultSec = document.getElementById("{% if active_mode == 'partner' %}partnership-info{% else %}teacher-info{% endif %}");
+    if (defaultSec) {
+      defaultSec.classList.add('active');
+    } else {
+      sections[0].classList.add('active');
+    }
   }
 
 

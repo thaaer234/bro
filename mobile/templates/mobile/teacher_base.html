@@ -418,6 +418,20 @@
     </main>
 
     <nav class="bottom-nav">
+      {% if active_mode == 'partner' %}
+      <a href="#overview" class="{% if active_tab == 'home' %}active{% endif %}">
+        <i class="fas fa-home"></i>
+        الرئيسية
+      </a>
+      <a href="#partnership-info">
+        <i class="fas fa-handshake"></i>
+        الشراكة
+      </a>
+      <a href="#quick-courses-info">
+        <i class="fas fa-graduation-cap"></i>
+        الدورات السريعة
+      </a>
+      {% else %}
       <a href="#overview" class="{% if active_tab == 'home' %}active{% endif %}">
         <i class="fas fa-home"></i>
         الرئيسية
@@ -438,6 +452,7 @@
         <i class="fas fa-wallet"></i>
         الراتب
       </a>
+      {% endif %}
     </nav>
   </div>
   {% block extra_js %}{% endblock %}
