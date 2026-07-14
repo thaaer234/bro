@@ -705,6 +705,14 @@ class TakeTeacherAttendanceView(TemplateView):
             
             print(f"🔍 بدء معالجة حضور {total_teachers} مدرس ليوم {date_obj}")
             print("=" * 60)
+
+            # تتبع السجلات السابقة لمعرفة الجديد والمعدل
+            from decimal import Decimal
+            existing_records = {
+                (att.teacher_id, att.branch): Decimal(str(att.session_count)) + (Decimal(str(att.half_session_count)) * Decimal('0.5'))
+                for att in TeacherAttendance.objects.filter(date=date_obj)
+            }
+            notifications_data = {}
             
             # ✅ استخدام جميع المدرسين من قاعدة البيانات
             for teacher in teachers_list:
@@ -725,6 +733,12 @@ class TakeTeacherAttendanceView(TemplateView):
                             session_count = 0
                             half_session_count = 0
 
+                        # تتبع تفاصيل الإشعار
+                        key = (teacher.id, branch)
+                        is_new = key not in existing_records
+                        prev_sessions = existing_records.get(key, Decimal('0.00'))
+                        new_sessions = Decimal(str(session_count)) + (Decimal(str(half_session_count)) * Decimal('0.5'))
+
                         attendance, created = TeacherAttendance.objects.update_or_create(
                             teacher=teacher,
                             date=date_obj,
@@ -737,13 +751,25 @@ class TakeTeacherAttendanceView(TemplateView):
                             }
                         )
 
-                        print(f"? ?? ??? ???? {teacher.full_name} - {self._branch_label(branch)} - ??????: {attendance.status}")
+                        if is_new or prev_sessions != new_sessions:
+                            if teacher.id not in notifications_data:
+                                notifications_data[teacher.id] = {
+                                    'teacher': teacher,
+                                    'is_new': is_new,
+                                    'branches': {}
+                                }
+                            notifications_data[teacher.id]['branches'][branch] = {
+                                'sessions': new_sessions,
+                                'status': status
+                            }
+
+                        print(f"✅ تم حفظ حضور {teacher.full_name} - {self._branch_label(branch)} - الحالة: {attendance.status}")
                         success_count += 1
 
                     except IntegrityError:
-                        error_msg = f"????? ???? ?? {teacher.full_name} - {self._branch_label(branch)}"
+                        error_msg = f"تعارض حفظ حضور لـ {teacher.full_name} - {self._branch_label(branch)}"
                         error_messages.append(error_msg)
-                        print(f"?? {error_msg}")
+                        print(f"❌ {error_msg}")
 
                         try:
                             existing = TeacherAttendance.objects.get(
@@ -751,20 +777,73 @@ class TakeTeacherAttendanceView(TemplateView):
                                 date=date_obj,
                                 branch=branch
                             )
+                            key = (teacher.id, branch)
+                            is_new = False
+                            prev_sessions = existing_records.get(key, Decimal('0.00'))
+                            new_sessions = Decimal(str(session_count)) + (Decimal(str(half_session_count)) * Decimal('0.5'))
+
                             existing.status = status
                             existing.session_count = session_count
                             existing.half_session_count = half_session_count
                             existing.notes = notes
                             existing.save()
+
+                            if prev_sessions != new_sessions:
+                                if teacher.id not in notifications_data:
+                                    notifications_data[teacher.id] = {
+                                        'teacher': teacher,
+                                        'is_new': is_new,
+                                        'branches': {}
+                                    }
+                                notifications_data[teacher.id]['branches'][branch] = {
+                                    'sessions': new_sessions,
+                                    'status': status
+                                }
+
                             success_count += 1
-                            print(f"?? ?? ????? ????? ??????? ?????? {teacher.full_name} - {self._branch_label(branch)}")
+                            print(f"✅ تم تحديث السجل المتعارض بنجاح لـ {teacher.full_name} - {self._branch_label(branch)}")
                         except Exception as update_error:
-                            error_messages.append(f"??? ?? ????? {teacher.full_name}: {str(update_error)}")
+                            error_messages.append(f"فشل في معالجة التعارض لـ {teacher.full_name}: {str(update_error)}")
 
                     except Exception as e:
-                        error_msg = f"??? ?? ????? ???? {teacher.full_name}: {str(e)}"
+                        error_msg = f"خطأ في معالجة حضور المدرس {teacher.full_name}: {str(e)}"
                         error_messages.append(error_msg)
-                        print(f"? {error_msg}")
+                        print(f"❌ {error_msg}")
+
+            # إرسال الإشعارات المجمّعة لجميع المعلمين الذين تغير حضورهم أو أضيف
+            try:
+                from api.notifications import notify_teacher
+                for t_id, info in notifications_data.items():
+                    t_obj = info['teacher']
+                    is_new_flag = info['is_new']
+                    branches_info = info['branches']
+                    
+                    branch_texts = []
+                    total_earnings = Decimal('0.00')
+                    has_sessions = False
+                    
+                    for br, details in branches_info.items():
+                        s_count = details['sessions']
+                        br_status = details['status']
+                        if br_status in ['present', 'late'] and s_count > 0:
+                            has_sessions = True
+                            rate = t_obj.get_hourly_rate_for_branch(br, date=date_obj) or Decimal('0.00')
+                            total_earnings += s_count * rate
+                            br_label = dict(Teacher.BranchChoices.choices).get(br, br)
+                            branch_texts.append(f"{br_label}: {s_count} حصة")
+                    
+                    if has_sessions:
+                        branches_str = " • ".join(branch_texts)
+                        if is_new_flag:
+                            title = "تسجيل حضور جديد"
+                            body = f"مرحباً {t_obj.full_name}، تم تسجيل حضورك ليوم {date_obj}. التفاصيل: {branches_str}. إجمالي المستحق التقديري: {total_earnings:,.0f} ل.س."
+                        else:
+                            title = "تعديل حضور"
+                            body = f"مرحباً {t_obj.full_name}، تم تعديل حضورك ليوم {date_obj}. التفاصيل الجديدة: {branches_str}. إجمالي المستحق الجديد: {total_earnings:,.0f} ل.س."
+                        
+                        notify_teacher(t_obj, title, body)
+            except Exception as e:
+                print(f"Error in sending bulk teacher attendance notifications: {e}")
 
             print("=" * 60)
             print(f"📊 النتائج النهائية:")
@@ -997,6 +1076,21 @@ class UpdateTeacherAttendanceView(View):
             attendance.notes = notes
             
             attendance.save()
+            
+            # إرسال إشعار للمدرس المعدل حضورها
+            try:
+                from api.notifications import notify_teacher
+                from decimal import Decimal
+                new_sessions = session_count + (half_session_count * 0.5)
+                rate = attendance.teacher.get_hourly_rate_for_branch(branch, date=date_obj) or Decimal('0.00')
+                total_earnings = Decimal(str(new_sessions)) * rate
+                branch_label = dict(Teacher.BranchChoices.choices).get(branch, branch)
+                
+                title = "تعديل حضور"
+                body = f"مرحباً {attendance.teacher.full_name}، تم تعديل حضورك ليوم {date_obj}. الفرع: {branch_label}: {new_sessions} جلسة. المستحق التقديري الجديد: {total_earnings:,.0f} ل.س."
+                notify_teacher(attendance.teacher, title, body)
+            except Exception as e:
+                print(f"Error sending update attendance notification: {e}")
             
             # رسالة توضح التغيير في الجلسات إذا حدث
             if old_session_count != session_count or old_half_session_count != half_session_count:

@@ -85,3 +85,25 @@ def notify_student_parents(student, title: str, body: str, data: Optional[Mappin
     except Exception as exc:
         logger.error('Failed to notify parents for student %s: %s', getattr(student, 'id', None), exc, exc_info=True)
         return 0
+
+
+def notify_teacher(teacher, title: str, body: str, data: Optional[Mapping[str, Any]] = None) -> int:
+    """Send a push notification to every teacher token registered."""
+    try:
+        from mobile.models import MobileDeviceToken
+        if not teacher:
+            return 0
+        tokens = list(
+            MobileDeviceToken.objects.filter(user_type="teacher", user_id=teacher.id)
+            .exclude(token__isnull=True)
+            .exclude(token__exact="")
+            .values_list("token", flat=True)
+        )
+        sent = 0
+        for token in tokens:
+            if send_expo_push(token, title, body, data=data):
+                sent += 1
+        return sent
+    except Exception as exc:
+        logger.error('Failed to notify teacher %s: %s', getattr(teacher, 'id', None), exc, exc_info=True)
+        return 0

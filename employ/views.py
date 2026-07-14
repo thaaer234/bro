@@ -1282,11 +1282,19 @@ class TeacherProfileView(DetailView):
         if yearly_attendance.count() > 0:
             attendance_rate_yearly = (yearly_present_days / yearly_attendance.count()) * 100
         
+        # الرواتب والسنوات المحددة
+        selected_year = self.request.GET.get('year', attendance_date.year)
+        try:
+            selected_year = int(selected_year)
+        except:
+            selected_year = attendance_date.year
+
         context.update({
             'today': today,
             'daily_attendance_date': attendance_date,
             'daily_attendance_entries': daily_attendance_entries,
             'labels': self._get_labels(),
+            'selected_year': selected_year,
             
             # إحصائيات شهرية مفصلة
             'monthly_stats': {
@@ -1315,24 +1323,17 @@ class TeacherProfileView(DetailView):
                 teacher=teacher
             ).order_by('-date')[:10],
             
-            # جلب جميع أيام الحضور للسنة الحالية
+            # جلب جميع أيام الحضور للسنة المختارة
             'all_attendance_days': TeacherAttendance.objects.filter(
                 teacher=teacher,
-                date__year=today.year
+                date__year=selected_year
             ).order_by('-date'),
             
-            # إحصائيات الحضور حسب الشهور
-            'monthly_attendance_stats': self.get_monthly_attendance_stats(teacher, today.year),
+            # إحصائيات الحضور حسب الشهور للسنة المختارة
+            'monthly_attendance_stats': self.get_monthly_attendance_stats(teacher, selected_year),
         })
         
-        # الرواتب اليدوية
-        selected_year = self.request.GET.get('year', attendance_date.year)
-        try:
-            selected_year = int(selected_year)
-        except:
-            selected_year = attendance_date.year
-
-        branch_monthly_tables = self.get_branch_monthly_tables(teacher)
+        branch_monthly_tables = self.get_branch_monthly_tables(teacher, year=selected_year)
         branch_hourly_rates = self.get_branch_hourly_rates(teacher)
         advance_account = teacher.get_teacher_advance_account()
         advance_account_balance = advance_account.get_net_balance() if advance_account else Decimal('0.00')

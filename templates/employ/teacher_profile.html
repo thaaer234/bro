@@ -136,6 +136,16 @@
     <div class="card mt-4">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h5 class="mb-0">{{ labels.monthly_attendance_by_branch }}</h5>
+            <!-- فلتر السنة الدراسية -->
+            <form method="get" class="d-flex align-items-center gap-2" id="yearFilterForm">
+                {% if request.GET.mode %}<input type="hidden" name="mode" value="{{ request.GET.mode }}">{% endif %}
+                <label for="yearSelect" class="small mb-0 text-muted">السنة الدراسية:</label>
+                <select name="year" id="yearSelect" class="form-select form-select-sm" onchange="this.form.submit()" style="width: auto;">
+                    {% for y in years_range %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </form>
         </div>
         <div class="card-body">
             {% if branch_monthly_tables %}
@@ -156,10 +166,10 @@
                             </thead>
                             <tbody>
                                 {% for row in table.rows %}
-                                <tr>
-                                    <td>{{ row.month_label }}</td>
+                                <tr onclick="showAttendanceDetails('{{ table.branch }}', '{{ table.branch_title }}', {{ row.month }}, '{{ row.month_name }}')" style="cursor: pointer;" class="table-row-clickable">
+                                    <td><i class="fas fa-search-plus text-primary me-1"></i> {{ row.month_label }}</td>
                                     <td class="text-center">{{ row.total_sessions|floatformat:1 }}</td>
-                                    <td class="text-center">{{ row.total_salary|floatformat:0 }} {{ labels.currency }}</td>
+                                    <td class="text-center font-monospace fw-semibold">{{ row.total_salary|floatformat:0 }} {{ labels.currency }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -200,4 +210,106 @@
         </div>
     </div>
 </div>
+
+<!-- Modal تفاصيل الحضور الشهري للفرع -->
+<div class="modal fade" id="attendanceDetailsModal" tabindex="-1" aria-labelledby="attendanceDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attendanceDetailsModalLabel">
+                    <i class="fas fa-calendar-alt text-primary me-2"></i>
+                    تفاصيل حضور الفرع والشهر
+                </h5>
+                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                    <div>الفرع: <strong id="modalBranchName"></strong></div>
+                    <div>الشهر: <strong id="modalMonthName"></strong></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الحالة</th>
+                                <th class="text-center">الحصص</th>
+                                <th class="text-center">الحصص النصفية</th>
+                                <th class="text-center">إجمالي الحصص</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalAttendanceTableBody">
+                            <!-- سيتم تعبئتها بواسطة JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- البيانات بصيغة JSON لمعالجتها بالـ JavaScript -->
+<script type="application/json" id="attendanceDataJson">
+[
+    {% for att in all_attendance_days %}
+    {
+        "date": "{{ att.date|date:'Y-m-d' }}",
+        "month": {{ att.date.month }},
+        "branch": "{{ att.branch }}",
+        "status_display": "{{ att.get_status_display }}",
+        "status_class": "{% if att.status == 'present' %}success{% elif att.status == 'absent' %}danger{% else %}warning{% endif %}",
+        "session_count": {{ att.session_count|default:0 }},
+        "half_session_count": {{ att.half_session_count|default:0 }},
+        "total_sessions": {{ att.total_sessions|default:0 }},
+        "notes": "{{ att.notes|escapejs|default:'' }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+
+<script>
+function showAttendanceDetails(branch, branchTitle, month, monthName) {
+    const dataElement = document.getElementById('attendanceDataJson');
+    if (!dataElement) return;
+    
+    const allRecords = JSON.parse(dataElement.textContent);
+    const filteredRecords = allRecords.filter(r => r.branch === branch && r.month === month);
+    
+    document.getElementById('modalBranchName').textContent = branchTitle;
+    document.getElementById('modalMonthName').textContent = monthName;
+    
+    const tbody = document.getElementById('modalAttendanceTableBody');
+    tbody.innerHTML = '';
+    
+    if (filteredRecords.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">لا توجد سجلات حضور مسجلة لهذا الشهر.</td></tr>';
+    } else {
+        filteredRecords.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${r.date}</strong></td>
+                <td><span class="badge bg-${r.status_class}">${r.status_display}</span></td>
+                <td class="text-center">${r.session_count}</td>
+                <td class="text-center">${r.half_session_count}</td>
+                <td class="text-center text-primary font-monospace fw-bold">${parseFloat(r.total_sessions).toFixed(1)}</td>
+                <td><small class="text-muted">${r.notes || '-'}</small></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('attendanceDetailsModal'));
+    modal.show();
+}
+</script>
+
+<style>
+.table-row-clickable:hover {
+    background-color: rgba(14, 106, 142, 0.05) !important;
+}
+</style>
 {% endblock %}
