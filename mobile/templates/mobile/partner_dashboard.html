@@ -1,602 +1,709 @@
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
-    <title>محفظة الشريك المساهم</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800&amp;family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-    <style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-            user-select: none;
-        }
-        body {
-            background-color: #f7f9fd;
-            font-family: 'IBM Plex Sans Arabic', 'Hanken Grotesk', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .stats-number {
-            font-family: 'IBM Plex Sans', sans-serif;
-        }
-        .logo-bg {
-            position: fixed;
-            top: 10%;
-            left: -10%;
-            width: 80%;
-            height: 80%;
-            background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuACkPFGIJoeqSUroEZSj0EbeVj4wdYf-y-pHh-PdZ9lWEi-sXZV9MRqT2Pt7BNffXOgW2lSHwDR7SjrH-kQS5cg5kJSA3lgxtJ0A5vNR_isEcp5ITfN-Y30AKbk5y1fFqZVhVeLrLzfoEAwWLLntn8eSYKp-NruJVElGvXwBoXazEXigPlKxNCOQ83wur7zsoRhshmGkzURMdsqpJTqHSd0i8JyW5V-Ii-z_gRyAPHxg8kJgiJfj8JfVJDmR8fJAX2E3g');
-            background-repeat: no-repeat;
-            background-size: contain;
-            opacity: 0.03;
-            pointer-events: none;
-            z-index: -1;
-            filter: grayscale(1) brightness(1.2);
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(14, 106, 142, 0.1);
-        }
-        /* Mobile views switching */
-        .app-view {
-            display: none;
-        }
-        .app-view.active {
-            display: block;
-        }
-    </style>
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "primary": "#0e6a8e", // Teal from logo
-                        "secondary": "#6b4fa0", // Purple from logo
-                        "on-primary": "#ffffff",
-                        "primary-container": "#0e6a8e",
-                        "on-primary-container": "#ffffff",
-                        "secondary-container": "#f3effa",
-                        "on-secondary-container": "#211044",
-                        "surface": "#f7f9fd",
-                        "surface-container-lowest": "#ffffff",
-                        "surface-container-low": "#f2f4f7",
-                        "surface-container": "#eceef2",
-                        "surface-container-high": "#e6e8ec",
-                        "surface-container-highest": "#e1e3e6",
-                        "on-surface": "#191c1e",
-                        "on-surface-variant": "#40484c",
-                        "outline": "#70787d",
-                        "outline-variant": "#c0c8cc",
-                        "error": "#ba1a1a"
-                    },
-                    "borderRadius": {
-                        "DEFAULT": "0.5rem",
-                        "lg": "0.75rem",
-                        "xl": "1rem",
-                        "full": "9999px"
-                    },
-                    "spacing": {
-                        "container-margin": "1.5rem",
-                        "stack-lg": "1.5rem",
-                        "section-gap": "2.5rem",
-                        "stack-sm": "0.5rem",
-                        "gutter": "1rem",
-                        "stack-md": "1rem"
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="bg-surface text-on-surface min-h-screen flex flex-col relative overflow-x-hidden pb-24">
+{% extends "mobile/teacher_base.html" %}
+{% load humanize %}
 
-    <!-- Artistic Logo Background -->
-    <div class="logo-bg"></div>
+{% block extra_css %}
+<style>
+/* View Switching */
+.app-view {
+    display: none;
+    animation: fadeIn 0.4s ease both;
+}
+.app-view.active {
+    display: block;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-    <!-- Top AppBar -->
-    <header class="bg-surface/80 backdrop-blur-md flex justify-between items-center w-full px-container-margin py-4 sticky top-0 z-40 border-b border-outline-variant/30">
-        <div class="flex items-center gap-stack-sm">
-            <div class="w-10 h-10 rounded-full overflow-hidden border border-primary/20 bg-white">
-                <span class="material-symbols-outlined text-primary text-3xl flex items-center justify-center h-full">account_circle</span>
+/* Premium Fintech Wallet Card */
+.wallet-card {
+    background: linear-gradient(135deg, #0e6a8e 0%, #0f766e 60%, #004c69 100%);
+    border-radius: 20px;
+    padding: 22px;
+    color: #ffffff;
+    box-shadow: 0 12px 25px rgba(14, 106, 142, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+.wallet-card::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    right: -10%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+    border-radius: 50%;
+}
+.wallet-card-chip {
+    width: 44px;
+    height: 32px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border-radius: 6px;
+    margin-bottom: 14px;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.4);
+    position: relative;
+}
+.wallet-card-chip::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 3px;
+}
+.wallet-card-balance {
+    font-size: 1.8rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 800;
+    margin-bottom: 16px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    direction: ltr;
+    text-align: right;
+}
+.wallet-card-holder {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+.wallet-label {
+    font-size: 0.72rem;
+    color: #99f6e4;
+    margin-bottom: 2px;
+}
+.wallet-value {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+/* Switch Mode Header Banner */
+.switch-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 16px;
+    border: 1px solid #0e6a8e;
+    background: linear-gradient(135deg, rgba(14, 106, 142, 0.05) 0%, #ffffff 100%);
+    margin-bottom: 20px;
+}
+.switch-banner-title {
+    font-size: 0.95rem;
+    color: #0e6a8e;
+    font-weight: bold;
+}
+.switch-banner-btn {
+    background: #0e6a8e;
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: transform 0.2s;
+}
+.switch-banner-btn:active {
+    transform: scale(0.95);
+}
+
+/* Premium Statistics */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.stat-box {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: var(--shadow);
+}
+.stat-box-icon {
+    font-size: 1.3rem;
+    margin-bottom: 2px;
+}
+.stat-box-title {
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+.stat-box-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text);
+}
+
+/* Clickable Lists & Accounts */
+.accounts-container {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+}
+.accounts-header {
+    background: var(--surface-soft);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-weight: bold;
+    font-size: 0.85rem;
+    color: var(--primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.account-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    text-decoration: none;
+    color: var(--text);
+    transition: background-color 0.2s;
+}
+.account-row:last-child {
+    border-bottom: none;
+}
+.account-row:active {
+    background-color: var(--surface-soft);
+}
+.account-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.account-code {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: monospace;
+    font-weight: bold;
+}
+.account-name {
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+.account-value {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #0e6a8e;
+    font-family: 'Courier New', Courier, monospace;
+}
+.account-arrow {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-right: 8px;
+}
+
+/* Quick Courses Card */
+.course-card {
+    border: 1px solid var(--border);
+    padding: 14px;
+    border-radius: 16px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: var(--shadow);
+}
+.course-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Override bottom-nav links to act as JS tab switchers */
+.bottom-nav button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 0;
+}
+.bottom-nav button.active {
+    color: var(--primary-strong);
+    font-weight: 700;
+}
+.bottom-nav button i {
+    font-size: 1.2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Switch Mode Banner -->
+<div class="switch-banner reveal">
+  <div style="text-align: right;">
+    <span class="muted" style="font-size: 0.72rem; display: block;">وضع التصفح النشط:</span>
+    <span class="switch-banner-title">
+      <i class="fas fa-handshake" style="color: #d4af37; margin-left: 4px;"></i> وضع الشريك المساهم
+    </span>
+  </div>
+  <a href="?choose_mode=1" class="switch-banner-btn">
+    <i class="fas fa-rotate"></i>
+    <span>تبديل الوضع</span>
+  </a>
+</div>
+
+<!-- VIEW 1: HOME (الرئيسية) -->
+<div id="view-home" class="app-view active">
+    <!-- Visa/Wallet Card Visual -->
+    <div class="wallet-card reveal">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div class="wallet-label">معهد العلوم واللغات</div>
+                <div class="wallet-value" style="font-size: 1.05rem;">{{ teacher.full_name }}</div>
             </div>
-            <div class="text-right">
-                <span class="text-xs text-on-surface-variant block">مرحباً بك شريكنا</span>
-                <span class="font-bold text-sm text-primary">{{ teacher.full_name }}</span>
-            </div>
+            <div class="wallet-card-chip"></div>
         </div>
         
-        <!-- Toggle button to quickly switch to teacher mode -->
-        <a href="?set_mode=teacher" class="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs py-1.5 px-3 rounded-lg transition-all active:scale-95">
-            <span class="material-symbols-outlined text-[16px]">swap_horiz</span>
-            <span>تصفح كمدرس</span>
-        </a>
-    </header>
-
-    <!-- Main Views Container -->
-    <main class="flex-1 px-container-margin pt-stack-md pb-12">
-
-        <!-- VIEW 1: HOME (الرئيسية) -->
-        <div id="view-home" class="app-view active space-y-6">
-            <!-- Partnership Card (Bank Card Visual) -->
-            <section class="relative overflow-hidden bg-gradient-to-br from-primary to-secondary rounded-2xl p-6 text-on-primary shadow-lg shadow-primary/20">
-                <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 opacity-10 blur-[80px] -mr-32 -mt-32 rounded-full"></div>
-                <div class="relative z-10 space-y-4">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1">
-                            <span class="text-xs text-white/80 tracking-widest">صافي رصيد الشراكة الحالي</span>
-                            <div class="flex items-baseline gap-2">
-                                <h1 class="stats-number text-3xl font-bold text-white tracking-tight">{{ partner_balance|floatformat:0|intcomma }}</h1>
-                                <span class="text-sm text-white/90">ل.س</span>
-                            </div>
-                        </div>
-                        <div class="bg-white/10 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
-                            <span class="text-xs text-white flex items-center gap-1 font-medium">
-                                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
-                                شريك موثق
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="pt-4 border-t border-white/10 flex justify-between items-center text-xs">
-                        <div>
-                            <p class="text-white/60 mb-0.5">الحساب الجاري المربوط</p>
-                            <p class="font-bold text-white">{% if partner_account %}{{ partner_account.code }} — {{ partner_account.name }}{% else %}لم يتم ربطه{% endif %}</p>
-                        </div>
-                        <div class="text-left">
-                            <p class="text-white/60 mb-0.5">نسبة الشراكة</p>
-                            <p class="font-bold text-yellow-300 text-sm">{{ teacher.partnership_percentage }}%</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Quick Metrics Grid -->
-            <section class="grid grid-cols-2 gap-4">
-                <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 shadow-sm flex flex-col items-center text-center">
-                    <span class="material-symbols-outlined text-yellow-500 mb-1 text-[28px]">percent</span>
-                    <span class="text-xs text-on-surface-variant mb-1">نسبة الشراكة</span>
-                    <span class="text-lg font-bold text-primary">{{ teacher.partnership_percentage }}%</span>
-                </div>
-                <div class="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 shadow-sm flex flex-col items-center text-center">
-                    <span class="material-symbols-outlined text-primary mb-1 text-[28px]">payments</span>
-                    <span class="text-xs text-on-surface-variant mb-1">أرباح الدورات السريعة</span>
-                    <span class="text-lg font-bold text-secondary">{{ total_quick_earnings|floatformat:0|intcomma }} ل.س</span>
-                </div>
-            </section>
-
-            <!-- Wealth Summary (ملخص الثروة) -->
-            <section class="space-y-3">
-                <h2 class="text-md font-bold text-primary px-1">ملخص المحفظة الجارية</h2>
-                <div class="space-y-3">
-                    <!-- Capital Account Row -->
-                    <div onclick="switchTab('accounts')" class="bg-white p-4 rounded-xl border border-outline-variant/30 hover:shadow-md transition-all flex items-center justify-between cursor-pointer">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                <span class="material-symbols-outlined">account_balance</span>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs text-on-surface-variant">حصة الملكية الحالية</p>
-                                <p class="font-bold text-on-surface text-sm">{% if partner_account %}{{ partner_account.name }}{% else %}جاري الشريك{% endif %}</p>
-                            </div>
-                        </div>
-                        <div class="text-left">
-                            <p class="stats-number font-bold text-primary text-md">{{ partner_balance|floatformat:0|intcomma }} ل.س</p>
-                            <span class="text-[10px] text-emerald-600 flex items-center gap-0.5 justify-end">
-                                <span class="material-symbols-outlined text-[12px]">trending_up</span> رصيد نشط
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Quick classes earnings summary -->
-                    <div onclick="switchTab('courses')" class="bg-white p-4 rounded-xl border border-outline-variant/30 hover:shadow-md transition-all flex items-center justify-between cursor-pointer">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
-                                <span class="material-symbols-outlined">school</span>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs text-on-surface-variant">مستحقات الجلسات المباشرة</p>
-                                <p class="font-bold text-on-surface text-sm">أرباح الدورات السريعة</p>
-                            </div>
-                        </div>
-                        <div class="text-left">
-                            <p class="stats-number font-bold text-secondary text-md">{{ total_quick_earnings|floatformat:0|intcomma }} ل.س</p>
-                            <span class="text-[10px] text-primary flex items-center gap-0.5 justify-end">
-                                <span class="material-symbols-outlined text-[12px]">check_circle</span> عوائد الكلاسات
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Quick Action Grid -->
-            <section class="bg-white p-5 rounded-xl border border-outline-variant/30 shadow-sm space-y-3">
-                <h3 class="text-sm font-bold text-primary">المحاسبة والمركز المالي للمعهد</h3>
-                <p class="text-xs text-on-surface-variant leading-relaxed">تابع توزيع التدفقات النقدية والصناديق والأصول والموجودات الخاصة بالمركز التعليمي بنقرة زر واحدة.</p>
-                <div class="grid grid-cols-2 gap-3 pt-2">
-                    <button onclick="switchTab('accounts')" class="flex flex-col items-center justify-center p-3 rounded-lg border border-primary/20 hover:bg-primary/5 active:scale-95 transition-all text-primary font-bold text-xs gap-1">
-                        <span class="material-symbols-outlined text-[24px]">account_balance_wallet</span>
-                        <span>دفاتر الحسابات</span>
-                    </button>
-                    <button onclick="switchTab('courses')" class="flex flex-col items-center justify-center p-3 rounded-lg border border-secondary/20 hover:bg-secondary/5 active:scale-95 transition-all text-secondary font-bold text-xs gap-1">
-                        <span class="material-symbols-outlined text-[24px]">analytics</span>
-                        <span>أداء كلاساتك</span>
-                    </button>
-                </div>
-            </section>
+        <div class="wallet-card-balance">
+            {{ partner_balance|floatformat:0|intcomma }} ل.س
         </div>
-
-        <!-- VIEW 2: ACCOUNTS (المحافظ والحسابات) -->
-        <div id="view-accounts" class="app-view space-y-6">
-            <div class="bg-white p-5 rounded-xl border border-outline-variant/30 shadow-sm space-y-2">
-                <h2 class="text-lg font-bold text-primary flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary">finance_chip</span>
-                    المركز المالي والحسابات الجارية
-                </h2>
-                <p class="text-xs text-on-surface-variant">انقر على أي من الحسابات الفرعية التالية لتتمكن من استعراض كشف الحساب التفصيلي والدفاتر الخاصة بها.</p>
+        
+        <div class="wallet-card-holder">
+            <div>
+                <div class="wallet-label">حساب الملكية والجاري المربوط</div>
+                <div class="wallet-value">
+                    {% if partner_account %}{{ partner_account.code }} — {{ partner_account.name_ar|default:partner_account.name }}{% else %}لم يتم ربط حساب{% endif %}
+                </div>
             </div>
-
-            <!-- List of categories with account listings inside -->
-            <div class="space-y-4">
-                
-                <!-- Category 1: Assets -->
-                <div class="bg-white rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
-                    <div class="bg-surface-container-low px-4 py-3 border-b border-outline-variant/20 flex justify-between items-center">
-                        <span class="font-bold text-sm text-primary flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-amber-600">inventory_2</span>
-                            الموجودات والأصول
-                        </span>
-                        <span class="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">{{ partner_financial_data.assets_accounts|length }} حسابات</span>
-                    </div>
-                    <div class="divide-y divide-outline-variant/10">
-                        {% for acc in partner_financial_data.assets_accounts %}
-                        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="flex justify-between items-center p-4 hover:bg-primary/5 active:bg-primary/10 transition-colors">
-                            <div class="text-right">
-                                <span class="stats-number text-xs text-on-surface-variant font-mono block">{{ acc.code }}</span>
-                                <span class="font-bold text-sm text-on-surface">{{ acc.name }}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <span class="stats-number font-bold text-primary text-sm">{{ acc.balance|floatformat:0|intcomma }}</span>
-                                <span class="material-symbols-outlined text-outline-variant text-[20px]">chevron_left</span>
-                            </div>
-                        </a>
-                        {% empty %}
-                        <p class="text-xs text-on-surface-variant p-4 text-center">لا توجد حسابات موجودات مفعّلة حالياً.</p>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Category 2: Cash Boxes -->
-                <div class="bg-white rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
-                    <div class="bg-surface-container-low px-4 py-3 border-b border-outline-variant/20 flex justify-between items-center">
-                        <span class="font-bold text-sm text-primary flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-emerald-600">payments</span>
-                            الصناديق النقدية والبنوك
-                        </span>
-                        <span class="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">{{ partner_financial_data.cash_accounts|length }} صناديق</span>
-                    </div>
-                    <div class="divide-y divide-outline-variant/10">
-                        {% for acc in partner_financial_data.cash_accounts %}
-                        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="flex justify-between items-center p-4 hover:bg-primary/5 active:bg-primary/10 transition-colors">
-                            <div class="text-right">
-                                <span class="stats-number text-xs text-on-surface-variant font-mono block">{{ acc.code }}</span>
-                                <span class="font-bold text-sm text-on-surface">{{ acc.name }}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <span class="stats-number font-bold text-primary text-sm">{{ acc.balance|floatformat:0|intcomma }}</span>
-                                <span class="material-symbols-outlined text-outline-variant text-[20px]">chevron_left</span>
-                            </div>
-                        </a>
-                        {% empty %}
-                        <p class="text-xs text-on-surface-variant p-4 text-center">لا توجد صناديق نقدية.</p>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Category 3: Safes and Deposits -->
-                <div class="bg-white rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
-                    <div class="bg-surface-container-low px-4 py-3 border-b border-outline-variant/20 flex justify-between items-center">
-                        <span class="font-bold text-sm text-primary flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-purple-600">room_service</span>
-                            الحسابات الجارية والأمانات
-                        </span>
-                        <span class="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{{ partner_financial_data.deposit_accounts|length }} أمانات</span>
-                    </div>
-                    <div class="divide-y divide-outline-variant/10">
-                        {% for acc in partner_financial_data.deposit_accounts %}
-                        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="flex justify-between items-center p-4 hover:bg-primary/5 active:bg-primary/10 transition-colors">
-                            <div class="text-right">
-                                <span class="stats-number text-xs text-on-surface-variant font-mono block">{{ acc.code }}</span>
-                                <span class="font-bold text-sm text-on-surface">{{ acc.name }}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <span class="stats-number font-bold text-primary text-sm">{{ acc.balance|floatformat:0|intcomma }}</span>
-                                <span class="material-symbols-outlined text-outline-variant text-[20px]">chevron_left</span>
-                            </div>
-                        </a>
-                        {% empty %}
-                        <p class="text-xs text-on-surface-variant p-4 text-center">لا توجد حسابات أمانات.</p>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Category 4: Employee Cashboxes -->
-                <div class="bg-white rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
-                    <div class="bg-surface-container-low px-4 py-3 border-b border-outline-variant/20 flex justify-between items-center">
-                        <span class="font-bold text-sm text-primary flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-indigo-600">manage_accounts</span>
-                            صناديق عهد الموظفين
-                        </span>
-                        <span class="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">{{ partner_financial_data.employee_cashboxes|length }} عهد</span>
-                    </div>
-                    <div class="divide-y divide-outline-variant/10">
-                        {% for acc in partner_financial_data.employee_cashboxes %}
-                        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="flex justify-between items-center p-4 hover:bg-primary/5 active:bg-primary/10 transition-colors">
-                            <div class="text-right">
-                                <span class="stats-number text-xs text-on-surface-variant font-mono block">{{ acc.code }}</span>
-                                <span class="font-bold text-sm text-on-surface">{{ acc.name }}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <span class="stats-number font-bold text-primary text-sm">{{ acc.balance|floatformat:0|intcomma }}</span>
-                                <span class="material-symbols-outlined text-outline-variant text-[20px]">chevron_left</span>
-                            </div>
-                        </a>
-                        {% empty %}
-                        <p class="text-xs text-on-surface-variant p-4 text-center">لا توجد عهد مسجلة حالياً.</p>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Category 5: Revenues & Expenses -->
-                <div class="bg-white rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
-                    <div class="bg-surface-container-low px-4 py-3 border-b border-outline-variant/20 flex justify-between items-center">
-                        <span class="font-bold text-sm text-primary flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-blue-600">trending_up</span>
-                            الإيرادات والمصروفات
-                        </span>
-                        <span class="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">كشف عام</span>
-                    </div>
-                    <div class="divide-y divide-outline-variant/10">
-                        <!-- Revenue rollup link -->
-                        <div class="p-3 bg-slate-50 text-xs font-bold text-slate-500">حسابات الإيرادات والأرباح</div>
-                        {% for acc in partner_financial_data.revenue_accounts %}
-                        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="flex justify-between items-center p-4 hover:bg-primary/5 active:bg-primary/10 transition-colors">
-                            <div class="text-right">
-                                <span class="stats-number text-xs text-on-surface-variant font-mono block">{{ acc.code }}</span>
-                                <span class="font-bold text-sm text-on-surface">{{ acc.name }}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <span class="stats-number font-bold text-primary text-sm">{{ acc.balance|floatformat:0|intcomma }}</span>
-                                <span class="material-symbols-outlined text-outline-variant text-[20px]">chevron_left</span>
-                            </div>
-                        </a>
-                        {% empty %}
-                        <p class="text-xs text-on-surface-variant p-4 text-center">لا توجد حسابات إيرادات.</p>
-                        {% endfor %}
-
-                        <!-- Expenses link -->
-                        <div class="p-3 bg-slate-50 text-xs font-bold text-slate-500">حسابات النفقات والمصاريف</div>
-                        {% for acc in partner_financial_data.expense_accounts %}
-                        <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="flex justify-between items-center p-4 hover:bg-primary/5 active:bg-primary/10 transition-colors">
-                            <div class="text-right">
-                                <span class="stats-number text-xs text-on-surface-variant font-mono block">{{ acc.code }}</span>
-                                <span class="font-bold text-sm text-on-surface">{{ acc.name }}</span>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <span class="stats-number font-bold text-primary text-sm">{{ acc.balance|floatformat:0|intcomma }}</span>
-                                <span class="material-symbols-outlined text-outline-variant text-[20px]">chevron_left</span>
-                            </div>
-                        </a>
-                        {% empty %}
-                        <p class="text-xs text-on-surface-variant p-4 text-center">لا توجد حسابات مصروفات.</p>
-                        {% endfor %}
-                    </div>
-                </div>
-
+            <div style="text-align: left;">
+                <div class="wallet-label">نسبة الشراكة</div>
+                <div class="wallet-value" style="color: #fef08a;">{{ teacher.partnership_percentage }}%</div>
             </div>
         </div>
+    </div>
 
-        <!-- VIEW 3: COURSES (الدورات السريعة) -->
-        <div id="view-courses" class="app-view space-y-6">
-            <!-- Impact Hero section -->
-            <section class="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-secondary p-6 text-on-primary-container shadow-xl">
-                <div class="absolute -right-6 -top-6 opacity-10 rotate-12">
-                    <span class="material-symbols-outlined text-[140px] text-white">school</span>
-                </div>
-                <div class="relative z-10">
-                    <p class="text-xs text-white/80 mb-1">أداؤك ومستحقاتك الحالية</p>
-                    <h2 class="text-xl font-bold text-white mb-4">كلاسات الدورات السريعة</h2>
-                    
-                    <div class="flex items-end justify-between">
-                        <div>
-                            <p class="text-xs text-white/70">أرباحك التقديرية المسجلة</p>
-                            <div class="flex items-baseline gap-1 mt-1">
-                                <span class="stats-number text-3xl font-bold text-yellow-300">{{ total_quick_earnings|floatformat:0|intcomma }}</span>
-                                <span class="text-xs text-yellow-300">ل.س</span>
-                            </div>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-md rounded-lg px-3 py-2 border border-white/20">
-                            <span class="material-symbols-outlined align-middle text-yellow-300 text-sm">trending_up</span>
-                            <span class="text-xs text-white mr-1">{{ quick_sessions|length }} كلاسات نشطة</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Earnings List -->
-            <section class="space-y-3">
-                <h3 class="text-md font-bold text-primary">سجل عوائد الدورات</h3>
-                <div class="space-y-3">
-                    {% for s in quick_sessions %}
-                    <div class="bg-white p-4 rounded-xl border border-outline-variant/30 flex justify-between items-center shadow-sm">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                                <span class="material-symbols-outlined">event_note</span>
-                            </div>
-                            <div class="text-right">
-                                <h4 class="font-bold text-sm text-on-surface">{{ s.session_name }}</h4>
-                                <p class="text-[10px] text-on-surface-variant">تاريخ الجلسة: {{ s.session_date }}</p>
-                            </div>
-                        </div>
-                        <div class="text-left">
-                            <strong class="stats-number text-primary text-sm">+{{ s.teacher_earnings|floatformat:0|intcomma }} ل.س</strong>
-                            <span class="text-[9px] text-emerald-600 block">شراكة مباشرة</span>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="bg-white p-8 rounded-xl border border-outline-variant/30 text-center">
-                        <span class="material-symbols-outlined text-4xl text-outline-variant mb-2">event_busy</span>
-                        <p class="text-xs text-on-surface-variant">لا توجد دورات سريعة نشطة مسجلة لك حالياً.</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </section>
+    <!-- Quick Statistics Grid -->
+    <div class="stats-grid reveal" style="animation-delay: 0.05s;">
+        <div class="stat-box">
+            <span class="stat-box-icon" style="color: #eab308;"><i class="fas fa-percent"></i></span>
+            <span class="stat-box-title">نسبة الشراكة</span>
+            <span class="stat-box-value">{{ teacher.partnership_percentage }}%</span>
         </div>
+        <div class="stat-box">
+            <span class="stat-box-icon" style="color: #0e6a8e;"><i class="fas fa-shield-halved"></i></span>
+            <span class="stat-box-title">رصيد الملكية</span>
+            <span class="stat-box-value">{{ partner_balance|floatformat:0|intcomma }} ل.س</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-box-icon" style="color: #3b82f6;"><i class="fas fa-graduation-cap"></i></span>
+            <span class="stat-box-title">الكلاسات النشطة</span>
+            <span class="stat-box-value">{{ quick_sessions|length }}</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-box-icon" style="color: #10b981;"><i class="fas fa-money-bill-trend-up"></i></span>
+            <span class="stat-box-title">أرباح الدورات السريعة</span>
+            <span class="stat-box-value">{{ total_quick_earnings|floatformat:0|intcomma }} ل.س</span>
+        </div>
+    </div>
 
-        <!-- VIEW 4: PROFILE (الملف الشخصي) -->
-        <div id="view-profile" class="app-view space-y-6">
-            <!-- Profile Info Card -->
-            <section class="bg-white rounded-xl p-6 shadow-sm border border-outline-variant/30 flex flex-col items-center text-center">
-                <div class="relative mb-3">
-                    <div class="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-primary to-secondary flex items-center justify-center">
-                        <div class="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-primary border border-white">
-                            <span class="material-symbols-outlined text-4xl">account_circle</span>
-                        </div>
+    <!-- Wealth Summary -->
+    <div class="card reveal" style="animation-delay: 0.08s; margin-bottom: 20px;">
+        <div class="section-title" style="color: var(--primary); margin-bottom: 12px;">
+            <i class="fas fa-chart-pie"></i>
+            ملخص المحفظة الجارية
+        </div>
+        
+        <div class="list" style="margin-top: 10px;">
+            <!-- Capital Link -->
+            <div onclick="switchTab('accounts')" class="list-item" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-landmark" style="color: #0e6a8e; font-size: 1.2rem;"></i>
+                    <div style="text-align: right;">
+                        <span class="muted" style="font-size: 0.72rem; display: block;">حصة الملكية الحالية</span>
+                        <strong style="font-size: 0.85rem;">{% if partner_account %}{{ partner_account.name }}{% else %}جاري الشريك{% endif %}</strong>
                     </div>
-                    <div class="absolute bottom-0 right-0 bg-primary p-0.5 rounded-full border-2 border-white shadow-sm">
-                        <span class="material-symbols-outlined text-[12px] text-white" style="font-variation-settings: 'FILL' 1;">verified</span>
+                </div>
+                <div style="text-align: left;">
+                    <span style="font-weight: 800; color: #0e6a8e; font-family: monospace;">{{ partner_balance|floatformat:0|intcomma }} ل.س</span>
+                    <span class="muted" style="font-size: 0.65rem; display: block; color: #27ae60;"><i class="fas fa-check-circle"></i> رصيد نشط</span>
+                </div>
+            </div>
+
+            <!-- Quick Earnings Link -->
+            <div onclick="switchTab('courses')" class="list-item" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-chalkboard-user" style="color: #6b4fa0; font-size: 1.2rem;"></i>
+                    <div style="text-align: right;">
+                        <span class="muted" style="font-size: 0.72rem; display: block;">أرباح الدورات المباشرة</span>
+                        <strong style="font-size: 0.85rem;">مستحقات الدورات السريعة</strong>
                     </div>
                 </div>
-                <h1 class="text-xl font-bold text-on-surface mb-0.5">{{ teacher.full_name }}</h1>
-                <p class="text-xs text-on-surface-variant mb-3">شريك مساهم - {{ teacher.get_branch_display|default:"مدرس" }}</p>
-                <div class="bg-secondary-container/50 px-3 py-1 rounded-lg border border-secondary/10">
-                    <span class="text-[10px] font-bold text-secondary">النسبة المقررة: {{ teacher.partnership_percentage }}%</span>
-                </div>
-            </section>
-
-            <!-- Mode switching & profile settings links -->
-            <div class="space-y-4">
-                <h2 class="text-xs font-bold text-on-surface-variant/80 px-2 uppercase tracking-wider">وضع التصفح والخيارات</h2>
-                <div class="bg-white rounded-xl overflow-hidden border border-outline-variant/30 shadow-sm divide-y divide-outline-variant/10">
-                    <!-- Switch Mode link -->
-                    <a href="?set_mode=teacher" class="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors active:bg-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800">
-                                <span class="material-symbols-outlined">swap_horiz</span>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-sm text-on-surface">التبديل إلى وضع المدرس</p>
-                                <p class="text-xs text-on-surface-variant">العودة لشعب الطلاب وتسميعهم وحضورك اليومي</p>
-                            </div>
-                        </div>
-                        <span class="material-symbols-outlined text-outline-variant">chevron_left</span>
-                    </a>
-
-                    <!-- Choose Mode Screen link -->
-                    <a href="?choose_mode=1" class="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors active:bg-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-800">
-                                <span class="material-symbols-outlined">dashboard</span>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-sm text-on-surface">شاشة بوابة الاختيار</p>
-                                <p class="text-xs text-on-surface-variant">إظهار شاشة البداية لتحديد وضع الدخول</p>
-                            </div>
-                        </div>
-                        <span class="material-symbols-outlined text-outline-variant">chevron_left</span>
-                    </a>
-                </div>
-
-                <!-- Technical Support -->
-                <h2 class="text-xs font-bold text-on-surface-variant/80 px-2 uppercase tracking-wider">الدعم والمساعدة</h2>
-                <div class="bg-white rounded-xl overflow-hidden border border-outline-variant/30 shadow-sm">
-                    <a href="tel:09" class="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors active:bg-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-800">
-                                <span class="material-symbols-outlined">contact_support</span>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-sm text-on-surface">الدعم الفني للمعهد</p>
-                                <p class="text-xs text-on-surface-variant">التواصل مع إدارة النظام والمالية</p>
-                            </div>
-                        </div>
-                        <span class="material-symbols-outlined text-outline-variant">chevron_left</span>
-                    </a>
-                </div>
-
-                <!-- Log out -->
-                <div class="pt-4">
-                    <a href="{% url 'mobile:logout' %}" class="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-error/20 text-error hover:bg-error/5 transition-all active:scale-[0.98] font-bold">
-                        <span class="material-symbols-outlined">logout</span>
-                        <span>تسجيل الخروج من الحساب</span>
-                    </a>
+                <div style="text-align: left;">
+                    <span style="font-weight: 800; color: #6b4fa0; font-family: monospace;">{{ total_quick_earnings|floatformat:0|intcomma }} ل.س</span>
+                    <span class="muted" style="font-size: 0.65rem; display: block; color: #0e6a8e;"><i class="fas fa-circle-dollar-to-slot"></i> عوائد الكلاسات</span>
                 </div>
             </div>
         </div>
+    </div>
 
-    </main>
+    <!-- Quick action links banner -->
+    <div class="card reveal" style="animation-delay: 0.12s; border: 1px solid rgba(14,106,142,0.15); background: linear-gradient(135deg, rgba(14,106,142,0.02) 0%, #ffffff 100%);">
+        <div class="section-title" style="font-size: 0.95rem;">
+            <i class="fas fa-wallet"></i>
+            بوابة المركز المالي الذكي
+        </div>
+        <p class="muted" style="font-size: 0.78rem; margin-top: 4px; line-height: 1.4;">يمكنك متابعة توزيع التدفقات النقدية والصناديق والأصول والموجودات الخاصة بالمركز التعليمي بنقرة زر واحدة.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;">
+            <button onclick="switchTab('accounts')" class="btn" style="padding: 10px; font-size: 0.78rem; border-radius: 10px;">
+                <i class="fas fa-building-columns"></i> دفاتر الحسابات
+            </button>
+            <button onclick="switchTab('courses')" class="btn btn-secondary" style="padding: 10px; font-size: 0.78rem; border-radius: 10px;">
+                <i class="fas fa-chart-line"></i> أداء كلاساتك
+            </button>
+        </div>
+    </div>
+</div>
 
-    <!-- Bottom Navigation Bar (Glassmorphic) -->
-    <nav class="bg-white/90 backdrop-blur-md border-t border-outline-variant/30 fixed bottom-0 left-0 right-0 py-2.5 px-4 grid grid-cols-4 z-50 shadow-lg">
-        <button onclick="switchTab('home')" id="tab-btn-home" class="flex flex-col items-center gap-1 text-primary">
-            <span class="material-symbols-outlined text-[24px]">home</span>
-            <span class="text-[10px] font-bold">الرئيسية</span>
-        </button>
-        <button onclick="switchTab('accounts')" id="tab-btn-accounts" class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary">
-            <span class="material-symbols-outlined text-[24px]">account_balance_wallet</span>
-            <span class="text-[10px] font-bold">الحسابات</span>
-        </button>
-        <button onclick="switchTab('courses')" id="tab-btn-courses" class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary">
-            <span class="material-symbols-outlined text-[24px]">school</span>
-            <span class="text-[10px] font-bold">الدورات</span>
-        </button>
-        <button onclick="switchTab('profile')" id="tab-btn-profile" class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary">
-            <span class="material-symbols-outlined text-[24px]">person</span>
-            <span class="text-[10px] font-bold">الملف الشخصي</span>
-        </button>
-    </nav>
+<!-- VIEW 2: ACCOUNTS (المحافظ والحسابات) -->
+<div id="view-accounts" class="app-view">
+    <div class="card reveal" style="margin-bottom: 16px;">
+        <div class="section-title" style="color: var(--primary);">
+            <i class="fas fa-building-columns"></i>
+            المركز المالي والحسابات الجارية
+        </div>
+        <p class="muted" style="font-size: 0.78rem; margin-top: 4px; line-height: 1.4;">انقر على أي من الحسابات الفرعية التالية لتتمكن من استعراض كشف الحساب التفصيلي والدفاتر الخاصة بها.</p>
+    </div>
 
-    <!-- Navigation Script -->
-    <script>
-        function switchTab(tabId) {
-            // Hide all views
-            document.querySelectorAll('.app-view').forEach(view => {
-                view.classList.remove('active');
-            });
-            // Show requested view
-            const activeView = document.getElementById('view-' + tabId);
-            if (activeView) {
-                activeView.classList.add('active');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+    <!-- Group 1: Assets -->
+    <div class="accounts-container reveal" style="animation-delay: 0.05s;">
+        <div class="accounts-header">
+            <span><i class="fas fa-boxes-stacked" style="color: #e28743; margin-left: 6px;"></i>الموجودات والأصول</span>
+            <span class="badge" style="background: #e28743;">{{ partner_financial_data.assets_accounts|length }}</span>
+        </div>
+        <div class="list">
+            {% for acc in partner_financial_data.assets_accounts %}
+            <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="account-row">
+                <div class="account-info">
+                    <span class="account-code">{{ acc.code }}</span>
+                    <span class="account-name">{{ acc.name }}</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span class="account-value">{{ acc.balance|floatformat:0|intcomma }}</span>
+                    <i class="fas fa-chevron-left account-arrow"></i>
+                </div>
+            </a>
+            {% empty %}
+            <p class="muted" style="padding: 14px; text-align: center; font-size: 0.78rem;">لا توجد حسابات موجودات مفعّلة.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Group 2: Cash Boxes -->
+    <div class="accounts-container reveal" style="animation-delay: 0.08s;">
+        <div class="accounts-header">
+            <span><i class="fas fa-money-bill-wave" style="color: #27ae60; margin-left: 6px;"></i>الصناديق النقدية والبنوك</span>
+            <span class="badge" style="background: #27ae60;">{{ partner_financial_data.cash_accounts|length }}</span>
+        </div>
+        <div class="list">
+            {% for acc in partner_financial_data.cash_accounts %}
+            <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="account-row">
+                <div class="account-info">
+                    <span class="account-code">{{ acc.code }}</span>
+                    <span class="account-name">{{ acc.name }}</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span class="account-value">{{ acc.balance|floatformat:0|intcomma }}</span>
+                    <i class="fas fa-chevron-left account-arrow"></i>
+                </div>
+            </a>
+            {% empty %}
+            <p class="muted" style="padding: 14px; text-align: center; font-size: 0.78rem;">لا توجد صناديق نقدية.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Group 3: Deposit/Safes -->
+    <div class="accounts-container reveal" style="animation-delay: 0.1s;">
+        <div class="accounts-header">
+            <span><i class="fas fa-vault" style="color: #9b59b6; margin-left: 6px;"></i>الحسابات الجارية والأمانات</span>
+            <span class="badge" style="background: #9b59b6;">{{ partner_financial_data.deposit_accounts|length }}</span>
+        </div>
+        <div class="list">
+            {% for acc in partner_financial_data.deposit_accounts %}
+            <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="account-row">
+                <div class="account-info">
+                    <span class="account-code">{{ acc.code }}</span>
+                    <span class="account-name">{{ acc.name }}</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span class="account-value">{{ acc.balance|floatformat:0|intcomma }}</span>
+                    <i class="fas fa-chevron-left account-arrow"></i>
+                </div>
+            </a>
+            {% empty %}
+            <p class="muted" style="padding: 14px; text-align: center; font-size: 0.78rem;">لا توجد حسابات أمانات.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Group 4: Employee Cashboxes -->
+    <div class="accounts-container reveal" style="animation-delay: 0.12s;">
+        <div class="accounts-header">
+            <span><i class="fas fa-user-gear" style="color: #34495e; margin-left: 6px;"></i>صناديق عهد الموظفين</span>
+            <span class="badge" style="background: #34495e;">{{ partner_financial_data.employee_cashboxes|length }}</span>
+        </div>
+        <div class="list">
+            {% for acc in partner_financial_data.employee_cashboxes %}
+            <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="account-row">
+                <div class="account-info">
+                    <span class="account-code">{{ acc.code }}</span>
+                    <span class="account-name">{{ acc.name }}</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span class="account-value">{{ acc.balance|floatformat:0|intcomma }}</span>
+                    <i class="fas fa-chevron-left account-arrow"></i>
+                </div>
+            </a>
+            {% empty %}
+            <p class="muted" style="padding: 14px; text-align: center; font-size: 0.78rem;">لا توجد عهد موظفين.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Group 5: Revenues & Expenses -->
+    <div class="accounts-container reveal" style="animation-delay: 0.14s;">
+        <div class="accounts-header">
+            <span><i class="fas fa-arrows-spin" style="color: #2980b9; margin-left: 6px;"></i>الإيرادات والمصروفات</span>
+            <span class="badge" style="background: #2980b9;">كشف عام</span>
+        </div>
+        <div class="list">
+            <div style="background: #f8fafc; padding: 6px 16px; font-size: 0.7rem; font-weight: bold; color: var(--muted); border-bottom: 1px solid var(--border);">حسابات الإيرادات والأرباح</div>
+            {% for acc in partner_financial_data.revenue_accounts %}
+            <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="account-row">
+                <div class="account-info">
+                    <span class="account-code">{{ acc.code }}</span>
+                    <span class="account-name">{{ acc.name }}</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span class="account-value">{{ acc.balance|floatformat:0|intcomma }}</span>
+                    <i class="fas fa-chevron-left account-arrow"></i>
+                </div>
+            </a>
+            {% empty %}
+            <p class="muted" style="padding: 12px; text-align: center; font-size: 0.75rem;">لا توجد حسابات إيرادات.</p>
+            {% endfor %}
+
+            <div style="background: #f8fafc; padding: 6px 16px; font-size: 0.7rem; font-weight: bold; color: var(--muted); border-bottom: 1px solid var(--border); border-top: 1px solid var(--border);">حسابات المصاريف والنفقات</div>
+            {% for acc in partner_financial_data.expense_accounts %}
+            <a href="{% url 'mobile:teacher_partner_ledger' acc.id %}" class="account-row">
+                <div class="account-info">
+                    <span class="account-code">{{ acc.code }}</span>
+                    <span class="account-name">{{ acc.name }}</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span class="account-value">{{ acc.balance|floatformat:0|intcomma }}</span>
+                    <i class="fas fa-chevron-left account-arrow"></i>
+                </div>
+            </a>
+            {% empty %}
+            <p class="muted" style="padding: 12px; text-align: center; font-size: 0.75rem;">لا توجد حسابات مصروفات.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- VIEW 3: COURSES (الدورات السريعة) -->
+<div id="view-courses" class="app-view">
+    <div class="card reveal" style="padding: 20px; background: linear-gradient(135deg, var(--primary) 0%, #004c69 100%); color: #ffffff; margin-bottom: 16px; position: relative; overflow: hidden;">
+        <div class="absolute -right-6 -top-6 opacity-10">
+            <i class="fas fa-graduation-cap" style="font-size: 100px;"></i>
+        </div>
+        <div style="position: relative; z-index: 2;">
+            <span class="muted" style="color: rgba(255,255,255,0.75); font-size: 0.75rem; display: block;">أرباح الدورات الحالية</span>
+            <span style="font-size: 1.8rem; font-weight: 800; font-family: monospace; display: block; margin-top: 4px;">{{ total_quick_earnings|floatformat:0|intcomma }} ل.س</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 12px;">
+                <span style="font-size: 0.78rem;"><i class="fas fa-calendar-check"></i> عدد الكلاسات النشطة</span>
+                <span class="badge" style="background: rgba(255,255,255,0.25); font-size: 0.8rem; font-weight: bold;">{{ quick_sessions|length }} كلاسات</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline of courses -->
+    <div class="card reveal" style="animation-delay: 0.05s;">
+        <div class="section-title" style="color: var(--primary); margin-bottom: 12px;">
+            <i class="fas fa-list-check"></i>
+            سجل مستحقات وعوائد الكلاسات السريعة
+        </div>
+        
+        <div class="list" style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
+            {% for s in quick_sessions %}
+            <div class="course-card">
+                <div class="course-card-header">
+                    <strong style="font-size: 0.88rem; color: var(--text);">{{ s.session_name }}</strong>
+                    <span class="badge" style="background: var(--surface-soft); color: var(--primary); font-weight: bold; font-size: 0.7rem; border-radius: 6px;">كلاس نشط</span>
+                </div>
+                <span class="muted" style="font-size: 0.72rem;"><i class="far fa-calendar"></i> تاريخ الجلسة: {{ s.session_date }}</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 4px;">
+                    <span class="muted" style="font-size: 0.75rem;">العائد المستحق للشريك:</span>
+                    <strong style="color: #10b981; font-size: 0.9rem; font-family: monospace;">+{{ s.teacher_earnings|floatformat:0|intcomma }} ل.س</strong>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align: center; padding: 25px 0;">
+                <i class="fas fa-circle-info fa-2x muted" style="margin-bottom: 8px;"></i>
+                <p class="muted" style="font-size: 0.78rem;">لا توجد دورات سريعة مسجلة حالياً.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- VIEW 4: PROFILE (الملف الشخصي) -->
+<div id="view-profile" class="app-view">
+    <div class="card reveal" style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 22px; margin-bottom: 16px;">
+        <div class="relative" style="margin-bottom: 10px;">
+            <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; border: 3px border-white; box-shadow: var(--shadow);">
+                <i class="fas fa-user-tie text-white" style="font-size: 2.2rem;"></i>
+            </div>
+            <div style="position: absolute; bottom: 0; right: 0; background: #0e6a8e; color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff;">
+                <i class="fas fa-check" style="font-size: 0.7rem;"></i>
+            </div>
+        </div>
+        <h3 style="font-weight: 800; font-size: 1.1rem; color: var(--text);">{{ teacher.full_name }}</h3>
+        <span class="muted" style="font-size: 0.78rem; margin-top: 2px;">شريك مساهم رسمي في المعهد</span>
+        <span class="badge" style="background: var(--surface-soft); color: var(--primary); font-weight: bold; margin-top: 8px; font-size: 0.75rem; padding: 6px 12px; border-radius: 8px;">النسبة المقررة: {{ teacher.partnership_percentage }}%</span>
+    </div>
+
+    <!-- Settings links -->
+    <div class="card reveal" style="animation-delay: 0.05s; padding: 0; overflow: hidden; margin-bottom: 16px;">
+        <div style="padding: 14px 16px; border-bottom: 1px solid var(--border); font-weight: bold; font-size: 0.82rem; color: var(--muted);">خيارات تصفح النظام</div>
+        
+        <div class="list">
+            <!-- Back to teacher mode -->
+            <a href="?set_mode=teacher" class="account-row" style="padding: 14px 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(39, 174, 96, 0.1); color: #27ae60; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-chalkboard-user"></i>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong style="font-size: 0.85rem; display: block;">تصفح كمعلم</strong>
+                        <span class="muted" style="font-size: 0.7rem;">الانتقال إلى كشوفات الحصص وتسميع الطلاب</span>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-left account-arrow"></i>
+            </a>
+
+            <!-- Choice portal -->
+            <a href="?choose_mode=1" class="account-row" style="padding: 14px 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(14, 106, 142, 0.1); color: #0e6a8e; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-hospital-user"></i>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong style="font-size: 0.85rem; display: block;">شاشة البداية</strong>
+                        <span class="muted" style="font-size: 0.7rem;">الرجوع لشاشة البوابة لتحديد الدخول</span>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-left account-arrow"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Help & logout -->
+    <div class="card reveal" style="animation-delay: 0.08s; padding: 0; overflow: hidden; margin-bottom: 24px;">
+        <div style="padding: 14px 16px; border-bottom: 1px solid var(--border); font-weight: bold; font-size: 0.82rem; color: var(--muted);">الدعم الفني والحساب</div>
+        <div class="list">
+            <a href="tel:09" class="account-row" style="padding: 14px 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(155, 89, 182, 0.1); color: #9b59b6; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong style="font-size: 0.85rem; display: block;">اتصل بالإدارة المالية</strong>
+                        <span class="muted" style="font-size: 0.7rem;">لأي استفسار بخصوص الحسابات أو الأرصدة</span>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-left account-arrow"></i>
+            </a>
+        </div>
+    </div>
+
+    <a href="{% url 'mobile:logout' %}" class="btn" style="background: rgba(192, 57, 43, 0.08); color: #c0392b; border: 1px solid rgba(192, 57, 43, 0.15); width: 100%; text-align: center; justify-content: center; font-weight: bold; padding: 12px; border-radius: 12px; margin-bottom: 24px;">
+        <i class="fas fa-right-from-bracket"></i> تسجيل الخروج من الحساب
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(tabId) {
+    // Hide all views
+    document.querySelectorAll('.app-view').forEach(view => {
+        view.classList.remove('active');
+    });
+    // Show requested view
+    const activeView = document.getElementById('view-' + tabId);
+    if (activeView) {
+        activeView.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Update bottom nav button colors and classes
+    const buttons = ['home', 'accounts', 'courses', 'profile'];
+    buttons.forEach(btn => {
+        const btnEl = document.getElementById('tab-btn-' + btn);
+        if (btnEl) {
+            if (btn == tabId) {
+                btnEl.classList.add('active');
+            } else {
+                btnEl.classList.remove('active');
             }
-
-            // Update bottom nav button colors
-            const buttons = ['home', 'accounts', 'courses', 'profile'];
-            buttons.forEach(btn => {
-                const btnEl = document.getElementById('tab-btn-' + btn);
-                if (btnEl) {
-                    if (btn == tabId) {
-                        btnEl.classList.remove('text-on-surface-variant', 'hover:text-primary');
-                        btnEl.classList.add('text-primary');
-                    } else {
-                        btnEl.classList.remove('text-primary');
-                        btnEl.classList.add('text-on-surface-variant', 'hover:text-primary');
-                    }
-                }
-            });
-
-            // Set active mode key to hash
-            window.location.hash = tabId;
         }
+    });
 
-        // Auto-switch based on hash on load
-        document.addEventListener('DOMContentLoaded', () => {
-            const hash = (window.location.hash || '#home').replace('#', '');
-            if (['home', 'accounts', 'courses', 'profile'].includes(hash)) {
-                switchTab(hash);
-            }
-        });
-    </script>
-</body>
-</html>
+    // Set location hash
+    window.location.hash = tabId;
+}
+
+// Auto-switch based on hash on load
+document.addEventListener('DOMContentLoaded', () => {
+    // Override the default bottom nav dynamically with our JS tabs
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) {
+        bottomNav.innerHTML = `
+            <button onclick="switchTab('home')" id="tab-btn-home" class="active">
+                <i class="fas fa-home"></i>
+                <span>الرئيسية</span>
+            </button>
+            <button onclick="switchTab('accounts')" id="tab-btn-accounts">
+                <i class="fas fa-wallet"></i>
+                <span>الحسابات</span>
+            </button>
+            <button onclick="switchTab('courses')" id="tab-btn-courses">
+                <i class="fas fa-graduation-cap"></i>
+                <span>الدورات</span>
+            </button>
+            <button onclick="switchTab('profile')" id="tab-btn-profile">
+                <i class="fas fa-circle-user"></i>
+                <span>الملف الشخصي</span>
+            </button>
+        `;
+    }
+
+    const hash = (window.location.hash || '#home').replace('#', '');
+    if (['home', 'accounts', 'courses', 'profile'].includes(hash)) {
+        switchTab(hash);
+    } else {
+        switchTab('home');
+    }
+});
+</script>
+{% endblock %}
