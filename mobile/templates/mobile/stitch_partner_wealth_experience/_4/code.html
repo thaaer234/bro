@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'IBM Plex Sans Arabic', 'Hanken Grotesk', sans-serif;
+            background-color: #f7f9fd;
+            background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuATArFhM7eGG-ev3OFoxhbSCfRFCc4XoFslqEdrji5h26XMCcz58eekeFQgnEDf2lq1DxQZE12wm2de49C-6AuP20vDS6TnHQF8PzMeaBh0GdY1pa6lwDzAueeL2bSUEdaXZM3on38AOz0dEWOdEuDLphPKHU_L6vYuPh-9D5f01HmFQwBDZcm06-inv7jop6knDlgY0ZoIJdAiCA0w3apRXroq_cGaZG7NxwWr2M4Vhyo8qXbFzfwhhXCPyRYjOCYg8w');
+            background-size: 80%;
+            background-position: center 20%;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-blend-mode: overlay;
+        }
+        /* Subtle watermark effect for the background logo */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(247, 249, 253, 0.92); /* Fade the logo background */
+            z-index: -1;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#0e6a8e", // Teal from logo
+                    "secondary": "#6b4fa3", // Purple from logo
+                    "on-primary": "#ffffff",
+                    "primary-container": "#d1e8ff",
+                    "on-primary-container": "#001e2f",
+                    "secondary-container": "#e9ddff",
+                    "on-secondary-container": "#23005c",
+                    "background": "#f7f9fd",
+                    "surface": "#f7f9fd",
+                    "surface-container": "#eff1f5",
+                    "surface-container-high": "#e9ebf0",
+                    "on-surface": "#191c1e",
+                    "on-surface-variant": "#41484d",
+                    "outline": "#71787d",
+                    "outline-variant": "#c1c7ce",
+                    "error": "#ba1a1a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.5rem",
+                    "lg": "0.75rem",
+                    "xl": "1rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-margin": "1.5rem",
+                    "stack-lg": "1.5rem",
+                    "section-gap": "2.5rem",
+                    "stack-sm": "0.5rem",
+                    "gutter": "1rem",
+                    "stack-md": "1rem"
+            },
+            "fontFamily": {
+                    "display-lg": ["Hanken Grotesk", "IBM Plex Sans Arabic"],
+                    "headline-lg": ["Hanken Grotesk", "IBM Plex Sans Arabic"],
+                    "body-md": ["Hanken Grotesk", "IBM Plex Sans Arabic"],
+                    "label-md": ["Hanken Grotesk", "IBM Plex Sans Arabic"]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="text-on-surface min-h-screen pb-32">
+<!-- Top AppBar -->
+<header class="sticky top-0 z-50 bg-surface/80 backdrop-blur-md px-container-margin py-4 flex justify-between items-center w-full border-b border-outline-variant/30">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg overflow-hidden border-2 border-primary/20 bg-white">
+<img class="w-full h-full object-cover" data-alt="A professional portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApvubFilJPnnU1vXgYgtC5MpQkPJ0lH2uUhEzJiWflJBI_u7PXYeWEnS97r--zBVYidfMIl3pH9XqKB6c5XpYkLJGvqZFKX7j-Ku8X1vTCSEkIWI3F21kLSWW114x3G7oJS3ewTgzlCbxVW1evzfMhJB2Z7KjJdftdy7JdPhgeHG22_l79MEojRXoAq7Zz5ry5vO0RPNfCKUQ3DrUbdLT483FEk-9t0AdPu-byorN5qSyhJ7-WYS5e"/>
+</div>
+<h1 class="text-xl font-bold text-primary">المركز المالي الذكي</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-container text-primary hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<main class="px-container-margin mt-stack-lg relative">
+<!-- Hero Wealth Section -->
+<section class="mb-section-gap">
+<div class="relative overflow-hidden bg-gradient-to-br from-primary to-secondary p-6 rounded-xl text-on-primary shadow-lg shadow-primary/20">
+<div class="relative z-10">
+<p class="text-sm opacity-90 mb-1">إجمالي المحفظة المالية</p>
+<div class="flex items-baseline gap-2 mb-4">
+<span class="text-3xl font-bold">٤٥,٢٨٠.٠٠</span>
+<span class="text-xs opacity-80">ريال</span>
+</div>
+<div class="flex gap-3">
+<div class="bg-white/10 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10">
+<p class="text-[10px] opacity-80">نمو الشهري</p>
+<p class="font-bold text-sm">+١٢.٤٪</p>
+</div>
+<div class="bg-white/10 px-3 py-2 rounded-lg backdrop-blur-md border border-white/10">
+<p class="text-[10px] opacity-80">الأرباح التقديرية</p>
+<p class="font-bold text-sm">٨,٤٠٠ ريال</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Main Categories Bento Grid -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Category 1: Equity & Capital -->
+<div class="bg-white/80 backdrop-blur-sm p-5 rounded-xl border border-outline-variant hover:border-primary/40 transition-all cursor-pointer group shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">handshake</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary">arrow_outward</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-1">الأسهم والرأسمال</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">إدارة الشراكات الاستراتيجية وتتبع حصص الملكية في المشاريع التعليمية.</p>
+</div>
+<!-- Category 2: Cash Flow -->
+<div class="bg-white/80 backdrop-blur-sm p-5 rounded-xl border border-outline-variant hover:border-secondary/40 transition-all cursor-pointer group shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">account_balance_wallet</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary">arrow_outward</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-1">التدفق النقدي</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">إدارة المحافظ الرقمية والحسابات البنكية المرتبطة بنشاطك المهني.</p>
+</div>
+<!-- Category 3: Business Performance -->
+<div class="bg-white/80 backdrop-blur-sm p-5 rounded-xl border border-outline-variant hover:border-primary/40 transition-all cursor-pointer group shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-primary-container rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">payments</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary">arrow_outward</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-1">أداء الأعمال</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">تحليل الإيرادات والمصروفات الشهرية لتحسين كفاءة دخلك.</p>
+</div>
+<!-- Category 4: Financial Records -->
+<div class="bg-white/80 backdrop-blur-sm p-5 rounded-xl border border-outline-variant hover:border-secondary/40 transition-all cursor-pointer group shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-secondary-container rounded-lg flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">description</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-secondary">arrow_outward</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-1">السجلات المالية</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">الوصول إلى الدفاتر المحاسبية، الفواتير الضريبية والمستندات الرسمية.</p>
+</div>
+</section>
+<!-- Path to Wealth Section -->
+<section class="mt-section-gap">
+<h2 class="text-xl font-bold text-on-surface mb-stack-md">رحلة الاستثمار</h2>
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/50 shadow-inner">
+<div class="flex justify-between items-center mb-4">
+<span class="text-sm font-semibold text-primary">المستوى الماسي</span>
+<span class="text-sm font-semibold text-secondary">٨٠٪ من الهدف</span>
+</div>
+<div class="h-2.5 w-full bg-outline-variant/30 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary" style="width: 80%"></div>
+</div>
+<p class="mt-4 text-sm text-on-surface-variant leading-relaxed">
+                    لقد اقتربت من تحقيق هدفك المالي لهذا الربع. استمر في إدارة تدفقاتك النقدية بذكاء لتصل إلى المستوى التالي.
+                </p>
+</div>
+</section>
+<!-- Quick Insights Section -->
+<section class="mt-section-gap mb-stack-lg">
+<h2 class="text-xl font-bold text-on-surface mb-stack-md">آخر العمليات</h2>
+<div class="space-y-stack-sm">
+<div class="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-outline-variant/30">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">trending_up</span>
+</div>
+<div>
+<p class="font-semibold text-on-surface text-sm">أرباح شراكة مدرسية</p>
+<p class="text-[10px] text-on-surface-variant">١٢ أكتوبر ٢٠٢٣</p>
+</div>
+</div>
+<span class="text-primary font-bold text-sm">+١,٢٠٠ ريال</span>
+</div>
+<div class="flex items-center justify-between p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-outline-variant/30">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-error/5 flex items-center justify-center text-error">
+<span class="material-symbols-outlined">shopping_cart</span>
+</div>
+<div>
+<p class="font-semibold text-on-surface text-sm">أدوات تعليمية رقمية</p>
+<p class="text-[10px] text-on-surface-variant">١٠ أكتوبر ٢٠٢٣</p>
+</div>
+</div>
+<span class="text-error font-bold text-sm">-٢٥٠ ريال</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-4 left-4 right-4 z-50 flex justify-around items-center px-2 py-3 bg-white/90 backdrop-blur-xl border border-outline-variant/30 shadow-2xl rounded-2xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant flex-1 py-1 transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined text-2xl">home</span>
+<span class="text-[10px] mt-1">الرئيسية</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant flex-1 py-1 transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined text-2xl">handshake</span>
+<span class="text-[10px] mt-1">الشراكات</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant flex-1 py-1 transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined text-2xl">payments</span>
+<span class="text-[10px] mt-1">الأرباح</span>
+</a>
+<!-- ACTIVE TAB -->
+<a class="flex flex-col items-center justify-center bg-primary text-white rounded-xl mx-1 px-4 py-2 transition-all active:scale-95 shadow-md shadow-primary/30" href="#">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+<span class="text-[10px] mt-1 font-bold">الحسابات</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant flex-1 py-1 transition-all active:scale-90" href="#">
+<span class="material-symbols-outlined text-2xl">person</span>
+<span class="text-[10px] mt-1">حسابي</span>
+</a>
+</nav>
+<script>
+    // Micro-interactions
+    document.querySelectorAll('.group').forEach(card => {
+        card.addEventListener('mousedown', () => {
+            card.style.transform = 'scale(0.97)';
+        });
+        card.addEventListener('mouseup', () => {
+            card.style.transform = 'scale(1)';
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'scale(1)';
+        });
+    });
+</script>
+</body></html>
