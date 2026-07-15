@@ -6834,9 +6834,11 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
         """جلب بيانات الدورات الحقيقية"""
         courses_data = []
         courses = Course.objects.filter(is_active=True)
+        courses = _scope_queryset_to_current_year(courses, self.request)
         
         for course in courses:
             enrollments = Studentenrollment.objects.filter(course=course, is_completed=False)
+            enrollments = _scope_queryset_to_current_year(enrollments, self.request)
             students_count = enrollments.count()
             
             fully_paid = 0
@@ -6889,6 +6891,7 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
             from classroom.models import Classroom, Classroomenrollment
 
             classrooms = Classroom.objects.filter(class_type='study').order_by('name')
+            classrooms = _scope_queryset_to_current_year(classrooms, self.request, field_name='course__academic_year')
             for classroom in classrooms:
                 enrollments = Classroomenrollment.objects.filter(classroom=classroom).select_related('student')
                 seen = set()
@@ -6922,12 +6925,14 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
         withdrawn_data = []
         try:
             enrollments = Studentenrollment.objects.filter(is_completed=True)
+            enrollments = _scope_queryset_to_current_year(enrollments, self.request)
             
             for enrollment in enrollments:
                 refund_amount = StudentReceipt.objects.filter(
                     student_profile=enrollment.student,
                     course=enrollment.course
-                ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+                )
+                refund_amount = _scope_queryset_to_current_year(refund_amount, self.request).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
                 
                 withdrawn_data.append({
                     'student_name': enrollment.student.full_name,
@@ -6939,10 +6944,7 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
                 
         except Exception as e:
             print(f"Error getting withdrawn data: {e}")
-            withdrawn_data = [
-                {'student_name': 'طالب مثال 1', 'course_name': 'دورة Python', 'withdrawal_date': '2024-01-15', 'refund_amount': Decimal('50000.00'), 'reason': 'ظروف شخصية'},
-                {'student_name': 'طالب مثال 2', 'course_name': 'دورة Web Development', 'withdrawal_date': '2024-01-10', 'refund_amount': Decimal('75000.00'), 'reason': 'الانتقال لمدينة أخرى'},
-            ]
+            withdrawn_data = []
         
         return withdrawn_data
     
@@ -6950,6 +6952,7 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
         """حساب المتبقي للطالب"""
         total_remaining = Decimal('0')
         enrollments = Studentenrollment.objects.filter(student=student, is_completed=False)
+        enrollments = _scope_queryset_to_current_year(enrollments, self.request)
         
         for enrollment in enrollments:
             course_price = enrollment.course.price or Decimal('0')
