@@ -6858,25 +6858,8 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
             
             for enrollment in enrollments:
                 student = enrollment.student
-                course_price = course.price or Decimal('0')
-                discount_percent = enrollment.discount_percent or Decimal('0')
-                discount_amount = enrollment.discount_amount or Decimal('0')
-                
-                # حساب صافي المبلغ المستحق
-                if discount_percent > 0:
-                    discount_value = course_price * (discount_percent / Decimal('100'))
-                    net_due = course_price - discount_value - discount_amount
-                else:
-                    net_due = course_price - discount_amount
-                
-                net_due = max(Decimal('0'), net_due)
-                
-                # حساب المبلغ المدفوع
-                paid_total = StudentReceipt.objects.filter(
-                    student_profile=student,
-                    course=course
-                ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
-                
+                net_due = enrollment.net_amount
+                paid_total = enrollment.amount_paid
                 remaining = enrollment.balance_due
                 
                 if remaining <= Decimal('0'):
@@ -7020,23 +7003,9 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
         rows = []
         for enrollment in enrollments:
             student = enrollment.student
-            course_price = course.price or Decimal('0')
-            discount_percent = enrollment.discount_percent or Decimal('0')
-            discount_amount = enrollment.discount_amount or Decimal('0')
-
-            if discount_percent > 0:
-                discount_value = course_price * (discount_percent / Decimal('100'))
-                net_due = course_price - discount_value - discount_amount
-            else:
-                net_due = course_price - discount_amount
-            net_due = max(Decimal('0'), net_due)
-
-            paid_total = StudentReceipt.objects.filter(
-                student_profile=student,
-                course=course
-            ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
-
-            remaining = max(Decimal('0'), net_due - paid_total)
+            net_due = enrollment.net_amount
+            paid_total = enrollment.amount_paid
+            remaining = enrollment.balance_due
             rows.append({
                 'student_name': student.full_name,
                 'net_due': net_due,
