@@ -166,10 +166,46 @@
                             </thead>
                             <tbody>
                                 {% for row in table.rows %}
-                                <tr onclick="showAttendanceDetails('{{ table.branch }}', '{{ table.branch_title|escapejs }}', {{ row.month }}, '{{ row.month_name|escapejs }}')" style="cursor: pointer;" class="table-row-clickable">
-                                    <td><i class="fas fa-search-plus text-primary me-1"></i> {{ row.month_label }}</td>
+                                <tr onclick="toggleAttendanceRow('details-{{ table.branch }}-{{ row.month }}')" style="cursor: pointer;" class="table-row-clickable">
+                                    <td><i class="fas fa-chevron-down text-primary me-1" id="icon-details-{{ table.branch }}-{{ row.month }}"></i> {{ row.month_label }}</td>
                                     <td class="text-center">{{ row.total_sessions|floatformat:1 }}</td>
                                     <td class="text-center font-monospace fw-semibold">{{ row.total_salary|floatformat:0 }} {{ labels.currency }}</td>
+                                </tr>
+                                <tr id="details-{{ table.branch }}-{{ row.month }}" style="display: none; background-color: #f8fafc;">
+                                    <td colspan="3" class="p-3">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered mb-0" style="font-size: 0.82rem;">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>التاريخ</th>
+                                                        <th>الحالة</th>
+                                                        <th class="text-center">الحصص</th>
+                                                        <th class="text-center">الحصص النصفية</th>
+                                                        <th class="text-center">إجمالي الحصص</th>
+                                                        <th>ملاحظات</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for att in all_attendance_days %}
+                                                        {% if att.branch == table.branch and att.date.month == row.month %}
+                                                        <tr>
+                                                            <td><strong>{{ att.date|date:"Y-m-d" }}</strong></td>
+                                                            <td>
+                                                                <span class="badge {% if att.status == 'present' %}bg-success{% elif att.status == 'absent' %}bg-danger{% else %}bg-warning{% endif %}">
+                                                                    {{ att.get_status_display }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-center">{{ att.session_count|default:0 }}</td>
+                                                            <td class="text-center">{{ att.half_session_count|default:0 }}</td>
+                                                            <td class="text-center text-primary font-monospace fw-bold">{{ att.total_sessions|floatformat:1 }}</td>
+                                                            <td><small class="text-muted">{{ att.notes|default:"-" }}</small></td>
+                                                        </tr>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -211,131 +247,24 @@
     </div>
 </div>
 
-<!-- Modal تفاصيل الحضور الشهري للفرع -->
-<div class="modal fade" id="attendanceDetailsModal" tabindex="-1" aria-labelledby="attendanceDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="attendanceDetailsModalLabel">
-                    <i class="fas fa-calendar-alt text-primary me-2"></i>
-                    تفاصيل حضور الفرع والشهر
-                </h5>
-                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
-                    <div>الفرع: <strong id="modalBranchName"></strong></div>
-                    <div>الشهر: <strong id="modalMonthName"></strong></div>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped table-hover align-middle">
-                        <thead>
-                            <tr>
-                                <th>التاريخ</th>
-                                <th>الحالة</th>
-                                <th class="text-center">الحصص</th>
-                                <th class="text-center">الحصص النصفية</th>
-                                <th class="text-center">إجمالي الحصص</th>
-                                <th>ملاحظات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modalAttendanceTableBody">
-                            <!-- سيتم تعبئتها بواسطة JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- البيانات بصيغة JSON لمعالجتها بالـ JavaScript -->
-<script type="application/json" id="attendanceDataJson">
-[
-    {% for att in all_attendance_days %}
-    {
-        "date": "{{ att.date|date:'Y-m-d' }}",
-        "month": {{ att.date.month }},
-        "branch": "{{ att.branch }}",
-        "status_display": "{{ att.get_status_display }}",
-        "status_class": "{% if att.status == 'present' %}success{% elif att.status == 'absent' %}danger{% else %}warning{% endif %}",
-        "session_count": {{ att.session_count|default:0 }},
-        "half_session_count": {{ att.half_session_count|default:0 }},
-        "total_sessions": {{ att.total_sessions|default:0 }},
-        "notes": "{{ att.notes|escapejs|default:'' }}"
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-]
-</script>
-
+<!-- سكربت التحكم في إظهار وإخفاء تفاصيل الحضور الشهري -->
 <script>
-function showAttendanceDetails(branch, branchTitle, month, monthName) {
-    const dataElement = document.getElementById('attendanceDataJson');
-    if (!dataElement) return;
-    
-    const allRecords = JSON.parse(dataElement.textContent);
-    const filteredRecords = allRecords.filter(r => r.branch === branch && r.month === month);
-    
-    document.getElementById('modalBranchName').textContent = branchTitle;
-    document.getElementById('modalMonthName').textContent = monthName;
-    
-    const tbody = document.getElementById('modalAttendanceTableBody');
-    tbody.innerHTML = '';
-    
-    if (filteredRecords.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">لا توجد سجلات حضور مسجلة لهذا الشهر.</td></tr>';
-    } else {
-        filteredRecords.forEach(r => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${r.date}</strong></td>
-                <td><span class="badge bg-${r.status_class}">${r.status_display}</span></td>
-                <td class="text-center">${r.session_count}</td>
-                <td class="text-center">${r.half_session_count}</td>
-                <td class="text-center text-primary font-monospace fw-bold">${parseFloat(r.total_sessions).toFixed(1)}</td>
-                <td><small class="text-muted">${r.notes || '-'}</small></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-    
-    try {
-        const modalElement = document.getElementById('attendanceDetailsModal');
-        if (window.bootstrap && window.bootstrap.Modal) {
-            const modal = new window.bootstrap.Modal(modalElement);
-            modal.show();
-        } else if (window.$ && typeof window.$.fn.modal === 'function') {
-            window.$('#attendanceDetailsModal').modal('show');
-        } else if (window.jQuery && typeof window.jQuery.fn.modal === 'function') {
-            window.jQuery('#attendanceDetailsModal').modal('show');
-        } else {
-            // Fallback يدوي إذا لم يتم تحميل Bootstrap JS بالكامل
-            modalElement.style.display = 'block';
-            modalElement.classList.add('show');
-            document.body.classList.add('modal-open');
-            
-            // إنشاء خلفية داكنة للمودال يدوياً
-            let backdrop = document.createElement('div');
-            backdrop.className = 'modal-backdrop fade show';
-            backdrop.id = 'modalBackdropFallback';
-            document.body.appendChild(backdrop);
-            
-            // تفعيل زر الإغلاق يدوياً
-            const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
-            closeButtons.forEach(btn => {
-                btn.onclick = function() {
-                    modalElement.style.display = 'none';
-                    modalElement.classList.remove('show');
-                    document.body.classList.remove('modal-open');
-                    if (backdrop) backdrop.remove();
-                };
-            });
+function toggleAttendanceRow(id) {
+    var row = document.getElementById(id);
+    var icon = document.getElementById('icon-' + id);
+    if (!row) return;
+    if (row.style.display === 'none') {
+        row.style.display = 'table-row';
+        if (icon) {
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
         }
-    } catch (e) {
-        console.error("Error opening modal: ", e);
+    } else {
+        row.style.display = 'none';
+        if (icon) {
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
     }
 }
 </script>
