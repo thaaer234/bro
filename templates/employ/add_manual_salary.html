@@ -143,6 +143,27 @@
                             <i class="fas fa-calculator me-2 text-warning"></i>
                             تفاصيل الراتب
                         </h6>
+                        <style>
+                            .input-group-lg .form-control {
+                                font-family: 'Courier New', Courier, monospace;
+                                font-weight: bold;
+                                font-size: 1.4rem;
+                                color: #2c3e50;
+                                text-align: left;
+                                direction: ltr;
+                                padding-left: 15px;
+                            }
+                            .input-group-lg .input-group-text {
+                                font-weight: bold;
+                                font-size: 1rem;
+                                background-color: #f1f2f6;
+                                color: #747d8c;
+                            }
+                            .form-control:focus {
+                                border-color: #2ecc71;
+                                box-shadow: 0 0 0 0.25rem rgba(46, 204, 113, 0.25);
+                            }
+                        </style>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="gross_salary" class="form-label">
@@ -151,7 +172,7 @@
                                 </label>
                                 <div class="input-group input-group-lg">
                                     <input type="text" name="gross_salary" id="gross_salary" 
-                                           class="form-control text-end" required 
+                                           class="form-control" required 
                                            placeholder="0" pattern="[0-9]*" value="{{ auto_gross_salary|floatformat:0 }}"
                                            data-total-advances="{{ total_advances|floatformat:2 }}"
                                            data-max-deduction="{{ max_advance_deduction|floatformat:2 }}">
@@ -163,14 +184,9 @@
                                 <small class="form-text text-muted">
                                     الراتب الإجمالي قبل الخصومات
                                     {% if total_advances > 0 %}
-                                    <span class="d-block mt-1">السلف المستحقة لهذه الفترة: {{ total_advances|floatformat:0 }} ل.س، والحد الأعلى للخصم: {{ max_advance_deduction|floatformat:0 }} ل.س</span>
+                                    <span class="d-block mt-1 text-warning fw-bold"><i class="fas fa-exclamation-triangle"></i> السلف المستحقة لهذه الفترة: {{ total_advances|floatformat:0 }} ل.س (الحد الأعلى للخصم: {{ max_advance_deduction|floatformat:0 }} ل.س)</span>
                                     {% else %}
-                                    <span class="d-block mt-1">لا توجد سلف مستحقة لهذه الفترة.</span>
-                                    {% endif %}
-                                    {% if total_advances > 0 %}
-                                    <span class="d-block mt-1">السلف المستحقة لهذه الفترة: {{ total_advances|floatformat:0 }} ل.س، والحد الأعلى للخصم: {{ max_advance_deduction|floatformat:0 }} ل.س</span>
-                                    {% else %}
-                                    <span class="d-block mt-1">لا توجد سلف مستحقة لهذه الفترة.</span>
+                                    <span class="d-block mt-1"><i class="fas fa-info-circle"></i> لا توجد سلف مستحقة لهذه الفترة.</span>
                                     {% endif %}
                                 </small>
                             </div>
@@ -182,7 +198,7 @@
                                 </label>
                                 <div class="input-group input-group-lg">
                                     <input type="text" name="advance_deduction" id="advance_deduction" 
-                                           class="form-control text-end" inputmode="numeric"
+                                           class="form-control" inputmode="numeric"
                                            placeholder="0" pattern="[0-9]*" value="0">
                                     <span class="input-group-text bg-light">ل.س</span>
                                     <div class="invalid-feedback">
