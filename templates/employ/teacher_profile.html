@@ -182,7 +182,7 @@
                                                         <th class="text-center">الحصص</th>
                                                         <th class="text-center">الحصص النصفية</th>
                                                         <th class="text-center">إجمالي الحصص</th>
-                                                        <th>ملاحظات</th>
+                                                        <th>الأجر المستحق</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -198,7 +198,7 @@
                                                             <td class="text-center">{{ att.session_count|default:0 }}</td>
                                                             <td class="text-center">{{ att.half_session_count|default:0 }}</td>
                                                             <td class="text-center text-primary font-monospace fw-bold">{{ att.total_sessions|floatformat:1 }}</td>
-                                                            <td><small class="text-muted">{{ att.notes|default:"-" }}</small></td>
+                                                            <td class="font-monospace fw-bold text-success">{% if att.status == 'present' or att.status == 'late' %}{{ att.get_daily_salary_amount|floatformat:0|intcomma }} ل.س{% else %}0 ل.س{% endif %}</td>
                                                         </tr>
                                                         {% endif %}
                                                     {% endfor %}
