@@ -135,9 +135,17 @@
                             <span class="text-muted">سلف الشهر الحالي:</span>
                             <strong class="font-monospace text-danger">{% if total_advances_outstanding_current > 0 %}-{{ total_advances_outstanding_current|floatformat:0|intcomma }} ل.س{% else %}0 ل.س{% endif %}</strong>
                         </div>
-                        <div class="d-flex justify-content-between pt-2">
+                        <div class="d-flex justify-content-between pt-2 border-bottom pb-2 mb-3">
                             <span class="fw-bold text-success fs-5">صافي الراتب المتوقع:</span>
                             <strong class="font-monospace text-success fs-5 fw-bold">{{ net_salary_estimate|floatformat:0|intcomma }} ل.س</strong>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'employ:add_manual_salary' teacher.pk %}?year={{ current_year_now }}&month={{ current_month_now }}" class="btn btn-sm btn-success w-50 fw-bold">
+                                <i class="fas fa-money-bill-wave me-1"></i> دفع راتب هذا الشهر
+                            </a>
+                            <a href="{% url 'employ:add_manual_salary' teacher.pk %}?year={{ next_month_year }}&month={{ next_month_month }}" class="btn btn-sm btn-outline-primary w-50 fw-bold">
+                                <i class="fas fa-forward me-1"></i> احتساب الشهر القادم
+                            </a>
                         </div>
                     </div>
                 </div>

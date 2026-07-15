@@ -1388,6 +1388,12 @@ class TeacherProfileView(DetailView):
         total_advances_outstanding_current = teacher.get_total_advances(year=timezone.now().year, month=timezone.now().month)
         net_salary_estimate = total_current_month_salary - total_advances_outstanding_current
 
+        # حساب تفاصيل الشهر القادم
+        from datetime import date, timedelta
+        next_month_date = timezone.now().date().replace(day=1) + timedelta(days=32)
+        next_month_year = next_month_date.year
+        next_month_month = next_month_date.month
+
         # إضافة بيانات الرواتب
         context.update({
             'manual_salaries': manual_salaries,
@@ -1408,6 +1414,10 @@ class TeacherProfileView(DetailView):
             'current_month_branch_details': current_month_branch_details,
             'total_current_month_salary': total_current_month_salary,
             'net_salary_estimate': net_salary_estimate,
+            'next_month_year': next_month_year,
+            'next_month_month': next_month_month,
+            'current_year_now': timezone.now().year,
+            'current_month_now': timezone.now().month,
             'advances': teacher.advances.all().order_by('-date'),
         })
         
@@ -1651,12 +1661,7 @@ class TeacherAdvanceCreateView(LoginRequiredMixin, CreateView):
         advance.created_by = self.request.user
         advance.save()
 
-        try:
-            advance.create_advance_journal_entry(self.request.user)
-            messages.success(self.request, f'تم إنشاء سلفة للمدرس {teacher.full_name} بمبلغ {advance.amount} ل.س')
-        except Exception as e:
-            messages.error(self.request, f'خطأ في إنشاء القيد المحاسبي: {e}')
-
+        messages.success(self.request, f'تم إنشاء سلفة للمدرس {teacher.full_name} بمبلغ {advance.amount} ل.س')
         return redirect('employ:teacher_profile', pk=teacher.pk)
 
 
