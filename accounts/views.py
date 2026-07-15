@@ -7070,6 +7070,16 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
     def create_course_detail_sheets(self, wb):
         """Details per course"""
         courses = Course.objects.filter(is_active=True).order_by('name')
+        courses = _scope_queryset_to_current_year(courses, self.request)
+        try:
+            from academic_years.models import AcademicYearTransferCourseItem
+            transferred_course_ids = AcademicYearTransferCourseItem.objects.filter(
+                batch__status='completed',
+                status='completed'
+            ).values_list('source_course_id', flat=True)
+            courses = courses.exclude(id__in=transferred_course_ids)
+        except Exception as e:
+            print(f"Error excluding transferred courses in detail sheets: {e}")
         used_titles = set(wb.sheetnames)
 
         for course in courses:
@@ -7134,6 +7144,7 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
         """Details per classroom"""
         from classroom.models import Classroom
         classrooms = Classroom.objects.filter(class_type='study').order_by('name')
+        classrooms = _scope_queryset_to_current_year(classrooms, self.request, field_name='course__academic_year')
         used_titles = set(wb.sheetnames)
 
         for classroom in classrooms:
