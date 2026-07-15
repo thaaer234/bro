@@ -40,9 +40,21 @@ def get_current_academic_year(request) -> Optional[AcademicYear]:
     if academic_year_id:
         academic_year = AcademicYear.objects.filter(pk=academic_year_id).first()
         if academic_year and not get_or_create_access_policy(academic_year).is_archived:
+            # ✅ الإصلاح التلقائي المالي/الإداري: السماح بتسجيل الحضور لشهر 6 بالكامل
+            if '2026-2027' in academic_year.name:
+                from datetime import date as d_date
+                if academic_year.start_date > d_date(2026, 6, 1):
+                    academic_year.start_date = d_date(2026, 6, 1)
+                    academic_year.save(update_fields=['start_date'])
             return academic_year
     system_academic_year = get_active_system_academic_year()
     if system_academic_year and not get_or_create_access_policy(system_academic_year).is_archived:
+        # ✅ الإصلاح التلقائي المالي/الإداري: السماح بتسجيل الحضور لشهر 6 بالكامل
+        if '2026-2027' in system_academic_year.name:
+            from datetime import date as d_date
+            if system_academic_year.start_date > d_date(2026, 6, 1):
+                system_academic_year.start_date = d_date(2026, 6, 1)
+                system_academic_year.save(update_fields=['start_date'])
         return system_academic_year
     return None
 
