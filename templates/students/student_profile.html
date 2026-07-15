@@ -1094,7 +1094,9 @@
           {% for item in active_enrollments %}
             {% if item.enrollment.is_completed == False %}
               <option value="{{ item.enrollment.course.id }}" 
-                      data-price="{{ item.net_amount|unlocalize }}" 
+                      data-price="{{ item.enrollment.total_amount|unlocalize }}" 
+                      data-discount-percent="{{ item.enrollment.discount_percent|unlocalize }}"
+                      data-discount-amount="{{ item.enrollment.discount_amount|unlocalize }}"
                       data-remaining="{{ item.balance_due }}"
                       data-enrollment-id="{{ item.enrollment.id }}"
                       data-course-name="{{ item.enrollment.course.name }}">
@@ -1800,26 +1802,31 @@ function initReceiptCalculations() {
     if (paidInput) paidInput.value = '0';
     if (discAmtInput) discAmtInput.value = '0';
     
-    // عند تغيير الدورة
     courseSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         
         if (selectedOption && selectedOption.value) {
             const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
             const remaining = parseFloat(selectedOption.getAttribute('data-remaining')) || 0;
+            const discountPercent = parseFloat(selectedOption.getAttribute('data-discount-percent')) || 0;
+            const discountAmount = parseFloat(selectedOption.getAttribute('data-discount-amount')) || 0;
             
-            console.log('سعر الدورة:', price, 'المتبقي:', remaining);
+            console.log('سعر الدورة:', price, 'المتبقي:', remaining, 'الحسم %:', discountPercent);
 
             if (amountInput) {
                 amountInput.value = formatNumber(price);
             }
             
-            if (paidInput) {
-                paidInput.value = '0';
+            if (discPctInput) {
+                discPctInput.value = discountPercent;
             }
             
             if (discAmtInput) {
-                discAmtInput.value = '0';
+                discAmtInput.value = formatNumber(discountAmount);
+            }
+            
+            if (paidInput) {
+                paidInput.value = '0';
             }
             
             // ✅ تحديث عرض المبلغ الصافي
@@ -1830,8 +1837,10 @@ function initReceiptCalculations() {
                 paidInput.removeAttribute('data-max');
                 paidInput.removeAttribute('title');
             }
-        } else if (amountInput) {
-            amountInput.value = '0';
+        } else {
+            if (amountInput) amountInput.value = '0';
+            if (discPctInput) discPctInput.value = '0';
+            if (discAmtInput) discAmtInput.value = '0';
         }
     });
     
@@ -1939,7 +1948,7 @@ function updateNetAmountDisplay() {
     const selectedOption = courseSelect.options[courseSelect.selectedIndex];
     const price = selectedOption ? parseFloat(selectedOption.getAttribute('data-price')) || 0 : 0;
     
-    if (!isFree && price <= 0) {
+    if (!isFree && price < 0) {
         netAmountDiv.style.display = 'none';
         return;
     }
@@ -1990,7 +1999,7 @@ function processQuickReceipt() {
     const paid = isFree ? 0 : (parseFormattedNumber(paidInput?.value) || 0);
     const date = dateInput?.value;
     
-    if (!isFree && price <= 0) {
+    if (!isFree && price < 0) {
         alert('يرجى اختيار دورة صحيحة');
         return;
     }

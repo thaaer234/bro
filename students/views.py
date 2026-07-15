@@ -2147,13 +2147,6 @@ def quick_receipt(request, student_id):
         discount_percent = Decimal('0.00')
         discount_amount = Decimal('0.00')
         remaining_amount = Decimal('0.00')
-        if enrollment:
-            # ضبط إجمالي الدورة ليعكس المدفوع فقط (أو صفر) لتصفير المتبقي
-            new_total = max(enrollment_paid, Decimal('0.00'))
-            enrollment.total_amount = new_total
-            enrollment.discount_percent = Decimal('0.00')
-            enrollment.discount_amount = Decimal('0.00')
-            enrollment.save(update_fields=['total_amount', 'discount_percent', 'discount_amount'])
     
     # ✅ الإصلاح: التأكد من أن المبلغ المدفوع لا يتجاوز المتبقي
     if paid_amount > remaining_amount:

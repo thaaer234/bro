@@ -363,7 +363,7 @@ class Student(models.Model):
                     print("لا يوجد فرق في المبلغ الصافي")
     
     def _update_enrollment_journal_entry(self, enrollment, user, old_amount, new_amount):
-        """تحديث قيد التسجيل المحاسبي بناءً على الفرق في المبلغ"""
+        """تحديث قيد التسجيل المحاسبي الأصلي مباشرة دون إنشاء قيود تسوية"""
         from accounts.models import JournalEntry, Transaction, Account
         
         journal_entry = enrollment.enrollment_journal_entry
@@ -371,92 +371,18 @@ class Student(models.Model):
         if not journal_entry:
             if new_amount > 0:
                 enrollment.create_accrual_enrollment_entry(user)
-            else:
-                print("لا يوجد قيد تسجيل للتحرير")
             return
         
-        # حساب الفرق في المبلغ
-        amount_diff = new_amount - old_amount
+        # تحديث قيمة القيد الأصلي مباشرة لتفادي إنشاء قيود تسوية مكررة
+        journal_entry.total_amount = new_amount
+        journal_entry.save(update_fields=['total_amount'])
         
-        if amount_diff == 0:
-            print("لا يوجد فرق في المبلغ")
-            return
-        
-        print(f"فرق المبلغ: {amount_diff}")
-        
-        # الحصول على الحسابات من القيد الأصلي
-        student_ar_account = None
-        course_deferred_account = None
-        
-        original_transactions = journal_entry.transactions.all()
-        for transaction in original_transactions:
-            if transaction.is_debit:
-                student_ar_account = transaction.account
-            else:
-                course_deferred_account = transaction.account
-        
-        if not student_ar_account or not course_deferred_account:
-            print("لم يتم العثور على الحسابات في القيد الأصلي")
-            return
-        
-        print(f"حساب ذمة الطالب: {student_ar_account}")
-        print(f"حساب الإيرادات المؤجلة: {course_deferred_account}")
-        
-        # استخدام date.today() بدلاً من timezone.now().date()
-        adjustment_entry = JournalEntry.objects.create(
-            date=date.today(),  # ← تم التصحيح هنا
-            description=f"تعديل حسم - {self.full_name} - {enrollment.course.name}",
-            entry_type='ADJUSTMENT',
-            total_amount=abs(amount_diff),
-            created_by=user
-        )
-        
-        if amount_diff > 0:
-            # زيادة المبلغ - نفس اتجاه القيد الأصلي
-            print("زيادة في المبلغ")
-            # مدين: ذمة الطالب
-            Transaction.objects.create(
-                journal_entry=adjustment_entry,
-                account=student_ar_account,
-                amount=amount_diff,
-                is_debit=True,
-                description=f"تعديل زيادة حسم - {enrollment.course.name}"
-            )
-            # دائن: الإيرادات المؤجلة
-            Transaction.objects.create(
-                journal_entry=adjustment_entry,
-                account=course_deferred_account,
-                amount=amount_diff,
-                is_debit=False,
-                description=f"تعديل زيادة حسم - {self.full_name}"
-            )
-        else:
-            # تخفيض المبلغ - عكس اتجاه القيد الأصلي
-            amount_abs = abs(amount_diff)
-            print(f"تخفيض في المبلغ: {amount_abs}")
-            # مدين: الإيرادات المؤجلة
-            Transaction.objects.create(
-                journal_entry=adjustment_entry,
-                account=course_deferred_account,
-                amount=amount_abs,
-                is_debit=True,
-                description=f"تعديل تخفيض حسم - {self.full_name}"
-            )
-            # دائن: ذمة الطالب
-            Transaction.objects.create(
-                journal_entry=adjustment_entry,
-                account=student_ar_account,
-                amount=amount_abs,
-                is_debit=False,
-                description=f"تعديل تخفيض حسم - {enrollment.course.name}"
-            )
-        
-        # ترحيل قيد التسوية
-        try:
-            adjustment_entry.post_entry(user)
-            print("تم ترحيل قيد التسوية بنجاح")
-        except Exception as e:
-            print(f"خطأ في ترحيل القيد: {e}")
+        # تحديث قيمة المعاملات التابعة للقيد
+        for transaction in journal_entry.transactions.all():
+            transaction.amount = new_amount
+            transaction.save(update_fields=['amount'])
+            
+        print(f"تم تحديث قيد التسجيل الأصلي {journal_entry.reference} بنجاح إلى القيمة الجديدة: {new_amount}")
 
     class Meta:
         ordering = ['full_name']
