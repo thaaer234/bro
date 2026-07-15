@@ -471,7 +471,7 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
         classroom_qs = self._get_teacher_classrooms(teacher, subjects)
         students_qs = self._get_teacher_students(classroom_qs)
 
-        attendance_qs = TeacherAttendance.objects.filter(teacher=teacher).order_by("-date")
+        attendance_qs = TeacherAttendance.objects.filter(teacher=teacher).exclude(status='no_duty').order_by("-date")
         attendance_summary = attendance_qs.aggregate(
             present=Count("id", filter=Q(status="present"))
         )

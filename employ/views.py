@@ -1239,20 +1239,20 @@ class TeacherProfileView(DetailView):
         daily_attendance_entries = TeacherAttendance.objects.filter(
             teacher=teacher, 
             date=attendance_date
-        ).order_by('branch')
+        ).exclude(status='no_duty').order_by('branch')
         
         # الحضور الشهري (هذا الشهر)
         monthly_attendance = TeacherAttendance.objects.filter(
             teacher=teacher,
             date__year=attendance_date.year,
             date__month=attendance_date.month
-        )
+        ).exclude(status='no_duty')
         
         # الحضور السنوي (هذه السنة)
         yearly_attendance = TeacherAttendance.objects.filter(
             teacher=teacher,
             date__year=attendance_date.year
-        )
+        ).exclude(status='no_duty')
         
         # إحصائيات شهرية مفصلة
         monthly_present = monthly_attendance.filter(status='present')
@@ -1321,13 +1321,13 @@ class TeacherProfileView(DetailView):
             # قائمة الحضور الأخيرة (10 أيام)
             'recent_attendance': TeacherAttendance.objects.filter(
                 teacher=teacher
-            ).order_by('-date')[:10],
+            ).exclude(status='no_duty').order_by('-date')[:10],
             
             # جلب جميع أيام الحضور للسنة المختارة
             'all_attendance_days': TeacherAttendance.objects.filter(
                 teacher=teacher,
                 date__year=selected_year
-            ).order_by('-date'),
+            ).exclude(status='no_duty').order_by('-date'),
             
             # إحصائيات الحضور حسب الشهور للسنة المختارة
             'monthly_attendance_stats': self.get_monthly_attendance_stats(teacher, selected_year),
