@@ -1385,7 +1385,8 @@ class TeacherProfileView(DetailView):
                     'total_earned': total_earned
                 })
         
-        net_salary_estimate = total_current_month_salary - total_advances_outstanding
+        total_advances_outstanding_current = teacher.get_total_advances(year=timezone.now().year, month=timezone.now().month)
+        net_salary_estimate = total_current_month_salary - total_advances_outstanding_current
 
         # إضافة بيانات الرواتب
         context.update({
@@ -1399,6 +1400,7 @@ class TeacherProfileView(DetailView):
             'paid_count_year': paid_count_year,
             'total_remaining': total_remaining,
             'total_advances_outstanding': total_advances_outstanding,
+            'total_advances_outstanding_current': total_advances_outstanding_current,
             'branch_monthly_tables': branch_monthly_tables,
             'branch_hourly_rates': branch_hourly_rates,
             'advance_account': advance_account,

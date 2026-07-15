@@ -132,8 +132,8 @@
                             <strong class="font-monospace text-dark">{{ total_current_month_salary|floatformat:0|intcomma }} ل.س</strong>
                         </div>
                         <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                            <span class="text-muted">إجمالي السلف المعلقة (المتبقية):</span>
-                            <strong class="font-monospace text-danger">{% if total_advances_outstanding > 0 %}-{{ total_advances_outstanding|floatformat:0|intcomma }} ل.س{% else %}0 ل.س{% endif %}</strong>
+                            <span class="text-muted">سلف الشهر الحالي:</span>
+                            <strong class="font-monospace text-danger">{% if total_advances_outstanding_current > 0 %}-{{ total_advances_outstanding_current|floatformat:0|intcomma }} ل.س{% else %}0 ل.س{% endif %}</strong>
                         </div>
                         <div class="d-flex justify-content-between pt-2">
                             <span class="fw-bold text-success fs-5">صافي الراتب المتوقع:</span>

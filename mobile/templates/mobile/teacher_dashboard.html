@@ -230,7 +230,7 @@ details.partner-acc-group[open] summary .toggle-icon {
     </div>
     <div class="pill">
       <strong>{{ salary_summary.outstanding_advances|floatformat:0|intcomma }} ل.س</strong>
-      <span>السلف المتبقية</span>
+      <span>سلف الشهر الحالي</span>
     </div>
   </div>
   
@@ -273,7 +273,7 @@ details.partner-acc-group[open] summary .toggle-icon {
         <strong style="font-family: monospace; color: var(--text);">{{ salary_summary.monthly_salary_estimate|floatformat:0|intcomma }} ل.س</strong>
       </div>
       <div style="display: flex; justify-content: space-between;">
-        <span class="muted">السلف المترتبة (المتبقية):</span>
+        <span class="muted">سلف الشهر الحالي:</span>
         <strong style="font-family: monospace; color: #c0392b;">{% if salary_summary.outstanding_advances > 0 %}-{{ salary_summary.outstanding_advances|floatformat:0|intcomma }} ل.س{% else %}0 ل.س{% endif %}</strong>
       </div>
       <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 4px; font-size: 0.9rem;">

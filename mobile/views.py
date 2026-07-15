@@ -646,9 +646,7 @@ class TeacherDashboardView(MobileSessionRequiredMixin, TemplateView):
         total_advances_amount = (
             all_advances.aggregate(total=Sum("amount")).get("total") or Decimal("0")
         )
-        outstanding_advances = sum(
-            (advance.outstanding_amount for advance in all_advances), Decimal("0")
-        )
+        outstanding_advances = teacher.get_total_advances(year=current_year, month=current_month)
         advance_account = teacher.get_teacher_advance_account()
         advance_account_balance = (
             advance_account.get_net_balance() if advance_account else Decimal("0")
