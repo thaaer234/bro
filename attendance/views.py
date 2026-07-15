@@ -1108,32 +1108,51 @@ class UpdateTeacherAttendanceView(View):
 class DeleteDailyTeacherAttendanceView(View):
     """حذف حضور يوم كامل للمدرسين"""
     
+    def get(self, request, date_str):
+        return self._handle_delete(request, date_str)
+
     def post(self, request, date_str):
+        return self._handle_delete(request, date_str)
+
+    def _handle_delete(self, request, date_str):
+        is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
         try:
             # تحويل التاريخ
             date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
             
             # التحقق من أن التاريخ ليس في المستقبل
             if date_obj > timezone.now().date():
-                messages.error(request, 'لا يمكن حذف حضور لتاريخ مستقبلي')
+                error_msg = 'لا يمكن حذف حضور لتاريخ مستقبلي'
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': error_msg})
+                messages.error(request, error_msg)
                 return redirect('attendance:teacher_attendance')
             
             # حذف حضور اليوم
             deleted_count = TeacherAttendance.delete_daily_attendance(date_obj)
             
             if deleted_count > 0:
-                messages.success(request, f'تم حذف {deleted_count} سجل حضور ليوم {date_str}')
+                success_msg = f'تم حذف {deleted_count} سجل حضور ليوم {date_str}'
+                if is_ajax:
+                    return JsonResponse({'success': True, 'message': success_msg})
+                messages.success(request, success_msg)
             else:
-                messages.warning(request, f'لا توجد سجلات حضور ليوم {date_str}')
+                warning_msg = f'لا توجد سجلات حضور ليوم {date_str}'
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': warning_msg})
+                messages.warning(request, warning_msg)
                 
         except ValueError as e:
-            if "مستقبلي" in str(e):
-                messages.error(request, str(e))
-            else:
-                messages.error(request, 'تاريخ غير صحيح')
+            error_msg = str(e) if "مستقبلي" in str(e) else 'تاريخ غير صحيح'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg})
+            messages.error(request, error_msg)
         except Exception as e:
             print(f"خطأ مفصل في الحذف: {e}")
-            messages.error(request, f'حدث خطأ أثناء الحذف: {str(e)}')
+            error_msg = f'حدث خطأ أثناء الحذف: {str(e)}'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg})
+            messages.error(request, error_msg)
         
         return redirect('attendance:teacher_attendance')
 
