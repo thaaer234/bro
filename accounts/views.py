@@ -6836,6 +6836,17 @@ class OutstandingReportsExportView(LoginRequiredMixin, View):
         courses = Course.objects.filter(is_active=True)
         courses = _scope_queryset_to_current_year(courses, self.request)
         
+        # استبعاد الدورات التي تم نقلها بالكامل إلى فصل دراسي جديد لتفادي التكرار والمطابقة مع الصفحة
+        try:
+            from academic_years.models import AcademicYearTransferCourseItem
+            transferred_course_ids = AcademicYearTransferCourseItem.objects.filter(
+                batch__status='completed',
+                status='completed'
+            ).values_list('source_course_id', flat=True)
+            courses = courses.exclude(id__in=transferred_course_ids)
+        except Exception as e:
+            print(f"Error excluding transferred courses in export: {e}")
+            
         for course in courses:
             enrollments = Studentenrollment.objects.filter(course=course, is_completed=False)
             enrollments = _scope_queryset_to_current_year(enrollments, self.request)
