@@ -189,7 +189,7 @@ class StudentProfileView(LoginRequiredMixin, View):
             ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
             
             net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0.00'))
-            balance_due = max(Decimal('0.00'), net_amount - enrollment_paid)
+            balance_due = enrollment.balance_due
             
             active_enrollments_data.append({
                 'enrollment': enrollment,
@@ -201,8 +201,8 @@ class StudentProfileView(LoginRequiredMixin, View):
             total_paid += enrollment_paid
             total_due += net_amount
         
-        # لا تدع المتبقي يصبح سالباً إذا كان هناك خصم كامل أو دفعات سابقة
-        total_remaining = max(Decimal('0.00'), total_due - total_paid)
+        # لا تدع المتبقي يصبح سالباً، ومطابقة الرصيد بالاعتماد على رصيد الحساب المالي الفعلي
+        total_remaining = sum(item['balance_due'] for item in active_enrollments_data)
         
         # جلب الإيصالات
         receipts = StudentReceipt.objects.filter(
