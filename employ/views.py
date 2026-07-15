@@ -1363,6 +1363,30 @@ class TeacherProfileView(DetailView):
         current_year = today.year
         years_range = range(current_year - 5, current_year + 2)
         
+        # حساب أجور الفروع للشهر الحالي
+        current_month_branch_details = []
+        total_current_month_salary = Decimal("0.00")
+        branches = self._get_teacher_branches(teacher)
+        for branch in branches:
+            hourly_rate = teacher.get_hourly_rate_for_branch(branch, date=timezone.now().date())
+            current_month_att = TeacherAttendance.objects.filter(
+                teacher=teacher, branch=branch, status="present",
+                date__year=timezone.now().year, date__month=timezone.now().month
+            )
+            sessions_count = sum((att.total_sessions for att in current_month_att), Decimal("0.00"))
+            total_earned = sessions_count * (hourly_rate or Decimal("0.00"))
+            total_current_month_salary += total_earned
+            
+            if sessions_count > 0 or (hourly_rate and hourly_rate > 0):
+                current_month_branch_details.append({
+                    'branch_name': dict(Teacher.BranchChoices.choices).get(branch, branch),
+                    'hourly_rate': hourly_rate,
+                    'sessions_count': sessions_count,
+                    'total_earned': total_earned
+                })
+        
+        net_salary_estimate = total_current_month_salary - total_advances_outstanding
+
         # إضافة بيانات الرواتب
         context.update({
             'manual_salaries': manual_salaries,
@@ -1379,6 +1403,9 @@ class TeacherProfileView(DetailView):
             'branch_hourly_rates': branch_hourly_rates,
             'advance_account': advance_account,
             'advance_account_balance': advance_account_balance,
+            'current_month_branch_details': current_month_branch_details,
+            'total_current_month_salary': total_current_month_salary,
+            'net_salary_estimate': net_salary_estimate,
         })
         
         # إضافة حسابات الشراكة المتقدمة

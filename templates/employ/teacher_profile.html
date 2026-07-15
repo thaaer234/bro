@@ -88,6 +88,61 @@
                 </div>
             </div>
         </div>
+    <!-- خلاصة مستحقات المعلم والراتب الشهري الحالي التقديري -->
+    <div class="card mt-4 border-primary">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-white"><i class="fas fa-wallet me-2"></i> احتساب الراتب التقديري للشهر الحالي ({% now "F - Y" %})</h5>
+            <span class="badge bg-light text-primary fw-bold">تقديري بعد السلف</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-7 border-end">
+                    <h6 class="text-muted mb-3"><i class="fas fa-calculator me-1"></i> أجور الفروع المسجلة حضورها لهذا الشهر:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle text-right mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الفرع</th>
+                                    <th class="text-center">سعر الساعة</th>
+                                    <th class="text-center">الجلسات المنجزة</th>
+                                    <th class="text-center">الإجمالي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detail in current_month_branch_details %}
+                                <tr>
+                                    <td><strong>{{ detail.branch_name }}</strong></td>
+                                    <td class="text-center font-monospace">{{ detail.hourly_rate|floatformat:0|intcomma }} ل.س</td>
+                                    <td class="text-center font-monospace fw-bold text-primary">{{ detail.sessions_count|floatformat:1 }}</td>
+                                    <td class="text-center font-monospace fw-bold">{{ detail.total_earned|floatformat:0|intcomma }} ل.س</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">لا توجد جلسات حضور مسجلة لهذا الشهر حتى الآن.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="p-3 bg-light rounded border">
+                        <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                            <span class="text-muted">مجموع أجور الحصص لهذا الشهر:</span>
+                            <strong class="font-monospace text-dark">{{ total_current_month_salary|floatformat:0|intcomma }} ل.س</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                            <span class="text-muted">إجمالي السلف المعلقة (المتبقية):</span>
+                            <strong class="font-monospace text-danger">{% if total_advances_outstanding > 0 %}-{{ total_advances_outstanding|floatformat:0|intcomma }} ل.س{% else %}0 ل.س{% endif %}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between pt-2">
+                            <span class="fw-bold text-success fs-5">صافي الراتب المتوقع:</span>
+                            <strong class="font-monospace text-success fs-5 fw-bold">{{ net_salary_estimate|floatformat:0|intcomma }} ل.س</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="card mt-4">
