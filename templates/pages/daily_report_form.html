@@ -368,7 +368,7 @@
             <!-- Footer -->
             <div class="report-footer">
                 <div class="footer-sign-item">
-                    اسم مقدم التقرير: <span>{{ report.user.get_full_name|default:report.user.username|default:request.user.get_full_name|default:request.user.username }}</span>
+                    اسم مقدم التقرير: <span>{{ report_user_name }}</span>
                 </div>
                 <div class="footer-sign-item">
                     التوقيع: <span>...............................</span>

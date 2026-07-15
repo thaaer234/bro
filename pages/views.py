@@ -1629,8 +1629,15 @@ class EmployeeDailyReportView(LoginRequiredMixin, TemplateView):
             auto_exam = report.auto_exam_info
             auto_cash = report.auto_cash_info
 
+        report_user_name = ""
+        if report:
+            report_user_name = report.user.get_full_name() or report.user.username
+        else:
+            report_user_name = user.get_full_name() or user.username
+
         context.update({
             'report': report,
+            'report_user_name': report_user_name,
             'target_date': target_date,
             'is_editable': is_editable,
             'auto_attendance': auto_attendance,
