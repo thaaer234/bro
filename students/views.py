@@ -175,23 +175,38 @@ class StudentProfileView(LoginRequiredMixin, View):
         ).select_related('course')
         
         # ✅ الإصلاح التلقائي الذاتي (Self-Healing): كشف وإصلاح التسجيلات التالفة بسبب البج القديم تلقائياً
-        from accounts.models import Account
+        from django.db import transaction as db_transaction
+        from accounts.models import Account, JournalEntry
         
         for enrollment in enrollments:
             if enrollment.total_amount is None or enrollment.total_amount <= 0:
                 course_price = enrollment.course.price if enrollment.course else Decimal('0.00')
                 if course_price > 0:
-                    ar_account = Account.get_student_ar_account_for_course(student, enrollment.course)
-                    ledger_balance = ar_account.get_net_balance() if ar_account else Decimal('0.00')
-                    enrollment_paid = StudentReceipt.objects.filter(
-                        enrollment=enrollment
-                    ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
-                    
-                    target_net = ledger_balance + enrollment_paid
-                    enrollment.total_amount = course_price
-                    enrollment.discount_percent = (1 - (target_net / course_price)) * 100
-                    enrollment.discount_amount = Decimal('0.00')
-                    enrollment.save(update_fields=['total_amount', 'discount_percent', 'discount_amount'])
+                    with db_transaction.atomic():
+                        # استعادة القيم من حسم الطالب الشخصي
+                        enrollment.total_amount = course_price
+                        enrollment.discount_percent = student.discount_percent or Decimal('0.00')
+                        enrollment.discount_amount = student.discount_amount or Decimal('0.00')
+                        enrollment.save(update_fields=['total_amount', 'discount_percent', 'discount_amount'])
+                        
+                        # تحديث قيد التسجيل الأصلي
+                        target_net = enrollment.net_amount
+                        orig_je = enrollment.enrollment_journal_entry
+                        if orig_je:
+                            orig_je.total_amount = target_net
+                            orig_je.save(update_fields=['total_amount'])
+                            for tx in orig_je.transactions.all():
+                                tx.amount = target_net
+                                tx.save(update_fields=['amount'])
+                                
+                        # حذف قيود التسوية (ADJUSTMENT) السابقة المتعلقة بهذا الخصم لتنظيف الكشف
+                        adj_entries = JournalEntry.objects.filter(
+                            entry_type='ADJUSTMENT',
+                            description__icontains=student.full_name
+                        ).filter(description__icontains=enrollment.course.name)
+                        for adj in adj_entries:
+                            adj.transactions.all().delete()
+                            adj.delete()
         
         print(f"🎯 [DEBUG] عدد التسجيلات في DB: {enrollments.count()}")
         
