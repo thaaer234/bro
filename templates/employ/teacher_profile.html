@@ -276,27 +276,70 @@
     </div>
 
     <div class="card mt-4">
-        <div class="card-header">
-            <h5 class="mb-0">{{ labels.advance_balance_title }}</h5>
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-dark"><i class="fas fa-hand-holding-dollar me-2"></i> سجل السلف والتسديدات الخاصة بالمعلم</h5>
+            <span class="badge bg-dark text-white fw-bold">إجمالي السلف المتبقية: {{ total_advances_outstanding|floatformat:0|intcomma }} ل.س</span>
         </div>
         <div class="card-body">
+            <h6 class="text-muted mb-3"><i class="fas fa-list me-1"></i> السلف النشطة والمسجلة:</h6>
+            <div class="table-responsive mb-4">
+                <table class="table table-sm table-striped table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>المبلغ الأصلي</th>
+                            <th>المبلغ المسدد</th>
+                            <th>المبلغ المتبقي (المعلق)</th>
+                            <th>السبب / الغرض</th>
+                            <th>القيد المحاسبي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for adv in advances %}
+                        <tr>
+                            <td><strong>{{ adv.date|date:"Y-m-d" }}</strong></td>
+                            <td class="font-monospace fw-bold">{{ adv.amount|floatformat:0|intcomma }} ل.س</td>
+                            <td class="font-monospace text-success">{{ adv.repaid_amount|floatformat:0|intcomma }} ل.س</td>
+                            <td class="font-monospace fw-bold text-danger">{{ adv.outstanding_amount|floatformat:0|intcomma }} ل.س</td>
+                            <td><small>{{ adv.purpose|default:"-" }}</small></td>
+                            <td>
+                                {% if adv.journal_entry %}
+                                <a href="{% url 'accounts:journal_entry_detail' adv.journal_entry.pk %}" target="_blank" class="btn btn-xs btn-outline-primary" style="font-size: 0.72rem; padding: 2px 6px;">
+                                    <i class="fas fa-file-invoice"></i> قيد رقم #{{ adv.journal_entry.id }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted small">بدون قيد</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">لا توجد سلف مسجلة لهذا المدرس.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <hr>
+            <h6 class="text-muted mb-2"><i class="fas fa-circle-info me-1"></i> الحساب المالي المرتبط (دليل الحسابات):</h6>
             {% if advance_account %}
             <div class="table-responsive">
-                <table class="table table-sm mb-0">
+                <table class="table table-sm table-bordered mb-0" style="max-width: 500px; font-size: 0.85rem;">
                     <tbody>
                         <tr>
-                            <td class="text-muted">{{ labels.account }}</td>
-                            <td class="fw-semibold">{{ advance_account.code }} - {{ advance_account.name }}</td>
+                            <td class="text-muted" style="width: 150px;">رقم الحساب واسمه</td>
+                            <td class="fw-semibold">{{ advance_account.code }} — {{ advance_account.name }}</td>
                         </tr>
                         <tr>
-                            <td class="text-muted">{{ labels.balance }}</td>
-                            <td class="fw-semibold text-danger">{{ advance_account_balance|floatformat:0 }} {{ labels.currency }}</td>
+                            <td class="text-muted">الرصيد الدفتري الحالي</td>
+                            <td class="fw-semibold text-danger">{{ advance_account_balance|floatformat:0|intcomma }} ل.س</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
             {% else %}
-            <div class="text-muted">{{ labels.no_advance_account }}</div>
+            <div class="text-muted small"><i class="fas fa-triangle-exclamation text-warning me-1"></i> لا يوجد حساب سلفة مرتبط مباشرة بهذا المدرس في ميزان المراجعة (يتم تتبع السلف من خلال جدول السلف أعلاه).</div>
             {% endif %}
         </div>
     </div>

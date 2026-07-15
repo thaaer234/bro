@@ -1406,6 +1406,7 @@ class TeacherProfileView(DetailView):
             'current_month_branch_details': current_month_branch_details,
             'total_current_month_salary': total_current_month_salary,
             'net_salary_estimate': net_salary_estimate,
+            'advances': teacher.advances.all().order_by('-date'),
         })
         
         # إضافة حسابات الشراكة المتقدمة
