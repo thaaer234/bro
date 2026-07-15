@@ -174,6 +174,25 @@ class StudentProfileView(LoginRequiredMixin, View):
             is_completed=False
         ).select_related('course')
         
+        # ✅ الإصلاح التلقائي الذاتي (Self-Healing): كشف وإصلاح التسجيلات التالفة بسبب البج القديم تلقائياً
+        from accounts.models import Account
+        
+        for enrollment in enrollments:
+            if enrollment.total_amount is None or enrollment.total_amount <= 0:
+                course_price = enrollment.course.price if enrollment.course else Decimal('0.00')
+                if course_price > 0:
+                    ar_account = Account.get_student_ar_account_for_course(student, enrollment.course)
+                    ledger_balance = ar_account.get_net_balance() if ar_account else Decimal('0.00')
+                    enrollment_paid = StudentReceipt.objects.filter(
+                        enrollment=enrollment
+                    ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0.00')
+                    
+                    target_net = ledger_balance + enrollment_paid
+                    enrollment.total_amount = course_price
+                    enrollment.discount_percent = (1 - (target_net / course_price)) * 100
+                    enrollment.discount_amount = Decimal('0.00')
+                    enrollment.save(update_fields=['total_amount', 'discount_percent', 'discount_amount'])
+        
         print(f"🎯 [DEBUG] عدد التسجيلات في DB: {enrollments.count()}")
         
         active_enrollments_data = []

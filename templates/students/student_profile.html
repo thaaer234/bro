@@ -134,13 +134,22 @@
         <div class="card-icon">
           <i class="fas fa-percentage"></i>
         </div>
-        <div class="card-content">
+        <div class="card-content" style="max-height: 100px; overflow-y: auto;">
           <span class="card-label">الخصم</span>
-          <strong class="card-value">
-            {{ student.discount_percent|default_if_none:0 }}% / {{ student.discount_amount|default_if_none:0 }}
-          </strong>
           {% if active_enrollments %}
-          <button class="btn btn-sm btn-outline-warning mt-1" id="updateDiscountBtn">
+            {% for item in active_enrollments %}
+              {% if item.enrollment.is_completed == False %}
+                <div style="font-size: 0.85rem; margin-top: 2px; line-height: 1.2;">
+                  <span class="text-muted" style="font-size: 0.75rem; display: block;">{{ item.enrollment.course.name }}:</span>
+                  <strong>{{ item.enrollment.discount_percent|floatformat:2 }}%</strong>
+                </div>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <strong class="card-value">{{ student.discount_percent|default_if_none:0 }}%</strong>
+          {% endif %}
+          {% if active_enrollments %}
+          <button class="btn btn-sm btn-outline-warning mt-1" id="updateDiscountBtn" style="padding: 2px 6px; font-size: 0.75rem;">
             <i class="fas fa-edit"></i> تعديل
           </button>
           {% endif %}
