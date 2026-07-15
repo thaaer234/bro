@@ -1694,6 +1694,25 @@ class TeacherAdvanceUpdateView(LoginRequiredMixin, UpdateView):
         return redirect('employ:teacher_advance_list', teacher_id=advance.teacher.pk)
 
 
+class TeacherAdvanceDeleteView(LoginRequiredMixin, View):
+    """حذف سلفة معلم"""
+    def post(self, request, teacher_id, pk):
+        teacher = get_object_or_404(Teacher, pk=teacher_id)
+        advance = get_object_or_404(TeacherAdvance, pk=pk, teacher=teacher)
+        
+        # إذا كان هناك قيد محاسبي مرتبط، يتم حذفه أولاً
+        if advance.journal_entry:
+            try:
+                advance.journal_entry.delete()
+            except Exception as e:
+                messages.error(request, f"خطأ أثناء حذف القيد المحاسبي المرتبط: {e}")
+                return redirect('employ:teacher_profile', pk=teacher.pk)
+                
+        advance.delete()
+        messages.success(request, "تم حذف السلفة بنجاح.")
+        return redirect('employ:teacher_profile', pk=teacher.pk)
+
+
 class TeacherAdvanceListView(LoginRequiredMixin, ListView):
     template_name = 'employ/teacher_advance_list.html'
     context_object_name = 'advances'

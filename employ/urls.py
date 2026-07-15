@@ -62,6 +62,7 @@ urlpatterns = [
     path('teacher/<int:teacher_id>/advance/create/', require_employee_perm('teachers_advance_create')(views.TeacherAdvanceCreateView.as_view()), name='teacher_advance_create'),
     path('teacher/<int:teacher_id>/advances/', require_employee_perm('teachers_advance')(views.TeacherAdvanceListView.as_view()), name='teacher_advance_list'),
     path('teacher/<int:teacher_id>/advance/<int:pk>/edit/', require_employee_perm('teachers_advance')(views.TeacherAdvanceUpdateView.as_view()), name='teacher_advance_edit'),
+    path('teacher/<int:teacher_id>/advance/<int:pk>/delete/', require_employee_perm('teachers_advance')(views.TeacherAdvanceDeleteView.as_view()), name='teacher_advance_delete'),
     
     # سلف الموظفين
     path('employee/advance/create/', require_employee_perm('hr_advances_create')(views.EmployeeAdvanceCreateView.as_view()), name='employee_advance_create'),

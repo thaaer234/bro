@@ -300,6 +300,7 @@
                             <th>المبلغ المتبقي (المعلق)</th>
                             <th>السبب / الغرض</th>
                             <th>القيد المحاسبي</th>
+                            <th class="text-center">الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -319,10 +320,23 @@
                                 <span class="text-muted small">بدون قيد</span>
                                 {% endif %}
                             </td>
+                            <td class="text-center">
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <a href="{% url 'employ:teacher_advance_edit' teacher.pk adv.pk %}" class="btn btn-xs btn-outline-secondary" style="font-size: 0.72rem; padding: 2px 6px;">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </a>
+                                    <form action="{% url 'employ:teacher_advance_delete' teacher.pk adv.pk %}" method="post" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف هذه السلفة؟');" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size: 0.72rem; padding: 2px 6px;">
+                                            <i class="fas fa-trash-alt"></i> حذف
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted">لا توجد سلف مسجلة لهذا المدرس.</td>
+                            <td colspan="7" class="text-center text-muted">لا توجد سلف مسجلة لهذا المدرس.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
