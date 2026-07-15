@@ -48,38 +48,77 @@
 <!-- إحصائيات سريعة -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="card text-white bg-primary">
+        <div class="card text-white bg-primary shadow-sm">
             <div class="card-body text-center">
                 <h5 class="card-title">{{ total_days }}</h5>
-                <p class="card-text">أيام الحضور</p>
+                <p class="card-text">أيام الحضور (الإجمالي)</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-success">
+        <div class="card text-white bg-success shadow-sm">
             <div class="card-body text-center">
                 <h5 class="card-title">{{ total_present }}</h5>
-                <p class="card-text">حضور مدرسين</p>
+                <p class="card-text">حضور مدرسين (الإجمالي)</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-info">
+        <div class="card text-white bg-info shadow-sm">
             <div class="card-body text-center">
                 <h5 class="card-title">{{ total_sessions }}</h5>
-                <p class="card-text">جلسات كاملة</p>
+                <p class="card-text">جلسات كاملة (الإجمالي)</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-warning">
+        <div class="card text-white bg-warning shadow-sm">
             <div class="card-body text-center">
                 <h5 class="card-title">{{ total_combined_sessions|floatformat:1 }}</h5>
-                <p class="card-text">إجمالي الجلسات</p>
+                <p class="card-text">إجمالي الجلسات (الإجمالي)</p>
             </div>
         </div>
     </div>
 </div>
+
+{% if branch_stats %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-3" style="font-family: 'Tajawal', sans-serif; font-weight: bold; color: var(--text);"><i class="fas fa-chart-bar text-primary"></i> تفصيل الجلسات حسب الفرع الدراسي</h4>
+    </div>
+    {% for stat in branch_stats %}
+    <div class="col-md-6 mb-3">
+        <div class="card border shadow-sm" style="border-radius: 12px; overflow: hidden;">
+            <div class="card-header bg-light py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                <strong class="text-dark" style="font-family: 'Tajawal', sans-serif; font-size: 1rem;">
+                    <i class="fas fa-graduation-cap text-primary me-2"></i> فرع: {{ stat.branch_display }}
+                </strong>
+            </div>
+            <div class="card-body p-3">
+                <div class="row g-2 text-center">
+                    <div class="col-3 border-end">
+                        <h6 class="text-primary mb-1 fw-bold" style="font-size: 1.1rem;">{{ stat.days_count }}</h6>
+                        <small class="text-muted" style="font-size: 0.72rem; display: block; white-space: nowrap;">أيام الحضور</small>
+                    </div>
+                    <div class="col-3 border-end">
+                        <h6 class="text-success mb-1 fw-bold" style="font-size: 1.1rem;">{{ stat.present_count }}</h6>
+                        <small class="text-muted" style="font-size: 0.72rem; display: block; white-space: nowrap;">أيام العمل</small>
+                    </div>
+                    <div class="col-3 border-end">
+                        <h6 class="text-info mb-1 fw-bold" style="font-size: 1.1rem;">{{ stat.total_sessions }}</h6>
+                        <small class="text-muted" style="font-size: 0.72rem; display: block; white-space: nowrap;">جلسات كاملة</small>
+                    </div>
+                    <div class="col-3">
+                        <h6 class="text-warning mb-1 fw-bold" style="font-size: 1.1rem;">{{ stat.total_combined_sessions|floatformat:1 }}</h6>
+                        <small class="text-muted" style="font-size: 0.72rem; display: block; white-space: nowrap;">إجمالي الجلسات</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 <div class="table-container">
     <div class="table-responsive">

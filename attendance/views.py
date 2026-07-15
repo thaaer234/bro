@@ -613,6 +613,45 @@ class TeacherAttendanceView(ListView):
         context['total_salary'] = float(total_salary)
         context['avg_sessions'] = float(avg_sessions)
         
+        # تفاصيل الإحصائيات حسب الفرع في حال تم اختيار معلم محدد
+        branch_stats = []
+        teacher_id = self.request.GET.get('teacher')
+        if teacher_id:
+            branch_data = {}
+            for record in context['attendance_records']:
+                branch = record.branch
+                branch_display = record.get_branch_display()
+                if branch not in branch_data:
+                    branch_data[branch] = {
+                        'branch': branch,
+                        'branch_display': branch_display,
+                        'days': set(),
+                        'present_count': 0,
+                        'total_sessions': 0,
+                        'total_half_sessions': 0,
+                        'total_combined_sessions': Decimal('0.00'),
+                        'salary_amount': Decimal('0.00')
+                    }
+                branch_data[branch]['days'].add(record.date)
+                if record.status == 'present':
+                    branch_data[branch]['present_count'] += 1
+                    branch_data[branch]['total_sessions'] += record.session_count
+                    branch_data[branch]['total_half_sessions'] += record.half_session_count
+                    branch_data[branch]['total_combined_sessions'] += record.total_sessions
+                    branch_data[branch]['salary_amount'] += record.get_daily_salary_amount()
+            
+            for branch, data in branch_data.items():
+                branch_stats.append({
+                    'branch_display': data['branch_display'],
+                    'days_count': len(data['days']),
+                    'present_count': data['present_count'],
+                    'total_sessions': data['total_sessions'],
+                    'total_half_sessions': data['total_half_sessions'],
+                    'total_combined_sessions': float(data['total_combined_sessions']),
+                    'total_salary': float(data['salary_amount'])
+                })
+        context['branch_stats'] = branch_stats
+        
         return context
 
 # في views.py - عدل get_context_data
