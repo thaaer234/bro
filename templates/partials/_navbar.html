@@ -116,6 +116,11 @@
         </a>
         {% endif %}
 
+        <a href="{% url 'pages:employee_daily_report' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'pages' and request.resolver_match.url_name == 'employee_daily_report' %}active{% endif %}">
+            <i class="fas fa-file-signature text-warning"></i>
+            <span class="text-warning">التقرير اليومي للموظف</span>
+        </a>
+
         {% if user.is_superuser or 'academic_years_select' in emp_perms or 'academic_years_manage' in emp_perms %}
         <div class="menu-group">
             <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="academic-years-submenu">

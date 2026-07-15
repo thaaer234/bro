@@ -1950,6 +1950,19 @@ class Studentenrollment(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+        # If the enrollment is completed (withdrawn or finished), remove student from the classrooms of this course
+        if self.is_completed:
+            try:
+                from classroom.models import Classroomenrollment
+                deleted_count, _ = Classroomenrollment.objects.filter(
+                    student=self.student,
+                    classroom__course=self.course
+                ).delete()
+                if deleted_count > 0:
+                    print(f"Removed student {self.student} from {deleted_count} classrooms for course {self.course}")
+            except Exception as e:
+                print(f"Error deleting classroom enrollments: {e}")
+
     @property
     def net_amount(self):
         """Calculate net amount after discounts"""

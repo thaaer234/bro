@@ -313,3 +313,29 @@ class DailyEmailReportSchedule(models.Model):
         if candidate_dt <= base:
             candidate_dt += timedelta(days=1)
         return candidate_dt
+
+
+class EmployeeDailyReport(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="الموظف")
+    date = models.DateField(default=timezone.localdate, verbose_name="التاريخ")
+    department = models.CharField(max_length=100, blank=True, verbose_name="القسم")
+    completed_tasks = models.TextField(blank=True, verbose_name="المهام المنجزة")
+    problems = models.TextField(blank=True, verbose_name="المشاكل إن وجدت")
+    suggestions = models.TextField(blank=True, verbose_name="المقترحات")
+    
+    # Auto-filled data caches
+    auto_attendance_info = models.TextField(blank=True, verbose_name="معلومات الحضور التلقائية")
+    auto_exam_info = models.TextField(blank=True, verbose_name="معلومات الامتحانات التلقائية")
+    auto_cash_info = models.TextField(blank=True, verbose_name="معلومات الصندوق التلقائية")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'date')
+        ordering = ['-date', 'user']
+        verbose_name = "تقرير الموظف اليومي"
+        verbose_name_plural = "تقارير الموظفين اليومية"
+
+    def __str__(self):
+        return f"{self.user} - {self.date}"

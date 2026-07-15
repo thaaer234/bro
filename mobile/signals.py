@@ -130,11 +130,12 @@ def warning_notification(sender, instance, created, **kwargs):
     if not created:
         return
     creator_teacher = getattr(instance.created_by, "teacher", None)
+    title = "استدعاء ولي أمر" if instance.severity == "summon" else "إنذار جديد"
     _create_notification(
         student=instance.student,
         teacher=creator_teacher,
         notification_type="warning",
-        title="إنذار جديد",
+        title=title,
         message=f"{instance.title} - {instance.get_severity_display()}",
     )
 

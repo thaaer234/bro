@@ -158,14 +158,21 @@ class Employee(models.Model):
     profile_photo = models.ImageField(upload_to='employees/profiles/', blank=True, null=True, verbose_name='الصورة الشخصية')
 
     def __str__(self):
-        return self.full_name or (self.user.get_username() if self.user_id else 'Employee')
+        try:
+            return self.full_name
+        except Exception:
+            return f"Employee (ID: {self.id})"
 
     # اسم العرض للموظف (يحل مشكلة AttributeError: full_name)
     @property
     def full_name(self):
         if self.user_id:
-            return self.user.get_full_name() or self.user.get_username()
-        return ''
+            try:
+                if self.user:
+                    return self.user.get_full_name() or self.user.get_username()
+            except Exception:
+                pass
+        return f"موظف غير مربوط (ID: {self.id})"
 
     # فحص صلاحية معينة
     def has_permission(self, code: str) -> bool:

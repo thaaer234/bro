@@ -1,39 +1,34 @@
-@echo off
-setlocal EnableExtensions
-cd /d "%~dp0"
+#!/bin/bash
 
-set "URL=http://127.0.0.1:8000/"
-set "PYTHON_CMD="
+cd "$(dirname "$0")"
 
-where py >nul 2>nul
-if not errorlevel 1 (
-    set "PYTHON_CMD=py -3"
-) else (
-    where python >nul 2>nul
-    if not errorlevel 1 (
-        set "PYTHON_CMD=python"
-    )
-)
+URL="http://127.0.0.1:8000"
 
-if not defined PYTHON_CMD (
-    echo [ERROR] Python is not installed or not added to PATH.
-    pause
-    exit /b 1
-)
+# البحث عن Python
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_CMD="python3"
+elif command -v python >/dev/null 2>&1; then
+    PYTHON_CMD="python"
+else
+    echo "[ERROR] Python is not installed."
+    read -n 1 -s -r -p "Press any key to exit..."
+    exit 1
+fi
 
-set "CHROME_PATH=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
-if not exist "%CHROME_PATH%" set "CHROME_PATH=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
-if not exist "%CHROME_PATH%" set "CHROME_PATH=%LocalAppData%\Google\Chrome\Application\chrome.exe"
+# تشغيل السيرفر في الخلفية
+echo "Starting Django server on 127.0.0.1:8000 ..."
+$PYTHON_CMD manage.py runserver 127.0.0.1:8000 &
+SERVER_PID=$!
 
-if exist "%CHROME_PATH%" (
-    echo Opening %URL% in Chrome...
-    start "" "%CHROME_PATH%" "%URL%"
-) else (
-    echo Chrome was not found. Opening in the default browser instead...
-    start "" "%URL%"
-)
+# انتظار ثانيتين حتى يبدأ السيرفر
+sleep 2
 
-echo Starting Django server on 127.0.0.1:8000 ...
-call %PYTHON_CMD% manage.py runserver 127.0.0.1:8000
+# فتح الموقع في المتصفح الافتراضي
+echo "Opening $URL ..."
+open "$URL"
 
-pause
+# انتظار انتهاء السيرفر
+wait $SERVER_PID
+
+echo ""
+read -n 1 -s -r -p "Press any key to close..."

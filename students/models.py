@@ -437,6 +437,7 @@ class StudentWarning(models.Model):
         NOTICE = 'notice', 'تنبيه'
         WARNING = 'warning', 'إنذار'
         CRITICAL = 'critical', 'إنذار نهائي'
+        SUMMON = 'summon', 'استدعاء ولي أمر'
 
     student = models.ForeignKey(
         Student,

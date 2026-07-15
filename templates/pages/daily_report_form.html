@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}التقرير اليومي للموظف{% endblock %}
+
+{% block content %}
+<style>
+    /* Premium Styling matching the PDF template */
+    .report-card-container {
+        max-width: 900px;
+        margin: 20px auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        padding: 30px;
+        direction: rtl;
+        font-family: 'Inter', 'Outfit', sans-serif;
+    }
+
+    .report-header-purple {
+        background: #6a1b9a; /* Deep purple matching PDF */
+        color: #fff;
+        text-align: center;
+        padding: 15px;
+        border-radius: 30px;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 10px rgba(106, 27, 154, 0.2);
+    }
+
+    .report-meta-box {
+        border: 2px dashed #9c27b0;
+        border-radius: 15px;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        background-color: #fafafa;
+    }
+
+    .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .meta-field {
+        flex: 1;
+        min-width: 200px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .meta-field label {
+        font-weight: bold;
+        color: #4a148c;
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+
+    .meta-field input {
+        border: none;
+        border-bottom: 1px dotted #9c27b0;
+        background: transparent;
+        width: 100%;
+        padding: 5px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .meta-field input:focus {
+        outline: none;
+        border-bottom: 2px solid #6a1b9a;
+    }
+
+    .report-split-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+        margin-bottom: 25px;
+    }
+
+    @media (max-width: 768px) {
+        .report-split-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .column-box {
+        border: 2px solid #9c27b0;
+        border-radius: 20px;
+        padding: 20px;
+        background: #fff;
+        min-height: 400px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .column-header-blue {
+        background: #0077c2;
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+
+    .column-textarea {
+        flex: 1;
+        width: 100%;
+        border: none;
+        background: repeating-linear-gradient(transparent, transparent 27px, #e1bee7 28px) local;
+        line-height: 28px;
+        padding: 5px 10px;
+        resize: none;
+        font-size: 15px;
+        color: #333;
+    }
+
+    .column-textarea:focus {
+        outline: none;
+    }
+
+    .suggestions-box {
+        border: 2px solid #9c27b0;
+        border-radius: 20px;
+        padding: 20px;
+        background: #fff;
+        display: flex;
+        align-items: stretch;
+        margin-bottom: 25px;
+    }
+
+    .suggestions-header-vertical {
+        background: #6a1b9a;
+        color: #fff;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        text-align: center;
+        padding: 15px 10px;
+        border-radius: 12px;
+        font-weight: bold;
+        font-size: 18px;
+        margin-left: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .suggestions-textarea {
+        flex: 1;
+        border: none;
+        background: repeating-linear-gradient(transparent, transparent 27px, #e1bee7 28px) local;
+        line-height: 28px;
+        padding: 5px;
+        resize: none;
+        font-size: 15px;
+        color: #333;
+    }
+
+    .suggestions-textarea:focus {
+        outline: none;
+    }
+
+    .report-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+
+    .footer-sign-item {
+        font-weight: bold;
+        color: #555;
+    }
+
+    .footer-sign-item span {
+        border-bottom: 1px dotted #888;
+        padding-bottom: 3px;
+        padding-left: 50px;
+    }
+
+    /* Info Banner for Automated Info */
+    .auto-fill-info-banner {
+        background: #f3e5f5;
+        border-right: 5px solid #ab47bc;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        color: #4a148c;
+    }
+
+    .auto-fill-info-banner h5 {
+        font-weight: bold;
+        margin-bottom: 10px;
+        font-size: 15px;
+    }
+
+    .auto-fill-info-banner ul {
+        margin: 0;
+        padding-right: 20px;
+    }
+
+    .auto-fill-info-banner li {
+        font-size: 13.5px;
+        margin-bottom: 5px;
+    }
+
+    /* Actions panel */
+    .actions-panel {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .btn-purple {
+        background-color: #6a1b9a;
+        color: #fff;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 8px;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+
+    .btn-purple:hover {
+        background-color: #4a148c;
+        color: #fff;
+        box-shadow: 0 4px 10px rgba(106, 27, 154, 0.3);
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="h3 text-dark fw-bold mb-0">📝 نموذج التقرير اليومي للموظفين</h2>
+            <div>
+                <a href="{% url 'pages:employee_daily_reports' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-archive"></i> أرشيف التقارير
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- تصفية التاريخ -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <form method="GET" class="row align-items-end g-3">
+                <div class="col-md-4 col-sm-6">
+                    <label class="form-label fw-bold">اختر تاريخ التقرير:</label>
+                    <input type="date" name="date" class="form-control" value="{{ target_date|date:'Y-m-d' }}" onchange="this.form.submit()">
+                </div>
+                <div class="col-md-8 col-sm-6 text-start">
+                    {% if not is_editable %}
+                        <span class="badge bg-danger p-2 fs-6">
+                            🔒 التقرير مغلق للتحرير (تجاوز الساعة 9:00 مساءً أو يوم سابق)
+                        </span>
+                    {% else %}
+                        <span class="badge bg-success p-2 fs-6">
+                            🔓 التقرير مفتوح للتحرير والمزامنة التلقائية
+                        </span>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if not report and is_editable %}
+        <!-- بنر المعلومات البرمجية التلقائية لتنبيه الموظف -->
+        <div class="auto-fill-info-banner">
+            <h5><i class="fas fa-magic"></i> البيانات المسحوبة تلقائياً لنشاطك اليوم:</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>سجلات الحضور اليوم:</strong>
+                    {% if auto_attendance != "لا يوجد" %}
+                        <pre style="white-space: pre-wrap; font-size: 12.5px; color: #4a148c; font-family: inherit; margin: 5px 0 0 0;">{{ auto_attendance }}</pre>
+                    {% else %}
+                        <span class="text-muted d-block mt-1">لم يتم تسجيل حضور اليوم.</span>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <strong>درجات الاختبارات المنزلة اليوم:</strong>
+                    {% if auto_exam != "لا يوجد" %}
+                        <pre style="white-space: pre-wrap; font-size: 12.5px; color: #4a148c; font-family: inherit; margin: 5px 0 0 0;">{{ auto_exam }}</pre>
+                    {% else %}
+                        <span class="text-muted d-block mt-1">لم يتم إدخال درجات اختبارات اليوم.</span>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <strong>رصيد وحالة الصندوق:</strong>
+                    <span class="d-block mt-1 text-purple fw-semibold">{{ auto_cash }}</span>
+                </div>
+            </div>
+            <p class="mb-0 mt-2 text-muted" style="font-size: 11px;">* سيتم دمج وحفظ هذه المعلومات بشكل تلقائي في مربع المهام المنجزة عند النقر على "حفظ التقرير".</p>
+        </div>
+    {% endif %}
+
+    <form method="POST" id="dailyReportForm">
+        {% csrf_token %}
+        
+        <!-- مخبأ البيانات التلقائية عند الحفظ الجديد -->
+        <input type="hidden" name="auto_attendance_info" value="{{ auto_attendance }}">
+        <input type="hidden" name="auto_exam_info" value="{{ auto_exam }}">
+        <input type="hidden" name="auto_cash_info" value="{{ auto_cash }}">
+
+        <div class="report-card-container">
+            <!-- Header -->
+            <div class="report-header-purple">
+                تقرير يومي:
+            </div>
+
+            <!-- Meta details border purple dashed -->
+            <div class="report-meta-box">
+                <div class="meta-row">
+                    <div class="meta-field">
+                        <label>اسم القسم:</label>
+                        <input type="text" name="department" value="{{ report.department|default:'' }}" {% if not is_editable %}disabled{% endif %} placeholder="ادخل اسم القسم هنا...">
+                    </div>
+                    <div class="meta-field">
+                        <label>اليوم:</label>
+                        <input type="text" value="{{ target_date|date:'l' }}" disabled>
+                    </div>
+                    <div class="meta-field">
+                        <label>التاريخ:</label>
+                        <input type="text" value="{{ target_date|date:'Y-m-d' }}" disabled>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Split view tasks vs problems -->
+            <div class="report-split-grid">
+                <!-- المهام المنجزة -->
+                <div class="column-box">
+                    <div class="column-header-blue">
+                        المهام المنجزة:
+                    </div>
+                    <textarea name="completed_tasks" class="column-textarea" {% if not is_editable %}disabled{% endif %} placeholder="اكتب المهام والأنشطة التي قمت بإنجازها اليوم...">{% if report %}{{ report.completed_tasks }}{% else %}{{ auto_attendance }}
+
+{{ auto_exam }}
+
+{{ auto_cash }}{% endif %}</textarea>
+                </div>
+
+                <!-- المشاكل إن وجدت -->
+                <div class="column-box">
+                    <div class="column-header-blue" style="background-color: #c62828;">
+                        المشاكل إن وجدت:
+                    </div>
+                    <textarea name="problems" class="column-textarea" {% if not is_editable %}disabled{% endif %} placeholder="اكتب أي مشاكل أو تحديات واجهتك اليوم...">{{ report.problems|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <!-- المقترحات -->
+            <div class="suggestions-box">
+                <div class="suggestions-header-vertical">
+                    المقترحات:
+                </div>
+                <textarea name="suggestions" class="suggestions-textarea" {% if not is_editable %}disabled{% endif %} placeholder="اكتب أي مقترحات أو توصيات لتحسين العمل...">{{ report.suggestions|default:'' }}</textarea>
+            </div>
+
+            <!-- Footer -->
+            <div class="report-footer">
+                <div class="footer-sign-item">
+                    اسم مقدم التقرير: <span>{{ report.user.get_full_name|default:report.user.username|default:request.user.get_full_name|default:request.user.username }}</span>
+                </div>
+                <div class="footer-sign-item">
+                    التوقيع: <span>...............................</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Buttons Panel -->
+        <div class="report-card-container border-0 bg-transparent p-0">
+            <div class="actions-panel">
+                {% if report %}
+                    <a href="{% url 'pages:employee_daily_report_print' report.id %}" target="_blank" class="btn btn-info px-4">
+                        <i class="fas fa-print"></i> طباعة / تصدير PDF
+                    </a>
+                {% endif %}
+                {% if is_editable %}
+                    <button type="submit" class="btn btn-purple">
+                        <i class="fas fa-save"></i> حفظ التقرير
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

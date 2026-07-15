@@ -273,26 +273,23 @@ class StudentProfileView(LoginRequiredMixin, View):
                 student=student
             ).select_related('classroom').order_by('-date')[:10]
             
-            # حساب متوسط العلامات
+            # حساب متوسط العلامات وتحديد إذا كان الطالب راسب
             average_grade = 0
+            is_failing = False
             if recent_exam_grades:
                 total_percentage = 0
                 valid_grades_count = 0
                 for exam_grade in recent_exam_grades:
                     if exam_grade.grade is not None and exam_grade.exam.max_grade > 0:
                         percentage = (exam_grade.grade / exam_grade.exam.max_grade) * 100
+                        exam_grade.percentage = percentage
                         total_percentage += percentage
                         valid_grades_count += 1
+                        if percentage < 50:
+                            is_failing = True
+                    else:
+                        exam_grade.percentage = None
                 average_grade = total_percentage / valid_grades_count if valid_grades_count > 0 else 0
-            
-            # تحديد إذا كان الطالب راسب
-            is_failing = False
-            for exam_grade in recent_exam_grades:
-                if exam_grade.grade and exam_grade.exam.max_grade > 0:
-                    percentage = (exam_grade.grade / exam_grade.exam.max_grade) * 100
-                    if percentage < 50:
-                        is_failing = True
-                        break
                         
         except Exception as e:
             print(f"⚠️ [DEBUG] خطأ في بيانات الأداء: {str(e)}")

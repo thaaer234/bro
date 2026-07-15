@@ -318,8 +318,7 @@
                             </td>
                             <td>
                                 {% if exam_grade.grade is not None %}
-                                    {% widthratio exam_grade.grade exam_grade.exam.max_grade 100 as percentage %}
-                                    {% if percentage < 50 %}
+                                    {% if exam_grade.percentage < 50 %}
                                         <span class="status-badge failing">راسب</span>
                                     {% else %}
                                         <span class="status-badge passing">ناجح</span>
@@ -681,6 +680,7 @@
                   <option value="notice">تنبيه</option>
                   <option value="warning" selected>إنذار</option>
                   <option value="critical">إنذار نهائي</option>
+                  <option value="summon">استدعاء ولي أمر</option>
                 </select>
               </div>
             </div>
@@ -1526,6 +1526,7 @@
 .severity-notice { background: #fff3cd; color: #856404; }
 .severity-warning { background: #ffe0b2; color: #8a4b00; }
 .severity-critical { background: #fdecea; color: #9b1c1c; }
+.severity-summon { background: #f3e5f5; color: #7b1fa2; }
 
 .warning-main {
     flex: 1;

@@ -2,13 +2,17 @@
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from students.models import Student
+# views.py
+from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from students.models import Student
 from employ.models import Employee, Teacher, EmployeePermission
 from accounts.models import Transaction, Course
 from django.utils import timezone
 from datetime import timedelta, datetime, time as time_value
 from decimal import Decimal
 from django.db.models import Sum, Q, Count, Max
-from .models import ActivityLog  # استيراد النموذج الجديد
+from .models import ActivityLog, EmployeeDailyReport  # استيراد النموذج الجديد
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.shortcuts import redirect, render
@@ -398,7 +402,7 @@ class ManualCenterHandbookView(LoginRequiredMixin, TemplateView):
         return redirect('manuals:handbook')
 
 
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 import csv
 from django.contrib.admin.models import LogEntry
 from django.views.decorators.http import require_POST
@@ -1323,6 +1327,13 @@ class ReceptionDailyReportView(LoginRequiredMixin, TemplateView):
             created_by=target_user,
             date=target_date
         )
+
+        # Warnings and summons entered today
+        from students.models import StudentWarning
+        warnings_today = StudentWarning.objects.filter(
+            created_by=target_user,
+            created_at__date=target_date
+        ).select_related('student')
         
         # Calculations
         total_regular_cash = regular_receipts.aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
@@ -1359,6 +1370,7 @@ class ReceptionDailyReportView(LoginRequiredMixin, TemplateView):
             'total_quick_cash': total_quick_cash,
             'total_cash': total_cash,
             'activities': activities,
+            'warnings_today': warnings_today,
             'has_cash_box': has_cash_box,
             'cash_account_code': cash_account_code,
             'cash_box_balance': cash_box_balance,
@@ -1515,4 +1527,214 @@ def global_search_api(request):
         })
         
     return JsonResponse({'results': results})
+
+
+class EmployeeDailyReportView(LoginRequiredMixin, TemplateView):
+    template_name = 'pages/daily_report_form.html'
+
+    def get_target_date(self):
+        date_str = self.request.GET.get('date')
+        if date_str:
+            try:
+                return datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        return timezone.localdate()
+
+    def check_editable(self, target_date):
+        now = timezone.localtime(timezone.now())
+        if target_date < now.date():
+            return False
+        elif target_date == now.date():
+            if now.time() >= time_value(21, 0):
+                return False
+        return True
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        target_date = self.get_target_date()
+        user = self.request.user
+
+        # Get or create report structure
+        report = EmployeeDailyReport.objects.filter(user=user, date=target_date).first()
+        is_editable = self.check_editable(target_date)
+
+        # Pre-fill automatic info if report doesn't exist
+        auto_attendance = ""
+        auto_exam = ""
+        auto_cash = ""
+        
+        if not report:
+            # 1. Attendance Taken Today by User
+            attendance_logs = ActivityLog.objects.filter(
+                user=user,
+                content_type='Attendance',
+                timestamp__date=target_date
+            )
+            attendance_ids = [l.object_id for l in attendance_logs if l.object_id is not None]
+            attendance_info = []
+            if attendance_ids:
+                from attendance.models import Attendance
+                from classroom.models import Classroom
+                classroom_ids = Attendance.objects.filter(id__in=attendance_ids).values_list('classroom_id', flat=True).distinct()
+                for cid in classroom_ids:
+                    classroom = Classroom.objects.filter(id=cid).first()
+                    if classroom:
+                        total_students = classroom.classroom_enrollments.count()
+                        attendance_info.append(f"أخذ حضور شعبة ({classroom.name}) المكونة من {total_students} طالب")
+            auto_attendance = " - " + "\n - ".join(attendance_info) if attendance_info else "لا يوجد"
+
+            # 2. Exams Graded Today by User
+            exam_grade_logs = ActivityLog.objects.filter(
+                user=user,
+                content_type='ExamGrade',
+                timestamp__date=target_date
+            )
+            exam_grade_ids = [l.object_id for l in exam_grade_logs if l.object_id is not None]
+            exam_info = []
+            if exam_grade_ids:
+                from exams.models import ExamGrade
+                exam_ids = ExamGrade.objects.filter(id__in=exam_grade_ids).values_list('exam_id', flat=True).distinct()
+                for eid in exam_ids:
+                    from exams.models import Exam
+                    exam = Exam.objects.filter(id=eid).first()
+                    if exam:
+                        exam_info.append(f"نزل علامات اختبار ({exam.name}) للشعبة ({exam.classroom.name})")
+            auto_exam = " - " + "\n - ".join(exam_info) if exam_info else "لا يوجد"
+
+            # 3. Cashbox status
+            try:
+                employee = getattr(user, 'employee_profile', None)
+                if employee and employee.cash_account:
+                    from accounts.models import Transaction
+                    zeroing_tx = Transaction.objects.filter(
+                        account=employee.cash_account,
+                        entry__date=target_date,
+                        entry__description__startswith="تصفير صناديق"
+                    ).first()
+                    if zeroing_tx:
+                        zeroed_by = zeroing_tx.entry.created_by.get_full_name() or zeroing_tx.entry.created_by.username
+                        balance = zeroing_tx.amount
+                        balance_val = balance if zeroing_tx.side == 'credit' else -balance
+                        auto_cash = f"رصيد الصندوق: {balance_val:,.0f} ل.س (تم تصفيره من قبل الموظف: {zeroed_by})"
+                    else:
+                        current_balance = employee.cash_account.get_net_balance_all_years()
+                        auto_cash = f"رصيد الصندوق الحالي (لم يتم تصفيره بعد): {current_balance:,.0f} ل.س"
+                else:
+                    auto_cash = "لا يوجد حساب صندوق مرتبط بالموظف"
+            except Exception as e:
+                auto_cash = f"خطأ في حساب رصيد الصندوق: {str(e)}"
+        else:
+            auto_attendance = report.auto_attendance_info
+            auto_exam = report.auto_exam_info
+            auto_cash = report.auto_cash_info
+
+        context.update({
+            'report': report,
+            'target_date': target_date,
+            'is_editable': is_editable,
+            'auto_attendance': auto_attendance,
+            'auto_exam': auto_exam,
+            'auto_cash': auto_cash,
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        target_date = self.get_target_date()
+        if not self.check_editable(target_date):
+            messages.error(request, "عذراً، لا يمكن تعديل أو حفظ التقرير بعد الساعة 9:00 مساءً أو للأيام السابقة.")
+            return redirect(f"{reverse('pages:reception_daily_report')}?date={target_date}")
+
+        department = request.POST.get('department', '').strip()
+        completed_tasks = request.POST.get('completed_tasks', '').strip()
+        problems = request.POST.get('problems', '').strip()
+        suggestions = request.POST.get('suggestions', '').strip()
+
+        # Load auto data to store inside cache if creating a new report
+        report = EmployeeDailyReport.objects.filter(user=request.user, date=target_date).first()
+        
+        auto_attendance = request.POST.get('auto_attendance_info', '').strip()
+        auto_exam = request.POST.get('auto_exam_info', '').strip()
+        auto_cash = request.POST.get('auto_cash_info', '').strip()
+
+        if report:
+            report.department = department
+            report.completed_tasks = completed_tasks
+            report.problems = problems
+            report.suggestions = suggestions
+            # Also update auto caches if they are empty
+            if not report.auto_attendance_info:
+                report.auto_attendance_info = auto_attendance
+            if not report.auto_exam_info:
+                report.auto_exam_info = auto_exam
+            if not report.auto_cash_info:
+                report.auto_cash_info = auto_cash
+            report.save()
+            messages.success(request, "تم تحديث التقرير اليومي بنجاح.")
+        else:
+            EmployeeDailyReport.objects.create(
+                user=request.user,
+                date=target_date,
+                department=department,
+                completed_tasks=completed_tasks,
+                problems=problems,
+                suggestions=suggestions,
+                auto_attendance_info=auto_attendance,
+                auto_exam_info=auto_exam,
+                auto_cash_info=auto_cash
+            )
+            messages.success(request, "تم حفظ التقرير اليومي بنجاح.")
+
+        return redirect(f"{reverse('pages:reception_daily_report')}?date={target_date}")
+
+
+class DailyReportListView(LoginRequiredMixin, TemplateView):
+    template_name = 'pages/daily_reports_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # Superuser/Manager sees all reports and can filter
+        if user.is_superuser:
+            selected_user_id = self.request.GET.get('user')
+            selected_date = self.request.GET.get('date')
+            
+            reports = EmployeeDailyReport.objects.all().select_related('user')
+            if selected_user_id:
+                reports = reports.filter(user_id=selected_user_id)
+            if selected_date:
+                reports = reports.filter(date=selected_date)
+            reports = reports.order_by('-date', 'user')
+            
+            context['all_users'] = User.objects.filter(is_active=True).order_by('username')
+            context['selected_user'] = selected_user_id
+            context['selected_date'] = selected_date
+        else:
+            reports = EmployeeDailyReport.objects.filter(user=user).order_by('-date')
+
+        context['reports'] = reports
+        return context
+
+
+class DailyReportPrintView(LoginRequiredMixin, TemplateView):
+    template_name = 'pages/daily_report_print.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        report_id = self.kwargs.get('report_id')
+        user = self.request.user
+
+        # Fetch report (if superuser, fetch any report, else fetch only owned report)
+        if user.is_superuser:
+            report = EmployeeDailyReport.objects.filter(id=report_id).first()
+        else:
+            report = EmployeeDailyReport.objects.filter(id=report_id, user=user).first()
+
+        if not report:
+            raise Http404("التقرير غير موجود.")
+
+        context['report'] = report
+        return context
+
 

@@ -4066,7 +4066,7 @@ def process_withdraw(request, enrollment_id):
             refund_amount = Decimal(request.POST.get('refund_amount', '0'))
             
             # التحقق من أن التسجيل نشط
-            if not enrollment.is_active:
+            if enrollment.is_completed:
                 messages.error(request, 'هذا التسجيل غير نشط أو تم سحبه مسبقاً')
                 return redirect('students:student_detail', pk=enrollment.student.id)
             
@@ -4187,9 +4187,7 @@ def process_withdraw(request, enrollment_id):
             except Exception as e:
                 print(f"خطأ في ترحيل القيد: {e}")
                 messages.warning(request, f"ملاحظة: لم يتم ترحيل القيد المحاسبي: {e}")
-            
             # تحديث حالة التسجيل
-            enrollment.is_active = False
             enrollment.is_completed = True
             enrollment.completion_date = timezone.now().date()
             enrollment.withdrawal_reason = withdrawal_reason
