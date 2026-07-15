@@ -272,33 +272,25 @@
         </div>
     </div>
 
-    {% if not report and is_editable %}
+    {% if is_editable %}
         <!-- بنر المعلومات البرمجية التلقائية لتنبيه الموظف -->
         <div class="auto-fill-info-banner">
-            <h5><i class="fas fa-magic"></i> البيانات المسحوبة تلقائياً لنشاطك اليوم:</h5>
-            <div class="row">
-                <div class="col-md-4">
-                    <strong>سجلات الحضور اليوم:</strong>
-                    {% if auto_attendance != "لا يوجد" %}
-                        <pre style="white-space: pre-wrap; font-size: 12.5px; color: #4a148c; font-family: inherit; margin: 5px 0 0 0;">{{ auto_attendance }}</pre>
-                    {% else %}
-                        <span class="text-muted d-block mt-1">لم يتم تسجيل حضور اليوم.</span>
-                    {% endif %}
-                </div>
-                <div class="col-md-4">
-                    <strong>درجات الاختبارات المنزلة اليوم:</strong>
-                    {% if auto_exam != "لا يوجد" %}
-                        <pre style="white-space: pre-wrap; font-size: 12.5px; color: #4a148c; font-family: inherit; margin: 5px 0 0 0;">{{ auto_exam }}</pre>
-                    {% else %}
-                        <span class="text-muted d-block mt-1">لم يتم إدخال درجات اختبارات اليوم.</span>
-                    {% endif %}
-                </div>
-                <div class="col-md-4">
-                    <strong>رصيد وحالة الصندوق:</strong>
-                    <span class="d-block mt-1 text-purple fw-semibold">{{ auto_cash }}</span>
-                </div>
-            </div>
-            <p class="mb-0 mt-2 text-muted" style="font-size: 11px;">* سيتم دمج وحفظ هذه المعلومات بشكل تلقائي في مربع المهام المنجزة عند النقر على "حفظ التقرير".</p>
+            <h5><i class="fas fa-magic"></i> نشاطاتك المسجلة تلقائياً اليوم:</h5>
+            {% if auto_tasks_lines %}
+                <ul class="mb-1">
+                    {% for task in auto_tasks_lines %}
+                        <li>{{ task }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <span class="text-muted">لم يتم تسجيل نشاطات تلقائية اليوم.</span>
+            {% endif %}
+            {% if auto_cash %}
+                <div class="mt-2 fw-bold"><i class="fas fa-cash-register"></i> {{ auto_cash }}</div>
+            {% endif %}
+            {% if not report %}
+                <p class="mb-0 mt-2 text-muted" style="font-size: 11px;">* سيتم دمج وحفظ هذه المعلومات تلقائياً في مربع المهام المنجزة عند النقر على "حفظ التقرير".</p>
+            {% endif %}
         </div>
     {% endif %}
 
@@ -306,8 +298,8 @@
         {% csrf_token %}
         
         <!-- مخبأ البيانات التلقائية عند الحفظ الجديد -->
-        <input type="hidden" name="auto_attendance_info" value="{{ auto_attendance }}">
-        <input type="hidden" name="auto_exam_info" value="{{ auto_exam }}">
+        <input type="hidden" name="auto_attendance_info" value="{% for t in auto_tasks_lines %}{{ t }}&#10;{% endfor %}">
+        <input type="hidden" name="auto_exam_info" value="">
         <input type="hidden" name="auto_cash_info" value="{{ auto_cash }}">
 
         <div class="report-card-container">
@@ -341,11 +333,9 @@
                     <div class="column-header-blue">
                         المهام المنجزة:
                     </div>
-                    <textarea name="completed_tasks" class="column-textarea" {% if not is_editable %}disabled{% endif %} placeholder="اكتب المهام والأنشطة التي قمت بإنجازها اليوم...">{% if report %}{{ report.completed_tasks }}{% else %}{{ auto_attendance }}
-
-{{ auto_exam }}
-
-{{ auto_cash }}{% endif %}</textarea>
+                    <textarea name="completed_tasks" class="column-textarea" {% if not is_editable %}disabled{% endif %} placeholder="اكتب المهام والأنشطة التي قمت بإنجازها اليوم...">{% if report %}{{ report.completed_tasks }}{% else %}{% for task in auto_tasks_lines %}- {{ task }}
+{% endfor %}{% if auto_cash %}
+- {{ auto_cash }}{% endif %}{% endif %}</textarea>
                 </div>
 
                 <!-- المشاكل إن وجدت -->
