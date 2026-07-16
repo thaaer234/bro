@@ -1564,79 +1564,111 @@ class EmployeeDailyReportView(LoginRequiredMixin, TemplateView):
         auto_cash = ""
 
         if not report:
+            # خريطة ترجمة أنواع النشاط من اسم المودل إلى نص عربي
+            CONTENT_TYPE_LABELS = {
+                'Attendance':        ('أخذ حضور', True),   # True = يحتاج معالجة خاصة
+                'ExamGrade':         ('أدخل علامات اختبار', True),
+                'Studentenrollment': ('سجّل طالبًا نظاميًا جديدًا', False),
+                'QuickStudent':      ('أضاف طالبًا سريعًا جديدًا', False),
+                'Student':           ('أضاف / عدّل بيانات طالب', False),
+                'StudentWarning':    ('أصدر إنذارًا لطالب', False),
+                'JournalEntry':      ('أنشأ قيدًا محاسبيًا', True),
+                'Studentenrollment': ('سجّل طالبًا نظاميًا', False),
+                'Receipt':           ('قطع إيصالًا', True),
+                'Payment':           ('سجّل دفعة مالية', False),
+            }
+
             # ======================================================
-            # 1. أخذ الحضور
+            # 1. أخذ الحضور - تفصيلي
             # ======================================================
             try:
                 from attendance.models import Attendance
                 from classroom.models import Classroom
-                attendance_logs = ActivityLog.objects.filter(
-                    user=user,
-                    content_type='Attendance',
-                    timestamp__date=target_date
+                att_logs = ActivityLog.objects.filter(
+                    user=user, content_type='Attendance', timestamp__date=target_date
                 )
-                attendance_ids = [l.object_id for l in attendance_logs if l.object_id is not None]
-                if attendance_ids:
-                    classroom_ids = Attendance.objects.filter(id__in=attendance_ids).values_list('classroom_id', flat=True).distinct()
+                att_ids = [l.object_id for l in att_logs if l.object_id]
+                if att_ids:
+                    classroom_ids = Attendance.objects.filter(id__in=att_ids).values_list('classroom_id', flat=True).distinct()
                     for cid in classroom_ids:
-                        classroom = Classroom.objects.filter(id=cid).first()
-                        if classroom:
-                            total_students = classroom.classroom_enrollments.count()
-                            auto_tasks_lines.append(f"أخذ حضور شعبة ({classroom.name}) المكونة من {total_students} طالب")
+                        cls = Classroom.objects.filter(id=cid).first()
+                        if cls:
+                            total = cls.classroom_enrollments.count()
+                            auto_tasks_lines.append(f"أخذ حضور شعبة ({cls.name}) المكونة من {total} طالب")
             except Exception:
                 pass
 
             # ======================================================
-            # 2. تسجيل علامات الاختبارات
+            # 2. علامات الاختبارات - تفصيلي
             # ======================================================
             try:
                 from exams.models import ExamGrade, Exam
-                exam_grade_logs = ActivityLog.objects.filter(
-                    user=user,
-                    content_type='ExamGrade',
-                    timestamp__date=target_date
+                eg_logs = ActivityLog.objects.filter(
+                    user=user, content_type='ExamGrade', timestamp__date=target_date
                 )
-                exam_grade_ids = [l.object_id for l in exam_grade_logs if l.object_id is not None]
-                if exam_grade_ids:
-                    exam_ids = ExamGrade.objects.filter(id__in=exam_grade_ids).values_list('exam_id', flat=True).distinct()
+                eg_ids = [l.object_id for l in eg_logs if l.object_id]
+                if eg_ids:
+                    exam_ids = ExamGrade.objects.filter(id__in=eg_ids).values_list('exam_id', flat=True).distinct()
                     for eid in exam_ids:
                         exam = Exam.objects.filter(id=eid).select_related('classroom').first()
                         if exam:
-                            classroom_name = exam.classroom.name if exam.classroom else "غير محددة"
-                            auto_tasks_lines.append(f"أدخل علامات اختبار ({exam.name}) للشعبة ({classroom_name})")
+                            cname = exam.classroom.name if exam.classroom else "غير محددة"
+                            auto_tasks_lines.append(f"أدخل علامات اختبار ({exam.name}) للشعبة ({cname})")
             except Exception:
                 pass
 
             # ======================================================
-            # 3. تسجيل طلاب نظاميين جدد
+            # 3. طلاب نظاميين جدد
             # ======================================================
             try:
                 from accounts.models import Studentenrollment
                 new_regular = Studentenrollment.objects.filter(
                     enrollment_date=target_date,
                     enrollment_journal_entry__created_by=user
-                ).count()
-                if new_regular > 0:
-                    auto_tasks_lines.append(f"سجّل {new_regular} طالب{'ًا' if new_regular == 1 else 'ين'} نظامي{'ًا' if new_regular == 1 else 'ين'} جدد{'ًا' if new_regular == 1 else ''}")
+                )
+                count_r = new_regular.count()
+                if count_r > 0:
+                    names = ", ".join([str(e.student.full_name) for e in new_regular[:5]])
+                    suffix = " ..." if count_r > 5 else ""
+                    auto_tasks_lines.append(f"سجّل {count_r} طالب نظامي جديد: {names}{suffix}")
             except Exception:
                 pass
 
             # ======================================================
-            # 4. تسجيل طلاب سريعين جدد
+            # 4. طلاب سريعين جدد
             # ======================================================
             try:
                 from quick.models import QuickStudent
                 new_quick = QuickStudent.objects.filter(
-                    created_by=user,
-                    created_at__date=target_date
-                ).count()
-                if new_quick > 0:
-                    auto_tasks_lines.append(f"أضاف {new_quick} طالب سريع جديد")
+                    created_by=user, created_at__date=target_date
+                )
+                count_q = new_quick.count()
+                if count_q > 0:
+                    names_q = ", ".join([qs.full_name for qs in new_quick[:5]])
+                    suffix_q = " ..." if count_q > 5 else ""
+                    auto_tasks_lines.append(f"أضاف {count_q} طالب سريع جديد: {names_q}{suffix_q}")
             except Exception:
                 pass
 
             # ======================================================
-            # 5. قيود يدوية أو مصاريف أنشأها الموظف
+            # 5. إيصالات قطعها الموظف
+            # ======================================================
+            try:
+                from accounts.models import JournalEntry
+                receipts = JournalEntry.objects.filter(
+                    created_by=user,
+                    date=target_date,
+                    entry_type='PAYMENT'
+                )
+                count_recv = receipts.count()
+                if count_recv > 0:
+                    total_recv = sum(r.total_amount for r in receipts)
+                    auto_tasks_lines.append(f"قطع {count_recv} إيصال دفع بمجموع {total_recv:,.0f} ل.س")
+            except Exception:
+                pass
+
+            # ======================================================
+            # 6. مصاريف وقيود يدوية
             # ======================================================
             try:
                 from accounts.models import JournalEntry
@@ -1646,45 +1678,59 @@ class EmployeeDailyReportView(LoginRequiredMixin, TemplateView):
                     entry_type__in=['MANUAL', 'EXPENSE']
                 ).exclude(description__startswith='تصفير صناديق')
                 for entry in manual_entries:
-                    entry_type_label = "قيد يدوي" if entry.entry_type == 'MANUAL' else "مصروف"
-                    auto_tasks_lines.append(f"أضاف {entry_type_label}: ({entry.description}) بمبلغ {entry.total_amount:,.0f} ل.س")
+                    label = "قيد يدوي" if entry.entry_type == 'MANUAL' else "مصروف"
+                    auto_tasks_lines.append(f"أضاف {label}: ({entry.description}) بمبلغ {entry.total_amount:,.0f} ل.س")
             except Exception:
                 pass
 
             # ======================================================
-            # 6. رصيد الصندوق قبل التصفير
+            # 7. إنذارات صادرة عن الموظف
             # ======================================================
             try:
+                warn_logs = ActivityLog.objects.filter(
+                    user=user,
+                    content_type='StudentWarning',
+                    action='create',
+                    timestamp__date=target_date
+                )
+                if warn_logs.exists():
+                    auto_tasks_lines.append(f"أصدر {warn_logs.count()} إنذار للطلاب")
+            except Exception:
+                pass
+
+            # ======================================================
+            # 8. رصيد الصندوق (باستخدام get_cash_account الصحيحة)
+            # ======================================================
+            try:
+                from accounts.models import Transaction, Account
                 employee = getattr(user, 'employee_profile', None)
                 if employee:
-                    # محاولة إيجاد حساب الصندوق بطريقتين
-                    cash_account = getattr(employee, 'cash_account', None)
+                    cash_account = employee.get_cash_account()
                     if cash_account:
-                        from accounts.models import Transaction
                         zeroing_tx = Transaction.objects.filter(
                             account=cash_account,
                             entry__date=target_date,
                             entry__description__startswith="تصفير صناديق"
                         ).select_related('entry__created_by').first()
                         if zeroing_tx:
-                            zeroed_by = zeroing_tx.entry.created_by.get_full_name() or zeroing_tx.entry.created_by.username
-                            # الرصيد قبل التصفير = المبلغ الذي رُصد في قيد التصفير
+                            zeroed_by = (zeroing_tx.entry.created_by.get_full_name()
+                                         or zeroing_tx.entry.created_by.username)
                             balance_val = zeroing_tx.amount
-                            auto_cash = f"رصيد الصندوق قبل التصفير: {balance_val:,.0f} ل.س — تم تصفيره من قبل الموظف: {zeroed_by}"
+                            auto_cash = f"رصيد الصندوق قبل التصفير: {balance_val:,.0f} ل.س — صُفِّر من قبل: {zeroed_by}"
                         else:
                             current_balance = cash_account.get_net_balance_all_years()
-                            auto_cash = f"رصيد الصندوق الحالي (لم يتم تصفيره بعد): {current_balance:,.0f} ل.س"
+                            auto_cash = f"رصيد الصندوق الحالي (لم يُصفَّر بعد): {current_balance:,.0f} ل.س"
                     else:
-                        auto_cash = "لا يوجد حساب صندوق مرتبط بالموظف"
+                        auto_cash = f"لم يتم إنشاء حساب الصندوق للموظف بعد (كود: 121-{employee.pk:04d})"
                 else:
-                    auto_cash = "لا يوجد ملف موظف مرتبط بهذا الحساب"
-            except Exception as e:
-                auto_cash = f"تعذّر قراءة رصيد الصندوق"
+                    auto_cash = ""
+            except Exception:
+                auto_cash = "تعذّر قراءة رصيد الصندوق"
 
         else:
             # بيانات محفوظة من التقرير السابق
-            auto_tasks_lines = [line for line in (report.auto_attendance_info or "").split("\n") if line.strip()]
-            auto_tasks_lines += [line for line in (report.auto_exam_info or "").split("\n") if line.strip()]
+            saved = (report.auto_attendance_info or "") + "\n" + (report.auto_exam_info or "")
+            auto_tasks_lines = [line for line in saved.split("\n") if line.strip()]
             auto_cash = report.auto_cash_info or ""
 
         report_user_name = ""
