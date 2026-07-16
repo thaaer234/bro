@@ -1694,7 +1694,11 @@ class EmployeeDailyReportView(LoginRequiredMixin, TemplateView):
                     created_by=user,
                     date=target_date,
                     entry_type__in=['MANUAL', 'EXPENSE']
-                ).exclude(description__startswith='تصفير صناديق')
+                ).exclude(
+                    description__icontains='تصفير صناديق'
+                ).exclude(
+                    description__icontains='مناقلة صناديق'
+                )
                 for entry in manual_entries:
                     label = "قيد يدوي" if entry.entry_type == 'MANUAL' else "مصروف"
                     auto_tasks_lines.append(f"أضاف {label}: ({entry.description}) بمبلغ {entry.total_amount:,.0f} ل.س")

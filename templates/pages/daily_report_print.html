@@ -306,22 +306,6 @@
             </div>
         </div>
 
-        <!-- AUTO ACTIVITIES BADGE -->
-        {% if auto_tasks_lines or report.auto_cash_info %}
-        <div class="auto-badge">
-            <strong>📋 الأنشطة المسجلة تلقائياً:</strong>
-            {% if auto_tasks_lines %}
-            <ul>
-                {% for line in auto_tasks_lines %}
-                    {% if line %}<li>{{ line }}</li>{% endif %}
-                {% endfor %}
-            </ul>
-            {% endif %}
-            {% if report.auto_cash_info %}
-                <div class="cash-line">💰 {{ report.auto_cash_info }}</div>
-            {% endif %}
-        </div>
-        {% endif %}
 
         <!-- SPLIT: المهام + المشاكل -->
         <div class="split-grid">
