@@ -1738,33 +1738,48 @@ class EmployeeDailyReportView(LoginRequiredMixin, TemplateView):
                 pass
 
             # ======================================================
-            # 8. رصيد الصندوق (باستخدام get_cash_account الصحيحة)
+            # 8. رصيد الصندوق (قبل وبعد التصفير)
             # ======================================================
             try:
-                from accounts.models import Transaction, Account
+                from accounts.models import Transaction
                 employee = getattr(user, 'employee_profile', None)
                 if employee:
                     cash_account = employee.get_cash_account()
                     if cash_account:
+                        # البحث عن قيد المناقلة اليومية (التصفير)
+                        # الصندوق يكون دائناً (credit = is_debit=False) في قيد المناقلة
                         zeroing_tx = Transaction.objects.filter(
                             account=cash_account,
-                            entry__date=target_date,
-                            entry__description__startswith="تصفير صناديق"
-                        ).select_related('entry__created_by').first()
+                            is_debit=False,           # الصندوق يظهر دائناً عند التصفير
+                            journal_entry__date=target_date,
+                            journal_entry__description__icontains="مناقلة صناديق"
+                        ).select_related(
+                            'journal_entry__created_by'
+                        ).order_by('-journal_entry__created_at').first()
+
                         if zeroing_tx:
-                            zeroed_by = (zeroing_tx.entry.created_by.get_full_name()
-                                         or zeroing_tx.entry.created_by.username)
-                            balance_val = zeroing_tx.amount
-                            auto_cash = f"رصيد الصندوق قبل التصفير: {balance_val:,.0f} ل.س — صُفِّر من قبل: {zeroed_by}"
+                            # رصيد قبل التصفير = مبلغ الـ credit في قيد المناقلة
+                            balance_before = zeroing_tx.amount
+                            created_by_entry = zeroing_tx.journal_entry.created_by
+                            zeroed_by = (
+                                created_by_entry.get_full_name() or created_by_entry.username
+                                if created_by_entry else "غير محدد"
+                            )
+                            auto_cash = (
+                                f"رصيد الصندوق قبل التصفير: {balance_before:,.0f} ل.س"
+                                f" — مناقلة بواسطة: {zeroed_by}"
+                                f" | الرصيد الحالي بعد التصفير: 0.00 ل.س"
+                            )
                         else:
+                            # لم يتم تصفير اليوم بعد — اعرض الرصيد الحالي
                             current_balance = cash_account.get_net_balance_all_years()
                             auto_cash = f"رصيد الصندوق الحالي (لم يُصفَّر بعد): {current_balance:,.0f} ل.س"
                     else:
-                        auto_cash = f"لم يتم إنشاء حساب الصندوق للموظف بعد (كود: 121-{employee.pk:04d})"
+                        auto_cash = f"حساب الصندوق غير موجود (المتوقع: 121-{employee.pk:04d})"
                 else:
                     auto_cash = ""
-            except Exception:
-                auto_cash = "تعذّر قراءة رصيد الصندوق"
+            except Exception as ex:
+                auto_cash = f"خطأ في قراءة الصندوق: {ex}"
 
         else:
             # بيانات محفوظة من التقرير السابق
