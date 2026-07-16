@@ -33,9 +33,12 @@
             margin: 30px auto;
             background: #ffffff;
             position: relative;
-            padding: 16mm 18mm;
+            padding: 20mm 20mm;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            border-radius: 4px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         /* ===== WATERMARK ===== */
@@ -59,145 +62,186 @@
             z-index: 1; 
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            min-height: 265mm;
+            gap: 15px;
+            height: 100%;
         }
 
-        /* ===== HEADER ===== */
-        .doc-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #f0e6f0;
-            padding-bottom: 5mm;
-            margin-bottom: 5mm;
-        }
-        .doc-header-logo img {
-            height: 65px;
-            object-fit: contain;
-        }
-        .doc-header-title {
+        /* ===== HEADER BANNER ===== */
+        .header-banner {
+            background-color: #5c3d90;
+            color: #ffffff;
             text-align: center;
-            flex: 1;
+            padding: 15px;
+            border-radius: 18px;
+            margin-bottom: 5px;
         }
-        .doc-header-title h1 {
-            font-size: 20pt;
+        .header-banner h1 {
+            font-size: 24pt;
             font-weight: 800;
-            color: #4a154b; /* الهوية اللونية الرسمية لمعهد اليمان */
-            letter-spacing: -0.5px;
-            margin-bottom: 4px;
-        }
-        .doc-header-title p {
-            font-size: 10pt;
-            color: #718096;
-            font-weight: 500;
-        }
-        .doc-header-date {
-            text-align: left;
-            font-size: 9.5pt;
-            color: #4a5568;
-            line-height: 1.5;
-        }
-        .doc-header-date strong {
-            display: block;
-            color: #4a154b;
-            font-size: 11pt;
-            font-weight: 700;
+            letter-spacing: 0.5px;
         }
 
-        /* ===== META INFO BOX ===== */
-        .meta-box {
-            background: #fdfafd;
-            border: 1px solid #f0e6f0;
-            border-right: 4px solid #4a154b;
-            border-radius: 8px;
-            padding: 4mm 6mm;
-            margin-bottom: 5mm;
+        /* ===== METADATA DASHED BOX ===== */
+        .meta-dashed-box {
+            border: 2px dashed #5c3d90;
+            border-radius: 20px;
+            padding: 15px 25px;
+            margin-bottom: 10px;
         }
         .meta-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 4mm;
-        }
-        .meta-field {
-            font-size: 9.5pt;
-            color: #718096;
-            font-weight: 600;
-        }
-        .meta-field span {
-            display: block;
-            font-weight: 700;
-            color: #1a202c;
-            margin-top: 4px;
-            font-size: 10.5pt;
-        }
-
-        /* ===== SECTION HEADERS ===== */
-        .section-header {
-            color: #4a154b;
-            font-size: 10.5pt;
-            font-weight: 700;
-            margin-bottom: 3mm;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-right: 3px solid #4a154b;
-            padding-right: 8px;
-        }
-        .section-header.red   { color: #c53030; border-right-color: #c53030; }
-        .section-header.blue  { color: #2b6cb0; border-right-color: #2b6cb0; }
-
-        /* ===== CONTENT CARDS ===== */
-        .content-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 5mm 6mm;
-            background: #ffffff;
-            font-size: 10pt;
-            font-weight: 500;
-            color: #2d3748;
-            margin-bottom: 5mm;
-            white-space: pre-line; /* يضمن التفاف الأسطر الحقيقية بشكل مثالي ومنع تداخل النصوص */
-            min-height: 100mm; /* ارتفاع ديناميكي مرن ومريح للمهام الطويلة */
-        }
-        .content-card.small { 
-            min-height: 25mm; 
-        }
-
-        /* ===== SPLIT GRID ===== */
-        .split-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr; /* مساحة أكبر للمهام المنجزة المليئة بالبيانات ومساحة أصغر للمشاكل */
-            gap: 6mm;
-            margin-bottom: 2mm;
-        }
-
-        /* ===== FOOTER ===== */
-        .doc-footer {
-            border-top: 1px dashed #cbd5e0;
-            padding-top: 6mm;
-            margin-top: auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .footer-field {
-            font-size: 9.5pt;
-            font-weight: 600;
-            color: #718096;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .footer-field span {
-            font-size: 10pt;
+            font-size: 12pt;
             font-weight: 700;
             color: #1a202c;
         }
-        .footer-field .signature-line {
-            width: 45mm;
-            border-bottom: 1.5px solid #cbd5e0;
-            height: 20px;
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+        }
+        .meta-item:nth-child(2) {
+            justify-content: center;
+        }
+        .meta-item:nth-child(3) {
+            justify-content: flex-end;
+        }
+        .meta-label {
+            color: #1a202c;
+        }
+        .meta-value {
+            color: #5c3d90;
+            border-bottom: 1px dotted #5c3d90;
+            padding: 0 10px;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        /* ===== MAIN SPLIT CONTAINER ===== */
+        .main-split-container {
+            border: 2.5px solid #5c3d90;
+            border-radius: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            position: relative;
+            background: #ffffff;
+            margin-bottom: 10px;
+            flex-grow: 1;
+            min-height: 480px;
+        }
+
+        /* Vertical dashed divider line */
+        .main-split-container::before {
+            content: "";
+            position: absolute;
+            top: 25px;
+            bottom: 25px;
+            left: 50%;
+            width: 0;
+            border-left: 3px dashed #006080;
+            transform: translateX(-50%);
+        }
+
+        .column-pane {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Pill headers */
+        .pill-header {
+            background-color: #006080;
+            color: #ffffff;
+            font-size: 13pt;
+            font-weight: 700;
+            padding: 8px 35px;
+            border-radius: 25px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 96, 128, 0.15);
+        }
+
+        /* Dotted lines container */
+        .dotted-content-area {
+            width: 100%;
+            flex-grow: 1;
+            background: repeating-linear-gradient(transparent, transparent 31px, #a0aec0 31px, #a0aec0 32px);
+            line-height: 32px;
+            font-size: 11.5pt;
+            color: #2d3748;
+            font-weight: 600;
+            white-space: pre-line;
+            padding-top: 4px;
+        }
+
+        /* ===== SUGGESTIONS BOX ===== */
+        .suggestions-container {
+            border: 2.5px solid #5c3d90;
+            border-radius: 25px;
+            display: flex;
+            align-items: stretch;
+            overflow: hidden;
+            background: #ffffff;
+            margin-bottom: 15px;
+            min-height: 150px;
+        }
+
+        .suggestions-label-pane {
+            background-color: #5c3d90;
+            color: #ffffff;
+            width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14pt;
+            letter-spacing: 1px;
+            padding: 10px;
+            border-top-right-radius: 20px;
+            border-bottom-right-radius: 20px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+        }
+
+        .suggestions-content-pane {
+            flex: 1;
+            padding: 20px;
+            background: repeating-linear-gradient(transparent, transparent 31px, #a0aec0 31px, #a0aec0 32px);
+            line-height: 32px;
+            font-size: 11.5pt;
+            color: #2d3748;
+            font-weight: 600;
+            white-space: pre-line;
+            padding-top: 4px;
+        }
+
+        /* ===== BOTTOM SIGNATURE AREA ===== */
+        .bottom-signature-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12pt;
+            font-weight: 700;
+            color: #1a202c;
+            margin-top: 15px;
+            padding: 0 10px;
+        }
+
+        .signature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .signature-dots {
+            border-bottom: 2px dotted #1a202c;
+            width: 250px;
+            display: inline-block;
+            height: 18px;
         }
 
         /* ===== PRINT BUTTON ===== */
@@ -227,12 +271,12 @@
             gap: 8px;
         }
         .btn-print {
-            background: #4a154b;
+            background: #5c3d90;
             color: #fff;
-            box-shadow: 0 4px 12px rgba(74, 21, 75, 0.2);
+            box-shadow: 0 4px 12px rgba(92, 61, 144, 0.2);
         }
         .btn-print:hover {
-            background: #371038;
+            background: #462c70;
             transform: translateY(-1px);
         }
         .btn-close {
@@ -263,17 +307,16 @@
                 box-shadow: none;
                 width: 210mm;
                 height: 297mm;
-                padding: 16mm 18mm;
+                padding: 20mm 20mm;
                 page-break-inside: avoid;
             }
-            .meta-box {
-                background: #fdfafd !important;
+            .main-split-container {
+                background: #ffffff !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            .content-card {
+            .suggestions-container {
                 background: #ffffff !important;
-                border: 1px solid #cbd5e0 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -297,89 +340,59 @@
 
     <div class="page-content">
 
-        <!-- HEADER -->
-        <div class="doc-header">
-            <div class="doc-header-logo">
-                <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" onerror="this.style.display='none'">
-            </div>
-            <div class="doc-header-title">
-                <h1>التقرير اليومي للموظفين</h1>
-                <p>نظام الإدارة الداخلي — معهد اليمان</p>
-            </div>
-            <div class="doc-header-date">
-                <strong>{{ report.date|date:"l" }}</strong>
-                <span>{{ report.date|date:"Y/m/d" }}</span>
-            </div>
+        <!-- HEADER BANNER -->
+        <div class="header-banner">
+            <h1>تقرير يومي:</h1>
         </div>
 
-        <!-- META BOX -->
-        <div class="meta-box">
+        <!-- METADATA DASHED BOX -->
+        <div class="meta-dashed-box">
             <div class="meta-row">
-                <div class="meta-field">
-                    الاسم الكريم
-                    <span>{{ report.user.get_full_name|default:report.user.username }}</span>
+                <div class="meta-item">
+                    <span class="meta-label">اسم القسم:</span>
+                    <span class="meta-value">{{ report.department|default:"غير محدد" }}</span>
                 </div>
-                <div class="meta-field">
-                    القسم / المسمى الوظيفي
-                    <span>{{ report.department|default:"غير محدد" }}</span>
+                <div class="meta-item">
+                    <span class="meta-label">اليوم:</span>
+                    <span class="meta-value">{{ report.date|date:"l" }}</span>
                 </div>
-                <div class="meta-field">
-                    تسجيل الحضور
-                    <span>{% if auto_first_login %}{{ auto_first_login }}{% else %}&mdash; : &mdash;{% endif %}</span>
-                </div>
-                <div class="meta-field">
-                    تاريخ التقرير
-                    <span>{{ report.date|date:"Y-m-d" }}</span>
+                <div class="meta-item">
+                    <span class="meta-label">التاريخ:</span>
+                    <span class="meta-value">{{ report.date|date:"Y / m / d" }}</span>
                 </div>
             </div>
         </div>
 
-        <!-- SPLIT: المهام + المشاكل -->
-        <div class="split-grid">
-            <!-- المهام المنجزة (مساحة أكبر) -->
-            <div>
-                <div class="section-header blue">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-                    المهام المنجزة خلال اليوم:
-                </div>
-                <div class="content-card">{{ report.completed_tasks|default:"لا يوجد مهام مدخلة" }}</div>
+        <!-- MAIN SPLIT (TASKS & PROBLEMS) -->
+        <div class="main-split-container">
+            <!-- Right Column: Completed Tasks (المهام المنجزة) -->
+            <div class="column-pane">
+                <div class="pill-header">المهام المنجزة:</div>
+                <div class="dotted-content-area">{{ report.completed_tasks|default:"" }}</div>
             </div>
-            <!-- المشاكل (مساحة أصغر) -->
-            <div>
-                <div class="section-header red">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    المشاكل والتحديات:
-                </div>
-                <div class="content-card">{{ report.problems|default:"لا توجد مشاكل اليوم ولله الحمد." }}</div>
+
+            <!-- Left Column: Problems (المشاكل إن وجدت) -->
+            <div class="column-pane">
+                <div class="pill-header">المشاكل إن وجدت:</div>
+                <div class="dotted-content-area">{{ report.problems|default:"" }}</div>
             </div>
         </div>
 
-        <!-- المقترحات -->
-        <div class="suggestions-area">
-            <div class="section-header">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                المقترحات والتوصيات:
-            </div>
-            <div class="content-card small">{{ report.suggestions|default:"لا توجد توصيات إضافية." }}</div>
+        <!-- SUGGESTIONS CONTAINER -->
+        <div class="suggestions-container">
+            <div class="suggestions-label-pane">المقترحات:</div>
+            <div class="suggestions-content-pane">{{ report.suggestions|default:"" }}</div>
         </div>
 
-        <!-- FOOTER -->
-        <div class="doc-footer">
-            <div class="footer-field">
-                الموظف المبلّغ
-                <span>{{ report.user.get_full_name|default:report.user.username }}</span>
+        <!-- BOTTOM SIGNATURE AREA -->
+        <div class="bottom-signature-row">
+            <div class="signature-item">
+                <span>اسم مقدم التقرير:</span>
+                <span class="meta-value" style="border: none; font-weight: 800; min-width: auto; text-align: right;">{{ report.user.get_full_name|default:report.user.username }}</span>
             </div>
-            <div class="footer-field">
-                توقيع الموظف
-                <div class="signature-line"></div>
-            </div>
-            <div class="footer-field">
-                المدير المسؤول
-                <span>&nbsp;</span>
-            </div>
-            <div class="footer-field">
-                اعتماد وتوقيع الإدارة
-                <div class="signature-line"></div>
+            <div class="signature-item">
+                <span>التوقيع:</span>
+                <span class="signature-dots"></span>
             </div>
         </div>
 
