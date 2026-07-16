@@ -2,62 +2,77 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>طباعة التقرير اليومي: {{ report.user.get_full_name|default:report.user.username }} - {{ report.date|date:"Y-m-d" }}</title>
     {% load static %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* ===== RESET & BASE ===== */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: 'Cairo', 'Arial', sans-serif;
-            background: #e8e8e8;
-            color: #111;
-            direction: rtl;
+        *, *::before, *::after { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
         }
 
-        /* ===== A4 PAGE ===== */
+        body {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #2d3748;
+            direction: rtl;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ===== A4 PAGE CONTAINER ===== */
         .page-a4 {
             width: 210mm;
             min-height: 297mm;
-            margin: 20px auto;
-            background: #fff;
+            margin: 30px auto;
+            background: #ffffff;
             position: relative;
-            overflow: hidden;
-            padding: 14mm 16mm 14mm 16mm;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            padding: 16mm 18mm;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border-radius: 4px;
         }
 
         /* ===== WATERMARK ===== */
         .watermark {
             position: absolute;
-            top: 50%;
+            top: 55%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 180mm;
-            height: 180mm;
+            width: 150mm;
+            height: 150mm;
             object-fit: contain;
-            opacity: 0.055;
+            opacity: 0.035;
             pointer-events: none;
             z-index: 0;
             filter: grayscale(100%);
         }
 
         /* ===== ALL CONTENT ABOVE WATERMARK ===== */
-        .page-content { position: relative; z-index: 1; }
+        .page-content { 
+            position: relative; 
+            z-index: 1; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 265mm; /* يضمن تمدد المحتوى وبقاء الفوتر بالأسفل دائماً */
+        }
 
         /* ===== HEADER ===== */
         .doc-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 6mm;
             margin-bottom: 6mm;
-            border-bottom: 3px solid #6a1b9a;
-            padding-bottom: 4mm;
         }
         .doc-header-logo img {
-            height: 55px;
+            height: 65px;
             object-fit: contain;
         }
         .doc-header-title {
@@ -65,290 +80,310 @@
             flex: 1;
         }
         .doc-header-title h1 {
-            font-size: 22pt;
+            font-size: 20pt;
             font-weight: 800;
-            color: #6a1b9a;
-            line-height: 1.2;
-            letter-spacing: 1px;
+            color: #4a154b; /* لون هوية معهد اليمان الفاخر */
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
         }
         .doc-header-title p {
             font-size: 10pt;
-            color: #888;
-            margin-top: 2px;
+            color: #718096;
+            font-weight: 500;
         }
         .doc-header-date {
             text-align: left;
             font-size: 9.5pt;
-            color: #555;
-            min-width: 80px;
+            color: #4a5568;
+            line-height: 1.5;
         }
         .doc-header-date strong {
             display: block;
-            color: #6a1b9a;
-            font-size: 10pt;
+            color: #4a154b;
+            font-size: 11pt;
+            font-weight: 700;
         }
 
         /* ===== META INFO BOX ===== */
         .meta-box {
-            border: 2px dashed #9c27b0;
-            border-radius: 10px;
+            background: #fdfafd;
+            border: 1px solid #f0e6f0;
+            border-right: 4px solid #4a154b;
+            border-radius: 8px;
             padding: 4mm 6mm;
-            margin-bottom: 5mm;
-            background: #fcf6ff;
+            margin-bottom: 6mm;
         }
         .meta-row {
-            display: flex;
-            gap: 10mm;
-            flex-wrap: wrap;
-            align-items: center;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4mm;
         }
         .meta-field {
-            font-size: 10.5pt;
-            color: #4a148c;
-            font-weight: 700;
-            flex: 1;
-            min-width: 100px;
+            font-size: 10pt;
+            color: #718096;
+            font-weight: 600;
         }
         .meta-field span {
-            font-weight: 500;
-            color: #222;
-            border-bottom: 1px dotted #9c27b0;
-            padding: 0 8px;
+            display: block;
+            font-weight: 700;
+            color: #1a202c;
+            margin-top: 3px;
+            font-size: 10.5pt;
         }
 
         /* ===== SECTION HEADERS ===== */
         .section-header {
-            background: #6a1b9a;
-            color: #fff;
-            padding: 5px 14px;
-            border-radius: 6px;
+            color: #4a154b;
             font-size: 11pt;
             font-weight: 700;
-            margin-bottom: 2mm;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            margin-bottom: 3mm;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-right: 3px solid #4a154b;
+            padding-right: 8px;
         }
-        .section-header.red   { background: #c62828; }
-        .section-header.blue  { background: #0077c2; }
-        .section-header.green { background: #2e7d32; }
+        .section-header.red   { color: #c53030; border-right-color: #c53030; }
+        .section-header.blue  { color: #2b6cb0; border-right-color: #2b6cb0; }
 
         /* ===== LINED CONTENT AREA ===== */
         .lined-box {
-            border: 1.5px solid #ce93d8;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 3mm 5mm;
-            min-height: 55mm;
+            padding: 4mm 5mm;
+            min-height: 60mm;
             background: repeating-linear-gradient(
                 to bottom,
                 transparent,
-                transparent 7.2mm,
-                #e1bee7 7.3mm,
-                #e1bee7 7.4mm
+                transparent 7.8mm,
+                #f7fafc 7.9mm,
+                #edf2f7 8mm
             );
             font-size: 10.5pt;
-            line-height: 7.5mm;
+            font-weight: 500;
+            line-height: 8mm;
             white-space: pre-wrap;
-            color: #111;
-            margin-bottom: 4mm;
+            color: #2d3748;
+            margin-bottom: 6mm;
         }
-        .lined-box.small { min-height: 30mm; }
-        .lined-box.tasks-box { min-height: 65mm; }
+        .lined-box.small { min-height: 35mm; }
+        .lined-box.tasks-box { min-height: 75mm; }
 
         /* ===== SPLIT GRID ===== */
         .split-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 5mm;
-            margin-bottom: 4mm;
-        }
-
-        /* ===== SUGGESTIONS HORIZONTAL ===== */
-        .suggestions-area {
-            margin-bottom: 4mm;
-        }
-
-        /* ===== AUTO INFO BADGE ===== */
-        .auto-badge {
-            background: #f3e5f5;
-            border-right: 4px solid #9c27b0;
-            border-radius: 6px;
-            padding: 3mm 4mm;
-            font-size: 9.5pt;
-            color: #4a148c;
-            margin-bottom: 4mm;
-        }
-        .auto-badge ul {
-            padding-right: 5mm;
-            margin: 2mm 0 0 0;
-        }
-        .auto-badge li { margin-bottom: 1.5mm; }
-        .auto-badge .cash-line {
-            margin-top: 2mm;
-            font-weight: 700;
-            color: #1a237e;
+            gap: 6mm;
+            margin-bottom: 2mm;
         }
 
         /* ===== FOOTER ===== */
         .doc-footer {
-            border-top: 2px solid #9c27b0;
-            padding-top: 4mm;
-            margin-top: 4mm;
+            border-top: 1px dashed #cbd5e0;
+            padding-top: 6mm;
+            margin-top: auto; /* يدفع الفوتر للقاع تلقائياً */
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
+            align-items: center;
         }
         .footer-field {
-            font-size: 10pt;
-            font-weight: 700;
-            color: #333;
+            font-size: 9.5pt;
+            font-weight: 600;
+            color: #718096;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
         .footer-field span {
-            display: inline-block;
-            border-bottom: 1.5px solid #555;
-            min-width: 45mm;
-            padding: 0 3mm;
+            font-size: 10pt;
+            font-weight: 700;
+            color: #1a202c;
         }
-        .footer-field .value {
-            color: #6a1b9a;
+        .footer-field .signature-line {
+            width: 45mm;
+            border-bottom: 1.5px solid #cbd5e0;
+            height: 20px;
         }
 
-        /* ===== PRINT BUTTON (hidden in print) ===== */
+        /* ===== PRINT BUTTON (Elegant Glassmorphism Navbar) ===== */
         .no-print {
-            text-align: center;
-            padding: 12px;
-            background: #fff;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+        }
+        .btn {
+            font-family: 'Cairo', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         .btn-print {
-            background: #6a1b9a;
+            background: #4a154b;
             color: #fff;
-            border: none;
-            padding: 10px 28px;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            font-family: 'Cairo', sans-serif;
-            margin: 4px;
+            box-shadow: 0 4px 12px rgba(74, 21, 75, 0.2);
+        }
+        .btn-print:hover {
+            background: #371038;
+            transform: translateY(-1px);
         }
         .btn-close {
-            background: #eee;
-            color: #333;
-            border: 1px solid #ccc;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 15px;
-            cursor: pointer;
-            font-family: 'Cairo', sans-serif;
-            margin: 4px;
+            background: #f7fafc;
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+        }
+        .btn-close:hover {
+            background: #edf2f7;
+            color: #1a202c;
         }
 
-        /* ===== PRINT MEDIA ===== */
+        /* ===== PRINT MEDIA STYLES ===== */
         @page {
             size: A4;
             margin: 0;
         }
         @media print {
-            body { background: #fff; }
-            .no-print { display: none !important; }
+            body { 
+                background: #fff; 
+                color: #000;
+            }
+            .no-print { 
+                display: none !important; 
+            }
             .page-a4 {
                 margin: 0;
                 box-shadow: none;
                 width: 210mm;
-                min-height: 297mm;
+                height: 297mm;
+                padding: 16mm 18mm;
+                page-break-inside: avoid;
+            }
+            .meta-box {
+                background: #fdfafd !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .lined-box {
+                background: repeating-linear-gradient(
+                    to bottom,
+                    transparent,
+                    transparent 7.8mm,
+                    #f7fafc 7.9mm,
+                    #edf2f7 8mm
+                ) !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
         }
     </style>
 </head>
 <body>
 
-<!-- Print Controls -->
 <div class="no-print">
-    <button class="btn-print" onclick="window.print()">🖨️ طباعة / تصدير PDF</button>
-    <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
+    <button class="btn btn-print" onclick="window.print()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+        طباعة وتصدير PDF
+    </button>
+    <button class="btn btn-close" onclick="window.close()">✕ إغلاق الصفحة</button>
 </div>
 
 <div class="page-a4">
-    <!-- Watermark -->
     <img src="{% static 'img/logo.png' %}" class="watermark" alt="علامة مائية" onerror="this.style.display='none'">
 
     <div class="page-content">
 
-        <!-- HEADER -->
         <div class="doc-header">
             <div class="doc-header-logo">
                 <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" onerror="this.style.display='none'">
             </div>
             <div class="doc-header-title">
-                <h1>تقرير يومي للموظفين</h1>
-                <p>نظام إدارة معهد اليمان</p>
+                <h1>التقرير اليومي للموظفين</h1>
+                <p>نظام الإدارة الداخلي — معهد اليمان</p>
             </div>
             <div class="doc-header-date">
                 <strong>{{ report.date|date:"l" }}</strong>
-                {{ report.date|date:"Y/m/d" }}
+                <span>{{ report.date|date:"Y/m/d" }}</span>
             </div>
         </div>
 
-        <!-- META BOX -->
         <div class="meta-box">
             <div class="meta-row">
                 <div class="meta-field">
-                    اسم الموظف: <span>{{ report.user.get_full_name|default:report.user.username }}</span>
+                    الاسم الكريم
+                    <span>{{ report.user.get_full_name|default:report.user.username }}</span>
                 </div>
                 <div class="meta-field">
-                    القسم / المهمة: <span>{{ report.department|default:"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" }}</span>
+                    القسم / المسمى الوظيفي
+                    <span>{{ report.department|default:"غير محدد" }}</span>
                 </div>
                 <div class="meta-field">
-                    وقت الدخول: <span>{% if auto_first_login %}{{ auto_first_login }}{% else %}&mdash;{% endif %}</span>
+                    تسجيل الحضور
+                    <span>{% if auto_first_login %}{{ auto_first_login }}{% else %}&mdash; : &mdash;{% endif %}</span>
                 </div>
                 <div class="meta-field">
-                    التاريخ: <span>{{ report.date|date:"Y-m-d" }}</span>
+                    تاريخ التقرير
+                    <span>{{ report.date|date:"Y-m-d" }}</span>
                 </div>
             </div>
         </div>
 
-
-        <!-- SPLIT: المهام + المشاكل -->
         <div class="split-grid">
-            <!-- المهام المنجزة -->
             <div>
-                <div class="section-header blue">المهام المنجزة:</div>
+                <div class="section-header blue">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                    المهام المنجزة خلال اليوم:
+                </div>
                 <div class="lined-box tasks-box">{{ report.completed_tasks|default:"" }}</div>
             </div>
-            <!-- المشاكل -->
             <div>
-                <div class="section-header red">المشاكل إن وجدت:</div>
+                <div class="section-header red">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    المشاكل والتحديات (إن وجدت):
+                </div>
                 <div class="lined-box tasks-box">{{ report.problems|default:"" }}</div>
             </div>
         </div>
 
-        <!-- المقترحات -->
         <div class="suggestions-area">
-            <div class="section-header">المقترحات والتوصيات:</div>
+            <div class="section-header">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                المقترحات والتوصيات:
+            </div>
             <div class="lined-box small">{{ report.suggestions|default:"" }}</div>
         </div>
 
-        <!-- FOOTER -->
         <div class="doc-footer">
             <div class="footer-field">
-                اسم الموظف: <span class="value">{{ report.user.get_full_name|default:report.user.username }}</span>
+                الموظف المبلّغ
+                <span>{{ report.user.get_full_name|default:report.user.username }}</span>
             </div>
             <div class="footer-field">
-                التوقيع: <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                توقيع الموظف
+                <div class="signature-line"></div>
             </div>
             <div class="footer-field">
-                اسم المدير: <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                المدير المسؤول
+                <span>&nbsp;</span>
             </div>
             <div class="footer-field">
-                توقيع المدير: <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                اعتماد وتوقيع الإدارة
+                <div class="signature-line"></div>
             </div>
         </div>
 
-    </div><!-- /page-content -->
-</div><!-- /page-a4 -->
-
-<script>
-    // يمكن تفعيله لطباعة تلقائية
-    // window.onload = () => window.print();
-</script>
-</body>
+    </div></div></body>
 </html>
