@@ -1562,8 +1562,26 @@ class EmployeeDailyReportView(LoginRequiredMixin, TemplateView):
         # Pre-fill automatic info if report doesn't exist
         auto_tasks_lines = []
         auto_cash = ""
+        auto_first_login = ""
 
         if not report:
+            # ======================================================
+            # 0. أول وقت دخول للموظف اليوم
+            # ======================================================
+            try:
+                first_login_log = ActivityLog.objects.filter(
+                    user=user,
+                    action='login',
+                    content_type='User',
+                    timestamp__date=target_date
+                ).order_by('timestamp').first()
+                if first_login_log:
+                    from django.utils.timezone import localtime
+                    login_time = localtime(first_login_log.timestamp).strftime('%I:%M %p')
+                    auto_first_login = login_time
+            except Exception:
+                auto_first_login = ""
+
             # خريطة ترجمة أنواع النشاط من اسم المودل إلى نص عربي
             CONTENT_TYPE_LABELS = {
                 'Attendance':        ('أخذ حضور', True),   # True = يحتاج معالجة خاصة
@@ -1699,6 +1717,27 @@ class EmployeeDailyReportView(LoginRequiredMixin, TemplateView):
                 pass
 
             # ======================================================
+            # 7b. سحب طلاب (إلغاء تسجيل / حذف تسجيل)
+            # ======================================================
+            try:
+                from accounts.models import Studentenrollment
+                # سجلات حذف تسجيل الطلاب في هذا اليوم
+                withdraw_logs = ActivityLog.objects.filter(
+                    user=user,
+                    content_type='Studentenrollment',
+                    action='delete',
+                    timestamp__date=target_date
+                )
+                if withdraw_logs.exists():
+                    withdrawn_names = [l.object_repr for l in withdraw_logs[:5]]
+                    suffix_w = " ..." if withdraw_logs.count() > 5 else ""
+                    auto_tasks_lines.append(
+                        f"سحب / أُلغي تسجيل {withdraw_logs.count()} طالب: {', '.join(withdrawn_names)}{suffix_w}"
+                    )
+            except Exception:
+                pass
+
+            # ======================================================
             # 8. رصيد الصندوق (باستخدام get_cash_account الصحيحة)
             # ======================================================
             try:
@@ -1746,6 +1785,7 @@ class EmployeeDailyReportView(LoginRequiredMixin, TemplateView):
             'is_editable': is_editable,
             'auto_tasks_lines': auto_tasks_lines,
             'auto_cash': auto_cash,
+            'auto_first_login': auto_first_login,
         })
         return context
 
@@ -1844,7 +1884,28 @@ class DailyReportPrintView(LoginRequiredMixin, TemplateView):
         if not report:
             raise Http404("التقرير غير موجود.")
 
+        # First login time for that report's date
+        auto_first_login = ""
+        try:
+            first_login_log = ActivityLog.objects.filter(
+                user=report.user,
+                action='login',
+                content_type='User',
+                timestamp__date=report.date
+            ).order_by('timestamp').first()
+            if first_login_log:
+                from django.utils.timezone import localtime
+                login_time = localtime(first_login_log.timestamp).strftime('%I:%M %p')
+                auto_first_login = login_time
+        except Exception:
+            pass
+
         context['report'] = report
+        context['auto_first_login'] = auto_first_login
+        context['auto_tasks_lines'] = [
+            line for line in ((report.auto_attendance_info or "") + "\n" + (report.auto_exam_info or "")).split("\n")
+            if line.strip()
+        ]
         return context
 
 
