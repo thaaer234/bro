@@ -30,10 +30,10 @@
         .page-a4 {
             width: 210mm;
             min-height: 297mm;
-            margin: 30px auto;
+            margin: 20px auto;
             background: #ffffff;
             position: relative;
-            padding: 20mm 20mm;
+            padding: 12mm 15mm;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
             border-radius: 8px;
             display: flex;
@@ -62,7 +62,7 @@
             z-index: 1; 
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
             height: 100%;
         }
 
@@ -71,12 +71,12 @@
             background-color: #5c3d90;
             color: #ffffff;
             text-align: center;
-            padding: 15px;
+            padding: 12px;
             border-radius: 18px;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         .header-banner h1 {
-            font-size: 24pt;
+            font-size: 22pt;
             font-weight: 800;
             letter-spacing: 0.5px;
         }
@@ -85,38 +85,49 @@
         .meta-dashed-box {
             border: 2px dashed #5c3d90;
             border-radius: 20px;
-            padding: 15px 25px;
-            margin-bottom: 10px;
+            padding: 12px 20px;
+            margin-bottom: 5px;
         }
         .meta-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12pt;
+            font-size: 11pt;
             font-weight: 700;
             color: #1a202c;
+            flex-wrap: nowrap;
+            gap: 10px;
         }
         .meta-item {
             display: flex;
             align-items: center;
             gap: 5px;
-            flex: 1;
+            white-space: nowrap;
+        }
+        .meta-item:nth-child(1) {
+            flex: 1.2;
+            justify-content: flex-start;
         }
         .meta-item:nth-child(2) {
+            flex: 0.8;
             justify-content: center;
         }
         .meta-item:nth-child(3) {
+            flex: 1;
             justify-content: flex-end;
         }
         .meta-label {
             color: #1a202c;
+            white-space: nowrap;
         }
         .meta-value {
             color: #5c3d90;
             border-bottom: 1px dotted #5c3d90;
-            padding: 0 10px;
-            min-width: 120px;
+            padding: 0 5px;
+            min-width: 100px;
             text-align: center;
+            white-space: nowrap;
+            display: inline-block;
         }
 
         /* ===== MAIN SPLIT CONTAINER ===== */
@@ -127,17 +138,17 @@
             grid-template-columns: 1fr 1fr;
             position: relative;
             background: #ffffff;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             flex-grow: 1;
-            min-height: 360px;
+            min-height: 320px;
         }
 
         /* Vertical dashed divider line */
         .main-split-container::before {
             content: "";
             position: absolute;
-            top: 25px;
-            bottom: 25px;
+            top: 20px;
+            bottom: 20px;
             left: 50%;
             width: 0;
             border-left: 3px dashed #006080;
@@ -145,7 +156,7 @@
         }
 
         .column-pane {
-            padding: 20px;
+            padding: 15px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -155,11 +166,11 @@
         .pill-header {
             background-color: #006080;
             color: #ffffff;
-            font-size: 12pt;
+            font-size: 11pt;
             font-weight: 700;
-            padding: 6px 30px;
+            padding: 5px 25px;
             border-radius: 25px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             text-align: center;
             box-shadow: 0 4px 6px rgba(0, 96, 128, 0.15);
         }
@@ -168,9 +179,9 @@
         .dotted-content-area {
             width: 100%;
             flex-grow: 1;
-            background: repeating-linear-gradient(transparent, transparent 25px, #cbd5e0 25px, #cbd5e0 26px);
-            line-height: 26px;
-            font-size: 9.5pt;
+            background: repeating-linear-gradient(transparent, transparent 23px, #cbd5e0 23px, #cbd5e0 24px);
+            line-height: 24px;
+            font-size: 9pt;
             color: #2d3748;
             font-weight: 600;
             white-space: pre-line;
@@ -185,34 +196,36 @@
             align-items: stretch;
             overflow: hidden;
             background: #ffffff;
-            margin-bottom: 15px;
-            min-height: 120px;
+            margin-bottom: 10px;
+            min-height: 100px;
         }
 
         .suggestions-label-pane {
             background-color: #5c3d90;
             color: #ffffff;
-            width: 50px;
+            width: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 13pt;
-            letter-spacing: 1px;
-            padding: 10px;
+            font-size: 12pt;
+            padding: 5px;
             border-top-right-radius: 20px;
             border-bottom-right-radius: 20px;
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            transform: rotate(180deg);
+        }
+
+        .suggestions-label-pane span {
+            display: inline-block;
+            transform: rotate(-90deg);
+            white-space: nowrap;
         }
 
         .suggestions-content-pane {
             flex: 1;
-            padding: 15px 20px;
-            background: repeating-linear-gradient(transparent, transparent 25px, #cbd5e0 25px, #cbd5e0 26px);
-            line-height: 26px;
-            font-size: 9.5pt;
+            padding: 10px 15px;
+            background: repeating-linear-gradient(transparent, transparent 23px, #cbd5e0 23px, #cbd5e0 24px);
+            line-height: 24px;
+            font-size: 9pt;
             color: #2d3748;
             font-weight: 600;
             white-space: pre-line;
@@ -224,10 +237,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12pt;
+            font-size: 11pt;
             font-weight: 700;
             color: #1a202c;
-            margin-top: 15px;
+            margin-top: 5px;
             padding: 0 10px;
         }
 
@@ -235,11 +248,12 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            white-space: nowrap;
         }
 
         .signature-dots {
             border-bottom: 2px dotted #1a202c;
-            width: 250px;
+            width: 200px;
             display: inline-block;
             height: 18px;
         }
@@ -380,7 +394,7 @@
 
         <!-- SUGGESTIONS CONTAINER -->
         <div class="suggestions-container">
-            <div class="suggestions-label-pane">المقترحات:</div>
+            <div class="suggestions-label-pane"><span>المقترحات:</span></div>
             <div class="suggestions-content-pane">{{ report.suggestions|default:"" }}</div>
         </div>
 
