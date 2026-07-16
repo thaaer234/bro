@@ -23,6 +23,7 @@
             direction: rtl;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            line-height: 1.6;
         }
 
         /* ===== A4 PAGE CONTAINER ===== */
@@ -46,7 +47,7 @@
             width: 150mm;
             height: 150mm;
             object-fit: contain;
-            opacity: 0.035;
+            opacity: 0.03;
             pointer-events: none;
             z-index: 0;
             filter: grayscale(100%);
@@ -59,7 +60,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 265mm; /* يضمن تمدد المحتوى وبقاء الفوتر بالأسفل دائماً */
+            min-height: 265mm;
         }
 
         /* ===== HEADER ===== */
@@ -67,9 +68,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 6mm;
-            margin-bottom: 6mm;
+            border-bottom: 2px solid #f0e6f0;
+            padding-bottom: 5mm;
+            margin-bottom: 5mm;
         }
         .doc-header-logo img {
             height: 65px;
@@ -82,7 +83,7 @@
         .doc-header-title h1 {
             font-size: 20pt;
             font-weight: 800;
-            color: #4a154b; /* لون هوية معهد اليمان الفاخر */
+            color: #4a154b; /* الهوية اللونية الرسمية لمعهد اليمان */
             letter-spacing: -0.5px;
             margin-bottom: 4px;
         }
@@ -111,7 +112,7 @@
             border-right: 4px solid #4a154b;
             border-radius: 8px;
             padding: 4mm 6mm;
-            margin-bottom: 6mm;
+            margin-bottom: 5mm;
         }
         .meta-row {
             display: grid;
@@ -119,7 +120,7 @@
             gap: 4mm;
         }
         .meta-field {
-            font-size: 10pt;
+            font-size: 9.5pt;
             color: #718096;
             font-weight: 600;
         }
@@ -127,14 +128,14 @@
             display: block;
             font-weight: 700;
             color: #1a202c;
-            margin-top: 3px;
+            margin-top: 4px;
             font-size: 10.5pt;
         }
 
         /* ===== SECTION HEADERS ===== */
         .section-header {
             color: #4a154b;
-            font-size: 11pt;
+            font-size: 10.5pt;
             font-weight: 700;
             margin-bottom: 3mm;
             display: flex;
@@ -146,33 +147,27 @@
         .section-header.red   { color: #c53030; border-right-color: #c53030; }
         .section-header.blue  { color: #2b6cb0; border-right-color: #2b6cb0; }
 
-        /* ===== LINED CONTENT AREA ===== */
-        .lined-box {
+        /* ===== CONTENT CARDS ===== */
+        .content-card {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 4mm 5mm;
-            min-height: 60mm;
-            background: repeating-linear-gradient(
-                to bottom,
-                transparent,
-                transparent 7.8mm,
-                #f7fafc 7.9mm,
-                #edf2f7 8mm
-            );
-            font-size: 10.5pt;
+            padding: 5mm 6mm;
+            background: #ffffff;
+            font-size: 10pt;
             font-weight: 500;
-            line-height: 8mm;
-            white-space: pre-wrap;
             color: #2d3748;
-            margin-bottom: 6mm;
+            margin-bottom: 5mm;
+            white-space: pre-line; /* يضمن التفاف الأسطر الحقيقية بشكل مثالي ومنع تداخل النصوص */
+            min-height: 100mm; /* ارتفاع ديناميكي مرن ومريح للمهام الطويلة */
         }
-        .lined-box.small { min-height: 35mm; }
-        .lined-box.tasks-box { min-height: 75mm; }
+        .content-card.small { 
+            min-height: 25mm; 
+        }
 
         /* ===== SPLIT GRID ===== */
         .split-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1.2fr 0.8fr; /* مساحة أكبر للمهام المنجزة المليئة بالبيانات ومساحة أصغر للمشاكل */
             gap: 6mm;
             margin-bottom: 2mm;
         }
@@ -181,7 +176,7 @@
         .doc-footer {
             border-top: 1px dashed #cbd5e0;
             padding-top: 6mm;
-            margin-top: auto; /* يدفع الفوتر للقاع تلقائياً */
+            margin-top: auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -205,7 +200,7 @@
             height: 20px;
         }
 
-        /* ===== PRINT BUTTON (Elegant Glassmorphism Navbar) ===== */
+        /* ===== PRINT BUTTON ===== */
         .no-print {
             display: flex;
             justify-content: center;
@@ -217,7 +212,6 @@
             top: 0;
             z-index: 999;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
         }
         .btn {
             font-family: 'Cairo', sans-serif;
@@ -277,14 +271,9 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            .lined-box {
-                background: repeating-linear-gradient(
-                    to bottom,
-                    transparent,
-                    transparent 7.8mm,
-                    #f7fafc 7.9mm,
-                    #edf2f7 8mm
-                ) !important;
+            .content-card {
+                background: #ffffff !important;
+                border: 1px solid #cbd5e0 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -293,6 +282,7 @@
 </head>
 <body>
 
+<!-- Print Controls (Navbar) -->
 <div class="no-print">
     <button class="btn btn-print" onclick="window.print()">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
@@ -302,10 +292,12 @@
 </div>
 
 <div class="page-a4">
+    <!-- Watermark -->
     <img src="{% static 'img/logo.png' %}" class="watermark" alt="علامة مائية" onerror="this.style.display='none'">
 
     <div class="page-content">
 
+        <!-- HEADER -->
         <div class="doc-header">
             <div class="doc-header-logo">
                 <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" onerror="this.style.display='none'">
@@ -320,6 +312,7 @@
             </div>
         </div>
 
+        <!-- META BOX -->
         <div class="meta-box">
             <div class="meta-row">
                 <div class="meta-field">
@@ -341,31 +334,36 @@
             </div>
         </div>
 
+        <!-- SPLIT: المهام + المشاكل -->
         <div class="split-grid">
+            <!-- المهام المنجزة (مساحة أكبر) -->
             <div>
                 <div class="section-header blue">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
                     المهام المنجزة خلال اليوم:
                 </div>
-                <div class="lined-box tasks-box">{{ report.completed_tasks|default:"" }}</div>
+                <div class="content-card">{{ report.completed_tasks|default:"لا يوجد مهام مدخلة" }}</div>
             </div>
+            <!-- المشاكل (مساحة أصغر) -->
             <div>
                 <div class="section-header red">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    المشاكل والتحديات (إن وجدت):
+                    المشاكل والتحديات:
                 </div>
-                <div class="lined-box tasks-box">{{ report.problems|default:"" }}</div>
+                <div class="content-card">{{ report.problems|default:"لا توجد مشاكل اليوم ولله الحمد." }}</div>
             </div>
         </div>
 
+        <!-- المقترحات -->
         <div class="suggestions-area">
             <div class="section-header">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
                 المقترحات والتوصيات:
             </div>
-            <div class="lined-box small">{{ report.suggestions|default:"" }}</div>
+            <div class="content-card small">{{ report.suggestions|default:"لا توجد توصيات إضافية." }}</div>
         </div>
 
+        <!-- FOOTER -->
         <div class="doc-footer">
             <div class="footer-field">
                 الموظف المبلّغ
@@ -385,5 +383,8 @@
             </div>
         </div>
 
-    </div></div></body>
+    </div><!-- /page-content -->
+</div><!-- /page-a4 -->
+
+</body>
 </html>
