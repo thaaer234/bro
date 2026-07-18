@@ -282,25 +282,17 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
             .order_by('code')
         )
         
-        items_to_zero = []
+        academic_year = _current_academic_year(request)
+        cashboxes = []
         for account in employee_cash_accounts_qs:
             balance = _get_zeroing_balance(account)
-            if balance != Decimal('0.00'):
-                name = account.name_ar or account.name
-                if name.startswith("صندوق "):
-                    name = name.replace("صندوق ", "", 1)
-                items_to_zero.append({
-                    'code': account.code,
-                    'name': account.name_ar or account.name,
-                    'emp_name': name,
-                    'balance': float(balance)
-                })
-                
-        if not items_to_zero:
-            return JsonResponse({
-                'success': True,
-                'empty': True,
-                'message': 'جميع الصناديق الفرعية مصفرة بالفعل!'
+            name = account.name_ar or account.name
+            emp_name = name.replace("صندوق ", "", 1) if name.startswith("صندوق ") else name
+            cashboxes.append({
+                'code': account.code,
+                'name': name,
+                'emp_name': emp_name,
+                'balance': float(balance)
             })
             
         try:
@@ -308,69 +300,13 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
         except Account.DoesNotExist:
             return JsonResponse({'error': 'لم يتم العثور على حساب النقدية الرئيسي 121!'}, status=400)
             
-        names_str = "، ".join(item['emp_name'] for item in items_to_zero)
-        entry_desc = f"تصفير صناديق ({names_str})"
-        
-        debit_items = []
-        credit_items = []
-        
-        for item in items_to_zero:
-            code = item['code']
-            name = item['name']
-            bal = Decimal(str(item['balance']))
-            
-            if bal > Decimal('0.00'):
-                credit_items.append({
-                    'code': code,
-                    'name': name,
-                    'amount': float(bal),
-                    'side': 'credit',
-                    'side_ar': 'دائن (تصفير)'
-                })
-            elif bal < Decimal('0.00'):
-                abs_bal = abs(bal)
-                debit_items.append({
-                    'code': code,
-                    'name': name,
-                    'amount': float(abs_bal),
-                    'side': 'debit',
-                    'side_ar': 'مدين (تصفير)'
-                })
-                
-        sum_debits = sum(Decimal(str(x['amount'])) for x in debit_items)
-        sum_credits = sum(Decimal(str(x['amount'])) for x in credit_items)
-        net_diff = sum_debits - sum_credits
-        
-        main_cash_item = {
-            'code': main_cash.code,
-            'name': main_cash.name_ar or main_cash.name,
-            'amount': float(abs(net_diff)),
-        }
-        
-        if net_diff > Decimal('0.00'):
-            main_cash_item.update({
-                'side': 'credit',
-                'side_ar': 'دائن (ترحيل الفارق)'
-            })
-            credit_items.append(main_cash_item)
-        elif net_diff < Decimal('0.00'):
-            main_cash_item.update({
-                'side': 'debit',
-                'side_ar': 'مدين (ترحيل الفارق)'
-            })
-            debit_items.append(main_cash_item)
-            
-        total_debits = sum(x['amount'] for x in debit_items)
-        total_credits = sum(x['amount'] for x in credit_items)
-        
         return JsonResponse({
             'success': True,
-            'empty': False,
-            'description': entry_desc,
-            'debits': debit_items,
-            'credits': credit_items,
-            'total_debits': float(total_debits),
-            'total_credits': float(total_credits),
+            'cashboxes': cashboxes,
+            'main_cash': {
+                'code': main_cash.code,
+                'name': main_cash.name_ar or main_cash.name
+            },
             'date': timezone.now().date().strftime('%Y-%m-%d')
         })
 
@@ -378,10 +314,14 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
         if not request.user.is_superuser:
             return HttpResponse("غير مصرح بالدخول.", status=403)
             
+        selected_accounts = request.POST.getlist('selected_accounts')
+        if not selected_accounts:
+            messages.warning(request, "لم يتم تحديد أي صناديق لتصفيرها.")
+            return redirect(request.META.get('HTTP_REFERER') or 'accounts:dashboard')
+            
         employee_cash_accounts_qs = (
             Account.objects
-            .filter(code__startswith='121-', is_active=True)
-            .exclude(code__startswith='121-5')
+            .filter(code__in=selected_accounts, is_active=True)
             .order_by('code')
         )
         
@@ -390,25 +330,25 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
             balance = _get_zeroing_balance(account)
             if balance != Decimal('0.00'):
                 name = account.name_ar or account.name
-                if name.startswith("صندوق "):
-                    name = name.replace("صندوق ", "", 1)
+                emp_name = name.replace("صندوق ", "", 1) if name.startswith("صندوق ") else name
                 items_to_zero.append({
                     'account': account,
                     'balance': balance,
-                    'name': name
+                    'name': name,
+                    'emp_name': emp_name
                 })
                 
         if not items_to_zero:
-            messages.warning(request, "جميع الصناديق الفرعية مصفرة بالفعل!")
-            return redirect('accounts:dashboard')
+            messages.warning(request, "جميع الصناديق الفرعية المحددة مصفرة بالفعل!")
+            return redirect(request.META.get('HTTP_REFERER') or 'accounts:dashboard')
             
         try:
             main_cash = Account.objects.get(code='121', is_active=True)
         except Account.DoesNotExist:
             messages.error(request, "لم يتم العثور على حساب النقدية الرئيسي 121!")
-            return redirect('accounts:dashboard')
+            return redirect(request.META.get('HTTP_REFERER') or 'accounts:dashboard')
             
-        names_str = "، ".join(item['name'] for item in items_to_zero)
+        names_str = "، ".join(item['emp_name'] for item in items_to_zero)
         entry_desc = f"تصفير صناديق ({names_str})"
         
         try:
@@ -422,11 +362,9 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
                     bal = item['balance']
                     
                     if bal > Decimal('0.00'):
-                        # Positive balance: Credit cashbox
                         credit_items.append({'account': acc, 'amount': bal})
                         total_debits_sum += bal
                     elif bal < Decimal('0.00'):
-                        # Negative balance: Debit cashbox
                         abs_bal = abs(bal)
                         debit_items.append({'account': acc, 'amount': abs_bal})
                         
@@ -435,16 +373,13 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
                 net_diff = sum_debits - sum_credits
                 
                 if net_diff > Decimal('0.00'):
-                    # More debits, so we credit main cash 121 to balance
                     credit_items.append({'account': main_cash, 'amount': net_diff})
                     total_debits_sum += net_diff
                 elif net_diff < Decimal('0.00'):
-                    # More credits, so we debit main cash 121 to balance
                     abs_diff = abs(net_diff)
                     debit_items.append({'account': main_cash, 'amount': abs_diff})
                     total_debits_sum += abs_diff
                     
-                # Create JournalEntry
                 entry = JournalEntry.objects.create(
                     reference="",
                     date=timezone.now().date(),
@@ -455,7 +390,6 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
                     academic_year=_current_academic_year(request)
                 )
                 
-                # Create Transactions
                 for item in debit_items:
                     Transaction.objects.create(
                         journal_entry=entry,
@@ -474,14 +408,13 @@ class ZeroCashboxesView(LoginRequiredMixin, View):
                         description=entry_desc
                     )
                 
-                # Post the entry (checks balance, updates is_posted and recalculates tree balances)
                 entry.post_entry(request.user)
                 
             messages.success(request, f"تم بنجاح تصفير ومناقلة أرصدة الصناديق بقيد واحد: {entry.reference}")
         except Exception as e:
             messages.error(request, f"فشل تصفير الصناديق: {str(e)}")
             
-        return redirect('accounts:dashboard')
+        return redirect(request.META.get('HTTP_REFERER') or 'accounts:dashboard')
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -1717,10 +1650,10 @@ class AccountStatementView(LoginRequiredMixin, TemplateView):
 
     def _build_statement(self, account, start_date, end_date, academic_year=None):
         # Opening balance from all transactions before start_date (if provided)
-        prior_qs = account.transactions_with_descendants(academic_year=academic_year)
+        opening_balance = Decimal('0.00')
         if start_date:
-            prior_qs = prior_qs.filter(journal_entry__date__lt=start_date)
-        opening_balance = sum(self._signed_amount(tx) for tx in prior_qs.select_related('journal_entry', 'account'))
+            prior_qs = account.transactions_with_descendants(academic_year=academic_year).filter(journal_entry__date__lt=start_date)
+            opening_balance = sum(self._signed_amount(tx) for tx in prior_qs.select_related('journal_entry', 'account'))
 
         # Current period transactions
         tx_qs = account.transactions_with_descendants(academic_year=academic_year).select_related('journal_entry', 'account').order_by('journal_entry__date', 'journal_entry__created_at', 'id')

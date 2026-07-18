@@ -1,9 +1,9 @@
-/* Al-Yaman Institute Management System - Professional CSS */
+/* Al-Noblaa Institute Management System - Professional CSS */
 @import url('./local-fonts.css');
 
 /* Custom font: Cocon Next Arabic */
 @font-face {
-    font-family: 'Cocon Next Arabic';
+    font-family: 'Tajawal';
     src: url('../font/Cocon_%20Next%20Arabic-Bold.otf') format('opentype');
     font-weight: 400 700;
     font-style: normal;
@@ -12,11 +12,11 @@
 
 /* CSS Variables */
 :root {
-    --primary-color: #0f766e;
-    --primary-hover: #115e59;
-    --primary: #0f766e;
-    --accent: #15958b;
-    --bg: #16343a;
+    --primary-color: #00668a;
+    --primary-hover: #002855;
+    --primary: #00668a;
+    --accent: #00668a;
+    --bg: #001430;
     --secondary-color: #10b981;
     --secondary-hover: #059669;
     --danger-color: #ef4444;
@@ -53,10 +53,10 @@
 }
 
 body {
-    font-family: 'Cairo', 'Tajawal', sans-serif;
+    font-family: 'Tajawal', sans-serif;
     background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 28%),
-        radial-gradient(circle at top right, rgba(200, 155, 67, 0.08), transparent 22%),
+        radial-gradient(circle at top left, rgba(0, 102, 138, 0.10), transparent 28%),
+        radial-gradient(circle at top right, rgba(116, 144, 195, 0.08), transparent 22%),
         linear-gradient(180deg, #f9fcfc 0%, #edf4f3 100%);
     color: var(--gray-800);
     direction: rtl;
@@ -71,7 +71,7 @@ body {
     position: fixed;
     right: 0;
     top: 0;
-    background: linear-gradient(180deg, #16343a 0%, #0f766e 52%, #15958b 100%);
+    background: linear-gradient(180deg, #001430 0%, #00668a 52%, #00668a 100%);
     color: var(--white);
     overflow-y: auto;
     overflow-x: hidden;
@@ -225,7 +225,7 @@ body {
 .menu-item.active {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
     color: var(--white);
-    box-shadow: 0 6px 15px rgba(15, 118, 110, 0.28);
+    box-shadow: 0 6px 15px rgba(0, 102, 138, 0.28);
     transform: translateX(-3px);
 }
 
@@ -753,7 +753,7 @@ body {
 
 .stat-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 24px rgba(22, 52, 58, 0.12);
+    box-shadow: 0 12px 24px rgba(0, 20, 48, 0.12);
 }
 
 .stat-card-icon {
@@ -766,7 +766,7 @@ body {
     justify-content: center;
     font-size: 1.25rem;
     color: var(--primary-color);
-    background: rgba(15, 118, 110, 0.10);
+    background: rgba(0, 102, 138, 0.10);
 }
 
 .stat-card-value {
@@ -844,7 +844,7 @@ body {
     color: var(--white);
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
     border-color: var(--primary-color);
-    box-shadow: 0 10px 18px rgba(15, 118, 110, 0.18);
+    box-shadow: 0 10px 18px rgba(0, 102, 138, 0.18);
 }
 
 .tab-content {

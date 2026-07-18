@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 950px; direction: rtl; text-align: right; font-family: 'Tajawal', sans-serif;">
+    <div class="card shadow-lg border-0 rounded-4 overflow-hidden" style="background: #ffffff;">
+        <div class="card-header py-4 text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #001430, #002855); border-bottom: 2px solid #38bdf8;">
+            <div>
+                <h4 class="mb-1 fw-bold text-white"><i class="fas fa-sliders-h me-2 text-info"></i> إدارة القائمة الجانبية (الناف بار الأول) 🔐</h4>
+                <p class="mb-0 text-muted-light small" style="opacity: 0.8; font-size: 0.85rem; color: #a2bce0;">تحديد ما يظهر للموظفين والمستخدمين العاديين في الناف بار الرئيسي</p>
+            </div>
+            <span class="badge bg-info text-dark px-3 py-2 fw-bold" style="border-radius: 20px;">المدير thaaer</span>
+        </div>
+        
+        <div class="card-body p-4 p-md-5">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-3 mb-4" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="POST" id="sidebar-config-form">
+                {% csrf_token %}
+                
+                <div class="alert alert-warning border-0 rounded-3 mb-5" style="background-color: #fffbeb; border-right: 4px solid #f59e0b !important;">
+                    <div class="d-flex gap-2">
+                        <i class="fas fa-exclamation-triangle text-warning mt-1" style="font-size: 1.2rem;"></i>
+                        <div>
+                            <strong class="text-warning-dark" style="color: #78350f;">ملاحظة هامة:</strong>
+                            <p class="mb-0 text-muted-dark small" style="color: #451a03; margin-top: 4px; font-size: 0.88rem; line-height: 1.5;">
+                                التغييرات المحددة هنا تطبق **فقط على الموظفين والمستخدمين العاديين**. كمدير نظام (أو حساب ثائر)، ستظل تشاهد كافة العناصر دائماً لتتمكن من إدارة النظام بالكامل.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion" id="sidebarAccordion">
+                    
+                    <!-- SECTION 1: MAIN SITE ITEMS -->
+                    <div class="accordion-item border rounded-3 mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingOne">
+                            <button class="accordion-button fs-5 fw-bold text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne" style="background: #0f172a; color: white !important;">
+                                <i class="fas fa-desktop me-2 text-info"></i> &nbsp;&nbsp; 1. إعدادات القائمة الجانبية الرئيسية (الناف بار الأول)
+                            </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#sidebarAccordion">
+                            <div class="accordion-body bg-light p-4">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="dashboard"><i class="fas fa-grid-2 text-secondary me-2"></i> لوحة التحكم</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="dashboard" value="false"><input class="form-check-input" type="checkbox" name="dashboard" id="dashboard" value="true" {% if config.dashboard %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="system_report"><i class="fas fa-chart-mixed text-secondary me-2"></i> تقرير النظام</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="system_report" value="false"><input class="form-check-input" type="checkbox" name="system_report" id="system_report" value="true" {% if config.system_report %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="announcements"><i class="fas fa-bullhorn text-secondary me-2"></i> الإعلانات والأخبار</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="announcements" value="false"><input class="form-check-input" type="checkbox" name="announcements" id="announcements" value="true" {% if config.announcements %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="security"><i class="fas fa-shield-halved text-secondary me-2"></i> إعدادات الأمان</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="security" value="false"><input class="form-check-input" type="checkbox" name="security" id="security" value="true" {% if config.security %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="technical_services"><i class="fas fa-screwdriver-wrench text-secondary me-2"></i> الدعم الفني</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="technical_services" value="false"><input class="form-check-input" type="checkbox" name="technical_services" id="technical_services" value="true" {% if config.technical_services %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="handbook"><i class="fas fa-book-open-reader text-secondary me-2"></i> دليل مساعدة المعهد</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="handbook" value="false"><input class="form-check-input" type="checkbox" name="handbook" id="handbook" value="true" {% if config.handbook %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="daily_report"><i class="fas fa-file-signature text-secondary me-2"></i> تقرير العمل اليومي</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="daily_report" value="false"><input class="form-check-input" type="checkbox" name="daily_report" id="daily_report" value="true" {% if config.daily_report %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="academic_years"><i class="fas fa-calendar-alt text-secondary me-2"></i> الفصول والسنوات</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="academic_years" value="false"><input class="form-check-input" type="checkbox" name="academic_years" id="academic_years" value="true" {% if config.academic_years %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="students_management"><i class="fas fa-user-graduate text-secondary me-2"></i> إدارة الطلاب</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="students_management" value="false"><input class="form-check-input" type="checkbox" name="students_management" id="students_management" value="true" {% if config.students_management %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="hr"><i class="fas fa-briefcase text-secondary me-2"></i> الموارد البشرية</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="hr" value="false"><input class="form-check-input" type="checkbox" name="hr" id="hr" value="true" {% if config.hr %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="education"><i class="fas fa-school text-secondary me-2"></i> إدارة التعليم</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="education" value="false"><input class="form-check-input" type="checkbox" name="education" id="education" value="true" {% if config.education %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="subjects"><i class="fas fa-book text-secondary me-2"></i> المواد الدراسية</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="subjects" value="false"><input class="form-check-input" type="checkbox" name="subjects" id="subjects" value="true" {% if config.subjects %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="passwords"><i class="fas fa-key text-secondary me-2"></i> إدارة كلمات المرور</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="passwords" value="false"><input class="form-check-input" type="checkbox" name="passwords" id="passwords" value="true" {% if config.passwords %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: GRANULAR ACCOUNTING SYSTEM ITEMS -->
+                    <div class="accordion-item border rounded-3 mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingTwo">
+                            <button class="accordion-button collapsed fs-5 fw-bold text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo" style="background: #0f172a; color: white !important;">
+                                <i class="fas fa-file-invoice-dollar me-2 text-success"></i> &nbsp;&nbsp; 2. أزرار المحاسبة المجلوبة للعرض داخل الناف بار الأول
+                            </button>
+                        </h2>
+                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#sidebarAccordion">
+                            <div class="accordion-body bg-light p-4">
+                                <div class="row g-4">
+                                    
+                                    <!-- Setup -->
+                                    <div class="col-12">
+                                        <div class="card border border-light shadow-sm">
+                                            <div class="card-header bg-dark text-white fw-bold">
+                                                <i class="fas fa-sitemap me-2 text-info"></i> التهيئة المالية (المحاسبة)
+                                            </div>
+                                            <div class="card-body bg-white row g-3">
+                                                <div class="col-md-3"><div class="form-check form-switch"><input type="hidden" name="acc_chart_of_accounts" value="false"><input class="form-check-input" type="checkbox" name="acc_chart_of_accounts" id="acc_chart_of_accounts" value="true" {% if config.acc_chart_of_accounts %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_chart_of_accounts">دليل الحسابات</label></div></div>
+                                                <div class="col-md-3"><div class="form-check form-switch"><input type="hidden" name="acc_periods" value="false"><input class="form-check-input" type="checkbox" name="acc_periods" id="acc_periods" value="true" {% if config.acc_periods %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_periods">الفترات المحاسبية</label></div></div>
+                                                <div class="col-md-3"><div class="form-check form-switch"><input type="hidden" name="acc_budgets" value="false"><input class="form-check-input" type="checkbox" name="acc_budgets" id="acc_budgets" value="true" {% if config.acc_budgets %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_budgets">الميزانيات</label></div></div>
+                                                <div class="col-md-3"><div class="form-check form-switch"><input type="hidden" name="acc_cost_centers" value="false"><input class="form-check-input" type="checkbox" name="acc_cost_centers" id="acc_cost_centers" value="true" {% if config.acc_cost_centers %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_cost_centers">مراكز الكلفة</label></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Operations -->
+                                    <div class="col-12">
+                                        <div class="card border border-light shadow-sm">
+                                            <div class="card-header bg-dark text-white fw-bold">
+                                                <i class="fas fa-wallet me-2 text-info"></i> العمليات اليومية (المحاسبة)
+                                            </div>
+                                            <div class="card-body bg-white row g-3">
+                                                <div class="col-md-3"><div class="form-check form-switch"><input type="hidden" name="acc_journal_entries" value="false"><input class="form-check-input" type="checkbox" name="acc_journal_entries" id="acc_journal_entries" value="true" {% if config.acc_journal_entries %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_journal_entries">القيود اليومية</label></div></div>
+                                                <div class="col-md-3"><div class="form-check form-switch"><input type="hidden" name="acc_new_journal_entry" value="false"><input class="form-check-input" type="checkbox" name="acc_new_journal_entry" id="acc_new_journal_entry" value="true" {% if config.acc_new_journal_entry %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_new_journal_entry">قيد جديد</label></div></div>
+                                                <div class="col-md-3"><div class="form-check form-switch"><input type="hidden" name="acc_receipts_expenses" value="false"><input class="form-check-input" type="checkbox" name="acc_receipts_expenses" id="acc_receipts_expenses" value="true" {% if config.acc_receipts_expenses %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_receipts_expenses">الإيصالات والمصاريف</label></div></div>
+                                                <div class="col-md-3"><div class="form-check form-switch"><input type="hidden" name="acc_advances" value="false"><input class="form-check-input" type="checkbox" name="acc_advances" id="acc_advances" value="true" {% if config.acc_advances %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_advances">سلف الموظفين</label></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Reports & Analysis -->
+                                    <div class="col-12">
+                                        <div class="card border border-light shadow-sm">
+                                            <div class="card-header bg-dark text-white fw-bold">
+                                                <i class="fas fa-chart-line me-2 text-info"></i> التقارير والتحليل (المحاسبة)
+                                            </div>
+                                            <div class="card-body bg-white row g-3">
+                                                <div class="col-md-2.4"><div class="form-check form-switch"><input type="hidden" name="acc_reports_center" value="false"><input class="form-check-input" type="checkbox" name="acc_reports_center" id="acc_reports_center" value="true" {% if config.acc_reports_center %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_reports_center">مركز التقارير</label></div></div>
+                                                <div class="col-md-2.4"><div class="form-check form-switch"><input type="hidden" name="acc_trial_balance" value="false"><input class="form-check-input" type="checkbox" name="acc_trial_balance" id="acc_trial_balance" value="true" {% if config.acc_trial_balance %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_trial_balance">ميزان المراجعة</label></div></div>
+                                                <div class="col-md-2.4"><div class="form-check form-switch"><input type="hidden" name="acc_account_statement" value="false"><input class="form-check-input" type="checkbox" name="acc_account_statement" id="acc_account_statement" value="true" {% if config.acc_account_statement %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_account_statement">كشف الحساب</label></div></div>
+                                                <div class="col-md-2.4"><div class="form-check form-switch"><input type="hidden" name="acc_balance_sheet" value="false"><input class="form-check-input" type="checkbox" name="acc_balance_sheet" id="acc_balance_sheet" value="true" {% if config.acc_balance_sheet %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_balance_sheet">الميزانية العمومية</label></div></div>
+                                                <div class="col-md-2.4"><div class="form-check form-switch"><input type="hidden" name="acc_income_statement" value="false"><input class="form-check-input" type="checkbox" name="acc_income_statement" id="acc_income_statement" value="true" {% if config.acc_income_statement %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_income_statement">قائمة الدخل</label></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Independent items -->
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="acc_courses"><i class="fas fa-graduation-cap text-success me-2"></i> الدورات (المحاسبة)</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="acc_courses" value="false"><input class="form-check-input" type="checkbox" name="acc_courses" id="acc_courses" value="true" {% if config.acc_courses %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm">
+                                            <label class="form-check-label fw-bold mb-0 cursor-pointer" for="acc_outstanding"><i class="fas fa-coins text-success me-2"></i> المبالغ المستحقة (المحاسبة)</label>
+                                            <div class="form-check form-switch mb-0">
+                                                <input type="hidden" name="acc_outstanding" value="false"><input class="form-check-input" type="checkbox" name="acc_outstanding" id="acc_outstanding" value="true" {% if config.acc_outstanding %}checked{% endif %}>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Quick Student System -->
+                                    <div class="col-12 mt-3">
+                                        <div class="card border border-light shadow-sm">
+                                            <div class="card-header bg-dark text-white fw-bold">
+                                                <i class="fas fa-bolt me-2 text-info"></i> النظام السريع للطلاب (المحاسبة)
+                                            </div>
+                                            <div class="card-body bg-white row g-3">
+                                                <div class="col-md-4"><div class="form-check form-switch"><input type="hidden" name="acc_quick_student_list" value="false"><input class="form-check-input" type="checkbox" name="acc_quick_student_list" id="acc_quick_student_list" value="true" {% if config.acc_quick_student_list %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_quick_student_list">الطلاب السريعون</label></div></div>
+                                                <div class="col-md-4"><div class="form-check form-switch"><input type="hidden" name="acc_quick_student_create" value="false"><input class="form-check-input" type="checkbox" name="acc_quick_student_create" id="acc_quick_student_create" value="true" {% if config.acc_quick_student_create %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_quick_student_create">إضافة طالب سريع</label></div></div>
+                                                <div class="col-md-4"><div class="form-check form-switch"><input type="hidden" name="acc_quick_course_list" value="false"><input class="form-check-input" type="checkbox" name="acc_quick_course_list" id="acc_quick_course_list" value="true" {% if config.acc_quick_course_list %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_quick_course_list">دورات النظام السريع</label></div></div>
+                                                <div class="col-md-4"><div class="form-check form-switch"><input type="hidden" name="acc_quick_outstanding" value="false"><input class="form-check-input" type="checkbox" name="acc_quick_outstanding" id="acc_quick_outstanding" value="true" {% if config.acc_quick_outstanding %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_quick_outstanding">تقرير المتبقي</label></div></div>
+                                                <div class="col-md-4"><div class="form-check form-switch"><input type="hidden" name="acc_quick_late_payments" value="false"><input class="form-check-input" type="checkbox" name="acc_quick_late_payments" id="acc_quick_late_payments" value="true" {% if config.acc_quick_late_payments %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_quick_late_payments">المتأخرون بالدفع</label></div></div>
+                                                <div class="col-md-4"><div class="form-check form-switch"><input type="hidden" name="acc_quick_intersections" value="false"><input class="form-check-input" type="checkbox" name="acc_quick_intersections" id="acc_quick_intersections" value="true" {% if config.acc_quick_intersections %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_quick_intersections">تقاطع الطلاب</label></div></div>
+                                                <div class="col-md-4"><div class="form-check form-switch"><input type="hidden" name="acc_quick_manual_sorting" value="false"><input class="form-check-input" type="checkbox" name="acc_quick_manual_sorting" id="acc_quick_manual_sorting" value="true" {% if config.acc_quick_manual_sorting %}checked{% endif %}><label class="form-check-label fw-bold" for="acc_quick_manual_sorting">الفرز اليدوي</label></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="text-center mt-5">
+                    <button type="submit" class="btn btn-primary btn-lg px-5 py-3 fw-bold rounded-pill shadow-sm" style="background: linear-gradient(135deg, #0284c7, #001730); border: none; font-size: 1.1rem; min-width: 250px;">
+                        <i class="fas fa-save me-2"></i> حفظ إعدادات الناف بار الأول
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.cursor-pointer {
+    cursor: pointer;
+}
+.form-switch .form-check-input {
+    width: 2.8em;
+    height: 1.5em;
+    cursor: pointer;
+}
+.card-header.bg-dark {
+    background-color: #0f172a !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('sidebar-config-form');
+    if (form) {
+        form.addEventListener('submit', function() {
+            const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                const hiddenInput = cb.previousElementSibling;
+                if (cb.checked) {
+                    if (hiddenInput && hiddenInput.type === 'hidden') {
+                        hiddenInput.disabled = true;
+                    }
+                } else {
+                    if (hiddenInput && hiddenInput.type === 'hidden') {
+                        hiddenInput.disabled = false;
+                    }
+                }
+            });
+        });
+    }
+
+    // Custom vanilla JS accordion toggle script
+    const accordionButtons = document.querySelectorAll('.accordion-button');
+    accordionButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const targetId = button.getAttribute('data-bs-target');
+            const targetCollapse = document.querySelector(targetId);
+            if (targetCollapse) {
+                const isShown = targetCollapse.classList.contains('show');
+                
+                // Toggle current collapse
+                if (isShown) {
+                    targetCollapse.classList.remove('show');
+                    button.classList.add('collapsed');
+                    button.setAttribute('aria-expanded', 'false');
+                } else {
+                    // Close others in the same accordion
+                    const allCollapses = document.querySelectorAll('.accordion-collapse');
+                    allCollapses.forEach(c => c.classList.remove('show'));
+                    const allButtons = document.querySelectorAll('.accordion-button');
+                    allButtons.forEach(b => {
+                        b.classList.add('collapsed');
+                        b.setAttribute('aria-expanded', 'false');
+                    });
+                    
+                    targetCollapse.classList.add('show');
+                    button.classList.remove('collapsed');
+                    button.setAttribute('aria-expanded', 'true');
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

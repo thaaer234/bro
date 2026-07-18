@@ -108,9 +108,9 @@
             <form method="post" action="{% url 'security_update_branding' %}">
                 {% csrf_token %}
                 <div class="form-grid">
-                    <input name="brand_name" placeholder="اسم الهوية الكامل" value="{{ branding.brand_name|default:'مركز الأمن - معهد اليمان' }}">
+                    <input name="brand_name" placeholder="اسم الهوية الكامل" value="{{ branding.brand_name|default:'مركز الأمن - معهد النبلاء' }}">
                     <input name="brand_short" placeholder="الاسم المختصر" value="{{ branding.brand_short|default:'مركز الأمن' }}">
-                    <input name="sender_name" placeholder="الاسم الظاهر في From" value="{{ branding.sender_name|default:'مركز الأمن - معهد اليمان' }}">
+                    <input name="sender_name" placeholder="الاسم الظاهر في From" value="{{ branding.sender_name|default:'مركز الأمن - معهد النبلاء' }}">
                     <input name="subject_prefix" placeholder="بادئة عنوان الرسالة" value="{{ branding.subject_prefix|default:'[مركز الأمن] ' }}">
                     <input name="support_email" placeholder="إيميل الدعم / الإرسال" value="{{ branding.support_email|default:'mhmadwerc8@gmail.com' }}">
                     <input name="alert_recipient" placeholder="إيميل الاستقبال" value="{{ branding.alert_recipient|default:'thaaeralmasre98@gmail.com' }}">

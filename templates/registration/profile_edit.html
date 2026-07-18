@@ -12,11 +12,11 @@
         --profile-line: rgba(31, 41, 55, 0.1);
         --profile-card: rgba(255, 255, 255, 0.82);
         --profile-shadow: 0 24px 60px rgba(35, 31, 32, 0.12);
-        --profile-accent: #a3472f;
-        --profile-accent-2: #1d6b63;
+        --profile-accent: #00668a;
+        --profile-accent-2: #001430;
         background:
-            radial-gradient(circle at top right, rgba(163, 71, 47, 0.16), transparent 26%),
-            radial-gradient(circle at top left, rgba(29, 107, 99, 0.12), transparent 28%),
+            radial-gradient(circle at top right, rgba(0, 40, 85, 0.16), transparent 26%),
+            radial-gradient(circle at top left, rgba(0, 102, 138, 0.12), transparent 28%),
             var(--profile-bg);
         min-height: calc(100vh - 80px);
         padding: 32px 0 48px;
@@ -39,7 +39,7 @@
         border-radius: 32px;
         background:
             linear-gradient(135deg, rgba(27, 34, 51, 0.96), rgba(27, 34, 51, 0.78)),
-            linear-gradient(135deg, #1d6b63, #a3472f);
+            linear-gradient(135deg, #001430, #00668a);
         color: #fff8ef;
         box-shadow: var(--profile-shadow);
         padding: 36px;
@@ -201,22 +201,22 @@
     /* Drag-active border animation (triggers when dragging anywhere on window) */
     .image-preview-wrapper.drag-active {
         border-color: var(--profile-accent-2);
-        background: rgba(29, 107, 99, 0.03);
+        background: rgba(0, 102, 138, 0.03);
         border-style: dashed;
         animation: borderPulse 1.2s infinite alternate;
     }
 
     @keyframes borderPulse {
-        0% { border-color: rgba(29, 107, 99, 0.3); box-shadow: 0 0 0 2px rgba(29, 107, 99, 0.05); }
-        100% { border-color: var(--profile-accent-2); box-shadow: 0 0 0 6px rgba(29, 107, 99, 0.15); }
+        0% { border-color: rgba(0, 102, 138, 0.3); box-shadow: 0 0 0 2px rgba(0, 102, 138, 0.05); }
+        100% { border-color: var(--profile-accent-2); box-shadow: 0 0 0 6px rgba(0, 102, 138, 0.15); }
     }
 
     /* Dragover active highlight (triggers when directly over the dropzone) */
     .image-preview-wrapper.dragover {
         border-color: var(--profile-accent);
-        background: rgba(163, 71, 47, 0.08);
+        background: rgba(0, 40, 85, 0.08);
         border-style: solid;
-        box-shadow: 0 0 0 6px rgba(163, 71, 47, 0.2);
+        box-shadow: 0 0 0 6px rgba(0, 40, 85, 0.2);
         transform: scale(1.05);
     }
 
@@ -226,7 +226,7 @@
         font-weight: 900;
         position: absolute;
         inset: 0;
-        background: rgba(29, 107, 99, 0.85);
+        background: rgba(0, 102, 138, 0.85);
         color: white;
         display: flex;
         align-items: center;
@@ -294,14 +294,14 @@
         cursor: pointer;
         color: #fff;
         background: linear-gradient(135deg, var(--profile-accent-2), #2e9085);
-        box-shadow: 0 10px 20px rgba(29, 107, 99, 0.15);
+        box-shadow: 0 10px 20px rgba(0, 102, 138, 0.15);
         transition: all 0.25s ease;
         border: none;
     }
 
     .upload-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 14px 24px rgba(29, 107, 99, 0.25);
+        box-shadow: 0 14px 24px rgba(0, 102, 138, 0.25);
     }
 
     .remove-btn {
@@ -393,7 +393,7 @@
     .input-with-icon textarea:focus {
         outline: none;
         border-color: var(--profile-accent-2);
-        box-shadow: 0 0 0 4px rgba(29, 107, 99, 0.15);
+        box-shadow: 0 0 0 4px rgba(0, 102, 138, 0.15);
         background: #fff;
     }
 
@@ -467,12 +467,12 @@
     .btn-save {
         color: #fff;
         background: linear-gradient(135deg, var(--profile-accent), #d17b43);
-        box-shadow: 0 10px 20px rgba(163, 71, 47, 0.15);
+        box-shadow: 0 10px 20px rgba(0, 40, 85, 0.15);
     }
 
     .btn-save:hover {
         transform: translateY(-2px);
-        box-shadow: 0 14px 24px rgba(163, 71, 47, 0.25);
+        box-shadow: 0 14px 24px rgba(0, 40, 85, 0.25);
     }
 
     .btn-reset {

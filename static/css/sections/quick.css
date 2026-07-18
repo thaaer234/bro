@@ -1,7 +1,7 @@
 @import url('./system-rebuild.css');
 
 body.app-quick {
-    --section-accent: #0f766e;
+    --section-accent: #00668a;
     --section-accent-strong: #133d43;
 }
 
@@ -17,7 +17,7 @@ body.app-quick {
     overflow: hidden;
     border-radius: var(--ui-radius-lg) !important;
     background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 0 30%),
+        radial-gradient(circle at top left, rgba(0, 102, 138, 0.18), transparent 0 30%),
         radial-gradient(circle at bottom right, rgba(76, 125, 255, 0.14), transparent 0 26%),
         linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 255, 0.94)) !important;
 }
@@ -146,7 +146,7 @@ body.app-quick {
 .late-stat {
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 247, 255, 0.92)),
-        radial-gradient(circle at top right, var(--quick-accent, rgba(15, 118, 110, 0.12)), transparent 0 35%) !important;
+        radial-gradient(circle at top right, var(--quick-accent, rgba(0, 102, 138, 0.12)), transparent 0 35%) !important;
 }
 
 .quick-report-table,
@@ -190,7 +190,7 @@ body.app-quick {
     overflow: hidden;
     border-radius: var(--ui-radius-lg) !important;
     background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 0 30%),
+        radial-gradient(circle at top left, rgba(0, 102, 138, 0.16), transparent 0 30%),
         radial-gradient(circle at bottom right, rgba(76, 125, 255, 0.14), transparent 0 26%),
         linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 255, 0.94)) !important;
 }
@@ -285,7 +285,7 @@ body.app-quick {
 .late-date-chip,
 .course-tag {
     color: var(--section-accent-strong);
-    background: rgba(15, 118, 110, 0.12);
+    background: rgba(0, 102, 138, 0.12);
 }
 
 .quick-empty,
@@ -318,7 +318,7 @@ body.app-quick {
     align-items: center;
     justify-content: center;
     border-radius: 18px;
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.15), rgba(76, 125, 255, 0.16));
+    background: linear-gradient(135deg, rgba(0, 102, 138, 0.15), rgba(76, 125, 255, 0.16));
     color: var(--section-accent-strong);
     font-size: 1.15rem;
 }
@@ -468,7 +468,7 @@ body.app-quick {
 .pay-full-checkbox:checked + label .checkbox-custom {
     background: linear-gradient(135deg, var(--section-accent), var(--section-accent-strong));
     border-color: transparent;
-    box-shadow: 0 10px 24px rgba(15, 118, 110, 0.2);
+    box-shadow: 0 10px 24px rgba(0, 102, 138, 0.2);
 }
 
 .course-selector:checked + .course-card__body {
@@ -534,7 +534,7 @@ body.app-quick {
     align-items: center;
     justify-content: center;
     border-radius: 22px;
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.16), rgba(76, 125, 255, 0.14));
+    background: linear-gradient(135deg, rgba(0, 102, 138, 0.16), rgba(76, 125, 255, 0.14));
     color: var(--section-accent-strong);
     font-size: 1.5rem;
 }

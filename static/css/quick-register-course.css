@@ -1,5 +1,5 @@
 .quick-register-page {
-    --register-accent: #0f766e;
+    --register-accent: #00668a;
     --register-accent-strong: #164e63;
     --register-ink: #102a43;
     --register-soft: #5f6c80;
@@ -46,7 +46,7 @@
     gap: 0.45rem;
     padding: 0.45rem 0.85rem;
     border-radius: 999px;
-    background: rgba(15, 118, 110, 0.12);
+    background: rgba(0, 102, 138, 0.12);
     margin-bottom: 0.85rem;
 }
 
@@ -55,7 +55,7 @@
 .quick-register-section__title,
 .quick-register-modal__title {
     margin: 0;
-    font-family: "Cocon Next Arabic", "Tajawal", sans-serif;
+    font-family: "Tajawal", "Tajawal", sans-serif;
     color: var(--register-ink);
 }
 
@@ -101,7 +101,7 @@
 }
 
 .quick-register-chip--accent {
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.16), rgba(14, 165, 164, 0.08));
+    background: linear-gradient(135deg, rgba(0, 102, 138, 0.16), rgba(14, 165, 164, 0.08));
     color: #0f4c5c;
 }
 
@@ -173,7 +173,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 18px;
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.18), rgba(59, 130, 246, 0.16));
+    background: linear-gradient(135deg, rgba(0, 102, 138, 0.18), rgba(59, 130, 246, 0.16));
     color: var(--register-accent-strong);
     font-size: 1rem;
 }
@@ -252,8 +252,8 @@
 }
 
 .quick-register-course.is-selected {
-    border-color: rgba(15, 118, 110, 0.35);
-    box-shadow: 0 30px 65px rgba(15, 118, 110, 0.16);
+    border-color: rgba(0, 102, 138, 0.35);
+    box-shadow: 0 30px 65px rgba(0, 102, 138, 0.16);
 }
 
 .quick-register-course.is-locked {
@@ -294,7 +294,7 @@
 }
 
 .quick-register-badge {
-    background: rgba(15, 118, 110, 0.12);
+    background: rgba(0, 102, 138, 0.12);
     color: var(--register-accent-strong);
     min-height: 30px;
     padding: 0.35rem 0.65rem;
@@ -334,8 +334,8 @@
     align-items: flex-start;
     padding: 0.7rem 0.8rem;
     border-radius: 18px;
-    background: rgba(15, 118, 110, 0.08);
-    border: 1px dashed rgba(15, 118, 110, 0.24);
+    background: rgba(0, 102, 138, 0.08);
+    border: 1px dashed rgba(0, 102, 138, 0.24);
     color: var(--register-ink);
     font-size: 0.82rem;
 }
@@ -427,7 +427,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 24px;
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.15), rgba(59, 130, 246, 0.16));
+    background: linear-gradient(135deg, rgba(0, 102, 138, 0.15), rgba(59, 130, 246, 0.16));
     color: var(--register-accent-strong);
     font-size: 1.5rem;
 }
@@ -507,7 +507,7 @@
 }
 
 .quick-register-modal__body::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(15, 118, 110, 0.72), rgba(22, 78, 99, 0.78));
+    background: linear-gradient(180deg, rgba(0, 102, 138, 0.72), rgba(22, 78, 99, 0.78));
     border-radius: 999px;
 }
 
@@ -526,12 +526,12 @@
 
 .quick-register-session:hover {
     transform: translateY(-2px);
-    border-color: rgba(15, 118, 110, 0.24);
+    border-color: rgba(0, 102, 138, 0.24);
 }
 
 .quick-register-session.is-selected {
-    border-color: rgba(15, 118, 110, 0.36);
-    box-shadow: 0 18px 35px rgba(15, 118, 110, 0.14);
+    border-color: rgba(0, 102, 138, 0.36);
+    box-shadow: 0 18px 35px rgba(0, 102, 138, 0.14);
     background: linear-gradient(180deg, rgba(240, 253, 250, 0.98), rgba(232, 245, 255, 0.94));
 }
 

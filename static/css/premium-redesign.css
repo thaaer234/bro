@@ -1,5 +1,5 @@
 @font-face {
-    font-family: "Cairo";
+    font-family: "Tajawal";
     src: url("../font/Cairo-400.ttf") format("truetype");
     font-weight: 400;
     font-style: normal;
@@ -7,7 +7,7 @@
 }
 
 @font-face {
-    font-family: "Cairo";
+    font-family: "Tajawal";
     src: url("../font/Cairo-600.ttf") format("truetype");
     font-weight: 600;
     font-style: normal;
@@ -15,7 +15,7 @@
 }
 
 @font-face {
-    font-family: "Cairo";
+    font-family: "Tajawal";
     src: url("../font/Cairo-800.ttf") format("truetype");
     font-weight: 800;
     font-style: normal;
@@ -23,7 +23,7 @@
 }
 
 @font-face {
-    font-family: "Cocon Next Arabic";
+    font-family: "Tajawal";
     src: url("../font/Cocon_%20Next%20Arabic-Bold.otf") format("opentype");
     font-weight: 700;
     font-style: normal;
@@ -32,7 +32,7 @@
 
 :root {
     color-scheme: light;
-    --font-display: "Cocon Next Arabic", "Cairo", sans-serif;
+    --font-display: "Tajawal", sans-serif;
     --font-body: "Cairo", sans-serif;
     --shell-bg: #f2f6ff;
     --page-bg: #eef4ff;
@@ -1112,7 +1112,7 @@ img {
 .form-control,
 .form-select,
 .form-input,
-input,
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
 select,
 textarea {
     min-height: 52px !important;
@@ -1135,7 +1135,7 @@ textarea {
 .form-control:focus,
 .form-select:focus,
 .form-input:focus,
-input:focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):focus,
 select:focus,
 textarea:focus {
     border-color: rgba(99, 143, 255, 0.45) !important;

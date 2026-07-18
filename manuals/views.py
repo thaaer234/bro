@@ -44,7 +44,7 @@ def _build_closing_page_context(request):
     manual_url = request.build_absolute_uri("/manuals/handbook/")
     developer_site_url = "https://thaaer7426.space.z.ai/"
     return {
-        "closing_brand_name": "نظام معهد اليمان",
+        "closing_brand_name": "نظام معهد النبلاء",
         "closing_developer_name": "ثائر المصري",
         "closing_role": "Full-Stack Developer",
         "closing_stack": "Django / Web Systems",

@@ -228,6 +228,7 @@ TEMPLATES = [
                 'academic_years.context_processors.academic_year_context',
                 'announcements.context_processors.web_announcements',
                 'django.template.context_processors.media',
+                'students.context_processors.sidebar_settings',
             ],
             "libraries": {
                 "humanize": "django.contrib.humanize.templatetags.humanize",
@@ -332,7 +333,7 @@ QUICK_RECEIPT_PRINTER_NETWORK_PORT = env_int("QUICK_RECEIPT_PRINTER_NETWORK_PORT
 QUICK_RECEIPT_PRINTER_DUMMY = env_bool("QUICK_RECEIPT_PRINTER_DUMMY", False)
 QUICK_RECEIPT_PRINTER_CHARS_PER_LINE = env_int("QUICK_RECEIPT_PRINTER_CHARS_PER_LINE", 32)
 QUICK_RECEIPT_PRINTER_FEED_LINES = env_int("QUICK_RECEIPT_PRINTER_FEED_LINES", 3)
-QUICK_RECEIPT_PRINTER_TITLE = os.getenv("QUICK_RECEIPT_PRINTER_TITLE", "معهد اليمان").strip()
+QUICK_RECEIPT_PRINTER_TITLE = os.getenv("QUICK_RECEIPT_PRINTER_TITLE", "معهد النبلاء").strip()
 QUICK_LOCAL_AGENT_URL = os.getenv("QUICK_LOCAL_AGENT_URL", "http://127.0.0.1:8765/print").strip()
 QUICK_PRINT_AGENT_TOKEN = os.getenv("QUICK_PRINT_AGENT_TOKEN", "").strip()
 BIOMETRIC_PUSH_TOKEN = os.getenv("BIOMETRIC_PUSH_TOKEN", "").strip()
@@ -460,7 +461,7 @@ EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
     'django.core.mail.backends.smtp.EmailBackend'
 )
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', f"مركز الأمن - معهد اليمان <{os.getenv('EMAIL_HOST_USER', 'mhmadwerc8@gmail.com')}>")
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', f"مركز الأمن - معهد النبلاء <{os.getenv('EMAIL_HOST_USER', 'mhmadwerc8@gmail.com')}>")
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
@@ -487,7 +488,7 @@ BIOMETRIC_DECISION_USERNAMES = env_list('BIOMETRIC_DECISION_USERNAMES', ['thaaer
 SECURITY_ALERT_EMAILS = [item.strip() for item in os.getenv('SECURITY_ALERT_EMAILS', 'thaaeralmasre98@gmail.com').split(',') if item.strip()]
 SECURITY_REPORT_EMAILS = [item.strip() for item in os.getenv('SECURITY_REPORT_EMAILS', 'thaaeralmasre98@gmail.com').split(',') if item.strip()]
 
-SECURITY_BRAND_NAME = os.getenv('SECURITY_BRAND_NAME', 'مركز الأمن - معهد اليمان')
+SECURITY_BRAND_NAME = os.getenv('SECURITY_BRAND_NAME', 'مركز الأمن - معهد النبلاء')
 SECURITY_BRAND_SHORT = os.getenv('SECURITY_BRAND_SHORT', 'مركز الأمن')
 SECURITY_SUPPORT_EMAIL = os.getenv('SECURITY_SUPPORT_EMAIL', 'mhmadwerc8@gmail.com')
 SECURITY_DASHBOARD_URL = os.getenv('SECURITY_DASHBOARD_URL', 'http://127.0.0.1:8000/security/')
@@ -547,7 +548,7 @@ X_FRAME_OPTIONS = 'DENY'
 # Admin Site Customization
 # ==============================
 from django.utils.translation import gettext_lazy as _
-ADMIN_SITE_HEADER = _("نظام مراقبة الأخطاء المتقدم - معهد اليمان")
+ADMIN_SITE_HEADER = _("نظام مراقبة الأخطاء المتقدم - معهد النبلاء")
 ADMIN_SITE_TITLE = _("نظام المراقبة المتقدم")
 ADMIN_INDEX_TITLE = _("لوحة التحكم الرئيسية - المراقبة الشاملة")
 

@@ -16,7 +16,7 @@
           {% for item in active_enrollments %}
             {% if item.enrollment.is_completed == False %}
               <option value="{{ item.enrollment.course.id }}" 
-                      data-price="{{ item.net_amount|default:item.enrollment.course.price }}" 
+                      data-price="{{ item.net_amount|default:item.enrollment.course.price|stringformat:".2f" }}" 
                       data-remaining="{{ item.balance_due }}"
                       data-enrollment-id="{{ item.enrollment.id }}"
                       data-course-name="{{ item.enrollment.course.name }}">

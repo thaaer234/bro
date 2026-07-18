@@ -138,9 +138,9 @@ def update_security_branding(request):
     branding, _ = SecurityBranding.objects.get_or_create(
         pk=1,
         defaults={
-            'brand_name': 'مركز الأمن - معهد اليمان',
+            'brand_name': 'مركز الأمن - معهد النبلاء',
             'brand_short': 'مركز الأمن',
-            'sender_name': 'مركز الأمن - معهد اليمان',
+            'sender_name': 'مركز الأمن - معهد النبلاء',
             'support_email': 'mhmadwerc8@gmail.com',
             'alert_recipient': 'thaaeralmasre98@gmail.com',
             'dashboard_url': request.build_absolute_uri('/security/'),

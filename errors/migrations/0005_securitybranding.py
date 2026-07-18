@@ -14,9 +14,9 @@ class Migration(migrations.Migration):
             name='SecurityBranding',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('brand_name', models.CharField(default='مركز الأمن - معهد اليمان', max_length=255)),
+                ('brand_name', models.CharField(default='مركز الأمن - معهد النبلاء', max_length=255)),
                 ('brand_short', models.CharField(default='مركز الأمن', max_length=120)),
-                ('sender_name', models.CharField(default='مركز الأمن - معهد اليمان', max_length=255)),
+                ('sender_name', models.CharField(default='مركز الأمن - معهد النبلاء', max_length=255)),
                 ('support_email', models.EmailField(default='mhmadwerc8@gmail.com', max_length=254)),
                 ('alert_recipient', models.EmailField(default='thaaeralmasre98@gmail.com', max_length=254)),
                 ('dashboard_url', models.URLField(blank=True, default='http://127.0.0.1:8000/security/')),

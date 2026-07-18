@@ -68,6 +68,19 @@ def _scope_queryset_to_current_year(queryset, request, field_name="academic_year
         return queryset.filter(Q(**{field_name: academic_year}) | Q(**{f"{field_name}__isnull": True}))
     return queryset.filter(**{field_name: academic_year})
 
+def _parse_post_currency(value, default='0'):
+    if value is None:
+        return Decimal(default)
+    text = str(value).strip()
+    if not text:
+        return Decimal(default)
+    # Strip all formatting (dots, commas, spaces) to treat it as a whole integer for Syrian Pounds
+    clean_text = ''.join(c for c in text if c.isdigit() or c == '-')
+    if not clean_text:
+        return Decimal(default)
+    return Decimal(clean_text)
+
+
 def _parse_post_decimal(value, default='0'):
     if value is None:
         return Decimal(default)
@@ -1886,7 +1899,7 @@ def update_student_discount(request, student_id):
         if enrollment_id:
             enrollment_id = str(enrollment_id).replace('.', '').replace(',', '').strip()
         discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
-        discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
+        discount_amount = _parse_post_currency(request.POST.get('discount_amount', '0'))
         discount_reason = request.POST.get('discount_reason', '')
 
         if not enrollment_id:
@@ -2406,7 +2419,7 @@ def register_course(request, student_id):
 
                     if apply_discount:
                         discount_percent = _parse_post_decimal(request.POST.get('discount_percent', '0'))
-                        discount_amount = _parse_post_decimal(request.POST.get('discount_amount', '0'))
+                        discount_amount = _parse_post_currency(request.POST.get('discount_amount', '0'))
                         discount_reason = request.POST.get('discount_reason', '') or 'حسم مطبق عند التسجيل'
 
                     # Determine enrolled subjects
@@ -2518,7 +2531,7 @@ def withdraw_student(request, student_id):
         print(f"💵 المبلغ المدفوع: {total_paid}")
         
         # 5. المبلغ المسترد
-        refund_amount = _parse_post_decimal(request.POST.get('refund_amount', '0'))
+        refund_amount = _parse_post_currency(request.POST.get('refund_amount', '0'))
         print(f"💰 المبلغ المسترد المدخل: {refund_amount}")
         
         # التأكد من أن مبلغ الاسترداد لا يتجاوز المدفوع فعلياً
@@ -3969,6 +3982,41 @@ def print_registration_form(request, student_id):
         'disease_name': disease_name,
     }
     return render(request, 'students/registration_form_print.html', context)
+
+
+def sidebar_management(request):
+    import os
+    import json
+    if not request.user.is_authenticated or (not request.user.is_superuser and request.user.username != 'thaaer'):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("غير مسموح بالدخول لغير المدير ثائر")
+
+    from django.shortcuts import render, redirect
+    from django.contrib import messages
+    from students.context_processors import CONFIG_FILE, DEFAULT_CONFIG
+
+    config = DEFAULT_CONFIG.copy()
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config.update(json.load(f))
+        except Exception:
+            pass
+
+    if request.method == 'POST':
+        new_config = {}
+        for key in DEFAULT_CONFIG.keys():
+            new_config[key] = (request.POST.get(key) == 'true')
+        try:
+            with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+                json.dump(new_config, f, indent=4)
+            messages.success(request, "تم حفظ إعدادات القائمة الجانبية بنجاح!")
+        except Exception as e:
+            messages.error(request, f"فشل في الحفظ: {str(e)}")
+        return redirect('students:sidebar_management')
+
+    return render(request, 'students/sidebar_management.html', {'config': config})
+
 
 
     

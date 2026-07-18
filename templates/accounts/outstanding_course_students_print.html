@@ -10,7 +10,7 @@
     <style>
         /* Premium A4 Print Design - Standard Plain CSS (No CDNs required) */
         body {
-            font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--font-body), 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #ffffff;
             color: #111827;
             margin: 0;
@@ -47,20 +47,20 @@
             cursor: pointer;
             transition: all 0.2s ease;
             border: none;
-            font-family: 'Cairo', sans-serif;
+            font-family: var(--font-body), sans-serif;
             display: inline-flex;
             align-items: center;
             gap: 6px;
         }
         
         .btn-print {
-            background-color: #1d6b63;
+            background-color: #001430;
             color: #ffffff;
             text-decoration: none;
         }
         
         .btn-print:hover {
-            background-color: #154c46;
+            background-color: #002855;
         }
         
         .btn-close {
@@ -87,7 +87,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #1d6b63;
+            border-bottom: 2px solid #001430;
             padding-bottom: 16px;
             margin-bottom: 20px;
         }
@@ -112,7 +112,7 @@
             margin: 0;
             font-size: 22px;
             font-weight: 900;
-            color: #1d6b63;
+            color: #001430;
         }
 
         .institute-name p {
@@ -135,7 +135,7 @@
         }
         
         .report-meta strong {
-            color: #1d6b63;
+            color: #001430;
         }
 
         /* Report Title */
@@ -161,7 +161,7 @@
         .report-subtitle {
             font-size: 15px;
             font-weight: 800;
-            color: #1d6b63;
+            color: #001430;
         }
 
         .report-filter-desc {
@@ -213,7 +213,7 @@
         }
         
         .summary-card.teal-bg .summary-card-value {
-            color: #115e59;
+            color: #002855;
         }
         
         .summary-card.red-bg .summary-card-value {
@@ -303,7 +303,7 @@
 
     <!-- Floating Action Bar (Screen Only) -->
     <div class="no-print-bar">
-        <div style="color: #1d6b63; display: flex; align-items: center; gap: 8px;">
+        <div style="color: #001430; display: flex; align-items: center; gap: 8px;">
             <i class="fas fa-file-pdf" style="font-size: 16px;"></i>
             <span>معاينة الطباعة لكشف طلاب الدورة (A4)</span>
         </div>
@@ -322,7 +322,7 @@
         <div class="institute-brand">
             <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" class="institute-logo">
             <div class="institute-name">
-                <h3>معهد اليمان للعلوم واللغات</h3>
+                <h3>معهد النبلاء للعلوم واللغات</h3>
                 <p>التميز في التعليم وبناء المهارات</p>
             </div>
         </div>
@@ -391,7 +391,7 @@
                     <td class="cell-student-name">
                         {{ row.student.full_name }}
                         {% if row.student.phone %}
-                            <span class="cell-phone"><i class="fas fa-phone" style="color: #1d6b63; margin-left: 4px;"></i>الهاتف: {{ row.student.phone }}</span>
+                            <span class="cell-phone"><i class="fas fa-phone" style="color: #001430; margin-left: 4px;"></i>الهاتف: {{ row.student.phone }}</span>
                         {% endif %}
                         {% if row.student.staff_notes.all %}
                             {% for note in row.student.staff_notes.all %}
@@ -411,7 +411,7 @@
                         {% endwith %}
                     </td>
                     <td class="cell-amount">{{ row.net_due|floatformat:0|intcomma }}</td>
-                    <td class="cell-amount" style="color: #115e59;">{{ row.paid_total|floatformat:0|intcomma }}</td>
+                    <td class="cell-amount" style="color: #002855;">{{ row.paid_total|floatformat:0|intcomma }}</td>
                     <td class="cell-amount {% if row.remaining > 0 %}remaining-alert{% endif %}">
                         {% if row.remaining > 0 %}
                             {{ row.remaining|floatformat:0|intcomma }}

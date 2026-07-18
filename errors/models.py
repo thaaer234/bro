@@ -451,9 +451,9 @@ class SecurityEvent(models.Model):
 
 
 class SecurityBranding(models.Model):
-    brand_name = models.CharField(max_length=255, default='مركز الأمن - معهد اليمان')
+    brand_name = models.CharField(max_length=255, default='مركز الأمن - معهد النبلاء')
     brand_short = models.CharField(max_length=120, default='مركز الأمن')
-    sender_name = models.CharField(max_length=255, default='مركز الأمن - معهد اليمان')
+    sender_name = models.CharField(max_length=255, default='مركز الأمن - معهد النبلاء')
     support_email = models.EmailField(default='mhmadwerc8@gmail.com')
     alert_recipient = models.EmailField(default='thaaeralmasre98@gmail.com')
     dashboard_url = models.URLField(blank=True, default='http://127.0.0.1:8000/security/')

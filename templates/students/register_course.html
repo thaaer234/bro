@@ -62,7 +62,7 @@
                             <select name="course_id" id="course_id" class="form-control" required>
                                 <option value="">-- اختر الدورة --</option>
                                 {% for course in available_courses %}
-                                <option value="{{ course.id }}" data-price="{{ course.price }}">
+                                <option value="{{ course.id }}" data-price="{{ course.price|stringformat:".2f" }}">
                                     {{ course.name }}{% if course.name_ar %} - {{ course.name_ar }}{% endif %}
                                     ({{ course.price|floatformat:2 }} ل.س)
                                 </option>
@@ -343,6 +343,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('cancel-re-enroll-btn').addEventListener('click', cancelReEnroll);
     document.getElementById('close-re-enroll-btn').addEventListener('click', cancelReEnroll);
     
+    function formatFinancial(value) {
+        return Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+    
     function updateCourseDetails() {
         const selectedOption = courseSelect.options[courseSelect.selectedIndex];
         
@@ -361,8 +365,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const afterPercent = coursePrice - (coursePrice * (percent / 100));
             const finalAmount = Math.max(0, afterPercent - amount);
             
-            coursePriceSpan.textContent = coursePrice.toFixed(2);
-            finalAmountSpan.textContent = finalAmount.toFixed(2);
+            coursePriceSpan.textContent = formatFinancial(coursePrice);
+            finalAmountSpan.textContent = formatFinancial(finalAmount);
             
             // Update preview text
             if (percent > 0 || amount > 0) {
@@ -370,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (percent > 0) text += percent.toFixed(2) + '%';
                 if (amount > 0) {
                     if (percent > 0) text += ' + ';
-                    text += amount.toFixed(2) + ' ل.س';
+                    text += formatFinancial(amount) + ' ل.س';
                 }
                 discountInfoSpan.textContent = text;
             } else {

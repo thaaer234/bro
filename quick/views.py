@@ -4078,11 +4078,23 @@ def _withdraw_quick_enrollment(enrollment, user, withdrawal_reason='', refund_am
         ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
         actual_refund = paid_total
 
-        discount_entry = JournalEntry.objects.filter(
-            description__icontains=f'[QUICK_DISCOUNT #{enrollment.id}]'
-        ).first()
-        if discount_entry:
-            discount_entry.delete()
+        # 1. Delete registration entry (QE-xxxx) explicitly
+        reg_entry = JournalEntry.objects.filter(reference=f'QE-{enrollment.id}').first()
+        if reg_entry:
+            reg_entry._skip_linked_cleanup = True
+            reg_entry.delete()
+
+        # 2. Delete all related discount entries (including standard, FIX, and CLEANUP)
+        JournalEntry.objects.filter(
+            Q(description__icontains='QUICK_DISCOUNT') & 
+            Q(description__icontains=f'#{enrollment.id}')
+        ).delete()
+
+        # 3. Delete any withdrawal adjustment entries (if any were created during previous attempts)
+        JournalEntry.objects.filter(
+            Q(description__icontains='QUICK_WITHDRAW') & 
+            Q(description__icontains=f'#{enrollment.id}')
+        ).delete()
 
         receipts = list(
             QuickStudentReceipt.objects.filter(
@@ -9697,75 +9709,7 @@ def quick_student_quick_receipt(request, student_id):
         'warning': journal_warning
     })
 
-@require_POST
-def withdraw_quick_student(request, student_id):
-    """سحب الطالب السريع من الدورة"""
-    student = get_object_or_404(QuickStudent, pk=student_id)
-    
-    if request.method == 'POST':
-        enrollment_id = request.POST.get('enrollment_id')
-        withdrawal_reason = request.POST.get('withdrawal_reason', '')
-        refund_amount_raw = request.POST.get('refund_amount', '0')
 
-        if not enrollment_id:
-            messages.error(request, 'لم يتم تحديد تسجيل الدورة')
-            return redirect('quick:student_profile', student_id=student.id)
-
-        try:
-            enrollment = get_object_or_404(QuickEnrollment, pk=enrollment_id, student=student)
-
-            if enrollment.is_completed:
-                messages.error(request, 'هذه الدورة مسحوبة مسبقاً')
-                return redirect('quick:student_profile', student_id=student.id)
-
-            paid_total = QuickStudentReceipt.objects.filter(
-                quick_student=student,
-                quick_enrollment=enrollment,
-                course=enrollment.course
-            ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
-
-            try:
-                refund_amount = Decimal(refund_amount_raw or '0')
-            except InvalidOperation:
-                refund_amount = Decimal('0')
-
-            if refund_amount <= 0 and paid_total > 0:
-                refund_amount = paid_total
-
-            refund_result = _adjust_quick_receipts_for_refund(student, enrollment, refund_amount)
-            actual_refund = refund_result['refunded_amount']
-            refund_note = f' واسترد {actual_refund:,.0f} ل.س' if actual_refund > 0 else ''
-
-            if getattr(enrollment, 'enrollment_journal_entry_id', None):
-                try:
-                    enrollment.enrollment_journal_entry.reverse_entry(
-                        request.user,
-                        description=f"إلغاء تسجيل سريع - {withdrawal_reason}" if withdrawal_reason else "إلغاء تسجيل سريع"
-                    )
-                except Exception:
-                    pass
-
-            description = f"سحب طالب سريع {student.full_name} من {enrollment.course.name}"
-            if withdrawal_reason:
-                description = f"{description} - {withdrawal_reason}"
-            _build_quick_withdrawal_entry(
-                enrollment=enrollment,
-                user=request.user,
-                refunded_amount=actual_refund,
-                description=description,
-            )
-
-            enrollment.is_completed = True
-            enrollment.completion_date = timezone.now().date()
-            enrollment.save(update_fields=['is_completed', 'completion_date'])
-
-            messages.success(request, f'تم سحب الطالب من دورة {enrollment.course.name}{refund_note} بنجاح')
-            return redirect('quick:student_profile', student_id=student.id)
-
-        except Exception as e:
-            print(f"ERROR in withdraw_quick_student: {str(e)}")
-            messages.error(request, f'حدث خطأ أثناء السحب: {str(e)}')
-            return redirect('quick:student_profile', student_id=student.id)
 
 @require_POST
 def refund_quick_student(request, student_id):

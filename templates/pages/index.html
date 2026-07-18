@@ -1,724 +1,507 @@
 {% extends "base.html" %}
-
-{% load emp_perms %}
 {% load static %}
-{% load humanize %}
+{% load emp_perms %}
+{% load site_formatting %}
 
 {% block content %}
 {% if user.is_authenticated %}
-<div class="header">
-    <h2 id="pageTitle">لوحة التحكم</h2>
-    <div class="breadcrumb" id="breadcrumb">
-        <span>الصفحة الرئيسية</span>
-    </div>
-</div>
-
-{% if user.is_superuser %}
-<section class="dashboard-report-entry" aria-label="تقرير مستخدمي التطبيق">
-    <div class="dashboard-report-entry__copy">
-        <span class="dashboard-report-entry__eyebrow">متابعة تطبيق الموبايل</span>
-        <h3>تقرير مستخدمي التطبيق</h3>
-        <p>راقب دخول الطلاب والأهالي والمدرسين، الأجهزة المرتبطة، وآخر نشاط مباشر من لوحة واحدة.</p>
-    </div>
-    <a href="{% url 'pages:app_users_report' %}" class="btn btn-success dashboard-report-entry__action">
-        <i class="fas fa-chart-line"></i>
-        فتح التقرير
-    </a>
-</section>
-{% endif %}
-
-<div id="moduleContent">
-    <!-- بطاقات الإحصائيات -->
-    <div class="dashboard-cards">
-        <div class="card card-primary">
-            <div class="card-icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="card-content">
-                <div class="card-title">عدد الطلاب</div>
-                <div class="card-value" id="studentsCount">{{ students_count|default:0|intcomma }}</div>
-                <div class="card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+5% عن الشهر الماضي</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card card-success">
-            <div class="card-icon">
-                <i class="fas fa-chalkboard-teacher"></i>
-            </div>
-            <div class="card-content">
-                <div class="card-title">عدد المدرسين</div>
-                <div class="card-value" id="teachersCount">{{ teachers_count|default:0|intcomma }}</div>
-                <div class="card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+2% عن الشهر الماضي</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card card-info">
-            <div class="card-icon">
-                <i class="fas fa-money-bill-wave"></i>
-            </div>
-            <div class="card-content">
-                <div class="card-title">الدخل الشهري</div>
-                <div class="card-value" id="monthlyIncome">{{ monthly_income|default:0|intcomma }} <span>ر.س</span></div>
-                <div class="card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+12% عن الشهر الماضي</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card card-warning">
-            <div class="card-icon">
-                <i class="fas fa-file-invoice-dollar"></i>
-            </div>
-            <div class="card-content">
-                <div class="card-title">المصروفات الشهرية</div>
-                <div class="card-value" id="monthlyExpenses">{{ monthly_expenses|default:0|intcomma }} <span>ر.س</span></div>
-                <div class="card-change negative">
-                    <i class="fas fa-arrow-down"></i>
-                    <span>-3% عن الشهر الماضي</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card card-danger">
-            <div class="card-icon">
-                <i class="fas fa-user-clock"></i>
-            </div>
-            <div class="card-content">
-                <div class="card-title">الحضور اليوم</div>
-                <div class="card-value" id="attendanceToday">{{ attendance_today|default:0|intcomma }}/{{ total_students_today|default:0|intcomma }}</div>
-                <div class="card-change">
-                    <span>{{ attendance_percentage|default:0 }}% نسبة الحضور</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card card-secondary">
-            <div class="card-icon">
-                <i class="fas fa-book"></i>
-            </div>
-            <div class="card-content">
-                <div class="card-title">الدورات النشطة</div>
-                <div class="card-value" id="activeCourses">{{ active_courses|default:0|intcomma }}</div>
-                <div class="card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+3 دورات جديدة</span>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="container-fluid py-4 px-md-4" style="direction: rtl; text-align: right; font-family: 'Cairo', 'Tajawal', sans-serif; background: #f8fafc; min-height: 100vh;">
     
-    <!-- مخططات وإحصائيات -->
-    <div class="dashboard-charts">
-        <div class="chart-container">
-            <div class="chart-header">
-                <h3>الإحصائيات الشهرية</h3>
-                <select id="chartPeriod" class="chart-select">
-                    <option value="7">أسبوع</option>
-                    <option value="30" selected>شهر</option>
-                    <option value="90">3 أشهر</option>
-                    <option value="365">سنة</option>
-                </select>
-            </div>
-            <div class="chart-wrapper">
-                <canvas id="monthlyChart"></canvas>
-            </div>
+    <!-- Premium Header Area -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom border-light-subtle">
+        <div>
+            <h1 class="h3 fw-extrabold text-slate-800 mb-1" style="color: #0f172a; font-weight: 800;">
+                <i class="fas fa-chart-pie text-primary me-2"></i> لوحة التحكم الإدارية والسيولة النقدية
+            </h1>
+            <p class="text-secondary mb-0" style="color: #475569; font-size: 0.95rem;">متابعة أرصدة جميع الصناديق والمصروفات الإجمالية والفرعية لمعهد النبلاء بشكل مباشر.</p>
         </div>
-        
-        <div class="stats-container">
-            <div class="quick-stats">
-                <h3>إحصائيات سريعة</h3>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value">{{ new_students_this_month|default:0 }}</div>
-                        <div class="stat-label">طالب جديد هذا الشهر</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{{ pending_payments|default:0|intcomma }} ر.س</div>
-                        <div class="stat-label">مدفوعات معلقة</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{{ upcoming_events|default:0 }}</div>
-                        <div class="stat-label">فعاليات قادمة</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">{{ completion_rate|default:0 }}%</div>
-                        <div class="stat-label">نسبة إتمام الدورات</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- قسم التصفية -->
-    <div class="filter-section">
-        <div class="filter-header">
-            <h3>تصفية النشاطات</h3>
-            <button type="button" class="btn-toggle-filter" id="toggleFilter">
-                <i class="fas fa-filter"></i>
-                إظهار/إخفاء الفلتر
+        <div class="d-flex flex-wrap gap-2">
+            {% if user.is_superuser %}
+            <button type="button" id="zeroCashboxPreviewTrigger" class="btn btn-danger d-flex align-items-center gap-2 px-4 py-2 fw-bold rounded-pill text-white shadow-sm border-0" style="background: linear-gradient(135deg, #ef4444, #b91c1c); transition: all 0.3s; font-size: 0.85rem;">
+                <i class="fas fa-exchange-alt"></i> مناقلة وتصفير الصناديق
             </button>
-        </div>
-        <form method="GET" id="filterForm" class="filter-form">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label for="userFilter">المستخدم:</label>
-                    <select name="user" id="userFilter" class="form-select">
-                        <option value="">جميع المستخدمين</option>
-                        {% for user_item in users %}
-                            <option value="{{ user_item.id }}" {% if selected_user == user_item.id|stringformat:"s" %}selected{% endif %}>
-                                {{ user_item.get_full_name|default:user_item.username }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="actionFilter">نوع النشاط:</label>
-                    <select name="action" id="actionFilter" class="form-select">
-                        <option value="">جميع النشاطات</option>
-                        <option value="add" {% if selected_action == "add" %}selected{% endif %}>إضافة</option>
-                        <option value="change" {% if selected_action == "change" %}selected{% endif %}>تعديل</option>
-                        <option value="delete" {% if selected_action == "delete" %}selected{% endif %}>حذف</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="startDate">من تاريخ:</label>
-                    <input type="date" name="start_date" id="startDate" value="{{ start_date|default:'' }}" class="form-input">
-                </div>
-                
-                <div class="filter-group">
-                    <label for="endDate">إلى تاريخ:</label>
-                    <input type="date" name="end_date" id="endDate" value="{{ end_date|default:'' }}" class="form-input">
-                </div>
-            </div>
-            
-            <div class="filter-actions">
-                <button type="submit" class="btn btn-primary btn-filter">
-                    <i class="fas fa-filter"></i>
-                    تصفية
-                </button>
-                <button type="button" id="resetFilter" class="btn btn-secondary btn-reset">
-                    <i class="fas fa-redo"></i>
-                    إعادة تعيين
-                </button>
-                <button type="button" id="exportActivities" class="btn btn-success">
-                    <i class="fas fa-download"></i>
-                    تصدير إلى Excel
-                </button>
-            </div>
-        </form>
-    </div>
-    
-    <!-- النشاط الأخير -->
-    <div class="recent-activity">
-        <div class="activity-header">
-            <h3>النشاط الأخير</h3>
-            <div class="activity-actions">
-                <button type="button" id="refreshActivities" class="btn btn-outline">
-                    <i class="fas fa-sync-alt"></i>
-                    تحديث
-                </button>
-                <div class="view-options">
-                    <button type="button" class="view-btn active" data-view="table">
-                        <i class="fas fa-table"></i>
-                    </button>
-                    <button type="button" class="view-btn" data-view="cards">
-                        <i class="fas fa-th-large"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- عرض الجدول -->
-        <div class="table-container view-content active" id="tableView">
-            <table id="activityTable" class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>النشاط</th>
-                        <th>المستخدم</th>
-                        <th>الوقت</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for activity in recent_activities %}
-                    <tr class="activity-row" data-action="{{ activity.action }}" data-id="{{ activity.id }}">
-                        <td>{{ forloop.counter }}</td>
-                        <td>
-                            <div class="activity-details">
-                                <span class="activity-type badge badge-{{ activity.action }}">
-                                    {{ activity.get_action_display }}
-                                </span>
-                                <strong>{{ activity.content_type }}:</strong>
-                                <span class="activity-object">{{ activity.object_repr }}</span>
-                                {% if activity.details %}
-                                <div class="activity-more">
-                                    <small>{{ activity.details }}</small>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="user-info">
-                                {% if activity.user %}
-                                    <div class="user-avatar">
-                                        {{ activity.user.get_full_name|default:activity.user.username|first }}
-                                    </div>
-                                    <div class="user-details">
-                                        <strong>{{ activity.user.get_full_name|default:activity.user.username }}</strong>
-                                        <small>{{ activity.user.get_role_display|default:"مستخدم" }}</small>
-                                    </div>
-                                {% else %}
-                                    <span>نظام</span>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="timestamp">
-                                <div class="date">{{ activity.timestamp|date:"Y-m-d" }}</div>
-                                <div class="time">{{ activity.timestamp|date:"H:i" }}</div>
-                                <div class="humanized">{{ activity.timestamp|naturaltime }}</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button type="button" class="btn-icon btn-view" title="عرض التفاصيل" data-id="{{ activity.id }}">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                {% if activity.user == request.user or user.is_superuser %}
-                                <button type="button" class="btn-icon btn-undo" title="تراجع" data-activity-id="{{ activity.id }}">
-                                    <i class="fas fa-undo"></i>
-                                </button>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center no-data">
-                            <i class="fas fa-inbox"></i>
-                            <p>لا يوجد نشاطات مسجلة</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            
-            <!-- ترقيم الصفحات -->
-            {% if recent_activities.has_other_pages %}
-            <div class="pagination">
-                <div class="pagination-info">
-                    عرض {{ recent_activities.start_index }} - {{ recent_activities.end_index }} من أصل {{ recent_activities.paginator.count }}
-                </div>
-                <div class="pagination-links">
-                    {% if recent_activities.has_previous %}
-                        <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">الأولى</a>
-                        <a href="?page={{ recent_activities.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">السابق</a>
-                    {% endif %}
-                    
-                    {% for i in recent_activities.paginator.page_range %}
-                        {% if recent_activities.number == i %}
-                            <span class="page-link current">{{ i }}</span>
-                        {% elif i > recent_activities.number|add:'-3' and i < recent_activities.number|add:'3' %}
-                            <a href="?page={{ i }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">{{ i }}</a>
-                        {% endif %}
-                    {% endfor %}
-                    
-                    {% if recent_activities.has_next %}
-                        <a href="?page={{ recent_activities.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">التالي</a>
-                        <a href="?page={{ recent_activities.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">الأخيرة</a>
-                    {% endif %}
-                </div>
-            </div>
             {% endif %}
+            <a href="{% url 'accounts:journal_entry_create' %}" class="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 fw-bold rounded-pill text-white shadow-sm border-0" style="background: linear-gradient(135deg, #0284c7, #0369a1); transition: all 0.3s; font-size: 0.85rem;">
+                <i class="fas fa-plus-circle"></i> قيد جديد
+            </a>
+            <a href="{% url 'pages:employee_daily_report' %}" class="btn btn-warning d-flex align-items-center gap-2 px-4 py-2 fw-bold rounded-pill text-dark shadow-sm border-0" style="background: linear-gradient(135deg, #f59e0b, #d97706); transition: all 0.3s; font-size: 0.85rem; font-weight: 700;">
+                <i class="fas fa-file-signature"></i> تقرير العمل اليومي
+            </a>
         </div>
-        
-        <!-- عرض البطاقات -->
-        <div class="cards-container view-content" id="cardsView">
-            <div class="activity-cards">
-                {% for activity in recent_activities %}
-                <div class="activity-card" data-action="{{ activity.action }}" data-id="{{ activity.id }}">
-                    <div class="card-header">
-                        <span class="activity-type badge badge-{{ activity.action }}">
-                            {{ activity.get_action_display }}
-                        </span>
-                        <div class="timestamp">
-                            {{ activity.timestamp|naturaltime }}
-                        </div>
+    </div>
+
+    <!-- Main Stats Row -->
+    <div class="row g-4 mb-4">
+        <!-- Fund Cash Balance -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 position-relative overflow-hidden card-stat" style="background: linear-gradient(135deg, #0d9488, #0f766e) !important; color: white !important; height: 100%;">
+                <div class="position-relative z-1">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span style="font-size: 0.95rem; font-weight: 700; opacity: 0.95;">إجمالي السيولة النقدية</span>
+                        <span style="font-size: 1.5rem; opacity: 0.9;"><i class="fas fa-vault"></i></span>
                     </div>
-                    <div class="card-body">
-                        <div class="activity-content">
-                            <strong>{{ activity.content_type }}:</strong>
-                            <p>{{ activity.object_repr }}</p>
-                            {% if activity.details %}
-                            <div class="activity-more">
-                                <small>{{ activity.details }}</small>
-                            </div>
-                            {% endif %}
-                        </div>
+                    <h2 class="fw-bold mb-2" style="color: white !important; font-size: 2.2rem; font-family: 'Outfit', sans-serif;" style="font-size: 2.2rem; font-family: 'Outfit', sans-serif;">
+                        {{ total_cash_balance|floatformat:0 }} <small style="font-size: 1.1rem; font-weight: 400;">ل.س</small>
+                    </h2>
+                    <p class="mb-0 small" style="opacity: 0.9; color: #ccfbf1 !important;">مجموع أرصدة الصناديق النقدية المفعلة حالياً</p>
+                </div>
+                <div class="decor-circle"></div>
+            </div>
+        </div>
+
+        <!-- Expense Total Balance -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 position-relative overflow-hidden card-stat" style="background: linear-gradient(135deg, #e11d48, #be123c) !important; color: white !important; height: 100%;">
+                <div class="position-relative z-1">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span style="font-size: 0.95rem; font-weight: 700; opacity: 0.95;">إجمالي المصاريف الحالية</span>
+                        <span style="font-size: 1.5rem; opacity: 0.9;"><i class="fas fa-hand-holding-dollar"></i></span>
                     </div>
-                    <div class="card-footer">
-                        <div class="user-info">
-                            {% if activity.user %}
-                                <div class="user-avatar small">
-                                    {{ activity.user.get_full_name|default:activity.user.username|first }}
-                                </div>
-                                <span>{{ activity.user.get_full_name|default:activity.user.username }}</span>
-                            {% else %}
-                                <span>نظام</span>
-                            {% endif %}
-                        </div>
-                        <div class="action-buttons">
-                            <button type="button" class="btn-icon btn-view" title="عرض التفاصيل" data-id="{{ activity.id }}">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
+                    <h2 class="fw-bold mb-2" style="color: white !important; font-size: 2.2rem; font-family: 'Outfit', sans-serif;" style="font-size: 2.2rem; font-family: 'Outfit', sans-serif;">
+                        {{ main_expense.balance|default:0|floatformat:0 }} <small style="font-size: 1.1rem; font-weight: 400;">ل.س</small>
+                    </h2>
+                    <p class="mb-0 small" style="opacity: 0.9; color: #ffe4e6 !important;">الحساب الرئيسي: {{ main_expense.name|default:"المصاريف" }} (كود: {{ main_expense.code|default:"5" }})</p>
+                </div>
+                <div class="decor-circle"></div>
+            </div>
+        </div>
+
+        <!-- Cashbox Counts -->
+        <div class="col-md-12 col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 position-relative overflow-hidden card-stat" style="background: linear-gradient(135deg, #334155, #1e293b) !important; color: white !important; height: 100%;">
+                <div class="position-relative z-1">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span style="font-size: 0.95rem; font-weight: 700; opacity: 0.95;">عدد الصناديق الفرعية</span>
+                        <span style="font-size: 1.5rem; opacity: 0.9;"><i class="fas fa-cash-register"></i></span>
                     </div>
+                    <h2 class="fw-bold mb-2" style="color: white !important; font-size: 2.2rem; font-family: 'Outfit', sans-serif;" style="font-size: 2.2rem; font-family: 'Outfit', sans-serif;">
+                        {{ cashboxes|length }} <small style="font-size: 1.1rem; font-weight: 400;">صناديق</small>
+                    </h2>
+                    <p class="mb-0 small" style="opacity: 0.9; color: #e2e8f0 !important;">تخضع لرقابة الصرف والتسوية المالية اليومية</p>
+                </div>
+                <div class="decor-circle"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Cashboxes Grid Section -->
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-header bg-white py-3 px-4 border-0 d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-1 fw-bold" style="color: #0f172a; font-size: 1.2rem;"><i class="fas fa-wallet text-teal me-2" style="color: #0d9488;"></i> أرصدة صناديق الموظفين والنقدية</h4>
+                <p class="mb-0 text-secondary" style="color: #64748b; font-size: 0.85rem;">اضغط على أي صندوق لتصفح كشف حسابه والعمليات التي تمت عليه مباشرة.</p>
+            </div>
+        </div>
+        <div class="card-body p-4" style="background: #f8fafc; border-top: 1px solid #f1f5f9;">
+            <div class="row g-3">
+                {% for box in cashboxes %}
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <a href="{% url 'accounts:account_statement' %}?account_code={{ box.code }}" class="card border-0 shadow-sm rounded-4 p-3 text-decoration-none h-100 d-flex flex-column justify-content-between box-item-card" style="background: #ffffff; transition: all 0.3s; border-right: 4px solid {% if box.code == '121' %}#0284c7{% else %}#64748b{% endif %} !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge rounded-pill {% if box.code == '121' %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %} fw-bold px-3" style="font-size: 0.75rem;">{{ box.code }}</span>
+                            <span class="arrow-indicator" style="transition: transform 0.3s; color: #94a3b8;"><i class="fas fa-arrow-left"></i></span>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1" style="color: #1e293b; font-size: 0.95rem;">{{ box.name }}</h6>
+                            <h4 class="fw-extrabold {% if box.balance > 0 %}text-success{% elif box.balance < 0 %}text-danger{% else %}text-muted{% endif %} mb-0" style="font-size: 1.35rem; font-family: 'Outfit', sans-serif;">
+                                {{ box.balance|floatformat:0 }} <small style="font-size: 0.8rem; font-weight: 500;">ل.س</small>
+                            </h4>
+                        </div>
+                    </a>
                 </div>
                 {% empty %}
-                <div class="no-data-card">
-                    <i class="fas fa-inbox"></i>
-                    <p>لا يوجد نشاطات مسجلة</p>
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted mb-0">لا توجد صناديق نقدية معرفة حالياً في دليل الحسابات.</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
     </div>
-</div>
-{% else %}
-<div class="login-prompt">
-    <div class="prompt-container">
-        <i class="fas fa-lock"></i>
-        <h2>مرحباً بك في نظام إدارة المعهد</h2>
-        <p>يجب <a href="{% url 'login' %}" class="login-link">تسجيل الدخول</a> للوصول إلى لوحة التحكم</p>
-    </div>
-</div>
-{% endif %}
 
-<!-- نموذج عرض التفاصيل -->
-<div id="activityModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h4>تفاصيل النشاط</h4>
-            <span class="close">&times;</span>
+    <!-- Expenses Breakdown Section -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white py-3 px-4 border-0 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+            <div>
+                <h4 class="mb-1 fw-bold" style="color: #0f172a; font-size: 1.2rem;"><i class="fas fa-calculator text-rose me-2" style="color: #e11d48;"></i> حساب المصاريف والمصاريف الفرعية</h4>
+                <p class="mb-0 text-secondary" style="color: #64748b; font-size: 0.85rem;">تفصيل الحساب الرئيسي والمصاريف الفرعية التابعة له وتوزيع النسب المئوية.</p>
+            </div>
+            <span class="badge bg-danger-subtle text-danger px-3 py-2 fw-bold rounded-pill" style="font-size: 0.9rem;">
+                إجمالي المصاريف: {{ main_expense.balance|default:0|floatformat:0 }} ل.س
+            </span>
         </div>
-        <div class="modal-body">
-            <!-- سيتم ملء المحتوى ديناميكياً -->
+        <div class="card-body p-4" style="background: #f8fafc; border-top: 1px solid #f1f5f9;">
+            <div class="table-responsive rounded-4 border border-light-subtle bg-white shadow-sm overflow-hidden">
+                <table class="table table-hover table-striped mb-0 align-middle">
+                    <thead class="table-dark" style="background: #0f172a;">
+                        <tr>
+                            <th scope="col" style="width: 15%; padding: 15px; font-weight: 700;">كود الحساب</th>
+                            <th scope="col" style="width: 45%; padding: 15px; font-weight: 700;">اسم الحساب الفرعي</th>
+                            <th scope="col" class="text-end" style="width: 20%; padding: 15px; font-weight: 700;">الرصيد الحالي (ل.س)</th>
+                            <th scope="col" class="text-center" style="width: 20%; padding: 15px; font-weight: 700;">النسبة من إجمالي المصاريف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sub in sub_expenses %}
+                        <tr onclick="window.location.href='{% url 'accounts:account_statement' %}?account_code={{ sub.code }}'" style="cursor: pointer; transition: background-color 0.2s;" title="اضغط لعرض كشف الحساب والقيود">
+                            <td style="padding: 14px 15px;"><span class="badge bg-secondary-subtle text-secondary fw-bold px-3 py-1">{{ sub.code }}</span></td>
+                            <td style="padding: 14px 15px;" class="fw-bold text-slate-800">{{ sub.name }}</td>
+                            <td style="padding: 14px 15px;" class="text-end fw-extrabold text-danger" style="font-family: 'Outfit', sans-serif;">{{ sub.balance|floatformat:0 }} ل.س</td>
+                            <td style="padding: 14px 15px;">
+                                <div class="d-flex align-items-center justify-content-center gap-3">
+                                    <div class="progress flex-grow-1" style="height: 10px; border-radius: 5px; background: #e2e8f0; min-width: 100px;">
+                                        <div class="progress-bar" role="progressbar" style="width: {{ sub.percentage }}%; background: linear-gradient(135deg, #f43f5e, #be123c); border-radius: 5px;" aria-valuenow="{{ sub.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <span class="fw-bold text-slate-700" style="font-size: 0.85rem; min-width: 45px; display: inline-block; text-align: left;">{{ sub.percentage }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-secondary">لا توجد مصاريف فرعية مسجلة تحت هذا الحساب.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- إشعارات -->
-<div id="notification" class="notification hidden">
-    <div class="notification-content">
-        <span id="notificationMessage"></span>
-    </div>
-</div>
-{% endblock %}
+    <!-- Modal for Zeroing/Transferring Cashboxes -->
+    {% if user.is_superuser %}
+    <div id="zeroCashboxPreviewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 1200; justify-content: center; align-items: center; padding: 20px; transition: all 0.3s ease;">
+        <div style="background: #ffffff; border-radius: 16px; width: 100%; max-width: 800px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35); overflow: hidden; display: flex; flex-direction: column; animation: modalFadeIn 0.3s ease-out; direction: rtl; text-align: right;">
+            
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #ef4444, #be123c); color: white; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-exchange-alt" style="font-size: 1.3rem;"></i>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: bold; color: white;">معاينة وتخصيص قيد تصفير الصناديق</h3>
+                </div>
+                <button type="button" id="closeZeroCashboxModalBtn" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; line-height: 1; opacity: 0.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">&times;</button>
+            </div>
 
-{% block extra_js %}
-<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // تهيئة المتغيرات
-    let monthlyChart = null;
-    
-    // بيانات المخطط الافتراضية
-    const defaultChartData = {
-        labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30'],
-        income: [12000, 19000, 15000, 18000, 22000, 17000, 25000, 21000, 19000, 23000, 28000, 24000, 26000, 22000, 30000, 27000, 29000, 25000, 32000, 28000, 31000, 27000, 33000, 29000, 35000, 31000, 37000, 33000, 39000, 35000],
-        expenses: [8000, 12000, 9000, 11000, 15000, 10000, 18000, 14000, 12000, 16000, 20000, 17000, 19000, 15000, 22000, 18000, 21000, 16000, 24000, 20000, 23000, 19000, 25000, 21000, 27000, 23000, 29000, 25000, 31000, 27000]
-    };
-    
-    // تحديث البيانات كل 60 ثانية
-    function updateDashboard() {
-        fetch('/api/dashboard/')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('studentsCount').textContent = data.students_count.toLocaleString();
-                document.getElementById('teachersCount').textContent = data.teachers_count.toLocaleString();
-                document.getElementById('monthlyIncome').innerHTML = data.monthly_income.toLocaleString() + ' <span>ر.س</span>';
-                document.getElementById('monthlyExpenses').innerHTML = data.monthly_expenses.toLocaleString() + ' <span>ر.س</span>';
-                document.getElementById('attendanceToday').textContent = data.attendance_today.toLocaleString() + '/' + data.total_students_today.toLocaleString();
-                document.getElementById('activeCourses').textContent = data.active_courses.toLocaleString();
-                
-                // تحديث المخطط
-                updateChart(data.chart_data || defaultChartData);
-            })
-            .catch(error => {
-                console.error('Error updating dashboard:', error);
-                // استخدام البيانات الافتراضية في حالة الخطأ
-                updateChart(defaultChartData);
-            });
-    }
-    
-    // تحديث المخطط
-    function updateChart(chartData) {
-        const ctx = document.getElementById('monthlyChart').getContext('2d');
-        
-        if (monthlyChart) {
-            monthlyChart.destroy();
-        }
-        
-        monthlyChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    label: 'الدخل',
-                    data: chartData.income,
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'المصروفات',
-                    data: chartData.expenses,
-                    borderColor: '#e74c3c',
-                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        rtl: true
-                    },
-                    title: {
-                        display: true,
-                        text: 'الإحصائيات المالية'
-                    }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'التاريخ'
-                        }
-                    },
-                    y: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'المبلغ (ر.س)'
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    // إظهار/إخفاء الفلتر
-    document.getElementById('toggleFilter').addEventListener('click', function() {
-        const filterForm = document.getElementById('filterForm');
-        filterForm.classList.toggle('collapsed');
-        this.classList.toggle('active');
-    });
-    
-    // إعادة تعيين الفلتر
-    document.getElementById('resetFilter').addEventListener('click', function() {
-        document.getElementById('userFilter').value = '';
-        document.getElementById('actionFilter').value = '';
-        document.getElementById('startDate').value = '';
-        document.getElementById('endDate').value = '';
-        document.getElementById('filterForm').submit();
-    });
-    
-    // تصدير النشاطات
-    document.getElementById('exportActivities').addEventListener('click', function() {
-        const form = document.getElementById('filterForm');
-        let url = window.location.pathname;
-        let params = new URLSearchParams(new FormData(form));
-        params.append('export', 'excel');
-        window.location.href = url + '?' + params.toString();
-    });
-    
-    // تحديث النشاطات
-    document.getElementById('refreshActivities').addEventListener('click', function() {
-        const btn = this;
-        btn.classList.add('loading');
-        btn.disabled = true;
-        
-        setTimeout(() => {
-            location.reload();
-        }, 1000);
-    });
-    
-    // تبديل طريقة العرض
-    document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const view = this.dataset.view;
-            
-            // تحديد الأزرار النشطة
-            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            // إظهار/إخفاء المحتوى
-            document.querySelectorAll('.view-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(view + 'View').classList.add('active');
-        });
-    });
-    
-    // عرض تفاصيل النشاط
-    document.querySelectorAll('.btn-view').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const activityId = this.dataset.id;
-            showActivityDetails(activityId);
-        });
-    });
-    
-    // تراجع عن النشاط
-    document.querySelectorAll('.btn-undo').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const activityId = this.dataset.activityId;
-            if (confirm('هل أنت متأكد من التراجع عن هذا الإجراء؟')) {
-                undoActivity(activityId);
-            }
-        });
-    });
-    
-    // عرض تفاصيل النشاط في المودال
-    function showActivityDetails(activityId) {
-        // محاكاة بيانات النشاط (يجب استبدالها بطلب AJAX حقيقي)
-        const activityData = {
-            action_display: 'إضافة',
-            user_name: 'المستخدم الحالي',
-            timestamp: new Date().toLocaleString('ar-SA'),
-            object_repr: 'كائن النشاط',
-            details: 'هذه تفاصيل إضافية حول النشاط. يمكن أن تحتوي على معلومات إضافية حول التغييرات التي تم إجراؤها.'
-        };
-        
-        // في التطبيق الحقيقي، استخدم:
-        // fetch(`/api/activities/${activityId}/`)
-        //     .then(response => response.json())
-        //     .then(data => { ... })
-        
-        document.querySelector('.modal-body').innerHTML = `
-            <div class="activity-detail">
-                <div class="detail-item">
-                    <label>نوع النشاط:</label>
-                    <span class="badge badge-add">${activityData.action_display}</span>
+            <!-- Body -->
+            <div style="padding: 1.5rem; overflow-y: auto; max-height: 65vh; background: #f8fafc;">
+                <!-- Instructions / Warning -->
+                <div style="background: #fff3cd; border-right: 5px solid #ffc107; color: #856404; padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem; font-size: 0.9rem; line-height: 1.6;">
+                    <i class="fas fa-triangle-exclamation" style="margin-left: 8px;"></i>
+                    <strong>تنبيه مالي:</strong> يرجى تحديد الصناديق التي ترغب بمناقلتها وتصفيرها. سيقوم النظام تلقائياً بمعايرة ومطابقة الأرقام وترحيل الفارق المتوازن إلى حساب النقدية الرئيسي (121).
                 </div>
-                <div class="detail-item">
-                    <label>المستخدم:</label>
-                    <span>${activityData.user_name}</span>
+
+                <!-- Select Box Selector Checklist -->
+                <div style="background: #ffffff; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0; margin-bottom: 1.25rem;">
+                    <h5 style="margin-top: 0; margin-bottom: 12px; font-weight: bold; color: #1e293b; font-size: 1rem;"><i class="fas fa-check-square me-2 text-danger"></i> اختر الصناديق للمناقلة والتصفير:</h5>
+                    <div id="cashbox-checklist-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; max-height: 150px; overflow-y: auto; padding: 8px; border: 1px solid #f1f5f9; border-radius: 6px; background: #fafafa;">
+                        <!-- Will be dynamically populated -->
+                    </div>
                 </div>
-                <div class="detail-item">
-                    <label>الوقت:</label>
-                    <span>${activityData.timestamp}</span>
+
+                <!-- Meta Details -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #ffffff; padding: 12px 15px; border-radius: 8px; margin-bottom: 1.25rem; border: 1px solid #e2e8f0;">
+                    <div>
+                        <span style="color: #64748b; font-size: 0.8rem; display: block; margin-bottom: 2px;">تاريخ القيد</span>
+                        <strong id="preview-entry-date" style="font-size: 0.95rem; color: #334155;">-</strong>
+                    </div>
+                    <div>
+                        <span style="color: #64748b; font-size: 0.8rem; display: block; margin-bottom: 2px;">بيان القيد المقترح</span>
+                        <strong id="preview-entry-desc" style="font-size: 0.95rem; color: #334155;">-</strong>
+                    </div>
                 </div>
-                <div class="detail-item">
-                    <label>الكائن:</label>
-                    <span>${activityData.object_repr}</span>
-                </div>
-                <div class="detail-item">
-                    <label>التفاصيل:</label>
-                    <div class="details-content">${activityData.details}</div>
+
+                <!-- Live Balanced Entry Table -->
+                <h5 style="margin-top: 0; margin-bottom: 10px; font-weight: bold; color: #1e293b; font-size: 1rem;"><i class="fas fa-balance-scale me-2 text-primary"></i> أطراف قيد التسوية المقترح:</h5>
+                <div style="overflow-x: auto; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 0.85rem;">
+                        <thead style="background: #1e293b; color: white;">
+                            <tr>
+                                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #0f172a;">رمز الحساب</th>
+                                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #0f172a;">اسم الحساب</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #0f172a;">مدين (Debit)</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #0f172a;">دائن (Credit)</th>
+                                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #0f172a;">النوع</th>
+                            </tr>
+                        </thead>
+                        <tbody id="preview-transactions-tbody">
+                            <!-- Filled via JS -->
+                        </tbody>
+                        <tfoot style="background: #f8fafc; font-weight: bold; border-top: 2px solid #cbd5e1;">
+                            <tr>
+                                <td colspan="2" style="padding: 12px 10px; text-align: right;">المجموع المتوازن للقيد</td>
+                                <td id="preview-total-debits" style="padding: 12px 10px; text-align: left; color: #22c55e;">0.00</td>
+                                <td id="preview-total-credits" style="padding: 12px 10px; text-align: left; color: #ef4444;">0.00</td>
+                                <td id="preview-balance-status" style="padding: 12px 10px; text-align: center; color: #22c55e;">متوازن <i class="fas fa-check-circle"></i></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
-        `;
-        document.getElementById('activityModal').style.display = 'block';
-    }
+
+            <!-- Footer / Submission -->
+            <div style="background: #f1f5f9; padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #e2e8f0;">
+                <button type="button" id="cancelZeroCashboxBtn" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 8px;">إلغاء</button>
+                <form action="{% url 'accounts:zero_cashboxes' %}" method="post" id="confirmZeroCashboxForm" style="margin: 0; display: inline;">
+                    {% csrf_token %}
+                    <!-- Selected accounts list to be posted -->
+                    <div id="hidden-selected-accounts-inputs"></div>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold" style="background: linear-gradient(135deg, #ef4444, #be123c); border: none; border-radius: 8px;">ترحيل وتسوية القيد</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+.card-stat {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-stat:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
+}
+.decor-circle {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    top: -50px;
+    left: -50px;
+    z-index: 0;
+}
+.box-item-card {
+    background: #ffffff;
+    transition: all 0.25s ease-in-out;
+    cursor: pointer;
+    border: 1px solid #e2e8f0 !important;
+}
+.box-item-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08) !important;
+    border-color: #38bdf8 !important;
+    background: #f0f9ff;
+}
+.box-item-card:hover .arrow-indicator {
+    transform: translateX(-5px);
+    color: #0284c7 !important;
+}
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+.cashbox-check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+    user-select: none;
+}
+.cashbox-check-item:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+.cashbox-check-item input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: #ef4444;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const triggerBtn = document.getElementById('zeroCashboxPreviewTrigger');
+    const modal = document.getElementById('zeroCashboxPreviewModal');
     
-    // تراجع عن النشاط
-    function undoActivity(activityId) {
-        // محاكاة التراجع (يجب استبدالها بطلب AJAX حقيقي)
-        showNotification('تم التراجع عن الإجراء بنجاح', 'success');
+    if (triggerBtn && modal) {
+        const closeBtn = document.getElementById('closeZeroCashboxModalBtn');
+        const cancelBtn = document.getElementById('cancelZeroCashboxBtn');
+        const entryDateEl = document.getElementById('preview-entry-date');
+        const entryDescEl = document.getElementById('preview-entry-desc');
+        const checklistContainer = document.getElementById('cashbox-checklist-container');
+        const tbody = document.getElementById('preview-transactions-tbody');
+        const totalDebitsEl = document.getElementById('preview-total-debits');
+        const totalCreditsEl = document.getElementById('preview-total-credits');
+        const hiddenInputsContainer = document.getElementById('hidden-selected-accounts-inputs');
         
-        // في التطبيق الحقيقي، استخدم:
-        // fetch(`/api/activities/${activityId}/undo/`, {
-        //     method: 'POST',
-        //     headers: {
-        //         'X-CSRFToken': getCookie('csrftoken'),
-        //         'Content-Type': 'application/json'
-        //     }
-        // })
-        // .then(response => response.json())
-        // .then(data => {
-        //     if (data.success) {
-        //         showNotification('تم التراجع عن الإجراء بنجاح', 'success');
-        //         setTimeout(() => location.reload(), 1000);
-        //     } else {
-        //         showNotification('فشل في التراجع عن الإجراء', 'error');
-        //     }
-        // });
-    }
-    
-    // إغلاق المودال
-    document.querySelector('.close').addEventListener('click', function() {
-        document.getElementById('activityModal').style.display = 'none';
-    });
-    
-    // إغلاق المودال عند النقر خارج المحتوى
-    window.addEventListener('click', function(event) {
-        const modal = document.getElementById('activityModal');
-        if (event.target === modal) {
+        let allCashboxes = [];
+        let mainCash = {};
+        let entryDate = '';
+        
+        function formatCurrency(val) {
+            return parseFloat(val).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' ل.س';
+        }
+        
+        // Fetch original cashboxes
+        triggerBtn.addEventListener('click', function() {
+            const originalHTML = triggerBtn.innerHTML;
+            triggerBtn.disabled = true;
+            triggerBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> جاري التحميل...';
+            
+            fetch("{% url 'accounts:zero_cashboxes' %}")
+                .then(res => res.json())
+                .then(data => {
+                    triggerBtn.innerHTML = originalHTML;
+                    triggerBtn.disabled = false;
+                    
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+                    
+                    allCashboxes = data.cashboxes || [];
+                    mainCash = data.main_cash || {code: '121', name: 'النقدية'};
+                    entryDate = data.date;
+                    
+                    // Render checkboxes
+                    checklistContainer.innerHTML = '';
+                    allCashboxes.forEach(box => {
+                        const label = document.createElement('label');
+                        label.className = 'cashbox-check-item';
+                        
+                        const isNonZero = box.balance !== 0;
+                        
+                        label.innerHTML = `
+                            <input type="checkbox" value="${box.code}" data-balance="${box.balance}" data-name="${box.name}" data-emp="${box.emp_name}" ${isNonZero ? 'checked' : ''}>
+                            <span class="flex-grow-1">${box.emp_name} (${box.code})</span>
+                            <span style="font-weight: bold; font-size: 0.8rem;" class="${box.balance > 0 ? 'text-success' : box.balance < 0 ? 'text-danger' : 'text-muted'}">${formatCurrency(box.balance)}</span>
+                        `;
+                        
+                        checklistContainer.appendChild(label);
+                    });
+                    
+                    // Add change listener to checkboxes
+                    checklistContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+                        chk.addEventListener('change', recalculateProposedEntry);
+                    });
+                    
+                    recalculateProposedEntry();
+                    modal.style.display = 'flex';
+                })
+                .catch(err => {
+                    triggerBtn.innerHTML = originalHTML;
+                    triggerBtn.disabled = false;
+                    alert('خطأ أثناء جلب الصناديق: ' + err.message);
+                });
+        });
+        
+        function recalculateProposedEntry() {
+            const checkedBoxes = [];
+            checklistContainer.querySelectorAll('input[type="checkbox"]:checked').forEach(chk => {
+                checkedBoxes.push({
+                    code: chk.value,
+                    name: chk.getAttribute('data-name'),
+                    emp: chk.getAttribute('data-emp'),
+                    balance: parseFloat(chk.getAttribute('data-balance'))
+                });
+            });
+            
+            // Build hidden inputs for post submission
+            hiddenInputsContainer.innerHTML = '';
+            checkedBoxes.forEach(box => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'selected_accounts';
+                hiddenInput.value = box.code;
+                hiddenInputsContainer.appendChild(hiddenInput);
+            });
+            
+            const debits = [];
+            const credits = [];
+            
+            const selectedNonZero = checkedBoxes.filter(x => x.balance !== 0);
+            
+            selectedNonZero.forEach(box => {
+                if (box.balance > 0) {
+                    credits.push({
+                        code: box.code,
+                        name: box.name,
+                        amount: box.balance,
+                        type: 'صندوق فرعي',
+                        badgeClass: 'bg-danger text-white'
+                    });
+                } else if (box.balance < 0) {
+                    debits.push({
+                        code: box.code,
+                        name: box.name,
+                        amount: Math.abs(box.balance),
+                        type: 'صندوق فرعي',
+                        badgeClass: 'bg-success text-white'
+                    });
+                }
+            });
+            
+            const sumDebits = debits.reduce((acc, x) => acc + x.amount, 0);
+            const sumCredits = credits.reduce((acc, x) => acc + x.amount, 0);
+            const diff = sumDebits - sumCredits;
+            
+            if (diff > 0) {
+                credits.push({
+                    code: mainCash.code,
+                    name: mainCash.name,
+                    amount: diff,
+                    type: 'تسوية نقدية رئيسية',
+                    badgeClass: 'bg-secondary text-dark'
+                });
+            } else if (diff < 0) {
+                debits.push({
+                    code: mainCash.code,
+                    name: mainCash.name,
+                    amount: Math.abs(diff),
+                    type: 'تسوية نقدية رئيسية',
+                    badgeClass: 'bg-secondary text-dark'
+                });
+            }
+            
+            // Render proposed rows
+            tbody.innerHTML = '';
+            
+            const renderItem = (item, side) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 10px; border: 1px solid #e2e8f0; color: #475569;">${item.code}</td>
+                    <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: 700; color: #1e293b;">${item.name}</td>
+                    <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: left; font-weight: bold; color: #22c55e;">${side === 'debit' ? formatCurrency(item.amount) : '-'}</td>
+                    <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: left; font-weight: bold; color: #ef4444;">${side === 'credit' ? formatCurrency(item.amount) : '-'}</td>
+                    <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: center;"><span class="badge ${item.badgeClass} rounded-pill px-3">${item.type}</span></td>
+                `;
+                tbody.appendChild(tr);
+            };
+            
+            debits.forEach(x => renderItem(x, 'debit'));
+            credits.forEach(x => renderItem(x, 'credit'));
+            
+            const finalTotal = debits.reduce((acc, x) => acc + x.amount, 0);
+            
+            totalDebitsEl.textContent = formatCurrency(finalTotal);
+            totalCreditsEl.textContent = formatCurrency(finalTotal);
+            
+            entryDateEl.textContent = entryDate;
+            const namesStr = selectedNonZero.map(x => x.emp).join('، ');
+            entryDescEl.textContent = `تصفير صناديق (${namesStr || 'لا يوجد صناديق محددة'})`;
+        }
+        
+        function closeModal() {
             modal.style.display = 'none';
         }
-    });
-    
-    // تغيير فترة المخطط
-    document.getElementById('chartPeriod').addEventListener('change', function() {
-        updateDashboard();
-    });
-    
-    // وظائف مساعدة
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
+        
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
             }
-        }
-        return cookieValue;
+        });
     }
-    
-    function showNotification(message, type) {
-        const notification = document.getElementById('notification');
-        const messageEl = document.getElementById('notificationMessage');
-        
-        messageEl.textContent = message;
-        notification.className = `notification ${type}`;
-        notification.classList.remove('hidden');
-        
-        setTimeout(() => {
-            notification.classList.add('hidden');
-        }, 3000);
-    }
-    
-    // التهيئة الأولية
-    updateDashboard();
-    setInterval(updateDashboard, 60000);
 });
 </script>
-{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/sections/pages.css' %}">
+{% endif %}
 {% endblock %}

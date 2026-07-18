@@ -4,6 +4,26 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/sections/quick.css' %}">
 <link rel="stylesheet" href="{% static 'css/quick-student-create.css' %}">
+<style>
+/* Force RTL Input Icon Padding and prevent overlapping for Quick Student Form */
+body.app-body .quick-student-create-control .input,
+body.app-body .quick-student-create-control input,
+body.app-body .quick-student-create-control select,
+body.app-body .quick-student-create-input {
+    padding-right: 46px !important;
+    padding-left: 16px !important;
+    direction: rtl !important;
+    text-align: right !important;
+}
+body.app-body .quick-student-create-control i {
+    right: 16px !important;
+    left: auto !important;
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 10 !important;
+}
+</style>
 {% endblock %}
 
 {% block content %}

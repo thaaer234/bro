@@ -720,6 +720,11 @@ class Studentenrollment(models.Model):
         return f"{self.student.full_name} - {self.course.name}"
 
     @property
+    def is_active(self):
+        """Check if the enrollment is active (i.e., not completed or withdrawn)"""
+        return not self.is_completed
+
+    @property
     def net_amount(self):
         """Calculate net amount after discounts"""
         after_percent = self.total_amount - (self.total_amount * self.discount_percent / Decimal('100'))
@@ -1178,6 +1183,11 @@ class StudentReceipt(models.Model):
                     pass
 
                 return entry
+    @property
+    def is_active(self):
+        """Check if the enrollment is active (i.e., not completed or withdrawn)"""
+        return not self.is_completed
+
     @property
     def net_amount(self):
         """Calculate net amount after discounts"""

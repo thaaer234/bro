@@ -1,24 +1,24 @@
 @font-face {
-    font-family: 'Cocon Next Arabic';
+    font-family: 'Tajawal';
     src: url('../font/Cocon_%20Next%20Arabic-Bold.otf') format('opentype');
     font-display: swap;
 }
 
 :root {
-    --ui-font-body: 'Cairo', 'Tajawal', sans-serif;
-    --ui-font-display: 'Cocon Next Arabic', 'Cairo', sans-serif;
+    --ui-font-body: 'Tajawal', sans-serif;
+    --ui-font-display: 'Tajawal', sans-serif;
     --ui-bg: #edf4f3;
     --ui-surface: rgba(255, 255, 255, 0.90);
-    --ui-border: rgba(15, 118, 110, 0.10);
-    --ui-border-strong: rgba(15, 118, 110, 0.18);
+    --ui-border: rgba(0, 102, 138, 0.10);
+    --ui-border-strong: rgba(0, 102, 138, 0.18);
     --ui-text: #21353a;
     --ui-text-soft: #5f767b;
-    --ui-heading: #16343a;
-    --ui-primary: #0f766e;
-    --ui-primary-strong: #115e59;
+    --ui-heading: #001430;
+    --ui-primary: #00668a;
+    --ui-primary-strong: #002855;
     --ui-accent: #c89b43;
-    --ui-shadow-sm: 0 10px 30px rgba(15, 118, 110, 0.10);
-    --ui-shadow-md: 0 22px 60px rgba(22, 52, 58, 0.16);
+    --ui-shadow-sm: 0 10px 30px rgba(0, 102, 138, 0.10);
+    --ui-shadow-md: 0 22px 60px rgba(0, 20, 48, 0.16);
     --ui-radius-sm: 14px;
     --ui-radius-md: 22px;
     --ui-radius-lg: 30px;
@@ -39,8 +39,8 @@ body.app-body {
     font-family: var(--ui-font-body);
     color: var(--ui-text);
     background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.14), transparent 28%),
-        radial-gradient(circle at top right, rgba(200, 155, 67, 0.12), transparent 22%),
+        radial-gradient(circle at top left, rgba(0, 102, 138, 0.14), transparent 28%),
+        radial-gradient(circle at top right, rgba(116, 144, 195, 0.12), transparent 22%),
         linear-gradient(180deg, rgba(249, 252, 252, 0.96) 0%, rgba(237, 244, 243, 0.96) 100%),
         url('../img/back.png');
     background-size: auto, auto, auto, cover;
@@ -88,9 +88,9 @@ body.app-body::before {
     padding: 1.25rem 1rem 1rem;
     color: #f7f7f4;
     background:
-        radial-gradient(circle at top, rgba(200, 155, 67, 0.16), transparent 24%),
-        linear-gradient(180deg, #17353b 0%, #0f766e 52%, #15958b 100%);
-    box-shadow: -24px 0 60px rgba(22, 52, 58, 0.20);
+        radial-gradient(circle at top, rgba(116, 144, 195, 0.16), transparent 24%),
+        linear-gradient(180deg, #17353b 0%, #00668a 52%, #00668a 100%);
+    box-shadow: -24px 0 60px rgba(0, 20, 48, 0.20);
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 1100;
@@ -144,7 +144,7 @@ body.app-body::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #13877f, #0f766e);
+    background: linear-gradient(135deg, #13877f, #00668a);
     color: #fff;
     box-shadow: 0 14px 30px rgba(118, 75, 162, 0.24);
 }
@@ -222,9 +222,9 @@ body.app-body::before {
 
 .menu-item.active {
     color: #fff;
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.96), rgba(17, 94, 89, 0.92));
+    background: linear-gradient(135deg, rgba(0, 102, 138, 0.96), rgba(17, 94, 89, 0.92));
     border-color: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 16px 30px rgba(15, 118, 110, 0.24);
+    box-shadow: 0 16px 30px rgba(0, 102, 138, 0.24);
 }
 
 .menu-group {
@@ -307,7 +307,7 @@ body.app-body::before {
     border-radius: var(--ui-radius-lg);
     background:
         linear-gradient(135deg, rgba(255,255,255,0.90), rgba(255,255,255,0.78)),
-        linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(200, 155, 67, 0.08));
+        linear-gradient(135deg, rgba(0, 102, 138, 0.08), rgba(116, 144, 195, 0.08));
     box-shadow: var(--ui-shadow-sm);
     backdrop-filter: blur(14px);
 }
@@ -351,16 +351,16 @@ body.app-body::before {
     gap: 0.55rem;
     padding: 0.7rem 1rem;
     border-radius: 999px;
-    background: rgba(15, 118, 110, 0.08);
+    background: rgba(0, 102, 138, 0.08);
     color: var(--ui-primary-strong);
-    border: 1px solid rgba(15, 118, 110, 0.14);
+    border: 1px solid rgba(0, 102, 138, 0.14);
     font-weight: 700;
 }
 
 .quick-access-chip--muted {
-    background: rgba(200, 155, 67, 0.12);
+    background: rgba(116, 144, 195, 0.12);
     color: #7b5f1c;
-    border-color: rgba(200, 155, 67, 0.18);
+    border-color: rgba(116, 144, 195, 0.18);
 }
 
 .alert-messages,
@@ -460,7 +460,7 @@ body.app-body::before {
     height: 3.4rem;
     margin-bottom: 0.9rem;
     border-radius: 18px;
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(200, 155, 67, 0.14));
+    background: linear-gradient(135deg, rgba(0, 102, 138, 0.12), rgba(116, 144, 195, 0.14));
     color: var(--ui-primary);
     font-size: 1.25rem;
 }
@@ -554,13 +554,13 @@ body.app-body::before {
 .badge-add,
 .badge-success,
 .badge-primary {
-    background: rgba(15, 118, 110, 0.12);
-    color: #115e59;
+    background: rgba(0, 102, 138, 0.12);
+    color: #002855;
 }
 
 .badge-change,
 .badge-warning {
-    background: rgba(200, 155, 67, 0.16);
+    background: rgba(116, 144, 195, 0.16);
     color: #7b5f1c;
 }
 
@@ -602,7 +602,7 @@ table thead th {
 
 .table tbody tr:hover,
 table tbody tr:hover {
-    background: rgba(15, 118, 110, 0.06);
+    background: rgba(0, 102, 138, 0.06);
 }
 
 .tabs {
@@ -664,7 +664,7 @@ input[type='button'] {
 .btn-outline,
 .btn-outline-secondary {
     background: rgba(248, 251, 251, 0.96);
-    border-color: rgba(22, 52, 58, 0.14);
+    border-color: rgba(0, 20, 48, 0.14);
     color: var(--ui-heading);
 }
 
@@ -682,7 +682,7 @@ select,
 textarea {
     min-height: 46px;
     border-radius: 14px !important;
-    border: 1px solid rgba(22, 52, 58, 0.12) !important;
+    border: 1px solid rgba(0, 20, 48, 0.12) !important;
     background: rgba(255, 255, 255, 0.9) !important;
     color: var(--ui-text) !important;
 }
@@ -693,8 +693,8 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-    border-color: rgba(15, 118, 110, 0.36) !important;
-    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10) !important;
+    border-color: rgba(0, 102, 138, 0.36) !important;
+    box-shadow: 0 0 0 4px rgba(0, 102, 138, 0.10) !important;
     outline: 0;
 }
 
@@ -838,8 +838,8 @@ html.theme-dark,
 html.theme-dark body.app-body {
     --ui-bg: #090e15;
     --ui-surface: rgba(20, 28, 41, 0.90);
-    --ui-border: rgba(15, 118, 110, 0.20);
-    --ui-border-strong: rgba(15, 118, 110, 0.30);
+    --ui-border: rgba(0, 102, 138, 0.20);
+    --ui-border-strong: rgba(0, 102, 138, 0.30);
     --ui-text: #e2e8f0;
     --ui-text-soft: #94a3b8;
     --ui-heading: #f1f5f9;
@@ -849,7 +849,7 @@ html.theme-dark body.app-body {
     --ui-shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.40);
     --ui-shadow-md: 0 22px 60px rgba(0, 0, 0, 0.50);
     background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.08), transparent 28%),
+        radial-gradient(circle at top left, rgba(0, 102, 138, 0.08), transparent 28%),
         radial-gradient(circle at top right, rgba(234, 179, 8, 0.06), transparent 22%),
         linear-gradient(180deg, rgba(17, 24, 39, 0.98) 0%, rgba(9, 14, 21, 0.98) 100%);
 }
@@ -863,14 +863,14 @@ html.theme-dark body.app-body::before {
 html.theme-dark .sidebar {
     background:
         radial-gradient(circle at top, rgba(234, 179, 8, 0.1), transparent 24%),
-        linear-gradient(180deg, #090e15 0%, #115e59 52%, #14b8a6 100%) !important;
+        linear-gradient(180deg, #090e15 0%, #002855 52%, #14b8a6 100%) !important;
     box-shadow: -24px 0 60px rgba(0, 0, 0, 0.6) !important;
 }
 
 html.theme-dark .sidebar-header {
     background:
         linear-gradient(180deg, rgba(20, 28, 41, 0.95), rgba(9, 14, 21, 0.92)) !important;
-    border-color: rgba(15, 118, 110, 0.3) !important;
+    border-color: rgba(0, 102, 138, 0.3) !important;
     box-shadow: var(--ui-shadow-sm) !important;
 }
 
@@ -880,6 +880,6 @@ html.theme-dark .menu-group-title {
 
 html.theme-dark .menu-group-title:hover {
     color: #fff !important;
-    background: rgba(15, 118, 110, 0.12) !important;
+    background: rgba(0, 102, 138, 0.12) !important;
 }
 

@@ -7,7 +7,7 @@ from employ.decorators import require_employee_perm, require_superuser
 app_name = "pages"
 
 urlpatterns = [
-    path('index', require_employee_perm('admin_dashboard')(views.IndexView.as_view()), name="index"),
+    path('index/', require_employee_perm('admin_dashboard')(views.IndexView.as_view()), name="index"),
     path('', login_required(views.welcome.as_view()), name="welcome"),
     path('user-guide/', require_superuser(views.UserGuideView.as_view()), name='user_guide'),
     path('user-guide/handbook/', require_superuser(views.UserGuideHandbookView.as_view()), name='user_guide_handbook'),

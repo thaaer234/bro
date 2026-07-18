@@ -1,7 +1,7 @@
 @import url('./system-rebuild.css');
 
 body.app-exams {
-    --section-accent: #0f766e;
+    --section-accent: #00668a;
     --section-accent-strong: #15434a;
 }
 
@@ -72,7 +72,7 @@ body.app-exams {
     height: 100%;
     border-radius: inherit;
     background: linear-gradient(135deg, var(--section-accent), var(--section-accent-strong));
-    box-shadow: 0 6px 14px rgba(15, 118, 110, 0.22);
+    box-shadow: 0 6px 14px rgba(0, 102, 138, 0.22);
 }
 
 .exam-distribution-percent {

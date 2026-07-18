@@ -22,7 +22,7 @@
 
     --uhb-color-primary: #123c69;
     --uhb-color-primary-strong: #0d2c4d;
-    --uhb-color-secondary: #0f766e;
+    --uhb-color-secondary: #00668a;
     --uhb-color-secondary-soft: #dff4ef;
     --uhb-color-accent: #c38a3a;
     --uhb-color-accent-soft: #fbf2e2;
@@ -91,7 +91,7 @@ body.uhb-app {
     font-family: var(--uhb-font-base);
     color: var(--uhb-color-ink);
     background:
-        radial-gradient(circle at top right, rgba(15, 118, 110, 0.12), transparent 20%),
+        radial-gradient(circle at top right, rgba(0, 102, 138, 0.12), transparent 20%),
         radial-gradient(circle at bottom left, rgba(195, 138, 58, 0.12), transparent 18%),
         linear-gradient(180deg, #ecf2f8 0%, #f7f9fb 100%);
 }
@@ -280,7 +280,7 @@ body.uhb-app {
 }
 
 .uhb-chip--accent {
-    background: rgba(15, 118, 110, 0.12);
+    background: rgba(0, 102, 138, 0.12);
     color: var(--uhb-color-secondary);
 }
 
@@ -300,7 +300,7 @@ body.uhb-app {
     padding: var(--uhb-page-padding);
     overflow: hidden;
     background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.06), transparent 26%),
+        radial-gradient(circle at top left, rgba(0, 102, 138, 0.06), transparent 26%),
         radial-gradient(circle at bottom right, rgba(195, 138, 58, 0.08), transparent 22%),
         linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
     box-shadow: var(--uhb-shadow-soft);
@@ -435,7 +435,7 @@ body.uhb-app {
     padding: 12px;
     border-radius: 16px;
     background: linear-gradient(180deg, #f8fbfc, #f3f7f9);
-    border: 1px solid rgba(15, 118, 110, 0.12);
+    border: 1px solid rgba(0, 102, 138, 0.12);
 }
 
 .uhb-page--error .uhb-section-head__meta {
@@ -584,7 +584,7 @@ body.uhb-app {
 }
 
 .uhb-panel-card--lead {
-    background: linear-gradient(180deg, rgba(15, 118, 110, 0.08), rgba(255, 255, 255, 0.96));
+    background: linear-gradient(180deg, rgba(0, 102, 138, 0.08), rgba(255, 255, 255, 0.96));
 }
 
 .uhb-panel-card h3,
@@ -864,7 +864,7 @@ body.uhb-app {
     background:
         radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.12), transparent 0, transparent 22%),
         radial-gradient(circle at 82% 78%, rgba(195, 138, 58, 0.18), transparent 0, transparent 26%),
-        linear-gradient(145deg, #0f2541 0%, #123c69 48%, #0f766e 100%);
+        linear-gradient(145deg, #0f2541 0%, #123c69 48%, #00668a 100%);
 }
 
 .uhb-cover > *,

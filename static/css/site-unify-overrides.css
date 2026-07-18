@@ -1,16 +1,77 @@
-body.app-body {
-    background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.14), transparent 28%) !important,
-        radial-gradient(circle at top right, rgba(200, 155, 67, 0.12), transparent 24%) !important,
-        linear-gradient(180deg, rgba(249, 252, 252, 0.96) 0%, rgba(237, 244, 243, 0.96) 100%) !important,
-        url('../img/back.png') !important;
-    background-size: auto, auto, auto, cover !important;
-    background-position: top left, top right, center, center !important;
-    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat !important;
-    background-attachment: fixed !important;
-    color: #21353a !important;
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Work+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+    color-scheme: light;
+    
+    /* Core Brand Colors from DESIGN.md */
+    --primary: #001430 !important;
+    --on-primary: #ffffff !important;
+    --primary-container: #002855 !important;
+    --on-primary-container: #7490c3 !important;
+    
+    --secondary: #00668a !important;
+    --on-secondary: #ffffff !important;
+    --secondary-container: #40c2fd !important;
+    --on-secondary-container: #004d6a !important;
+    
+    --tertiary: #0f151a !important;
+    --on-tertiary: #ffffff !important;
+    --tertiary-container: #23292f !important;
+    --on-tertiary-container: #8b9097 !important;
+    
+    /* Surfaces */
+    --background: #f9f9ff !important;
+    --on-background: #111c2c !important;
+    --surface: #f9f9ff !important;
+    --on-surface: #111c2c !important;
+    --surface-variant: #d8e3fa !important;
+    --on-surface-variant: #43474f !important;
+    
+    --surface-dim: #cfdaf1 !important;
+    --surface-bright: #f9f9ff !important;
+    --surface-container-lowest: #ffffff !important;
+    --surface-container-low: #f0f3ff !important;
+    --surface-container: #e7eeff !important;
+    --surface-container-high: #dee8ff !important;
+    --surface-container-highest: #d8e3fa !important;
+    
+    --outline: #747780 !important;
+    --outline-variant: #c4c6d0 !important;
+    
+    /* Status Colors */
+    --error: #ba1a1a !important;
+    --on-error: #ffffff !important;
+    --error-container: #ffdad6 !important;
+    --on-error-container: #93000a !important;
+    
+    /* Font families */
+    --font-display: "Tajawal", sans-serif !important;
+    --font-body: "Tajawal", sans-serif !important;
+    --font-label: "Work Sans", sans-serif !important;
+
+    /* Corner Radii */
+    --radius-xs: 4px !important;
+    --radius-sm: 4px !important;
+    --radius-md: 6px !important;
+    --radius-lg: 8px !important;
+    --radius-xl: 12px !important;
+    
+    --space-base: 8px !important;
 }
 
+/* Global body override */
+body.app-body {
+    background: var(--background) !important;
+    color: var(--on-background) !important;
+    font-family: var(--font-body) !important;
+}
+
+h1, h2, h3, h4, h5, h6, .display-lg, .headline-lg {
+    font-family: var(--font-display) !important;
+    color: var(--primary) !important;
+}
+
+/* Header & Heros - Al-Nobalaa Navy/Cyan gradient */
 body.app-body .dashboard-header,
 body.app-body .hero-background,
 body.app-body .profile-hero,
@@ -18,13 +79,26 @@ body.app-body .summary-header,
 body.app-body .page-hero,
 body.app-body .announcement-hero,
 body.app-body .report-hero,
-body.app-body .section-hero {
-    background: linear-gradient(135deg, #16343a 0%, #0f766e 58%, #15958b 100%) !important;
-    color: #fff !important;
-    border-color: rgba(15, 118, 110, 0.12) !important;
-    box-shadow: 0 24px 60px rgba(15, 118, 110, 0.16) !important;
+body.app-body .section-hero,
+.main-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 50%, var(--secondary) 100%) !important;
+    color: var(--on-primary) !important;
+    border-color: var(--secondary) !important;
+    box-shadow: 0 24px 60px rgba(0, 20, 48, 0.16) !important;
 }
 
+body.app-body .dashboard-header *,
+body.app-body .hero-background *,
+body.app-body .profile-hero *,
+body.app-body .summary-header *,
+body.app-body .page-hero *,
+body.app-body .announcement-hero *,
+body.app-body .report-hero *,
+body.app-body .section-hero * {
+    color: var(--on-primary) !important;
+}
+
+/* Cards & Containers */
 body.app-body .dashboard-card,
 body.app-body .mini-stat-card,
 body.app-body .performance-indicator,
@@ -41,10 +115,12 @@ body.app-body .profile-card,
 body.app-body .edit-profile-card,
 body.app-body .widget-card,
 body.app-body .info-card,
-body.app-body .record-card {
-    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,252,251,0.94)) !important;
-    border: 1px solid rgba(15, 118, 110, 0.12) !important;
-    box-shadow: 0 18px 42px rgba(22, 52, 58, 0.10) !important;
+body.app-body .record-card,
+.card {
+    background: var(--surface-container-lowest) !important;
+    border: 1px solid var(--outline-variant) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: 0 18px 42px rgba(17, 28, 44, 0.04) !important;
 }
 
 body.app-body .dashboard-card::before,
@@ -52,9 +128,10 @@ body.app-body .quick-action-btn::before,
 body.app-body .action-card::before,
 body.app-body .main-card::before,
 body.app-body .info-card::before {
-    background: linear-gradient(90deg, #0f766e, #115e59) !important;
+    background: var(--secondary) !important;
 }
 
+/* Card Icons */
 body.app-body .card-icon,
 body.app-body .quick-action-icon,
 body.app-body .action-icon,
@@ -63,7 +140,7 @@ body.app-body .stat-icon,
 body.app-body .field-icon,
 body.app-body .meta-item i,
 body.app-body .section-header i {
-    color: #0f766e !important;
+    color: var(--secondary) !important;
 }
 
 body.app-body .card-icon,
@@ -72,9 +149,10 @@ body.app-body .action-icon,
 body.app-body .activity-icon,
 body.app-body .stat-icon,
 body.app-body .field-icon {
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(200, 155, 67, 0.14)) !important;
+    background: linear-gradient(135deg, rgba(0, 102, 138, 0.12), rgba(0, 40, 85, 0.14)) !important;
 }
 
+/* Primary buttons */
 body.app-body .btn-primary,
 body.app-body .btn-success,
 body.app-body .btn-info,
@@ -83,295 +161,74 @@ body.app-body .save-btn,
 body.app-body .print-btn,
 body.app-body .upload-btn,
 body.app-body .btn-filter {
-    background: linear-gradient(135deg, #0f766e, #115e59) !important;
-    border-color: #0f766e !important;
-    color: #fff !important;
+    background: linear-gradient(135deg, var(--primary), var(--primary-container)) !important;
+    border-color: var(--primary) !important;
+    color: var(--on-primary) !important;
+    border-radius: var(--radius-sm) !important;
 }
 
-body.app-body .btn-warning,
-body.app-body .btn-avatar-action,
-body.app-body .secondary-action {
-    background: linear-gradient(135deg, #f4bf58, #d6a042) !important;
-    border-color: #d6a042 !important;
-    color: #1f2937 !important;
+body.app-body .btn-primary:hover,
+body.app-body .submit-btn:hover {
+    background: var(--primary-container) !important;
+    border-color: var(--primary-container) !important;
 }
 
-body.app-body .btn-danger,
-body.app-body .remove-btn,
-body.app-body .delete-btn {
-    background: linear-gradient(135deg, #c2410c, #9a3412) !important;
-    border-color: #9a3412 !important;
-    color: #fff !important;
-}
-
+/* Secondary & Outline Buttons */
 body.app-body .btn-outline-primary,
 body.app-body .btn-outline-secondary,
 body.app-body .back-btn,
 body.app-body .btn-outline,
 body.app-body .btn-secondary,
 body.app-body .cancel-btn {
-    color: #16343a !important;
-    border-color: rgba(22, 52, 58, 0.14) !important;
-    background: rgba(248,251,251,0.96) !important;
+    color: var(--primary) !important;
+    border-color: var(--outline-variant) !important;
+    background: var(--surface-container-lowest) !important;
+    border-radius: var(--radius-sm) !important;
 }
 
+body.app-body .btn-outline-primary:hover,
+body.app-body .btn-secondary:hover {
+    background: var(--secondary) !important;
+    color: var(--on-secondary) !important;
+    border-color: var(--secondary) !important;
+}
+
+/* Tables */
 body.app-body .table thead th,
 body.app-body table thead th,
 body.app-body .data-table thead th {
-    background: linear-gradient(180deg, #eef7f5, #e6f2ef) !important;
-    color: #16343a !important;
-    border-color: rgba(15, 118, 110, 0.10) !important;
+    background: linear-gradient(180deg, var(--surface-container-low), var(--surface-container)) !important;
+    color: var(--primary) !important;
+    border-color: var(--outline-variant) !important;
 }
 
 body.app-body .table tbody tr:hover,
 body.app-body table tbody tr:hover,
 body.app-body .data-table tbody tr:hover {
-    background: rgba(15, 118, 110, 0.05) !important;
+    background: rgba(0, 102, 138, 0.05) !important;
 }
 
+/* Badges & Chips */
 body.app-body .badge-success,
 body.app-body .status-badge.active,
 body.app-body .badge-primary {
-    background: rgba(15, 118, 110, 0.12) !important;
-    color: #115e59 !important;
+    background: rgba(0, 102, 138, 0.12) !important;
+    color: var(--secondary) !important;
 }
 
 body.app-body .badge-warning,
 body.app-body .status-badge.pending {
-    background: rgba(200, 155, 67, 0.16) !important;
-    color: #7b5f1c !important;
+    background: rgba(116, 144, 195, 0.16) !important;
+    color: var(--primary-container) !important;
 }
 
 body.app-body .badge-danger,
 body.app-body .status-badge.inactive {
-    background: rgba(194, 65, 12, 0.12) !important;
-    color: #9a3412 !important;
+    background: rgba(186, 26, 26, 0.12) !important;
+    color: var(--error) !important;
 }
 
-body.app-body .form-control:focus,
-body.app-body .form-select:focus,
-body.app-body input:focus,
-body.app-body select:focus,
-body.app-body textarea:focus {
-    border-color: rgba(15, 118, 110, 0.34) !important;
-    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10) !important;
-}
-
-body.app-body .profile-avatar,
-body.app-body .profile-preview-image,
-body.app-body .avatar img,
-body.app-body .logo img {
-    background: #fff !important;
-    border-radius: 20px !important;
-    padding: 0.35rem;
-    box-shadow: 0 12px 30px rgba(22, 52, 58, 0.12) !important;
-}
-
-body.app-body .welcome-screen,
-body.app-body .about-shell,
-body.app-body .notification-shell,
-body.app-body .login-screen {
-    background:
-        radial-gradient(circle at 12% 18%, rgba(15, 118, 110, 0.16), transparent 55%) !important,
-        radial-gradient(circle at 85% 10%, rgba(200, 155, 67, 0.16), transparent 55%) !important,
-        radial-gradient(circle at 50% 90%, rgba(21, 149, 139, 0.16), transparent 55%) !important,
-        url('../img/back.png') !important;
-    background-size: cover !important;
-    background-position: center !important;
-    background-repeat: no-repeat !important;
-}
-
-@media (max-width: 991.98px) {
-    body.app-body .page-toolbar,
-    body.app-body .module-header,
-    body.app-body .header {
-        gap: 0.85rem !important;
-    }
-
-    body.app-body .page-toolbar__actions,
-    body.app-body .header-actions,
-    body.app-body .filter-actions,
-    body.app-body .activity-actions {
-        width: 100%;
-    }
-}
-
-@media (max-width: 767.98px) {
-    body.app-body .main-content {
-        margin-right: 0 !important;
-        padding: 0.95rem 0.75rem 1.2rem !important;
-    }
-
-    body.app-body .page-shell,
-    body.app-body .container,
-    body.app-body .container-fluid {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-
-    body.app-body .page-toolbar,
-    body.app-body .module-header,
-    body.app-body .header,
-    body.app-body .chart-container,
-    body.app-body .recent-activity,
-    body.app-body .filter-section,
-    body.app-body .filters-container,
-    body.app-body .card,
-    body.app-body .main-card,
-    body.app-body .dashboard-card,
-    body.app-body .mini-stat-card,
-    body.app-body .performance-indicator,
-    body.app-body .quick-action-btn,
-    body.app-body .sidebar-widget,
-    body.app-body .summary-card,
-    body.app-body .info-card,
-    body.app-body .record-card {
-        border-radius: 18px !important;
-        padding: 0.95rem !important;
-    }
-
-    body.app-body .dashboard-cards,
-    body.app-body .stats-grid,
-    body.app-body .summary-grid,
-    body.app-body .activity-cards,
-    body.app-body .quick-actions,
-    body.app-body .action-grid,
-    body.app-body .report-grid,
-    body.app-body .profile-layout,
-    body.app-body .form-grid,
-    body.app-body .info-grid,
-    body.app-body .main-content2 {
-        grid-template-columns: 1fr !important;
-    }
-
-    body.app-body .page-toolbar__actions,
-    body.app-body .header-actions,
-    body.app-body .filter-actions,
-    body.app-body .activity-actions,
-    body.app-body .action-buttons {
-        flex-direction: column !important;
-        align-items: stretch !important;
-    }
-
-    body.app-body .page-toolbar__actions > *,
-    body.app-body .header-actions > *,
-    body.app-body .filter-actions > *,
-    body.app-body .activity-actions > *,
-    body.app-body .action-buttons > * {
-        width: 100%;
-    }
-
-    body.app-body .quick-access-chip,
-    body.app-body .accounts-brand {
-        justify-content: center !important;
-    }
-
-    body.app-body .table-responsive,
-    body.app-body .table-container {
-        margin-left: -0.15rem;
-        margin-right: -0.15rem;
-    }
-
-    body.app-body .table-responsive table,
-    body.app-body .table-container table,
-    body.app-body .table-responsive .table,
-    body.app-body .table-container .table {
-        min-width: 620px !important;
-    }
-}
-
-@media (max-width: 575.98px) {
-    body.app-body .page-toolbar__title,
-    body.app-body .module-header h2,
-    body.app-body .header h2 {
-        font-size: 1.05rem !important;
-    }
-
-    body.app-body .page-toolbar__text,
-    body.app-body .card-title,
-    body.app-body .stat-label,
-    body.app-body .breadcrumb {
-        font-size: 0.82rem !important;
-    }
-
-    body.app-body .card-value,
-    body.app-body .stat-value,
-    body.app-body .mini-stat-value,
-    body.app-body .indicator-value {
-        font-size: 1.1rem !important;
-    }
-
-    body.app-body .card-icon,
-    body.app-body .quick-action-icon,
-    body.app-body .action-icon,
-    body.app-body .activity-icon,
-    body.app-body .stat-icon,
-    body.app-body .field-icon,
-    body.app-body .user-avatar {
-        width: 2.55rem !important;
-        height: 2.55rem !important;
-        min-width: 2.55rem !important;
-    }
-
-    body.app-body .table-responsive table,
-    body.app-body .table-container table,
-    body.app-body .table-responsive .table,
-    body.app-body .table-container .table {
-        min-width: 560px !important;
-    }
-}
-
-body.app-body {
-    --student-name-color: #0f2540;
-    --student-name-hover: #0b5ed7;
-    --student-name-shadow: rgba(11, 94, 215, 0.12);
-}
-
-body.app-body .student-card__name,
-body.app-body .student-name,
-body.app-body .student-name-link,
-body.app-body .student-display-name,
-body.app-body .student-card .name,
-body.app-body .table tbody td .fw-bold.student-name,
-body.app-body .table tbody td .fw-bold.student-display-name,
-body.app-body .table tbody td strong > a:not(.btn),
-body.app-body .table tbody td > a.fw-bold:not(.btn),
-body.app-body .table tbody td > a.student-name-link:not(.btn),
-body.app-body .table tbody td a.text-decoration-none.fw-bold:not(.btn),
-body.app-body a[href*="/students/"][href*="/profile/"]:not(.btn):not(.nav-link),
-body.app-body a[href*="/quick/student/"][href*="/profile/"]:not(.btn):not(.nav-link) {
-    color: var(--student-name-color) !important;
-    font-weight: 800 !important;
-    text-decoration: none !important;
-    letter-spacing: -0.01em;
-}
-
-body.app-body .student-card__name:hover,
-body.app-body .student-name:hover,
-body.app-body .student-name-link:hover,
-body.app-body .student-display-name:hover,
-body.app-body .student-card .name:hover,
-body.app-body .table tbody td .fw-bold.student-name:hover,
-body.app-body .table tbody td .fw-bold.student-display-name:hover,
-body.app-body .table tbody td strong > a:not(.btn):hover,
-body.app-body .table tbody td > a.fw-bold:not(.btn):hover,
-body.app-body .table tbody td > a.student-name-link:not(.btn):hover,
-body.app-body .table tbody td a.text-decoration-none.fw-bold:not(.btn):hover,
-body.app-body a[href*="/students/"][href*="/profile/"]:not(.btn):not(.nav-link):hover,
-body.app-body a[href*="/quick/student/"][href*="/profile/"]:not(.btn):not(.nav-link):hover,
-body.app-body .student-card__name:focus-visible,
-body.app-body .student-name:focus-visible,
-body.app-body .student-name-link:focus-visible,
-body.app-body .student-display-name:focus-visible,
-body.app-body .student-card .name:focus-visible,
-body.app-body .table tbody td .fw-bold.student-name:focus-visible,
-body.app-body .table tbody td .fw-bold.student-display-name:focus-visible,
-body.app-body .table tbody td strong > a:not(.btn):focus-visible,
-body.app-body .table tbody td > a.fw-bold:not(.btn):focus-visible,
-body.app-body .table tbody td > a.student-name-link:not(.btn):focus-visible,
-body.app-body .table tbody td a.text-decoration-none.fw-bold:not(.btn):focus-visible,
-body.app-body a[href*="/students/"][href*="/profile/"]:not(.btn):not(.nav-link):focus-visible,
-body.app-body a[href*="/quick/student/"][href*="/profile/"]:not(.btn):not(.nav-link):focus-visible {
-    color: var(--student-name-hover) !important;
-    text-shadow: 0 1px 0 var(--student-name-shadow);
+/* Navigation overrides */
+.sidebar, .navbar, .guided-navigation {
+    background-color: var(--primary) !important;
 }

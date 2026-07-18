@@ -8,7 +8,7 @@
 <aside id="site-sidebar" class="sidebar" aria-label="القائمة الجانبية الرئيسية">
     <div class="sidebar-header">
         <div class="logo-container">
-            <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <img src="{% static 'img/logo.png' %}" alt="معهد النبلاء" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="logo-fallback" style="display:none;">
                 <i class="fas fa-graduation-cap" aria-hidden="true"></i>
             </div>
@@ -62,86 +62,114 @@
     </div>
 
     <nav class="sidebar-menu" aria-label="أقسام النظام">
+        {% if is_thaaer %}
+        <a href="{% url 'students:sidebar_management' %}" class="menu-item" style="border-right: 3px solid #e11d48 !important; background: rgba(225, 29, 72, 0.08) !important; color: #f43f5e !important; font-weight: 800 !important; margin-bottom: 12px !important;">
+            <i class="fas fa-sliders-h text-danger" style="color: #f43f5e !important;"></i>
+            <span>إدارة الناف بار</span>
+        </a>
+        {% endif %}
+
+        {% if sidebar_config.dashboard %}
         {% if user.is_superuser or 'admin_dashboard' in emp_perms %}
         <a href="{% url 'pages:index' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'pages' and request.resolver_match.url_name == 'index' %}active{% endif %}" {% if request.resolver_match and request.resolver_match.app_name == 'pages' and request.resolver_match.url_name == 'index' %}aria-current="page"{% endif %}>
             <i class="fas fa-grid-2"></i>
             <span>لوحة التحكم</span>
         </a>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.system_report %}
         {% if user.is_superuser or 'admin_system_report' in emp_perms %}
         <a href="{% url 'pages:system_report' %}" class="menu-item {% if request.resolver_match and request.resolver_match.url_name == 'system_report' %}active{% endif %}">
             <i class="fas fa-chart-mixed"></i>
             <span>تقرير النظام</span>
         </a>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.announcements %}
         {% if user.is_superuser or 'announcements_view' in emp_perms %}
         <a href="{% url 'announcements:dashboard' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'announcements' %}active{% endif %}">
             <i class="fas fa-bullhorn"></i>
-            <span>التعاميم</span>
+            <span>الإعلانات والأخبار</span>
         </a>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.security %}
         {% if user.is_superuser or 'admin_settings' in emp_perms %}
         <a href="{% url 'security_dashboard' %}" class="menu-item {% if request.path == '/security/' %}active{% endif %}">
             <i class="fas fa-shield-halved"></i>
-            <span>مركز الأمن</span>
+            <span>إعدادات الأمان</span>
         </a>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.technical_services %}
         {% if user.is_superuser or 'technical_services_view' in emp_perms %}
         <a href="{% url 'technical_services:report_list' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'technical_services' %}active{% endif %}">
             <i class="fas fa-screwdriver-wrench"></i>
-            <span>خدمات تقنية</span>
+            <span>الدعم الفني</span>
         </a>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.handbook %}
         {% if user.is_superuser or 'manuals_view' in emp_perms %}
-        <a href="{% url 'manuals:home' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' %}active{% endif %}">
+        <a href="{% url 'manuals:home' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' and request.resolver_match.url_name == 'home' %}active{% endif %}">
             <i class="fas fa-book-open-reader"></i>
-            <span>دليل المستخدم</span>
+            <span>دليل مساعدة المعهد</span>
         </a>
 
         <a href="{% url 'manuals:handbook' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'manuals' and request.resolver_match.url_name == 'handbook' %}active{% endif %}">
             <i class="fas fa-book-atlas"></i>
-            <span>دليل التشغيل</span>
+            <span>تعليمات تشغيل المعهد</span>
         </a>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.dashboard %}
         {% if user.is_superuser or 'sitemap_view' in emp_perms %}
         <a href="{% url 'sitemap:sitemap_index' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'sitemap' %}active{% endif %}">
             <i class="fas fa-cubes"></i>
             <span>خريطة الموقع</span>
         </a>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.daily_report %}
+        {% if user.is_superuser or 'employee_daily_report' in emp_perms %}
         <a href="{% url 'pages:employee_daily_report' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'pages' and request.resolver_match.url_name == 'employee_daily_report' %}active{% endif %}">
             <i class="fas fa-file-signature text-warning"></i>
-            <span class="text-warning">التقرير اليومي للموظف</span>
+            <span class="text-warning">تقرير العمل اليومي</span>
         </a>
+        {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.academic_years %}
         {% if user.is_superuser or 'academic_years_select' in emp_perms or 'academic_years_manage' in emp_perms %}
         <div class="menu-group">
             <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="academic-years-submenu">
                 <i class="fas fa-calendar-alt"></i>
-                <span>الفصول الدراسية</span>
+                <span>الفصول والسنوات</span>
                 <i class="fas fa-chevron-down group-arrow"></i>
             </button>
             <div id="academic-years-submenu" class="sub-menu">
                 {% if user.is_superuser or 'academic_years_select' in emp_perms %}
                 <a href="{% url 'academic_years:select_current' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'academic_years' and request.resolver_match.url_name == 'select_current' %}active{% endif %}">
                     <i class="fas fa-check-circle"></i>
-                    <span>اختيار الفصل الحالي</span>
+                    <span>تحديد الفصل الدراسي</span>
                 </a>
                 {% endif %}
-                {% if user.is_superuser or 'academic_years_manage' in emp_perms %}
                 {% if current_academic_year %}
+                {% if user.is_superuser or 'academic_years_manage' in emp_perms %}
                 <a href="{% url 'academic_years:manage' current_academic_year.id %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'academic_years' and request.resolver_match.url_name == 'manage' %}active{% endif %}">
                     <i class="fas fa-sliders"></i>
-                    <span>إدارة الفصل الحالي</span>
+                    <span>تعديل الفصل الحالي</span>
                 </a>
                 {% endif %}
+                {% endif %}
+                {% if user.is_superuser or 'academic_years_manage' in emp_perms %}
                 <a href="{% url 'quick:academic_year_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'academic_year_list' %}active{% endif %}">
                     <i class="fas fa-list"></i>
                     <span>قائمة الفصول</span>
@@ -152,49 +180,51 @@
                 </a>
                 <a href="{% url 'academic_years:transfer_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'academic_years' and request.resolver_match.url_name == 'transfer_list' %}active{% endif %}">
                     <i class="fas fa-right-left"></i>
-                    <span>نقل البيانات بين الفصول</span>
+                    <span>نقل بيانات الطلاب</span>
                 </a>
                 {% endif %}
             </div>
         </div>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.students_management %}
         {% if user.is_superuser or 'students_view' in emp_perms or 'quick_students_view' in emp_perms or 'students_create' in emp_perms or 'quick_students_create' in emp_perms or 'course_accounting_view' in emp_perms %}
         <div class="menu-group">
             <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="students-submenu">
                 <i class="fas fa-user-graduate"></i>
-                <span>الطلاب</span>
+                <span>إدارة الطلاب</span>
                 <i class="fas fa-chevron-down group-arrow"></i>
             </button>
             <div id="students-submenu" class="sub-menu">
                 {% if user.is_superuser or 'students_view' in emp_perms %}
                 <a href="{% url 'students:student' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'students' and request.resolver_match.url_name == 'student' %}active{% endif %}">
                     <i class="fas fa-users"></i>
-                    <span>الطلاب النظاميون</span>
+                    <span>قائمة الطلاب</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'students_course_audit' in emp_perms %}
                 <a href="{% url 'students:course_audit' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'students' and request.resolver_match.url_name == 'course_audit' %}active{% endif %}">
                     <i class="fas fa-scale-balanced"></i>
-                    <span>تدقيق حسابات الدورات</span>
+                    <span>مراجعة دفعات الدورات</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'students_create' in emp_perms %}
                 <a href="{% url 'students:student_type_choice' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'students' and request.resolver_match.url_name == 'student_type_choice' %}active{% endif %}">
                     <i class="fas fa-user-plus"></i>
-                    <span>إضافة طالب</span>
+                    <span>تسجيل طالب جديد</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'quick_students_view' in emp_perms %}
                 <a href="{% url 'quick:student_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'student_list' %}active{% endif %}">
                     <i class="fas fa-bolt"></i>
-                    <span>الطلاب السريعون</span>
+                    <span>الطلاب (تسجيل سريع)</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'quick_students_create' in emp_perms %}
                 <a href="{% url 'quick:student_create' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'student_create' %}active{% endif %}">
                     <i class="fas fa-user-plus"></i>
-                    <span>إضافة طالب سريع</span>
+                    <span>تسجيل سريع لطالب</span>
                 </a>
                 {% endif %}
                 {% if user.is_superuser or 'course_accounting_view' in emp_perms %}
@@ -216,65 +246,254 @@
             </div>
         </div>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.education %}
         {% if user.is_superuser or 'teachers_view' in emp_perms %}
         <a href="{% url 'employ:teachers' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'employ' and request.resolver_match.url_name == 'teachers' %}active{% endif %}">
             <i class="fas fa-chalkboard-user"></i>
             <span>المدرسون</span>
         </a>
         {% endif %}
-
-        {% if user.is_superuser or 'accounting_dashboard' in emp_perms or 'accounting_view' in emp_perms %}
-        <a href="{% url 'accounts:dashboard' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'accounts' and 'thaaer' not in request.resolver_match.url_name %}active{% endif %}">
-            <i class="fas fa-file-invoice-dollar"></i>
-            <span>المحاسبة</span>
-        </a>
         {% endif %}
 
-        {% if user.is_superuser or 'reports_financial' in emp_perms %}
+        <!-- GRANULAR ACCOUNTING SYSTEM ITEMS INSIDE NAVBAR 1 -->
+        {% if sidebar_config.acc_chart_of_accounts or sidebar_config.acc_periods or sidebar_config.acc_budgets or sidebar_config.acc_cost_centers %}
+        {% if user.is_superuser or 'accounting_accounts' in emp_perms or 'accounting_periods' in emp_perms or 'accounting_budgets' in emp_perms or 'accounting_cost_centers' in emp_perms %}
         <div class="menu-group">
-            <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="thaaer-reports-submenu">
-                <i class="fas fa-chart-line text-warning"></i>
-                <span class="text-warning">تقارير thaaer</span>
+            <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="accounts-setup-submenu-main">
+                <i class="fas fa-sitemap text-info"></i>
+                <span>التهيئة المالية (المحاسبة)</span>
                 <i class="fas fa-chevron-down group-arrow"></i>
             </button>
-            <div id="thaaer-reports-submenu" class="sub-menu">
-                <a href="{% url 'accounts:thaaer_strategic' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_strategic' %}active{% endif %}">
-                    <i class="fas fa-brain text-warning"></i>
-                    <span class="text-warning">لوحة اتخاذ القرار</span>
+            <div id="accounts-setup-submenu-main" class="sub-menu">
+                {% if sidebar_config.acc_chart_of_accounts %}
+                {% if user.is_superuser or 'accounting_accounts' in emp_perms %}
+                <a href="{% url 'accounts:chart_of_accounts' %}" class="menu-item sub-item">
+                    <i class="fas fa-sitemap"></i>
+                    <span>دليل الحسابات</span>
                 </a>
-                <a href="{% url 'accounts:thaaer_comprehensive' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_comprehensive' %}active{% endif %}">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>التقرير الشامل</span>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_periods %}
+                {% if user.is_superuser or 'accounting_periods' in emp_perms %}
+                <a href="{% url 'accounts:period_list' %}" class="menu-item sub-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>الفترات المحاسبية</span>
                 </a>
-                <a href="{% url 'accounts:thaaer_annual_budget' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_annual_budget' %}active{% endif %}">
-                    <i class="fas fa-calendar"></i>
-                    <span>الميزانية السنوية</span>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_budgets %}
+                {% if user.is_superuser or 'accounting_budgets' in emp_perms %}
+                <a href="{% url 'accounts:budget_list' %}" class="menu-item sub-item">
+                    <i class="fas fa-calculator"></i>
+                    <span>الميزانيات</span>
                 </a>
-                <a href="{% url 'accounts:thaaer_semester_budget' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_semester_budget' %}active{% endif %}">
-                    <i class="fas fa-calendar-minus"></i>
-                    <span>ميزانية الفصل</span>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_cost_centers %}
+                {% if user.is_superuser or 'accounting_cost_centers' in emp_perms %}
+                <a href="{% url 'accounts:cost_center_list' %}" class="menu-item sub-item">
+                    <i class="fas fa-diagram-project"></i>
+                    <span>مراكز الكلفة</span>
                 </a>
-                <a href="{% url 'accounts:thaaer_trial_balance' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_trial_balance' %}active{% endif %}">
-                    <i class="fas fa-scale-balanced text-indigo"></i>
-                    <span>ميزان المراجعة الشامل</span>
-                </a>
-                <a href="{% url 'accounts:thaaer_income_statement' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_income_statement' %}active{% endif %}">
-                    <i class="fas fa-chart-line text-indigo"></i>
-                    <span>قائمة الدخل والأرباح</span>
-                </a>
-                <a href="{% url 'accounts:thaaer_balance_sheet' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_balance_sheet' %}active{% endif %}">
-                    <i class="fas fa-building-columns text-indigo"></i>
-                    <span>الميزانية والمركز المالي</span>
-                </a>
-                <a href="{% url 'accounts:thaaer_ledger' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'thaaer_ledger' %}active{% endif %}">
-                    <i class="fas fa-book text-indigo"></i>
-                    <span>الأستاذ العام وكشف الحساب</span>
-                </a>
+                {% endif %}
+                {% endif %}
             </div>
         </div>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.acc_journal_entries or sidebar_config.acc_new_journal_entry or sidebar_config.acc_receipts_expenses or sidebar_config.acc_advances %}
+        {% if user.is_superuser or 'accounting_entries' in emp_perms or 'accounting_receipts' in emp_perms or 'accounting_expenses' in emp_perms or 'hr_advances' in emp_perms %}
+        <div class="menu-group">
+            <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="accounts-operations-submenu-main">
+                <i class="fas fa-wallet text-info"></i>
+                <span>العمليات اليومية (المحاسبة)</span>
+                <i class="fas fa-chevron-down group-arrow"></i>
+            </button>
+            <div id="accounts-operations-submenu-main" class="sub-menu">
+                {% if sidebar_config.acc_journal_entries %}
+                {% if user.is_superuser or 'accounting_entries' in emp_perms %}
+                <a href="{% url 'accounts:journal_entry_list' %}" class="menu-item sub-item">
+                    <i class="fas fa-book-open"></i>
+                    <span>القيود اليومية</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_new_journal_entry %}
+                {% if user.is_superuser or 'accounting_entries' in emp_perms %}
+                <a href="{% url 'accounts:journal_entry_create' %}" class="menu-item sub-item">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>قيد جديد</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_receipts_expenses %}
+                {% if user.is_superuser or 'accounting_receipts' in emp_perms or 'accounting_expenses' in emp_perms %}
+                <a href="{% url 'accounts:receipts_expenses' %}" class="menu-item sub-item">
+                    <i class="fas fa-receipt"></i>
+                    <span>الإيصالات والمصاريف</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_advances %}
+                {% if user.is_superuser or 'hr_advances' in emp_perms %}
+                <a href="{% url 'accounts:advance_list' %}" class="menu-item sub-item">
+                    <i class="fas fa-hand-holding-dollar"></i>
+                    <span>سلف الموظفين</span>
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if sidebar_config.acc_reports_center or sidebar_config.acc_trial_balance or sidebar_config.acc_account_statement or sidebar_config.acc_balance_sheet or sidebar_config.acc_income_statement %}
+        {% if user.is_superuser or 'accounting_reports' in emp_perms or 'accounting_trial_balance' in emp_perms or 'accounting_ledger' in emp_perms or 'accounting_balance_sheet' in emp_perms or 'accounting_income_statement' in emp_perms %}
+        <div class="menu-group">
+            <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="accounts-analysis-submenu-main">
+                <i class="fas fa-chart-pie text-info"></i>
+                <span>التقارير والتحليل (المحاسبة)</span>
+                <i class="fas fa-chevron-down group-arrow"></i>
+            </button>
+            <div id="accounts-analysis-submenu-main" class="sub-menu">
+                {% if sidebar_config.acc_reports_center %}
+                {% if user.is_superuser or 'accounting_reports' in emp_perms %}
+                <a href="{% url 'accounts:reports' %}" class="menu-item sub-item">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>مركز التقارير</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_trial_balance %}
+                {% if user.is_superuser or 'accounting_trial_balance' in emp_perms %}
+                <a href="{% url 'accounts:trial_balance' %}" class="menu-item sub-item">
+                    <i class="fas fa-scale-balanced"></i>
+                    <span>ميزان المراجعة</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_account_statement %}
+                {% if user.is_superuser or 'accounting_ledger' in emp_perms %}
+                <a href="{% url 'accounts:account_statement' %}" class="menu-item sub-item">
+                    <i class="fas fa-book"></i>
+                    <span>كشف الحساب</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_balance_sheet %}
+                {% if user.is_superuser or 'accounting_balance_sheet' in emp_perms %}
+                <a href="{% url 'accounts:balance_sheet' %}" class="menu-item sub-item">
+                    <i class="fas fa-sheet-plastic"></i>
+                    <span>الميزانية العمومية</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_income_statement %}
+                {% if user.is_superuser or 'accounting_income_statement' in emp_perms %}
+                <a href="{% url 'accounts:income_statement' %}" class="menu-item sub-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>قائمة الدخل</span>
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if sidebar_config.acc_courses %}
+        {% if user.is_superuser or 'course_accounting_view' in emp_perms %}
+        <a href="{% url 'accounts:course_list' %}" class="menu-item">
+            <i class="fas fa-graduation-cap text-info"></i>
+            <span>الدورات (المحاسبة)</span>
+        </a>
+        {% endif %}
+        {% endif %}
+
+        {% if sidebar_config.acc_outstanding %}
+        {% if user.is_superuser or 'accounting_outstanding' in emp_perms %}
+        <a href="{% url 'accounts:outstanding_courses' %}" class="menu-item">
+            <i class="fas fa-coins text-info"></i>
+            <span>المبالغ المستحقة (المحاسبة)</span>
+        </a>
+        {% endif %}
+        {% endif %}
+
+        {% if sidebar_config.acc_quick_student_list or sidebar_config.acc_quick_student_create or sidebar_config.acc_quick_course_list or sidebar_config.acc_quick_outstanding or sidebar_config.acc_quick_late_payments or sidebar_config.acc_quick_intersections or sidebar_config.acc_quick_manual_sorting %}
+        {% if user.is_superuser or 'quick_students_view' in emp_perms or 'quick_students_create' in emp_perms or 'course_accounting_view' in emp_perms or 'accounting_outstanding' in emp_perms or 'students_manual_sorting' in emp_perms %}
+        <div class="menu-group">
+            <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="accounts-quick-students-submenu-main">
+                <i class="fas fa-bolt text-info"></i>
+                <span>النظام السريع للطلاب (المحاسبة)</span>
+                <i class="fas fa-chevron-down group-arrow"></i>
+            </button>
+            <div id="accounts-quick-students-submenu-main" class="sub-menu">
+                {% if sidebar_config.acc_quick_student_list %}
+                {% if user.is_superuser or 'quick_students_view' in emp_perms %}
+                <a href="{% url 'quick:student_list' %}" class="menu-item sub-item">
+                    <i class="fas fa-users"></i>
+                    <span>الطلاب السريعون</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_quick_student_create %}
+                {% if user.is_superuser or 'quick_students_create' in emp_perms %}
+                <a href="{% url 'quick:student_create' %}" class="menu-item sub-item">
+                    <i class="fas fa-user-plus"></i>
+                    <span>إضافة طالب سريع</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_quick_course_list %}
+                {% if user.is_superuser or 'course_accounting_view' in emp_perms %}
+                <a href="{% url 'quick:course_list' %}" class="menu-item sub-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>دورات النظام السريع</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_quick_outstanding %}
+                {% if user.is_superuser or 'accounting_outstanding' in emp_perms %}
+                <a href="{% url 'quick:outstanding_courses' %}" class="menu-item sub-item">
+                    <i class="fas fa-coins"></i>
+                    <span>تقرير المتبقي</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_quick_late_payments %}
+                {% if user.is_superuser or 'accounting_outstanding' in emp_perms %}
+                <a href="{% url 'quick:late_payment_courses' %}" class="menu-item sub-item">
+                    <i class="fas fa-hourglass-half"></i>
+                    <span>المتأخرون بالدفع</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_quick_intersections %}
+                {% if user.is_superuser or 'students_manual_sorting' in emp_perms %}
+                <a href="{% url 'quick:student_intersections' %}" class="menu-item sub-item">
+                    <i class="fas fa-shuffle"></i>
+                    <span>تقاطع الطلاب</span>
+                </a>
+                {% endif %}
+                {% endif %}
+                {% if sidebar_config.acc_quick_manual_sorting %}
+                {% if user.is_superuser or 'students_manual_sorting' in emp_perms %}
+                <a href="{% url 'quick:manual_sorting' %}" class="menu-item sub-item">
+                    <i class="fas fa-sort"></i>
+                    <span>الفرز اليدوي</span>
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+        <!-- END GRANULAR ACCOUNTING SYSTEM ITEMS -->
+
+        {% if sidebar_config.education %}
         {% if user.is_superuser or 'attendance_view' in emp_perms or 'attendance_teacher_view' in emp_perms %}
         <div class="menu-group">
             <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="attendance-submenu">
@@ -283,34 +502,28 @@
                 <i class="fas fa-chevron-down group-arrow"></i>
             </button>
             <div id="attendance-submenu" class="sub-menu">
-                {% if user.is_superuser or 'attendance_view' in emp_perms %}
                 <a href="{% url 'attendance:attendance' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'attendance' and request.resolver_match.url_name == 'attendance' %}active{% endif %}">
                     <i class="fas fa-calendar-check"></i>
                     <span>حضور الطلاب</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'attendance_teacher_view' in emp_perms %}
                 <a href="{% url 'attendance:teacher_attendance' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'teacher_attendance' %}active{% endif %}">
                     <i class="fas fa-user-check"></i>
                     <span>حضور المدرسين</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'attendance_view' in emp_perms %}
                 <a href="{% url 'quick:quick_course_attendance' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'quick' and request.resolver_match.url_name == 'quick_course_attendance' %}active{% endif %}">
                     <i class="fas fa-bolt"></i>
                     <span>حضور الدورات السريعة</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'reports_students' in emp_perms %}
                 <a href="{% url 'students:stu_num' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'stu_num' %}active{% endif %}">
                     <i class="fas fa-users-viewfinder"></i>
                     <span>عدد الطلاب</span>
                 </a>
-                {% endif %}
             </div>
         </div>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.education %}
         {% if user.is_superuser or 'classroom_view' in emp_perms or 'exams_view' in emp_perms %}
         <div class="menu-group">
             <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="education-submenu">
@@ -319,13 +532,10 @@
                 <i class="fas fa-chevron-down group-arrow"></i>
             </button>
             <div id="education-submenu" class="sub-menu">
-                {% if user.is_superuser or 'classroom_view' in emp_perms %}
                 <a href="{% url 'classroom:classroom' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'classroom' %}active{% endif %}">
                     <i class="fas fa-chalkboard"></i>
                     <span>الشعب الدراسية</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'exams_view' in emp_perms %}
                 <a href="{% url 'exams:dashboard' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.app_name == 'exams' and request.resolver_match.url_name != 'missed_exams_report' %}active{% endif %}">
                     <i class="fas fa-square-poll-vertical"></i>
                     <span>العلامات</span>
@@ -334,11 +544,12 @@
                     <i class="fas fa-user-clock"></i>
                     <span>تقرير التخلف</span>
                 </a>
-                {% endif %}
             </div>
         </div>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.hr %}
         {% if user.is_superuser or 'hr_view' in emp_perms or 'hr_dashboard' in emp_perms %}
         <div class="menu-group">
             <button type="button" class="menu-group-title" aria-expanded="false" aria-controls="hr-submenu">
@@ -347,25 +558,18 @@
                 <i class="fas fa-chevron-down group-arrow"></i>
             </button>
             <div id="hr-submenu" class="sub-menu">
-                {% if user.is_superuser or 'hr_view' in emp_perms %}
                 <a href="{% url 'employ:hr' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'hr' %}active{% endif %}">
                     <i class="fas fa-users-gear"></i>
                     <span>الموظفون</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'hr_salary' in emp_perms %}
                 <a href="{% url 'employ:salary_management' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'salary_management' %}active{% endif %}">
                     <i class="fas fa-wallet"></i>
                     <span>إدارة الرواتب</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'hr_salary' in emp_perms %}
                 <a href="{% url 'employ:payroll_dashboard' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'payroll_dashboard' %}active{% endif %}">
                     <i class="fas fa-file-invoice-dollar"></i>
                     <span>مسير الرواتب</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'hr_view' in emp_perms %}
                 <a href="{% url 'employ:biometric_dashboard' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'biometric_dashboard' %}active{% endif %}">
                     <i class="fas fa-fingerprint"></i>
                     <span>البصمة</span>
@@ -382,49 +586,40 @@
                     <i class="fas fa-chart-line"></i>
                     <span>التقارير</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'hr_vacations' in emp_perms %}
                 <a href="{% url 'employ:vacation_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'vacation_list' %}active{% endif %}">
                     <i class="fas fa-umbrella-beach"></i>
                     <span>الإجازات</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'hr_edit' in emp_perms %}
                 <a href="{% url 'employ:hr_settings' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name == 'hr_settings' %}active{% endif %}">
                     <i class="fas fa-sliders"></i>
                     <span>طرق الحساب</span>
                 </a>
-                {% endif %}
-                {% if user.is_superuser or 'hr_advances' in emp_perms %}
                 <a href="{% url 'accounts:advance_list' %}" class="menu-item sub-item {% if request.resolver_match and request.resolver_match.url_name and 'advance' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="fas fa-hand-holding-dollar"></i>
                     <span>سلف الموظفين</span>
                 </a>
-                {% endif %}
             </div>
         </div>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.subjects %}
         {% if user.is_superuser or 'courses_view' in emp_perms %}
         <a href="{% url 'courses:subject_list' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'courses' %}active{% endif %}">
             <i class="fas fa-book-open-reader"></i>
             <span>المواد الدراسية</span>
         </a>
         {% endif %}
+        {% endif %}
 
+        {% if sidebar_config.passwords %}
         {% if user.is_superuser or 'admin_users' in emp_perms %}
         <a href="{% url 'registration:superuser_password_reset' %}" class="menu-item {% if request.resolver_match and request.resolver_match.url_name == 'superuser_password_reset' %}active{% endif %}">
             <i class="fas fa-key"></i>
             <span>إدارة كلمات المرور</span>
         </a>
         {% endif %}
-
-        {% comment %} {% if user.is_superuser or 'accounting_receipts' in emp_perms or 'accounting_expenses' in emp_perms %}
-        <a href="{% url 'accounts:receipts_expenses' %}" class="menu-item {% if request.resolver_match and request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name and 'receipt' in request.resolver_match.url_name %}active{% elif request.resolver_match and request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name and 'expense' in request.resolver_match.url_name %}active{% endif %}">
-            <i class="fas fa-receipt"></i>
-            <span>الإيصالات والمصاريف</span>
-        </a>
-        {% endif %} {% endcomment %}
+        {% endif %}
 
         <div class="sidebar-shortcuts">
             <div class="sidebar-shortcuts__title">وصول سريع</div>
@@ -467,7 +662,7 @@
 <aside id="site-sidebar" class="sidebar" aria-label="القائمة الجانبية الرئيسية">
     <div class="sidebar-header">
         <div class="logo-container">
-            <img src="{% static 'img/logo.png' %}" alt="معهد اليمان" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <img src="{% static 'img/logo.png' %}" alt="معهد النبلاء" class="sidebar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div class="logo-fallback" style="display:none;">
                 <i class="fas fa-graduation-cap"></i>
             </div>

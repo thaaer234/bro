@@ -15,9 +15,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate">
     <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate">
-    <title>{% block title %}معهد اليمان | منصة الإدارة الذكية{% endblock %}</title>
-    <meta name="description" content="منصة تشغيل موحدة لمعهد اليمان بواجهة عربية حديثة ولوحات عمل مترابطة.">
-    <meta property="og:title" content="معهد اليمان | منصة الإدارة الذكية">
+    <title>{% block title %}معهد النبلاء | منصة الإدارة الذكية{% endblock %}</title>
+    <meta name="description" content="منصة تشغيل موحدة لمعهد النبلاء بواجهة عربية حديثة ولوحات عمل مترابطة.">
+    <meta property="og:title" content="معهد النبلاء | منصة الإدارة الذكية">
     <meta property="og:description" content="لوحة تشغيل موحدة بمعايير حديثة وتجربة عربية كاملة.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
@@ -40,6 +40,7 @@
     <link rel="stylesheet" href="{% static 'css/module-unify-overrides.css' %}">
     <link rel="stylesheet" href="{% static 'css/premium-redesign.css' %}">
     <link rel="stylesheet" href="{% static 'css/guided-navigation.css' %}">
+    <link rel="stylesheet" href="{% static 'css/noblaa-theme.css' %}">
     {% block extra_css %}{% endblock %}
 
     <script>
@@ -145,7 +146,7 @@
             <div id="spotlight-results" class="spotlight-sys-results-list">
                 <div class="spotlight-sys-placeholder" id="spotlight-placeholder">
                     <i class="fas fa-search-plus fa-3x spotlight-sys-pulse"></i>
-                    <h4>البحث الذكي والشامل في معهد اليمان</h4>
+                    <h4>البحث الذكي والشامل في معهد النبلاء</h4>
                     <p>اكتب اسم طالب، شعبة، مادة، مدرس، حساب مالي، أو وجهة نظام...</p>
                 </div>
             </div>
@@ -236,7 +237,7 @@
             color: #0f172a !important;
             font-size: 14px !important;
             font-weight: 500 !important;
-            font-family: 'Cairo', sans-serif !important;
+            font-family: var(--font-body), sans-serif !important;
             box-sizing: border-box !important;
             outline: none !important;
             transition: all 0.2s ease !important;
@@ -425,7 +426,7 @@
         }
         .spotlight-badge-finance {
             background: #f0fdfa !important;
-            color: #0f766e !important;
+            color: #00668a !important;
             border: 1px solid #99f6e4 !important;
         }
         

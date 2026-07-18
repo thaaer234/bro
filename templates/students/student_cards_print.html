@@ -35,7 +35,7 @@
         .back-header,
         .back-qr span,
         .back-footer {
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif !important;
             direction: rtl !important;
             text-align: center !important;
             unicode-bidi: plaintext !important;
@@ -43,7 +43,7 @@
 
         /* إصلاح خاص للأسماء */
         .front-title .name {
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif !important;
             direction: rtl !important;
             text-align: center !important;
             unicode-bidi: bidi-override !important;
@@ -110,21 +110,21 @@
         }
         {% if not pdf %}
         @font-face {
-            font-family: "Cairo";
+            font-family: var(--font-body);
             font-style: normal;
             font-weight: 400;
             font-display: swap;
             src: url("{% static 'font/Cairo-400.ttf' %}") format("truetype");
         }
         @font-face {
-            font-family: "Cairo";
+            font-family: var(--font-body);
             font-style: normal;
             font-weight: 600;
             font-display: swap;
             src: url("{% static 'font/Cairo-600.ttf' %}") format("truetype");
         }
         @font-face {
-            font-family: "Cairo";
+            font-family: var(--font-body);
             font-style: normal;
             font-weight: 800;
             font-display: swap;
@@ -291,7 +291,7 @@
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
             margin: 0;
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif;
             box-sizing: border-box;
             page-break-inside: avoid;
             break-inside: avoid;
@@ -352,7 +352,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif !important;
             transform: translateY(-2px);
         }
 
@@ -456,7 +456,7 @@
             font-size: 10px;
             font-weight: 700;
             line-height: 1.25;
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif !important;
             direction: rtl;
             text-align: right;
             color: #fff;
@@ -526,14 +526,14 @@
             box-sizing: border-box;
             overflow: hidden;
             direction: rtl;
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif !important;
             background:
                 repeating-linear-gradient(0deg, transparent 0 22px, var(--grid) 22px 23px),
                 repeating-linear-gradient(90deg, transparent 0 22px, var(--grid) 22px 23px),
                 linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
         }
         .back-card * {
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif !important;
         }
 
         .back-header {
@@ -649,7 +649,7 @@
         }
 
         .back-footer .en {
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif;
             font-size: 7px;
             opacity: 0.85;
         }
@@ -728,27 +728,27 @@
 
         @media print {
             @font-face {
-                font-family: "Cairo";
+                font-family: var(--font-body);
                 font-style: normal;
                 font-weight: 400;
                 font-display: swap;
-                src: local("Cairo"), local("Cairo-Regular"),
+                src: local(var(--font-body)), local("Cairo-Regular"),
                     url("{% static 'font/Cairo-400.ttf' %}") format("truetype");
             }
             @font-face {
-                font-family: "Cairo";
+                font-family: var(--font-body);
                 font-style: normal;
                 font-weight: 600;
                 font-display: swap;
-                src: local("Cairo"), local("Cairo-SemiBold"),
+                src: local(var(--font-body)), local("Cairo-SemiBold"),
                     url("{% static 'font/Cairo-600.ttf' %}") format("truetype");
             }
             @font-face {
-                font-family: "Cairo";
+                font-family: var(--font-body);
                 font-style: normal;
                 font-weight: 800;
                 font-display: swap;
-                src: local("Cairo"), local("Cairo-ExtraBold"),
+                src: local(var(--font-body)), local("Cairo-ExtraBold"),
                     url("{% static 'font/Cairo-800.ttf' %}") format("truetype");
             }
             * {
@@ -875,7 +875,7 @@
                     <div class="front-card">
                         <div class="front-left">
                         <div class="front-title">
-                            <span class="label" style="font-family: 'Cairo', 'Tajawal', 'Segoe UI', sans-serif !important; font-weight: 800;">&#1576;&#1591;&#1575;&#1602;&#1577; &#1575;&#1604;&#1591;&#1575;&#1604;&#1576;</span>
+                            <span class="label" style="font-family: var(--font-body), 'Tajawal', 'Segoe UI', sans-serif !important; font-weight: 800;">&#1576;&#1591;&#1575;&#1602;&#1577; &#1575;&#1604;&#1591;&#1575;&#1604;&#1576;</span>
                             <div class="name-row">
                                 <span class="name">{{ student.full_name }}</span>
                                 <span class="line"></span>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول | معهد اليمان</title>
+    <title>تسجيل الدخول | معهد النبلاء</title>
     <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/local-fonts.css' %}">
@@ -16,12 +16,12 @@
     <style>
         /* Premium Light Mode Redesign for Login Page - Material & Google Stitch Inspired */
         body.auth-page {
-            background: radial-gradient(circle at top right, rgba(163, 71, 47, 0.08) 0%, transparent 40%),
-                        radial-gradient(circle at bottom left, rgba(29, 107, 99, 0.08) 0%, transparent 40%),
+            background: radial-gradient(circle at top right, rgba(0, 40, 85, 0.08) 0%, transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(0, 102, 138, 0.08) 0%, transparent 40%),
                         linear-gradient(135deg, #f5efe5 0%, #fcfaf6 100%) !important;
             color: #1f2937;
             min-height: 100vh;
-            font-family: 'Cairo', sans-serif;
+            font-family: var(--font-body), sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -45,7 +45,7 @@
             border: 1px solid rgba(255, 255, 255, 0.85) !important;
             border-radius: 36px;
             overflow: hidden;
-            box-shadow: 0 30px 60px rgba(29, 107, 99, 0.08) !important;
+            box-shadow: 0 30px 60px rgba(0, 102, 138, 0.08) !important;
             backdrop-filter: blur(20px);
             min-height: 600px;
         }
@@ -63,7 +63,7 @@
 
         /* Showcase Panel (Left) */
         .auth-showcase {
-            background: linear-gradient(135deg, #1d6b63, #154c46) !important;
+            background: linear-gradient(135deg, #001430, #002855) !important;
             padding: 48px;
             display: flex;
             flex-direction: column;
@@ -188,7 +188,7 @@
             border-radius: 24px;
             background: #ffffff;
             padding: 6px;
-            box-shadow: 0 10px 25px rgba(29, 107, 99, 0.08);
+            box-shadow: 0 10px 25px rgba(0, 102, 138, 0.08);
             margin-bottom: 12px;
         }
 
@@ -224,7 +224,7 @@
         }
 
         .form-group label i {
-            color: #1d6b63;
+            color: #001430;
         }
 
         .form-group input.form-control {
@@ -245,8 +245,8 @@
 
         .form-group input.form-control:focus {
             background: #ffffff !important;
-            border-color: #1d6b63 !important;
-            box-shadow: 0 0 0 4px rgba(29, 107, 99, 0.12) !important;
+            border-color: #001430 !important;
+            box-shadow: 0 0 0 4px rgba(0, 102, 138, 0.12) !important;
             outline: none;
         }
 
@@ -272,7 +272,7 @@
         }
 
         .password-toggle:hover {
-            color: #1d6b63;
+            color: #001430;
         }
 
         /* Actions */
@@ -288,21 +288,21 @@
             border-radius: 14px;
             font-size: 16px;
             font-weight: 800;
-            background: linear-gradient(135deg, #1d6b63 0%, #154c46 100%) !important;
+            background: linear-gradient(135deg, #001430 0%, #002855 100%) !important;
             border: none !important;
             color: #ffffff !important;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            box-shadow: 0 8px 20px rgba(29, 107, 99, 0.25);
+            box-shadow: 0 8px 20px rgba(0, 102, 138, 0.25);
             transition: all 0.3s ease;
             cursor: pointer;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(29, 107, 99, 0.35);
+            box-shadow: 0 12px 28px rgba(0, 102, 138, 0.35);
             background: linear-gradient(135deg, #227e74 0%, #1a5e56 100%) !important;
         }
 
@@ -312,8 +312,8 @@
             font-size: 14px;
             font-weight: 700;
             background: transparent !important;
-            border: 1px solid rgba(29, 107, 99, 0.25) !important;
-            color: #1d6b63 !important;
+            border: 1px solid rgba(0, 102, 138, 0.25) !important;
+            color: #001430 !important;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -323,9 +323,9 @@
         }
 
         .btn-outline-primary:hover {
-            background: rgba(29, 107, 99, 0.05) !important;
-            border-color: #1d6b63 !important;
-            color: #115e59 !important;
+            background: rgba(0, 102, 138, 0.05) !important;
+            border-color: #001430 !important;
+            color: #002855 !important;
         }
 
         .auth-support {
@@ -338,9 +338,9 @@
 
         /* Alerts */
         .alert-danger {
-            background: rgba(163, 71, 47, 0.06) !important;
-            border: 1px solid rgba(163, 71, 47, 0.16) !important;
-            color: #a3472f !important;
+            background: rgba(0, 40, 85, 0.06) !important;
+            border: 1px solid rgba(0, 40, 85, 0.16) !important;
+            color: #00668a !important;
             border-radius: 12px !important;
             padding: 12px 16px !important;
             font-size: 14px;
@@ -360,9 +360,9 @@
                 <div>
                     <span class="welcome-kicker"><i class="fas fa-star"></i> إدارة ذكية متكاملة</span>
                     <div class="auth-showcase__brand mt-3">
-                        <img src="{% static 'img/logo.png' %}" alt="شعار معهد اليمان" class="auth-showcase__logo">
+                        <img src="{% static 'img/logo.png' %}" alt="شعار معهد النبلاء" class="auth-showcase__logo">
                         <div>
-                            <h1 class="auth-showcase__title">معهد اليمان</h1>
+                            <h1 class="auth-showcase__title">معهد النبلاء</h1>
                             <div style="color: rgba(255, 255, 255, 0.7); font-size: 14px;">منصة إدارة تعليمية حديثة وهوية تشغيل موحدة</div>
                         </div>
                     </div>
@@ -388,7 +388,7 @@
 
             <section class="auth-card">
                 <div class="logo2">
-                    <img src="{% static 'img/logo.png' %}" alt="شعار معهد اليمان">
+                    <img src="{% static 'img/logo.png' %}" alt="شعار معهد النبلاء">
                     <h1>تسجيل الدخول</h1>
                 </div>
 

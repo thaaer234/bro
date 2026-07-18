@@ -465,6 +465,24 @@
 
 {% block extra_css %}
 <style>
+/* Force RTL Input Icon Padding and prevent overlapping */
+body.app-body .control--with-icon .input,
+body.app-body .control--with-icon input,
+body.app-body .control--with-icon select {
+    padding-right: 46px !important;
+    padding-left: 16px !important;
+    direction: rtl !important;
+    text-align: right !important;
+}
+body.app-body .control--with-icon i {
+    right: 16px !important;
+    left: auto !important;
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 10 !important;
+}
+
 
 
 /* Base + RTL */
@@ -544,13 +562,18 @@ body{
 .req{color:var(--c-danger)}
 .control{position:relative}
 .control--with-icon i{
-  position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none
+  position:absolute;right:12px !important;left:auto !important;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none;z-index:10;
 }
 .input{
   width:100%;padding:10px 12px 10px 12px;border:1px solid var(--c-border);border-radius:8px;background:#fff;
   font-size:14px;outline:none
 }
-.control--with-icon .input{padding-right:36px}
+.control--with-icon .input, .control--with-icon input, .control--with-icon select {
+  padding-right: 38px !important;
+  padding-left: 12px !important;
+  direction: rtl !important;
+  text-align: right !important;
+}
 .input:focus{border-color:var(--c-primary);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
 .input--invalid{border-color:var(--c-danger);box-shadow:0 0 0 3px rgba(220,38,38,.12)}
 .field--invalid .label{color:var(--c-danger)}

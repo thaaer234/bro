@@ -62,4 +62,5 @@ urlpatterns = [
     path('course-audit/api/', views.audit_course_api, name='course_audit_api'),
     path('accounting-issues/', require_employee_perm('students_view')(views.StudentAccountingIssuesView.as_view()), name='accounting_issues'),
     path('course-audit/fix/', views.fix_student_enrollment_error, name='fix_student_enrollment_error'),
+    path('sidebar-management/', views.sidebar_management, name='sidebar_management'),
 ]

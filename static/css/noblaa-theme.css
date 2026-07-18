@@ -1,0 +1,567 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Work+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+    color-scheme: light;
+    
+    /* Modern SaaS Color Palette */
+    --primary: #001430 !important;
+    --on-primary: #ffffff !important;
+    --primary-container: #002855 !important;
+    --on-primary-container: #a2bce0 !important;
+    
+    --secondary: #0088cc !important; /* Vibrant SaaS Blue/Cyan */
+    --on-secondary: #ffffff !important;
+    --secondary-container: #00b4d8 !important;
+    --on-secondary-container: #00334e !important;
+    
+    --tertiary: #0f151a !important;
+    --on-tertiary: #ffffff !important;
+    --tertiary-container: #23292f !important;
+    
+    /* Soft SaaS Surfaces */
+    --background: #f4f6fc !important;
+    --on-background: #0f172a !important;
+    
+    --surface: #ffffff !important;
+    --on-surface: #0f172a !important;
+    --surface-variant: #f1f5f9 !important;
+    --on-surface-variant: #475569 !important;
+    
+    --surface-container-lowest: #ffffff !important;
+    --surface-container-low: #f8fafc !important;
+    --surface-container: #f1f5f9 !important;
+    --surface-container-high: #e2e8f0 !important;
+    --surface-container-highest: #cbd5e1 !important;
+    
+    --outline: #cbd5e1 !important;
+    --outline-variant: #e2e8f0 !important;
+    
+    --error: #ef4444 !important;
+    --on-error: #ffffff !important;
+    
+    /* Typography */
+    --font-display: "Tajawal", "Cairo", sans-serif !important;
+    --font-body: "Tajawal", "Cairo", sans-serif !important;
+    --font-label: "Work Sans", sans-serif !important;
+
+    /* SaaS Rounded Configurations */
+    --radius-xs: 6px !important;
+    --radius-sm: 8px !important;
+    --radius-md: 12px !important;
+    --radius-lg: 16px !important;
+    --radius-xl: 24px !important;
+    --radius-full: 9999px !important;
+    
+    /* Premium Soft Shadows */
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+    --shadow-sm: 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+    --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.05) !important;
+    --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.08) !important;
+    
+    --anim-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+    --anim-base: 220ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Base Body Resets */
+body.app-body {
+    background-color: var(--background) !important;
+    color: var(--on-background) !important;
+    font-family: var(--font-body) !important;
+    line-height: 1.6 !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display) !important;
+    color: var(--primary) !important;
+    font-weight: 700 !important;
+}
+
+/* Glassmorphic Cards & Layout Containers */
+.card, 
+body.app-body .dashboard-card,
+body.app-body .mini-stat-card,
+body.app-body .stat-card,
+body.app-body .main-card,
+body.app-body .record-card,
+body.app-body .info-card {
+    background: var(--surface) !important;
+    border: 1px solid var(--outline-variant) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-sm) !important;
+    padding: 24px !important;
+    transition: transform var(--anim-base), box-shadow var(--anim-base) !important;
+    position: relative;
+}
+
+.card:hover,
+body.app-body .dashboard-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* Energetic accent lines on cards */
+.card::after,
+body.app-body .dashboard-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--secondary), var(--secondary-container));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* Sidebar SaaS Redesign */
+.sidebar {
+    background: #0f172a !important; /* Sleek Dark Slate */
+    border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+.sidebar .menu-item {
+    font-family: var(--font-display) !important;
+    border-radius: var(--radius-md) !important;
+    margin: 4px 12px !important;
+    padding: 12px 16px !important;
+    transition: all var(--anim-fast) !important;
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
+}
+
+.sidebar .menu-item:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+}
+
+.sidebar .menu-item.active {
+    background: var(--secondary) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3) !important;
+}
+
+/* Rounded SaaS Buttons */
+body.app-body .btn {
+    border-radius: var(--radius-md) !important;
+    font-family: var(--font-display) !important;
+    font-weight: 600 !important;
+    padding: 10px 24px !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: all var(--anim-fast) !important;
+}
+
+body.app-body .btn-primary {
+    background: linear-gradient(135deg, var(--secondary), var(--secondary-container)) !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+
+body.app-body .btn-primary:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(0, 136, 204, 0.25) !important;
+}
+
+/* Boxed Form Inputs */
+body.app-body .form-control,
+body.app-body select,
+body.app-body textarea {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--outline) !important;
+    background: var(--surface-container-low) !important;
+    padding: 12px 16px !important;
+    transition: all var(--anim-fast) !important;
+}
+
+body.app-body .form-control:focus {
+    background: var(--surface) !important;
+    border-color: var(--secondary) !important;
+    box-shadow: 0 0 0 4px rgba(0, 136, 204, 0.1) !important;
+}
+
+/* Modern Rounded Tables */
+table.table {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--outline-variant) !important;
+}
+
+table.table th {
+    background: var(--surface-container) !important;
+    padding: 16px !important;
+    color: var(--on-surface-variant) !important;
+    border-bottom: 2px solid var(--outline-variant) !important;
+}
+
+table.table td {
+    padding: 14px 16px !important;
+    background: var(--surface) !important;
+}
+
+/* Navigation Groups */
+.sidebar .menu-group-title {
+    color: #64748b !important;
+    font-size: 0.85rem !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    padding: 16px 24px 8px 24px !important;
+}
+
+.sidebar .sub-menu {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-radius: var(--radius-md) !important;
+    margin: 4px 12px !important;
+}
+
+.sidebar .sub-item {
+    font-size: 0.85rem !important;
+    padding: 10px 16px !important;
+    color: #94a3b8 !important;
+}
+
+.sidebar .sub-item:hover {
+    color: #ffffff !important;
+}
+
+/* SaaS Dashboard Layout Overrides */
+.dashboard-charts {
+    display: grid !important;
+    grid-template-columns: 2fr 1fr !important;
+    gap: 24px !important;
+    margin-bottom: 32px !important;
+}
+
+@media (max-width: 900px) {
+    .dashboard-charts {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+.chart-container, .stats-container, .filter-section, .recent-activity {
+    background: var(--surface) !important;
+    border: 1px solid var(--outline-variant) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-sm) !important;
+    padding: 28px !important;
+    margin-bottom: 24px !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.chart-header, .filter-header, .activity-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1px solid var(--outline-variant) !important;
+    padding-bottom: 16px !important;
+    margin-bottom: 20px !important;
+}
+
+.chart-header h3, .filter-header h3, .activity-header h3 {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    color: var(--primary) !important;
+}
+
+/* Stats items */
+.stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+}
+
+.stat-item {
+    background: var(--surface-container-low) !important;
+    border: 1px solid var(--outline-variant) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 16px !important;
+    text-align: center !important;
+    transition: transform var(--anim-fast) !important;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.stat-value {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    color: var(--secondary) !important;
+}
+
+.stat-label {
+    font-size: 0.8rem !important;
+    color: var(--on-surface-variant) !important;
+    margin-top: 4px !important;
+}
+
+/* Filter components */
+.filter-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+    margin-bottom: 20px !important;
+}
+
+.filter-group {
+    flex: 1 1 200px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+}
+
+.filter-group label {
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    color: var(--on-surface-variant) !important;
+}
+
+.filter-actions {
+    display: flex !important;
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+}
+
+/* Global RTL Input Icon Overlap Fix with High Specificity */
+body.app-body .control--with-icon .input,
+body.app-body .control--with-icon input,
+body.app-body .control--with-icon select,
+body.app-body .quick-student-create-control .input,
+body.app-body .quick-student-create-control input,
+body.app-body .quick-student-create-control select,
+body.app-body .quick-student-create-input {
+    padding-right: 42px !important;
+    padding-left: 16px !important;
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+body.app-body .control--with-icon i,
+body.app-body .quick-student-create-control i {
+    right: 14px !important;
+    left: auto !important;
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 5 !important;
+}
+
+/* Premium Overhauled Sidebar - Navy & Sky Blue Theme */
+body.app-body .sidebar {
+    background: linear-gradient(190deg, #020914 0%, #00142b 60%, #001f3f 100%) !important;
+    border-left: 1px solid rgba(56, 189, 248, 0.12) !important;
+    box-shadow: 12px 0 40px rgba(0, 0, 0, 0.6) !important;
+    font-family: 'Tajawal', sans-serif !important;
+    padding: 1.2rem 0.8rem !important;
+}
+
+/* Overhaul the white/blue sidebar-header card to be fully dark transparent */
+body.app-body .sidebar-header {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(56, 189, 248, 0.12) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    margin-bottom: 1.5rem !important;
+    padding: 1.5rem 1rem !important;
+    border-radius: 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 8px !important;
+}
+
+body.app-body .logo-container {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 auto 10px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+body.app-body .sidebar-logo {
+    width: 100px !important;
+    height: 100px !important;
+    border-radius: 24px !important;
+    background: transparent !important;
+    border: 2px solid #38bdf8 !important; /* Sky Blue Border Frame */
+    padding: 6px !important;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.25) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    object-fit: contain !important;
+}
+
+body.app-body .sidebar-logo:hover {
+    transform: scale(1.06) rotate(3deg) !important;
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.45) !important;
+    border-color: #ffffff !important;
+}
+
+body.app-body .sidebar .profile-section {
+    display: flex !important;
+    justify-content: center !important;
+    margin: 5px auto !important;
+    width: 100% !important;
+}
+
+body.app-body .sidebar .profile-image-container {
+    width: 68px !important;
+    height: 68px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    border: 2px solid #38bdf8 !important;
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+
+body.app-body .sidebar .profile-image {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+body.app-body .sidebar .user-info {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-top: 5px !important;
+}
+
+body.app-body .sidebar .user-info span {
+    font-family: 'Tajawal', sans-serif !important;
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+    text-align: center !important;
+    display: block !important;
+}
+
+body.app-body .sidebar .user-info small {
+    font-family: 'Tajawal', sans-serif !important;
+    font-size: 0.85rem !important;
+    color: #38bdf8 !important; /* Sky Blue accent */
+    font-weight: 600 !important;
+    margin-top: 4px !important;
+    text-align: center !important;
+    display: block !important;
+}
+
+body.app-body .sidebar .user-info small a {
+    color: #38bdf8 !important;
+    text-decoration: underline !important;
+}
+
+/* Overhaul the gray/white group boxes into premium dark-transparent cards */
+body.app-body .menu-group,
+body.app-body .sidebar-shortcuts {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(56, 189, 248, 0.12) !important;
+    border-radius: 16px !important;
+    margin: 8px 6px !important;
+    padding: 6px !important;
+    box-shadow: none !important;
+}
+
+body.app-body .sidebar .menu-group-title {
+    font-family: 'Tajawal', sans-serif !important;
+    font-size: 0.98rem !important;
+    font-weight: 700 !important;
+    color: #cbd5e1 !important;
+    padding: 12px 16px !important;
+    margin: 2px !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    border: none !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    transition: all 0.2s ease !important;
+}
+
+body.app-body .sidebar .menu-group-title:hover {
+    background: rgba(56, 189, 248, 0.08) !important;
+    color: #ffffff !important;
+}
+
+body.app-body .sidebar .menu-item {
+    font-family: 'Tajawal', sans-serif !important;
+    font-size: 0.96rem !important;
+    color: #94a3b8 !important;
+    padding: 11px 16px !important;
+    margin: 4px 2px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    transition: all 0.2s ease !important;
+    border-right: 3px solid transparent !important;
+}
+
+body.app-body .sidebar .menu-item i {
+    font-size: 1.1rem !important;
+    width: 22px !important;
+    text-align: center !important;
+    color: #38bdf8 !important;
+    opacity: 0.85 !important;
+    transition: all 0.2s ease !important;
+}
+
+body.app-body .sidebar .menu-item:hover {
+    background: rgba(56, 189, 248, 0.08) !important;
+    color: #ffffff !important;
+    border-right-color: rgba(56, 189, 248, 0.5) !important;
+}
+
+body.app-body .sidebar .menu-item:hover i {
+    opacity: 1 !important;
+    transform: scale(1.1) !important;
+    color: #ffffff !important;
+}
+
+body.app-body .sidebar .menu-item.active {
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.3) 0%, rgba(0, 15, 30, 0.8) 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border-right-color: #38bdf8 !important;
+    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.15), 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.app-body .sidebar .menu-item.active i {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+body.app-body .sidebar .sidebar-shortcuts__title {
+    font-family: 'Tajawal', sans-serif !important;
+    font-size: 0.8rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    color: #475569 !important;
+    margin-right: 15px !important;
+    margin-top: 15px !important;
+    margin-bottom: 5px !important;
+    font-weight: 900 !important;
+}
+
+body.app-body .sidebar .sub-menu {
+    border-right: 1px dashed rgba(56, 189, 248, 0.2) !important;
+    margin-right: 18px !important;
+    padding-right: 4px !important;
+}
+
+body.app-body .sidebar .sub-item {
+    font-size: 0.9rem !important;
+    padding: 10px 14px !important;
+}

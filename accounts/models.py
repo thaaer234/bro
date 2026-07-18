@@ -1964,6 +1964,11 @@ class Studentenrollment(models.Model):
                 print(f"Error deleting classroom enrollments: {e}")
 
     @property
+    def is_active(self):
+        """Check if the enrollment is active (i.e., not completed or withdrawn)"""
+        return not self.is_completed
+
+    @property
     def net_amount(self):
         """Calculate net amount after discounts"""
         after_percent = self.total_amount - (self.total_amount * self.discount_percent / Decimal('100'))
@@ -2106,6 +2111,11 @@ class StudentReceipt(models.Model):
 
     def get_absolute_url(self):
         return reverse('accounts:student_receipt_detail', kwargs={'pk': self.pk})
+
+    @property
+    def is_active(self):
+        """Check if the enrollment is active (i.e., not completed or withdrawn)"""
+        return not self.is_completed
 
     @property
     def net_amount(self):

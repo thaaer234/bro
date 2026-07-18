@@ -3,9 +3,9 @@
     --sitemap-card: rgba(255, 255, 255, 0.96);
     --sitemap-border: rgba(15, 23, 42, 0.08);
     --sitemap-shadow: 0 22px 45px rgba(15, 23, 42, 0.08);
-    --sitemap-accent: #0f766e;
+    --sitemap-accent: #00668a;
     --sitemap-accent-strong: #0b5f5a;
-    --sitemap-accent-soft: rgba(15, 118, 110, 0.1);
+    --sitemap-accent-soft: rgba(0, 102, 138, 0.1);
     --sitemap-text: #0f172a;
     --sitemap-muted: #475569;
     display: grid;
@@ -41,7 +41,7 @@
     width: 240px;
     height: 240px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(20, 184, 166, 0.18), rgba(20, 184, 166, 0));
+    background: radial-gradient(circle, rgba(0, 77, 106, 0.18), rgba(0, 77, 106, 0));
     pointer-events: none;
 }
 
@@ -84,7 +84,7 @@
     padding: 1rem 1.1rem;
     border-radius: 1.2rem;
     background: rgba(255, 255, 255, 0.86);
-    border: 1px solid rgba(15, 118, 110, 0.1);
+    border: 1px solid rgba(0, 102, 138, 0.1);
 }
 
 .site-map-permissions__stat strong {
@@ -184,11 +184,11 @@
     min-height: 58px;
     padding: 0.95rem 1rem;
     border-radius: 1.1rem;
-    background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+    background: linear-gradient(135deg, #00668a 0%, #14b8a6 100%);
     color: #fff;
     text-decoration: none;
     font-weight: 800;
-    box-shadow: 0 14px 28px rgba(15, 118, 110, 0.2);
+    box-shadow: 0 14px 28px rgba(0, 102, 138, 0.2);
     transform: perspective(1000px) translateZ(0);
     transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
@@ -197,7 +197,7 @@
     color: #fff;
     filter: saturate(1.05);
     transform: perspective(1000px) translateY(-3px) rotateX(4deg);
-    box-shadow: 0 18px 35px rgba(15, 118, 110, 0.26);
+    box-shadow: 0 18px 35px rgba(0, 102, 138, 0.26);
 }
 
 .site-map-permissions__icon {
@@ -222,7 +222,7 @@
 
 .site-map-permissions__mini-chip {
     padding: 0.35rem 0.7rem;
-    background: rgba(15, 118, 110, 0.08);
+    background: rgba(0, 102, 138, 0.08);
     color: var(--sitemap-accent-strong);
     font-size: 0.84rem;
 }
@@ -295,8 +295,8 @@
     justify-content: center;
     padding: 0.3rem 0.7rem;
     border-radius: 999px;
-    background: rgba(15, 118, 110, 0.08);
-    color: #0f766e;
+    background: rgba(0, 102, 138, 0.08);
+    color: #00668a;
     font-size: 0.82rem;
 }
 
@@ -331,7 +331,7 @@
     width: 52px;
     height: 52px;
     border-radius: 0.95rem;
-    background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+    background: linear-gradient(135deg, #00668a 0%, #14b8a6 100%);
     color: #fff;
     font-size: 1.15rem;
 }

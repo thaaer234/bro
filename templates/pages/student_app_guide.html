@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>دليل تطبيق الطالب والبطاقة الذكية | معهد اليمان</title>
+    <title>دليل تطبيق الطالب والبطاقة الذكية | معهد النبلاء</title>
     <!-- خط القاهرة والتاجوال من جوجل -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Cairo', 'Tajawal', sans-serif;
+            font-family: var(--font-body), 'Tajawal', sans-serif;
             scroll-behavior: smooth;
         }
 
@@ -281,13 +281,13 @@
             box-sizing: border-box;
             border: 2px solid var(--purple-dark);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif !important;
             direction: ltr;
         }
 
         .student-card * {
             box-sizing: border-box;
-            font-family: "Cairo", "Tajawal", "Segoe UI", sans-serif !important;
+            font-family: var(--font-body), "Tajawal", "Segoe UI", sans-serif !important;
         }
 
         .student-card:hover {
@@ -1635,7 +1635,7 @@
                 <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار المعهد">
             </div>
             <div class="institute-name">
-                <i class="fa-solid fa-graduation-cap"></i> معهد اليمان للعلوم واللغات
+                <i class="fa-solid fa-graduation-cap"></i> معهد النبلاء للعلوم واللغات
             </div>
             <h1 class="main-title">دليل استخدام تطبيق المعهد والبطاقة الذكية</h1>
             <p class="subtitle">كل ما تود معرفته حول كيفية تحميل تطبيق المعهد، الاستفادة من بطاقة الطالب الذكية لتسجيل الدخول الفوري، ومتابعة التحصيل العلمي والمالي للطلاب بسهولة.</p>
@@ -1660,7 +1660,7 @@
             </div>
             
             <p style="margin-bottom: 25px; color: var(--text-muted);">
-                تمنح إدارة معهد اليمان كل طالب بطاقة تعريفية ذكية تحتوي على بياناته الأساسية ورموز استجابة سريعة (QR Codes) فريدة مخصصة للطالب ولوالديه للوصول الفوري إلى حساباتهم في التطبيق.
+                تمنح إدارة معهد النبلاء كل طالب بطاقة تعريفية ذكية تحتوي على بياناته الأساسية ورموز استجابة سريعة (QR Codes) فريدة مخصصة للطالب ولوالديه للوصول الفوري إلى حساباتهم في التطبيق.
             </p>
 
             <div class="cards-static-layout">
@@ -1674,7 +1674,7 @@
                             <div class="front-title">
                                 <span class="label">بطاقة الطالب</span>
                                 <div class="name-row">
-                                    <span class="name">محمد بن أحمد اليمان</span>
+                                    <span class="name">محمد بن أحمد النبلاء</span>
                                     <span class="line"></span>
                                 </div>
                             </div>
@@ -1824,7 +1824,7 @@
                             
                             <!-- شاشة الدخول للمحاكي -->
                             <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="App Logo" class="mock-app-logo">
-                            <div class="mock-app-title">معهد اليمان</div>
+                            <div class="mock-app-title">معهد النبلاء</div>
                             <div class="mock-app-subtitle">أهلاً بك في بوابة الطالب</div>
                             
                             <div class="mock-form">
@@ -1832,7 +1832,7 @@
                                     <span class="mock-field-label">اسم المستخدم أو الرقم</span>
                                     <div class="mock-input-wrap">
                                         <i class="fa-solid fa-user mock-input-icon"></i>
-                                        <input type="text" class="mock-input" id="mock-user" placeholder="اكتب اسم المستخدم" readonly value="محمد بن أحمد اليمان">
+                                        <input type="text" class="mock-input" id="mock-user" placeholder="اكتب اسم المستخدم" readonly value="محمد بن أحمد النبلاء">
                                         <button class="mock-qr-btn" onclick="toggleMockCamera(true)" title="تسجيل الدخول عبر QR">
                                             <i class="fa-solid fa-qrcode"></i>
                                         </button>
@@ -1911,7 +1911,7 @@
             </div>
             
             <p style="text-align: center; max-width: 800px; margin: 0 auto 30px; color: var(--text-muted);">
-                تطبيق معهد اليمان هو وسيلة الاتصال والربط الكاملة بين إدارة المعهد، الكادر التدريسي، والطلاب وأولياء أمورهم لمتابعة المستويات والخدمات التعليمية.
+                تطبيق معهد النبلاء هو وسيلة الاتصال والربط الكاملة بين إدارة المعهد، الكادر التدريسي، والطلاب وأولياء أمورهم لمتابعة المستويات والخدمات التعليمية.
             </p>
 
             <div class="features-grid">
@@ -1977,7 +1977,7 @@
     <footer>
         <div class="footer-container">
             <img src="{% static 'img/logo.png' %}" onerror="this.src='https://yaman2.pythonanywhere.com/static/img/logo.png'" alt="شعار المعهد" class="footer-logo">
-            <h3 style="margin-bottom: 10px; color: var(--gold);">معهد اليمان للعلوم واللغات</h3>
+            <h3 style="margin-bottom: 10px; color: var(--gold);">معهد النبلاء للعلوم واللغات</h3>
             <p class="footer-text">الرائدون في تقديم أفضل الخدمات التعليمية والمناهج المتقدمة مع الربط البرمجي الذكي لمتابعة الطلاب بأحدث التقنيات.</p>
             
             <div class="footer-contacts">
@@ -1993,7 +1993,7 @@
                 </div>
             </div>
 
-            <p class="copyright">معهد اليمان - جميع الحقوق محفوظة &copy; <span id="current-year"></span></p>
+            <p class="copyright">معهد النبلاء - جميع الحقوق محفوظة &copy; <span id="current-year"></span></p>
         </div>
     </footer>
 
@@ -2013,7 +2013,7 @@
                 setTimeout(() => {
                     if (screen.classList.contains('scanning')) {
                         // ملء الحقول تلقائياً
-                        document.getElementById('mock-user').value = "محمد بن أحمد اليمان";
+                        document.getElementById('mock-user').value = "محمد بن أحمد النبلاء";
                         document.getElementById('mock-pass').value = "202610532";
                         // إغلاق الكاميرا وتنبيه
                         toggleMockCamera(false);

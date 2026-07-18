@@ -805,6 +805,7 @@ class EmployeePermission(models.Model):
         ('students_manual_sorting', 'تقاطع الطلاب والفرز اليدوي'),
         ('academic_years_select', 'اختيار الفصل الدراسي الحالي'),
         ('academic_years_manage', 'إدارة الفصول ونقل البيانات'),
+        ('employee_daily_report', 'الوصول لتقرير العمل اليومي'),
     ]
 
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='permissions')

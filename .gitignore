@@ -48,6 +48,8 @@ db.sqlite3*
 .idea/
 Thumbs.db
 *.sqlite3.corrupt_*
+.DS_Store
+**/.DS_Store
 
 # Local scratch files and report outputs
 scratch/
@@ -55,3 +57,5 @@ report.html
 report copy.html
 report.pdf
 static/img/report/
+مهملات/
+دماغ التصميم/

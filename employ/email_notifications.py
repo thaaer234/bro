@@ -323,7 +323,7 @@ def _punch_context(log):
 def send_biometric_punch_email(log):
     punch_context = _punch_context(log)
     context = {
-        'brand_name': getattr(settings, 'BIOMETRIC_EMAIL_BRAND_NAME', 'معهد اليمان'),
+        'brand_name': getattr(settings, 'BIOMETRIC_EMAIL_BRAND_NAME', 'معهد النبلاء'),
         'brand_short': getattr(settings, 'BIOMETRIC_EMAIL_BRAND_SHORT', 'دوام الموظفين'),
         'punch_time': _format_local_dt(log.punch_time),
         'device_user_id': log.device_user_id,
@@ -458,7 +458,7 @@ def build_biometric_summary(start_date, end_date, label='ملخص البصمات
 def send_biometric_summary(start_date, end_date, label='ملخص البصمات', filename_prefix='biometric-summary'):
     report = build_biometric_summary(start_date, end_date, label=label)
     context = {
-        'brand_name': getattr(settings, 'BIOMETRIC_EMAIL_BRAND_NAME', 'معهد اليمان'),
+        'brand_name': getattr(settings, 'BIOMETRIC_EMAIL_BRAND_NAME', 'معهد النبلاء'),
         'brand_short': getattr(settings, 'BIOMETRIC_EMAIL_BRAND_SHORT', 'دوام الموظفين'),
         'report': report,
     }

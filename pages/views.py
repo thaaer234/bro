@@ -279,75 +279,69 @@ class IndexView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        from accounts.models import Account
+        from academic_years.middleware import get_current_academic_year_thread
         
-        # إحصائيات الطلاب والمدرسين
-        context['students_count'] = Student.objects.count()
-        context['teachers_count'] = Teacher.objects.count()
-        
-        # حساب الدخل والمصروفات الشهرية
-        start_date = timezone.now().replace(day=1)
-        end_date = start_date + timedelta(days=31)
-        
-        # context['monthly_income'] = Transaction.objects.filter(
-        #     type='income',
-        #     date__gte=start_date,
-        #     date__lte=end_date
-        # ).aggregate(Sum('amount'))['amount__sum'] or 0
-        
-        # context['monthly_expenses'] = Transaction.objects.filter(
-        #     type='expense',
-        #     date__gte=start_date,
-        #     date__lte=end_date
-        # ).aggregate(Sum('amount'))['amount__sum'] or 0
-        
-        # جلب جميع المستخدمين للفلترة باستثناء admin
-        context['users'] = User.objects.exclude(username='admin')
-        
-        # جلب معاملات الفلترة من الطلب
-        user_filter = self.request.GET.get('user', '')
-        start_date_filter = self.request.GET.get('start_date', '')
-        end_date_filter = self.request.GET.get('end_date', '')
-        
-        # حفظ قيم الفلترة للعرض في القوائم
-        context['selected_user'] = user_filter
-        context['start_date'] = start_date_filter
-        context['end_date'] = end_date_filter
-        
-        # بناء الاستعلام مع الفلترة - استبعاد نشاطات admin
-        activity_query = ActivityLog.objects.filter(
-            Q(user__is_superuser=False) | Q(user__isnull=True)
-        ).exclude(content_type='LogEntry')
-        
-        # استبعاد نشاطات المستخدم admin إذا كان اسم المستخدم admin
-        activity_query = activity_query.exclude(user__username='admin')
-        
-        # تطبيق فلترة المستخدم
-        if user_filter:
-            activity_query = activity_query.filter(user_id=user_filter)
-        
-        # تطبيق فلترة التاريخ
-        if start_date_filter:
-            try:
-                start_date = datetime.strptime(start_date_filter, '%Y-%m-%d')
-                activity_query = activity_query.filter(timestamp__gte=start_date)
-            except ValueError:
-                pass  # تجاهل في حالة تاريخ غير صحيح
-        
-        if end_date_filter:
-            try:
-                end_date = datetime.strptime(end_date_filter, '%Y-%m-%d')
-                # إضافة يوم كامل للتأكد من تضمين اليوم المحدد
-                end_date = end_date + timedelta(days=1)
-                activity_query = activity_query.filter(timestamp__lt=end_date)
-            except ValueError:
-                pass  # تجاهل في حالة تاريخ غير صحيح
-        
-        # ترتيب النتائج وتحديد العدد
-        context['recent_activities'] = activity_query.order_by('-timestamp')[:2000]  # تحديد 50 نشاط فقط
+        try:
+            academic_year = get_current_academic_year_thread()
+            
+            # 1. Employee cashbox / physical safe accounts (starting with 121)
+            cashbox_qs = Account.objects.filter(code__startswith='121', is_active=True).order_by('code')
+            cashboxes = []
+            total_cash_balance = Decimal('0.00')
+            for acc in cashbox_qs:
+                balance = acc.get_rollup_balance(academic_year=academic_year)
+                cashboxes.append({
+                    'code': acc.code,
+                    'name': acc.name_ar or acc.name,
+                    'balance': balance,
+                })
+                if acc.code == '121':
+                    total_cash_balance = balance
+
+            # 2. Main Expense Account (code 5) and direct sub-expenses
+            main_expense_acc = Account.objects.filter(code='5', is_active=True).first()
+            main_expense = None
+            sub_expenses = []
+            if main_expense_acc:
+                main_expense_balance = main_expense_acc.get_rollup_balance(academic_year=academic_year)
+                main_expense = {
+                    'code': main_expense_acc.code,
+                    'name': main_expense_acc.name_ar or main_expense_acc.name,
+                    'balance': main_expense_balance
+                }
+                # Direct child expense accounts
+                sub_expense_qs = Account.objects.filter(parent=main_expense_acc, is_active=True).order_by('code')
+                for acc in sub_expense_qs:
+                    sub_bal = acc.get_rollup_balance(academic_year=academic_year)
+                    percentage = 0
+                    if main_expense_balance > 0:
+                        percentage = float((sub_bal / main_expense_balance) * 100)
+                    sub_expenses.append({
+                        'code': acc.code,
+                        'name': acc.name_ar or acc.name,
+                        'balance': sub_bal,
+                        'percentage': round(percentage, 2)
+                    })
+
+            context.update({
+                'cashboxes': cashboxes,
+                'total_cash_balance': total_cash_balance,
+                'main_expense': main_expense,
+                'sub_expenses': sub_expenses,
+            })
+        except Exception as e:
+            context.update({
+                'cashboxes': [],
+                'total_cash_balance': Decimal('0.00'),
+                'main_expense': None,
+                'sub_expenses': [],
+                'error_message': str(e)
+            })
         
         return context
-    
-    
+
+
 class welcome(LoginRequiredMixin, TemplateView):
     template_name = 'pages/welcome.html'
 

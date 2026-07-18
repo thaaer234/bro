@@ -235,7 +235,7 @@ class UserTrackingAdmin(admin.ModelAdmin):
 
 # لوحة تحكم مخصصة مع زر الداشبورد
 class CustomAdminSite(admin.AdminSite):
-    site_header = "نظام مراقبة الأخطاء المتقدم - معهد اليمان"
+    site_header = "نظام مراقبة الأخطاء المتقدم - معهد النبلاء"
     site_title = "نظام المراقبة المتقدم"
     index_title = "لوحة التحكم الرئيسية - المراقبة الشاملة"
     

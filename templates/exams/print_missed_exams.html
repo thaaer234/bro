@@ -3,7 +3,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تقرير الطلاب المتخلفين عن الامتحانات - معهد اليمان</title>
+    <title>تقرير الطلاب المتخلفين عن الامتحانات - معهد النبلاء</title>
     <!-- استدعاء خطوط Google Fonts الحديثة -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,7 +16,7 @@
         }
         
         body {
-            font-family: 'Cairo', sans-serif;
+            font-family: var(--font-body), sans-serif;
             margin: 0;
             padding: 0;
             color: #0f172a;
@@ -424,7 +424,7 @@
             <div class="logo-container">
                 <img src="{% static 'img/logo.png' %}" alt="شعار المعهد" onerror="this.src='https://placehold.co/100x100?text=Logo'">
                 <div>
-                    <h1>معههد اليمان</h1>
+                    <h1>معهد النبلاء</h1>
                     <p>المتابعة والتدقيق الأكاديمي</p>
                 </div>
             </div>
@@ -589,7 +589,7 @@
 
         <!-- تذييل الصفحة الإداري للطباعة A4 -->
         <footer class="print-footer">
-            <span>نظام معهد اليمانالأكاديمي المتكامل</span>
+            <span>نظام معهد النبلاء الأكاديمي المتكامل</span>
             <span>طُبع بواسطة: {{ request.user.username }}</span>
             <span>صفحة 1 من 1</span>
         </footer>

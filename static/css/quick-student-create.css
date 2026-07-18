@@ -1,5 +1,5 @@
 .quick-student-create-page {
-    --student-accent: #0f766e;
+    --student-accent: #00668a;
     --student-accent-strong: #1d4ed8;
     --student-ink: #102a43;
     --student-soft: #526275;
@@ -13,7 +13,7 @@
     border: 1px solid rgba(15, 23, 42, 0.08);
     border-radius: 30px;
     background:
-        radial-gradient(circle at top left, rgba(15, 118, 110, 0.14), transparent 0 28%),
+        radial-gradient(circle at top left, rgba(0, 102, 138, 0.14), transparent 0 28%),
         radial-gradient(circle at bottom right, rgba(29, 78, 216, 0.12), transparent 0 28%),
         linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(244, 248, 255, 0.96));
     box-shadow: 0 28px 60px rgba(15, 23, 42, 0.08);
@@ -33,7 +33,7 @@
     gap: 0.45rem;
     padding: 0.42rem 0.8rem;
     border-radius: 999px;
-    background: rgba(15, 118, 110, 0.12);
+    background: rgba(0, 102, 138, 0.12);
     color: var(--student-accent);
     font-size: 0.82rem;
     font-weight: 800;
@@ -45,7 +45,7 @@
 .quick-student-create-section__head h2 {
     margin: 0;
     color: var(--student-ink);
-    font-family: "Cocon Next Arabic", "Tajawal", sans-serif;
+    font-family: "Tajawal", "Tajawal", sans-serif;
 }
 
 .quick-student-create-hero h1 {
@@ -145,7 +145,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 16px;
-    background: linear-gradient(135deg, rgba(15, 118, 110, 0.16), rgba(29, 78, 216, 0.16));
+    background: linear-gradient(135deg, rgba(0, 102, 138, 0.16), rgba(29, 78, 216, 0.16));
     color: var(--student-ink);
     font-weight: 900;
 }
@@ -224,7 +224,8 @@
 .quick-student-create-control i {
     position: absolute;
     top: 50%;
-    inset-inline-start: 1rem;
+    right: 1.2rem !important;
+    left: auto !important;
     transform: translateY(-50%);
     color: var(--student-accent);
     z-index: 2;
@@ -237,7 +238,10 @@
 
 .quick-student-create-input {
     min-height: 54px;
-    padding-inline-start: 2.8rem !important;
+    padding-right: 3rem !important;
+    padding-left: 1rem !important;
+    direction: rtl !important;
+    text-align: right !important;
     border-radius: 18px !important;
     border: 1px solid rgba(148, 163, 184, 0.34) !important;
     background: rgba(255, 255, 255, 0.94) !important;
