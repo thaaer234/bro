@@ -224,8 +224,12 @@ class StudentProfileView(LoginRequiredMixin, View):
         print(f"🎯 [DEBUG] عدد التسجيلات في DB: {enrollments.count()}")
         
         active_enrollments_data = []
+        course_enrollments_data = []
+        transport_enrollments_data = []
         total_paid = Decimal('0.00')
         total_due = Decimal('0.00')
+        
+        transport_keywords = ['مواصلات', 'نقل', 'باص', 'سرفيس']
         
         for enrollment in enrollments:
             print(f"🎯 [DEBUG] معالجة التسجيل: {enrollment.id} - {enrollment.course.name}")
@@ -238,12 +242,22 @@ class StudentProfileView(LoginRequiredMixin, View):
             net_amount = enrollment.net_amount if enrollment.net_amount is not None else (enrollment.total_amount or Decimal('0.00'))
             balance_due = enrollment.balance_due
             
-            active_enrollments_data.append({
+            c_name = (enrollment.course.name or '').strip()
+            is_transport = any(k in c_name for k in transport_keywords)
+            
+            enrollment_info = {
                 'enrollment': enrollment,
                 'total_paid': enrollment_paid,
                 'balance_due': balance_due,
                 'net_amount': net_amount,
-            })
+                'is_transport': is_transport,
+            }
+            
+            active_enrollments_data.append(enrollment_info)
+            if is_transport:
+                transport_enrollments_data.append(enrollment_info)
+            else:
+                course_enrollments_data.append(enrollment_info)
             
             total_paid += enrollment_paid
             total_due += net_amount
@@ -341,6 +355,9 @@ class StudentProfileView(LoginRequiredMixin, View):
         context = {
             'student': student,
             'active_enrollments': active_enrollments_data,
+            'course_enrollments': course_enrollments_data if course_enrollments_data else active_enrollments_data,
+            'transport_enrollments': transport_enrollments_data,
+            'has_transport_enrollments': len(transport_enrollments_data) > 0,
             'total_paid': total_paid,
             'total_due': total_due,
             'total_remaining': total_remaining,
